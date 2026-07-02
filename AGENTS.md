@@ -1,5 +1,20 @@
 # Agent Instructions
 
+## Research & Original Code (TOP PRIORITY)
+When implementing calculations, functions, or algorithms:
+1. **ALWAYS look at the original `openjyotish.exe` binary first** — it contains 3,150 functions with known addresses mapped in `docs/the function map.md`
+2. Use `analysis` (at `<local>/.local/bin/analysis`) to decompile specific functions to pseudocode:
+   ```
+   analysis openjyotish.exe
+   ```
+   Output goes to `jhora.analysis/` — contains `.dis` files (the analysis tool pseudocode) and `.asm` files (x86 disassembly)
+3. `docs/the function map.md` catalogs all known functions with sizes, guessed purposes, and the original vtable entries
+4. `docs/swe_xrefs.md` maps all 18 Swiss Ephemeris API calls to their calling functions
+5. **Only if the original function is unrecoverable or provably wrong**, fall back to writing your own implementation based on:
+   - The original the tradition help file (`docs/help/help notes.md`)
+   - Reference textbooks (`docs/books/`)
+   - Vedic astrology standard formulas
+
 ## GUI Design
 - The GUI must always be **harmonic, proportional, and stylish** — matching the existing dark theme (PyQt6, Fusion style)
 - Consistent spacing: use 10px grid, consistent margins, proportional splitter ratios
