@@ -28,8 +28,9 @@ def add(lon: float, delta: float) -> float:
 
 
 def midpoint(a: float, b: float) -> float:
-    """Midpoint (sunya) between two longitudes."""
-    return normalize((normalize(a) + normalize(b)) / 2.0)
+    """Midpoint (sunya) between two longitudes along the shortest arc."""
+    d = signed_diff(b, a)
+    return normalize(a + d / 2.0)
 
 
 def aspect_angle(a: float, b: float) -> float:
