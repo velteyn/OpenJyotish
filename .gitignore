@@ -1,0 +1,26 @@
+# Binaries from original the tradition distribution
+openjyotish.exe
+swedll32.dll
+jhora.hlp
+jhora.cnt
+
+# Reverse-engineering artifacts (no longer needed)
+jhora.analysis/
+analysis_out/
+the analysis tool_out/
+
+# Book PDFs (large, copyrighted)
+docs/books/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
