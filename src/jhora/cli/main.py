@@ -16,6 +16,7 @@ from rich.table import Table
 
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
+from jhora.calc.shadbala import ShadbalaComputer
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
@@ -87,7 +88,12 @@ def dasa(
     if system == "vimsottari":
         engine = VimsottariDasa()
         periods = engine.compute(chart_data.julian_day, chart_dict)
-        _display_dasa_table(periods)
+        _display_dasa_table(periods, "Vimsottari Dasa Periods")
+    elif system == "ashtottari":
+        from jhora.dasas.ashtottari import AshtottariDasa
+        engine = AshtottariDasa()
+        periods = engine.compute(chart_data.julian_day, chart_dict)
+        _display_dasa_table(periods, "Ashtottari Dasa Periods")
 
 
 @app.command()
@@ -179,9 +185,9 @@ def _lord_name(idx: int) -> str:
         return str(idx)
 
 
-def _display_dasa_table(periods):
+def _display_dasa_table(periods, title: str = "Dasa Periods"):
     """Display dasa periods in a table."""
-    table = Table(title="Vimsottari Dasa Periods")
+    table = Table(title=title)
     table.add_column("Lord", style="cyan")
     table.add_column("Start", style="green")
     table.add_column("End", style="yellow")
@@ -301,6 +307,53 @@ def gui():
     window = MainWindow()
     window.show()
     qapp.exec()
+
+
+@app.command()
+def shadbala(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Compute Shadbala (six-fold planetary strength)."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    comp = ShadbalaComputer(cd)
+    results = comp.compute()
+
+    table = Table(title="Shadbala — Planetary Strengths")
+    table.add_column("Planet", style="cyan")
+    table.add_column("Sthana", style="yellow")
+    table.add_column("Dig", style="yellow")
+    table.add_column("Kala", style="yellow")
+    table.add_column("Chesta", style="yellow")
+    table.add_column("Naisarg", style="yellow")
+    table.add_column("Drik", style="yellow")
+    table.add_column("Total (R)", style="green bold")
+    table.add_column("Total (V)", style="white")
+
+    planets_order = [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                     Graha.JUPITER, Graha.VENUS, Graha.SATURN]
+    for g in planets_order:
+        if g not in results:
+            continue
+        r = results[g]
+        table.add_row(
+            r.graha.full_name,
+            f"{r.sthana_total/60:.2f}",
+            f"{r.dig_total/60:.2f}",
+            f"{r.kala_total/60:.2f}",
+            f"{r.chesta_total/60:.2f}",
+            f"{r.naisargika.rupa:.2f}",
+            f"{r.drik.rupa:.2f}",
+            f"{r.total_rupa:.2f}",
+            f"{r.total_virupa:.0f}",
+        )
+    console.print(table)
 
 
 def _parse_varga_level(name: str) -> VargaLevel:
