@@ -258,21 +258,21 @@ _Beautiful, professional desktop app._
 ```
 DONE:
 ├── Core types (Graha, Rasi, Nakshatra, Varga, Bhava, Dasa)
-├── SweEngine wrapper (all 18 SE API calls)
+├── SweEngine wrapper (all 18 SE API calls, sidereal mode)
 ├── ChartBuilder + ChartData (frozen dataclass)
 ├── Planet dignity calculator
 ├── Vimsottari Dasa (full MD/AD periods)
-├── Dark PyQt6 GUI (3 chart styles, planet table, house table, dasa tab)
-├── CLI (chart, dasa, navamsa, gui, interpret, knowledge commands)
+├── Yogas engine (10+ types, 12 categories, 100+ combos)
+├── Dark PyQt6 GUI (3 chart styles, planet table, house table, dasa tab, yogas tab)
+├── CLI (chart, dasa, navamsa, yogas, gui, interpret, knowledge commands)
 ├── Book knowledge base (16 sources, 1.9M chars, full-text search)
-├── Chart interpreter (rule-based reading generator)
+├── Chart interpreter (rule-based reading generator, connected to yogas)
 └── Author's textbook + 15 research articles downloaded
 
 NEXT:
 ├── Varga charts (D-2 through D-60) ← STARTING HERE
 ├── Ashtottari, Narayana, Kalachakra dasas
 ├── Shadbala strength computation
-├── Yogas detection engine
 ├── Dasa timeline visualization
 ├── Client database
 └── AI chat integration (Ollama)
