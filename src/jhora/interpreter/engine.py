@@ -2,9 +2,10 @@
 
 from typing import Dict, List, Optional
 
-from typing import Any
+from typing import Any, List
 
 from jhora.charts.chart import ChartData, PlanetChartData
+from jhora.calc.yogas import detect_all, YogaResult
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 from jhora.interpreter.texts import (
@@ -46,7 +47,7 @@ class ChartInterpreter:
         yogas = self._detect_yogas(cd)
         if yogas:
             for y in yogas:
-                parts.append(f"  {y}")
+                parts.append(f"  {y.format()}")
         else:
             parts.append("  No major yogas detected")
 
@@ -130,20 +131,8 @@ class ChartInterpreter:
             f"{RASI_MEANINGS.get(asc_rasi.full_name, '')}"
         )
 
-    def _detect_yogas(self, cd: ChartData) -> List[str]:
-        yogas = []
-        # Gaja Kesari: Ju + Mo in kendra
-        if Graha.MOON in cd.planets and Graha.JUPITER in cd.planets:
-            moon_rasi = cd.planets[Graha.MOON].rasi.value
-            jup_rasi = cd.planets[Graha.JUPITER].rasi.value
-            diff = abs(moon_rasi - jup_rasi) % 12
-            if diff in (1, 4, 7, 10):  # kendra from each other... actually kendra = 4,7,10
-                # Gaja Kesari requires kendra (1,4,7,10 from each other)
-                # Actually it's specifically 1, 4, 7, 10 - i.e., same sign or trines
-                # Let me recheck - Gaja Kesari: Moon and Jupiter in kendra (1,4,7,10)
-                if diff in (0, 4, 7, 10):
-                    yogas.append("Gaja Kesari Yoga — Jupiter and Moon in kendra")
-        return yogas
+    def _detect_yogas(self, cd: ChartData) -> List[YogaResult]:
+        return detect_all(cd)
 
     def _lagna_analysis(self, cd: ChartData) -> Dict:
         return {"text": self._lagna_text(cd)}
