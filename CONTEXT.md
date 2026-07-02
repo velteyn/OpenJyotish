@@ -28,17 +28,18 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao** (p
 ## Current Status
 
 ### Deployed
-- `src/jhora/` — Python package with **30 modules** across 15 subpackages
+- `src/jhora/` — Python package with **33 modules** across 16 subpackages
 - Core types: Graha, Rasi, Nakshatra, Varga, Bhava, Dasa
 - Ephemeris: SweEngine wrapping all 18 SE APIs, sidereal positions
 - Chart: ChartBuilder + ChartData (immutable), planet dignity
-- Dasa: Vimsottari (full MD/AD periods)
-- Yogas: 10+ yoga types, 12 categories, 100+ combos (Pancha Mahapurusha, Raja, Dhana, Viparita Raja, Neecha Bhanga Raja, Parivartana, Chandra yogas, Surya yogas, Kemadruma, Amala, Dharma-Karma-Adhipati, Kala Sarpa)
-- CLI: `chart`, `dasa`, `navamsa`, `yogas`, `interpret`, `knowledge`, `gui`
-- GUI: PyQt6 dark theme, South/North/East Indian chart styles, planet/house/dasa/yogas tables
+- Dasa: Vimsottari (full MD/AD periods), **Ashtottari** (108-year system)
+- Yogas: 10+ yoga types, 12 categories, 100+ combos
+- Shadbala: Six-fold planetary strength computation (sthana, dig, kala, chesta, naisargika, drik)
+- CLI: `chart`, `dasa` (vimsottari + ashtottari), `navamsa`, `varga`, `shadbala`, `yogas`, `interpret`, `knowledge`, `gui`
+- GUI: PyQt6 dark theme, South/North/East Indian chart styles, planet/house/dasa/shadbala/yogas tables
 - Interpreter: Chart reading generator (rule-based, connected to yogas engine), knowledge base search
 - Books: Author's textbook (515pp) + margabandhu (322pp) + 14 articles downloaded & text-extracted
-- Tests: 228 passing
+- Tests: 338 passing
 
 ### Building Now
 - **Varga charts** (D-2 through D-60) — the #1 professional feature
