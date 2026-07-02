@@ -2,6 +2,8 @@
 
 from typing import Dict, List, Optional
 
+from typing import Any
+
 from jhora.charts.chart import ChartData, PlanetChartData
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
@@ -74,6 +76,22 @@ class ChartInterpreter:
             f"({asc_naks} Pada {asc_pada})\n"
             f"Moon: {cd.moon.rasi_name} at {cd.moon.longitude:.2f}°"
         )
+
+    def _planet_placements(self, cd: ChartData) -> Dict[str, Any]:
+        result = {}
+        for g in Graha:
+            if g in cd.planets:
+                p = cd.planets[g]
+                result[g.full_name] = {
+                    "longitude": p.longitude,
+                    "rasi": p.rasi_name,
+                    "degrees_in_rasi": p.degrees_in_rasi,
+                    "nakshatra": p.nakshatra_name,
+                    "pada": p.nakshatra_pada,
+                    "dignity": p.dignity,
+                    "retrograde": p.is_retrograde,
+                }
+        return result
 
     def _planet_text(self, cd: ChartData, g: Graha) -> str:
         p = cd.planets[g]

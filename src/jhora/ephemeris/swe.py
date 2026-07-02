@@ -37,7 +37,7 @@ SEFLG_SPEED = swe.FLG_SPEED          # 256
 SEFLG_SIDEREAL = swe.FLG_SIDEREAL    # 64
 SEFLG_TOPO = swe.FLG_TOPOCTR         # 8192
 SEFLG_SWIEPH = swe.FLG_SWIEPH        # 1024
-SEFLG_DEFAULT = SEFLG_SWIEPH | SEFLG_SPEED
+SEFLG_DEFAULT = SEFLG_SWIEPH | SEFLG_SPEED | SEFLG_SIDEREAL
 
 # Sidereal modes (matching JHora ayanamsas)
 # Using available pyswisseph constants:

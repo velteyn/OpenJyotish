@@ -41,7 +41,7 @@ class Nakshatra(IntEnum):
 
     @property
     def start_longitude(self) -> float:
-        return float(self.value * 13 + (self.value * 20 // 60))  # ~13°20' per nakshatra
+        return self.value * (360.0 / 27.0)  # 13°20' per nakshatra
 
     @property
     def span(self) -> float:

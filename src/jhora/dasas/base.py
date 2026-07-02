@@ -41,12 +41,13 @@ class DasaBase(ABC):
         """
         ...
 
-    def get_active_period(self, periods: List[DasaPeriod], target_jd: float) -> Optional[DasaPeriod]:
+    @staticmethod
+    def get_active_period(periods: List[DasaPeriod], target_jd: float) -> Optional[DasaPeriod]:
         """Find the active period at a given date."""
         for md in periods:
             if md.start_jd <= target_jd < md.end_jd:
                 if md.sub_periods:
-                    return self.get_active_period(md.sub_periods, target_jd)
+                    return DasaBase.get_active_period(md.sub_periods, target_jd)
                 return md
         return None
 

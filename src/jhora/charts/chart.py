@@ -104,6 +104,7 @@ class ChartBuilder:
         ayanamsa: str = "lahiri",
         house_sys: bytes = b'P',
     ) -> ChartData:
+        self.swe.set_sidereal_mode(ayanamsa)
         jd = self.swe.julday(year, month, day, hour)
         ayanamsa_val = self.swe.get_ayanamsa(jd)
 

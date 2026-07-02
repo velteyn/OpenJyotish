@@ -17,6 +17,11 @@ dependencies = [
     "rich>=13.0",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+]
+
 [project.scripts]
 jhora = "jhora.cli.main:app"
 
