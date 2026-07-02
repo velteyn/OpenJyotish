@@ -66,6 +66,7 @@ def chart(
         tz=bd["tz"], ayanamsa=ayanamsa,
     )
     _display_chart(chart_data)
+    _display_chart_yogas(chart_data)
 
 
 @app.command()
@@ -258,6 +259,36 @@ def knowledge(
 
 
 @app.command()
+def yogas(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Detect planetary yogas (combinations) in a chart."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    from jhora.calc.yogas import detect_all
+    results = detect_all(cd)
+    if not results:
+        console.print("[yellow]No major yogas detected.[/yellow]")
+        return
+    table = Table(title=f"Yogas Detected ({len(results)})")
+    table.add_column("Yoga", style="cyan")
+    table.add_column("Category", style="green")
+    table.add_column("Planets", style="yellow")
+    table.add_column("Strength", style="white")
+    table.add_column("Description", style="dim")
+    for y in results:
+        names = ", ".join(p.full_name for p in y.planets) if y.planets else ""
+        table.add_row(y.name, y.category, names, y.strength, y.description)
+    console.print(table)
+
+
+@app.command()
 def gui():
     """Launch the graphical user interface."""
     from PyQt6.QtWidgets import QApplication
@@ -356,6 +387,20 @@ def _list_varga_levels():
         variants = get_variants_for_level(vl)
         variant_names = ", ".join(v.name for v in variants)
         table.add_row(vl.short_name, str(vl.divisions), vl.full_name, variant_names)
+    console.print(table)
+
+
+def _display_chart_yogas(cd: ChartData):
+    from jhora.calc.yogas import detect_all
+    results = detect_all(cd)
+    if not results:
+        return
+    table = Table(title=f"Yogas ({len(results)})")
+    table.add_column("Yoga", style="cyan")
+    table.add_column("Category", style="green")
+    table.add_column("Strength", style="white")
+    for y in results:
+        table.add_row(y.name, y.category, y.strength)
     console.print(table)
 
 

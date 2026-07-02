@@ -199,6 +199,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.house_table, "Houses")
         self.tabs.addTab(self.dasa_text, "Dasa Periods")
         self.tabs.addTab(self.varga_widget, "Varga")
+        self.tabs.addTab(self._build_yoga_tab(), "Yogas")
 
         right_layout.addWidget(self.tabs)
 
@@ -261,6 +262,7 @@ class MainWindow(QMainWindow):
             self._update_planet_table()
             self._update_house_table()
             self._update_dasa_text()
+            self._populate_yoga_table(self.chart_data)
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -379,3 +381,31 @@ class MainWindow(QMainWindow):
                      vcd.lagna_position.rasi.lord,
                      f"{vcd.lagna_position.longitude:.2f}"])
         self._fill_table(self.varga_table, headers, rows)
+
+    # --- Yogas ---
+
+    def _build_yoga_tab(self) -> QWidget:
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        self.yoga_table = QTableWidget()
+        headers = ["Yoga", "Category", "Planets", "Strength", "Description"]
+        self.yoga_table.setColumnCount(len(headers))
+        self.yoga_table.setHorizontalHeaderLabels(headers)
+        self.yoga_table.horizontalHeader().setStretchLastSection(True)
+        self.yoga_table.setAlternatingRowColors(True)
+        layout.addWidget(self.yoga_table)
+        return w
+
+    def _populate_yoga_table(self, cd: ChartData):
+        from jhora.calc.yogas import detect_all
+        yogas = detect_all(cd)
+        self.yoga_table.setRowCount(len(yogas))
+        for i, y in enumerate(yogas):
+            names = ", ".join(p.full_name for p in y.planets) if y.planets else ""
+            self.yoga_table.setItem(i, 0, QTableWidgetItem(y.name))
+            self.yoga_table.setItem(i, 1, QTableWidgetItem(y.category))
+            self.yoga_table.setItem(i, 2, QTableWidgetItem(names))
+            self.yoga_table.setItem(i, 3, QTableWidgetItem(y.strength))
+            self.yoga_table.setItem(i, 4, QTableWidgetItem(y.description))
+        self.yoga_table.resizeColumnsToContents()
