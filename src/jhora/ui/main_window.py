@@ -12,6 +12,8 @@ from PyQt6.QtWidgets import (
 
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
+from jhora.calc.shadbala import ShadbalaComputer
+from jhora.ephemeris.swe import SweEngine
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 from jhora.types.varga import VargaLevel, VargaVariant
@@ -165,8 +167,17 @@ class MainWindow(QMainWindow):
         self.house_table = QTableWidget()
 
         # Dasa tab
+        self.dasa_widget = QWidget()
+        dl = QVBoxLayout(self.dasa_widget)
+        dl.setContentsMargins(8, 8, 8, 8)
+        dl.setSpacing(8)
+        self.dasa_system_combo = QComboBox()
+        self.dasa_system_combo.addItems(["Vimsottari", "Ashtottari"])
+        self.dasa_system_combo.currentTextChanged.connect(self._update_dasa_text)
+        dl.addWidget(self.dasa_system_combo)
         self.dasa_text = QTextEdit()
         self.dasa_text.setReadOnly(True)
+        dl.addWidget(self.dasa_text)
 
         # Varga tab
         self.varga_widget = QWidget()
@@ -197,9 +208,10 @@ class MainWindow(QMainWindow):
 
         self.tabs.addTab(self.planet_table, "Planets")
         self.tabs.addTab(self.house_table, "Houses")
-        self.tabs.addTab(self.dasa_text, "Dasa Periods")
+        self.tabs.addTab(self.dasa_widget, "Dasa Periods")
         self.tabs.addTab(self.varga_widget, "Varga")
         self.tabs.addTab(self._build_yoga_tab(), "Yogas")
+        self.tabs.addTab(self._build_shadbala_tab(), "Shadbala")
 
         right_layout.addWidget(self.tabs)
 
@@ -263,6 +275,7 @@ class MainWindow(QMainWindow):
             self._update_house_table()
             self._update_dasa_text()
             self._populate_yoga_table(self.chart_data)
+            self._populate_shadbala_table(self.chart_data)
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -320,17 +333,24 @@ class MainWindow(QMainWindow):
         if not self.chart_data:
             return
         try:
-            from jhora.dasas.vimsottari import VimsottariDasa
-            from jhora.ephemeris.swe import SweEngine
-            engine = VimsottariDasa()
+            system = self.dasa_system_combo.currentText()
             chart_dict = {
                 "planets": {g: {"longitude": p.longitude, "speed": p.speed}
                             for g, p in self.chart_data.planets.items()},
                 "lagna_lon": self.chart_data.ascendant,
             }
+            if system == "Vimsottari":
+                from jhora.dasas.vimsottari import VimsottariDasa
+                engine = VimsottariDasa()
+            elif system == "Ashtottari":
+                from jhora.dasas.ashtottari import AshtottariDasa
+                engine = AshtottariDasa()
+            else:
+                engine = VimsottariDasa()
+
             periods = engine.compute(self.chart_data.julian_day, chart_dict)
             se = SweEngine()
-            lines = ["Vimsottari Dasa Periods", "─" * 48, ""]
+            lines = [f"{system} Dasa Periods", "─" * 48, ""]
             for md in periods:
                 y1, m1, d1, _ = se.revjul(md.start_jd)
                 y2, m2, d2, _ = se.revjul(md.end_jd)
@@ -409,3 +429,59 @@ class MainWindow(QMainWindow):
             self.yoga_table.setItem(i, 3, QTableWidgetItem(y.strength))
             self.yoga_table.setItem(i, 4, QTableWidgetItem(y.description))
         self.yoga_table.resizeColumnsToContents()
+
+    # --- Shadbala ---
+
+    def _build_shadbala_tab(self) -> QWidget:
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        self.shadbala_table = QTableWidget()
+        headers = ["Planet", "Sthana (R)", "Dig (R)", "Kala (R)", "Chesta (R)",
+                   "Naisargika (R)", "Drik (R)", "Total (R)", "Total (V)", "Rel Str"]
+        self.shadbala_table.setColumnCount(len(headers))
+        self.shadbala_table.setHorizontalHeaderLabels(headers)
+        self.shadbala_table.horizontalHeader().setStretchLastSection(True)
+        self.shadbala_table.setAlternatingRowColors(True)
+        layout.addWidget(self.shadbala_table)
+        return w
+
+    def _populate_shadbala_table(self, cd: ChartData):
+        try:
+            comp = ShadbalaComputer(cd)
+            results = comp.compute()
+        except Exception:
+            self.shadbala_table.setRowCount(0)
+            return
+
+        planets_order = [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                         Graha.JUPITER, Graha.VENUS, Graha.SATURN]
+        rows_data = []
+        max_total = 0.0
+        for g in planets_order:
+            if g not in results:
+                continue
+            r = results[g]
+            max_total = max(max_total, r.total_virupa)
+            rows_data.append(r)
+
+        self.shadbala_table.setRowCount(len(rows_data))
+        for i, r in enumerate(rows_data):
+            rel_pct = (r.total_virupa / max_total * 100) if max_total > 0 else 0
+            row = [
+                r.graha.full_name,
+                f"{r.sthana_total / 60:.2f}",
+                f"{r.dig_total / 60:.2f}",
+                f"{r.kala_total / 60:.2f}",
+                f"{r.chesta_total / 60:.2f}",
+                f"{r.naisargika.rupa:.2f}",
+                f"{r.drik.rupa:.2f}",
+                f"{r.total_rupa:.2f}",
+                f"{r.total_virupa:.1f}",
+                f"{rel_pct:.1f}%",
+            ]
+            for c, val in enumerate(row):
+                item = QTableWidgetItem(val)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.shadbala_table.setItem(i, c, item)
+        self.shadbala_table.resizeColumnsToContents()
