@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jagannatha-hora"
+version = "0.1.0"
+description = "Vedic astrology calculator — Python port of JHora 8.0"
+authors = [
+    {name = "PVR Narasimha Rao", email = "pvr108@yahoo.com"},
+]
+license = {text = "GPL-3.0-or-later"}
+requires-python = ">=3.11"
+dependencies = [
+    "pyswisseph>=2.10",
+    "typer>=0.9",
+    "rich>=13.0",
+]
+
+[project.scripts]
+jhora = "jhora.cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]

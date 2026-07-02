@@ -1,0 +1,26 @@
+# Binaries from original JHora distribution
+jhora.exe
+swedll32.dll
+jhora.hlp
+jhora.cnt
+
+# Reverse-engineering artifacts (no longer needed)
+jhora.reko/
+reko_out/
+retdec_out/
+
+# Book PDFs (large, copyrighted)
+docs/books/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
