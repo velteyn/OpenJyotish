@@ -22,8 +22,13 @@ from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
 from jhora.interpreter.knowledge_base import KnowledgeBase
 from jhora.types.graha import Graha
+from jhora.types.rasi import Rasi
 from jhora.types.dasa import DasaSystem
 from jhora.types.varga import VargaLevel, VargaVariant
+from jhora.calc.ashtakavarga import (
+    all_bhinna_ashtakavarga, sarva_ashtakavarga, sodhya_pinda,
+    _OCCUPANT_GRAHAS,
+)
 
 app = typer.Typer(name="jhora", help="Jagannatha Hora — Vedic astrology calculator")
 console = Console()
@@ -354,6 +359,49 @@ def shadbala(
             f"{r.total_virupa:.0f}",
         )
     console.print(table)
+
+
+@app.command()
+def ashtakavarga(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    parasara: bool = typer.Option(True, "--parasara/--varahamihira", help="Use Parasara (moon=1, venus=11) or Varahamihira (moon=12, venus=12)"),
+):
+    """Compute Ashtakavarga — planetary strengths by house."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+
+    bavs = all_bhinna_ashtakavarga(cd, parasara_venus=parasara, parasara_moon=parasara)
+    sav = sarva_ashtakavarga(cd, parasara_venus=parasara, parasara_moon=parasara)
+    sp = sodhya_pinda(cd, parasara_venus=parasara, parasara_moon=parasara)
+
+    # BAV table
+    header_label = "Parasara" if parasara else "Varahamihira"
+    table = Table(title=f"Bhinna Ashtakavarga ({header_label})")
+    table.add_column("House", style="cyan")
+    for g in _OCCUPANT_GRAHAS:
+        table.add_column(g.short_name, style="green")
+    table.add_column("SAV", style="yellow bold")
+    table.add_column("Rasi", style="white")
+
+    for h in range(12):
+        rasi = Rasi(h)
+        vals = [str(bavs[g][h]) for g in _OCCUPANT_GRAHAS]
+        table.add_row(rasi.short_name, *vals, str(sav[h]), rasi.full_name)
+    console.print(table)
+
+    # Sodhya Pinda
+    sp_table = Table(title="Sodhya Pinda (after Trikona & Ekadhipatya Shodhana)")
+    sp_table.add_column("Planet", style="cyan")
+    sp_table.add_column("Sodhya Pinda", style="green bold")
+    for g in _OCCUPANT_GRAHAS:
+        sp_table.add_row(g.full_name, str(sp[g]))
+    console.print(sp_table)
 
 
 def _parse_varga_level(name: str) -> VargaLevel:

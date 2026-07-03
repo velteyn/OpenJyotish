@@ -18,6 +18,10 @@ from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 from jhora.types.varga import VargaLevel, VargaVariant
 from jhora.ui.chart_widget import ChartWidget, ChartStyle
+from jhora.calc.ashtakavarga import (
+    all_bhinna_ashtakavarga, sarva_ashtakavarga, sodhya_pinda,
+    _OCCUPANT_GRAHAS,
+)
 
 
 BG = "#1a1a2e"
@@ -212,6 +216,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.varga_widget, "Varga")
         self.tabs.addTab(self._build_yoga_tab(), "Yogas")
         self.tabs.addTab(self._build_shadbala_tab(), "Shadbala")
+        self.tabs.addTab(self._build_ashtakavarga_tab(), "Ashtakavarga")
 
         right_layout.addWidget(self.tabs)
 
@@ -276,6 +281,7 @@ class MainWindow(QMainWindow):
             self._update_dasa_text()
             self._populate_yoga_table(self.chart_data)
             self._populate_shadbala_table(self.chart_data)
+            self._populate_ashtakavarga_table(self.chart_data)
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -485,3 +491,61 @@ class MainWindow(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.shadbala_table.setItem(i, c, item)
         self.shadbala_table.resizeColumnsToContents()
+
+    # --- Ashtakavarga ---
+
+    def _build_ashtakavarga_tab(self) -> QWidget:
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        ctrl = QHBoxLayout()
+        ctrl.setSpacing(8)
+        ctrl.addWidget(QLabel("Tradition:"))
+        self.ak_tradition_combo = QComboBox()
+        self.ak_tradition_combo.addItems(["Parasara", "Varahamihira"])
+        self.ak_tradition_combo.currentTextChanged.connect(self._on_ak_tradition_changed)
+        ctrl.addWidget(self.ak_tradition_combo)
+        ctrl.addStretch()
+        layout.addLayout(ctrl)
+
+        self.ak_bav_table = QTableWidget()
+        self.ak_bav_table.setAlternatingRowColors(True)
+        layout.addWidget(self.ak_bav_table, stretch=3)
+
+        self.ak_sp_label = QLabel()
+        self.ak_sp_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold; padding: 4px;")
+        layout.addWidget(self.ak_sp_label)
+
+        self.ak_sp_table = QTableWidget()
+        self.ak_sp_table.setAlternatingRowColors(True)
+        layout.addWidget(self.ak_sp_table, stretch=1)
+        return w
+
+    def _on_ak_tradition_changed(self, text: str):
+        if self.chart_data:
+            self._populate_ashtakavarga_table(self.chart_data)
+
+    def _populate_ashtakavarga_table(self, cd: ChartData):
+        parasara = self.ak_tradition_combo.currentText() == "Parasara"
+        bavs = all_bhinna_ashtakavarga(cd, parasara_venus=parasara, parasara_moon=parasara)
+        sav = sarva_ashtakavarga(cd, parasara_venus=parasara, parasara_moon=parasara)
+        sp = sodhya_pinda(cd, parasara_venus=parasara, parasara_moon=parasara)
+
+        # BAV table
+        headers = ["House", "Rasi"] + [g.short_name for g in _OCCUPANT_GRAHAS] + ["SAV"]
+        rows = []
+        for h in range(12):
+            rasi = Rasi(h)
+            vals = [str(bavs[g][h]) for g in _OCCUPANT_GRAHAS]
+            rows.append([rasi.short_name, rasi.full_name] + vals + [str(sav[h])])
+        self._fill_table(self.ak_bav_table, headers, rows)
+
+        # Sodhya Pinda label
+        tradition = self.ak_tradition_combo.currentText()
+        self.ak_sp_label.setText(f"Sodhya Pinda ({tradition})")
+
+        sp_headers = ["Planet", "Sodhya Pinda"]
+        sp_rows = [[g.full_name, str(sp[g])] for g in _OCCUPANT_GRAHAS]
+        self._fill_table(self.ak_sp_table, sp_headers, sp_rows)
