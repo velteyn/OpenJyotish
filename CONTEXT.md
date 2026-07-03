@@ -28,7 +28,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 ## Current Status
 
 ### Deployed
-- `src/jhora/` — Python package with **32 modules** across 10 subpackages (4,442 lines)
+- `src/jhora/` — Python package with **33 modules** across 10 subpackages (4,972 lines)
 - Core types: Graha, Rasi, Nakshatra, Varga, Bhava, Dasa (6 types, 546 lines)
 - Ephemeris: SweEngine wrapping all 18 SE APIs, sidereal positions, retrograde detection
 - Chart: ChartBuilder + ChartData (frozen), planet dignity
@@ -36,18 +36,20 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - **Dasas**: Vimsottari (120-year), Ashtottari (108-year) — MD/AD periods
 - **Shadbala**: Six-fold planetary strength (sthana, dig, kala, chesta, naisargika, drik) — 491 lines, 48 tests
 - **Yogas**: 10+ yoga types, 12 categories, 100+ combos (Pancha Mahapurusha, Raja, Dhana, Viparita Raja, Neecha Bhanga Raja, Parivartana, Chandra yogas, Surya yogas, Kemadruma, Amala, Dharma-Karma-Adhipati, Kala Sarpa)
-- CLI: `chart`, `dasa` (vimsottari/ashtottari), `navamsa`, `varga`, `shadbala`, `yogas`, `interpret`, `knowledge`, `gui`
-- GUI: PyQt6 dark theme, South/North/East Indian chart styles, 6 tabs (planets, houses, dasa system selector, varga, yogas, shadbala)
+- CLI: `chart`, `dasa` (vimsottari/ashtottari), `navamsa`, `varga`, `shadbala`, `yogas`, `ashtakavarga`, `interpret`, `knowledge`, `gui`
+- GUI: PyQt6 dark theme, South/North/East Indian chart styles, 8 tabs (planets, houses, dasa system selector, varga, yogas, shadbala, ashtakavarga, transit)
 - Interpreter: Chart reading generator (rule-based, connected to yogas engine)
 - Knowledge base: 16 sources, 1.9M chars, full-text search
 - Books: Author's textbook (515pp) + margabandhu (322pp) + 14 articles text-extracted
-- **Tests: 338 passing** (13 test files, 2,400 lines)
+- **Tests: 380 passing** (15 test files, 2,700 lines)
+- **Ashtakavarga**: BAV, SAV, PAV, Trikona/ Ekadhipatya Shodhana, Sodhya Pinda, and Kakshya-level bindu computation (8 sub-divisions per house) — `src/jhora/calc/ashtakavarga.py`
+- **Wine testbench experiment**: Attempted to recompile original JHora with debug symbols via MinGW under Wine, but blocked by Wine 10 WoW64 architecture — 64-bit LD_PRELOAD cannot access 32-bit PE memory, ptrace_scope=1 prevents external attachment, and cannot install MinGW/wine32 without sudo. No viable in-process debugging path for the original binary.
 
 ### Building Next
-- Ashtakavarga (SAV, BAV, SoAV, PAV) — #1 professional feature
 - More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
 - Arudha padas, Chara karakas, Sahamas
-- Tajaka solar return, Transit analysis
+- Tajaka solar return
+- **Gochara (Transit)**: Done — `src/jhora/calc/gochara.py`, CLI `jhora transit`, GUI tab — shows per-planet transit house, BAV/SAV scores, favorable flags
 - AI chat integration (Ollama)
 
 ### Full Roadmap

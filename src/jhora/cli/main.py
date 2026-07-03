@@ -551,6 +551,61 @@ def _display_varga(vcd: VargaChartData, title: str = ""):
     console.print(table)
 
 
+@app.command()
+def transit(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    parasara: bool = typer.Option(True, "--parasara/--varahamihira", help="Ashtakavarga tradition"),
+):
+    """Current transit positions vs natal chart with Ashtakavarga scores."""
+    from jhora.calc.gochara import compute_transits
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+
+    result = compute_transits(cd, parasara_moon=parasara, parasara_venus=parasara)
+
+    console.print(f"[dim]Transit: {result.timestamp.strftime('%Y-%m-%d %H:%M UTC')}[/dim]")
+    console.print(f"[dim]Natal Lagna: {Rasi(result.natal_rasi).short_name}  "
+                  f"Moon: {Rasi(result.moon_rasi).short_name}[/dim]")
+
+    table = Table(title="Gochara — Transit Positions")
+    table.add_column("P", style="cyan")
+    table.add_column("In", style="yellow")
+    table.add_column("Deg", style="white")
+    table.add_column("Ret", style="dim")
+    table.add_column("H(Lg)", style="green")
+    table.add_column("H(Mo)", style="green")
+    table.add_column("BAV", style="magenta")
+    table.add_column("SAV", style="magenta")
+    table.add_column("Fav", style="bold")
+
+    for e in result.entries:
+        ret = "R" if e.is_retrograde else ""
+        fav = "✓" if e.is_favorable else "✗"
+        fav_s = "[green]✓[/green]" if e.is_favorable else "[red]✗[/red]"
+        table.add_row(
+            e.graha.short_name, e.transit_rasi_name,
+            f"{e.transit_degrees:.1f}", ret,
+            str(e.house_from_lagna), str(e.house_from_moon),
+            str(e.bav_score), str(e.sav_score), fav_s,
+        )
+    console.print(table)
+
+    # Summary: SAV map
+    sav_table = Table(title="SAV by Rasi")
+    for r in range(12):
+        sav_table.add_column(Rasi(r).short_name, style="yellow")
+    row = [str(result.sav[r]) for r in range(12)]
+    sav_table.add_row(*row)
+    console.print(sav_table)
+
+
 @app.callback()
 def cli():
     """Jagannatha Hora — Vedic astrology calculator (Python port)."""

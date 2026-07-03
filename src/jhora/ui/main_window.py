@@ -218,6 +218,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_yoga_tab(), "Yogas")
         self.tabs.addTab(self._build_shadbala_tab(), "Shadbala")
         self.tabs.addTab(self._build_ashtakavarga_tab(), "Ashtakavarga")
+        self.tabs.addTab(self._build_transit_tab(), "Transit")
 
         right_layout.addWidget(self.tabs)
 
@@ -283,6 +284,7 @@ class MainWindow(QMainWindow):
             self._populate_yoga_table(self.chart_data)
             self._populate_shadbala_table(self.chart_data)
             self._populate_ashtakavarga_table(self.chart_data)
+            self._populate_transit_table(self.chart_data)
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -580,3 +582,55 @@ class MainWindow(QMainWindow):
             vals = [str(kt[h][k]) for k in range(8)]
             kt_rows.append([Rasi(h).short_name] + vals + [str(sum(kt[h]))])
         self._fill_table(self.ak_kakshya_table, kt_headers, kt_rows)
+
+    # --- Transit tab ---
+
+    def _build_transit_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        info = QHBoxLayout()
+        self.tr_timestamp = QLabel("Transit: —")
+        self.tr_timestamp.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        info.addWidget(self.tr_timestamp)
+        info.addStretch()
+        layout.addLayout(info)
+
+        self.tr_table = QTableWidget()
+        self.tr_table.setAlternatingRowColors(True)
+        layout.addWidget(self.tr_table, stretch=1)
+
+        sav_label = QLabel("SAV by Rasi")
+        sav_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        layout.addWidget(sav_label)
+        self.tr_sav_table = QTableWidget()
+        self.tr_sav_table.setAlternatingRowColors(True)
+        self.tr_sav_table.setMaximumHeight(60)
+        layout.addWidget(self.tr_sav_table)
+        return w
+
+    def _populate_transit_table(self, cd: ChartData):
+        from jhora.calc.gochara import compute_transits
+
+        result = compute_transits(cd)
+
+        self.tr_timestamp.setText(f"Transit: {result.timestamp.strftime('%Y-%m-%d %H:%M UTC')}")
+
+        headers = ["Planet", "In", "Deg", "Ret", "H(Lg)", "H(Mo)", "BAV", "SAV", "Fav"]
+        rows = []
+        for e in result.entries:
+            ret = "R" if e.is_retrograde else ""
+            fav = "✓" if e.is_favorable else "✗"
+            rows.append([
+                e.graha.short_name, e.transit_rasi_name,
+                f"{e.transit_degrees:.1f}", ret,
+                str(e.house_from_lagna), str(e.house_from_moon),
+                str(e.bav_score), str(e.sav_score), fav,
+            ])
+        self._fill_table(self.tr_table, headers, rows)
+
+        sav_headers = [Rasi(r).short_name for r in range(12)]
+        sav_row = [str(result.sav[r]) for r in range(12)]
+        self._fill_table(self.tr_sav_table, sav_headers, [sav_row])
