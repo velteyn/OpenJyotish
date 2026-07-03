@@ -16,12 +16,14 @@ When implementing calculations, functions, or algorithms:
    - Vedic astrology standard formulas
 
 ## GUI Design
-- The GUI must always be **harmonic, proportional, and stylish** — matching the existing dark theme (PyQt6, Fusion style)
+- The GUI must always be **harmonic, proportional, and stylish** — matching the established dark theme (PyQt6, Fusion style)
 - Consistent spacing: use 10px grid, consistent margins, proportional splitter ratios
 - Colors from the established palette; no突兀 colors
+- Follow the vision in `VISION.md` — warm and organic feel, effortless entry (chart reading in 2 clicks), progressive disclosure (complexity hidden until needed)
+- Every UI decision should attract **casual users** while serving **professionals**
 
 ## Documentation (CRITICAL — Network Safety)
-- **Keep all documents updated before committing** — CONTEXT.md, PLAN.md, and any `docs/` files are the only record of progress if the network goes down mid-session
+- **Keep all documents updated before committing** — CONTEXT.md, PLAN.md, VISION.md, and any `docs/` files are the only record of progress if the network goes down mid-session
 - Always write findings to files (CONTEXT.md, docs/) as you go, not just at the end of a session
 - Update CONTEXT.md's "Deployed" section with module counts, new features, and test counts after every significant change
 - Update PLAN.md checkboxes as features are completed
