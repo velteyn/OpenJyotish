@@ -4,6 +4,8 @@
 
 **Origin:** Reverse engineer JHora 8.0 Lite (PVR Narasimha Rao, 2015). All calculations verified against the original.
 
+**Status:** Core engine ~60% complete (5,650+ lines of Python, 338 tests)
+
 ---
 
 ## 1. North Star
@@ -17,34 +19,33 @@
 | **Price** | Free | $299-$450 | $255 | **Free** |
 | **Cross-platform** | Windows only | Win/Mac | Windows only | **Linux/Mac/Win** |
 | **Source** | Closed | Closed | Closed | **Open** |
-| **AI interpretation** | ✗ | ✗ | ✗ | **✓ (local LLM)** |
+| **AI interpretation** | ✗ | ✗ | ✗ | **✓ (planned)** |
 | **Modern UI** | ✗ (MFC) | ✗ (dated) | ✗ (dated) | **✓ (PyQt6 dark)** |
-| **Vector charts** | ✗ (bitmap) | Limited | Limited | **✓ (SVG/Canvas)** |
+| **Vector charts** | ✗ (bitmap) | Limited | Limited | **✓ (Canvas)** |
 | **Scriptable** | ✗ | ✗ | ✗ | **✓ (Python API)** |
-| **Knowlege base** | Help file | ✗ | ✗ | **✓ (full textbook)** |
+| **Knowledge base** | Help file | ✗ | ✗ | **✓ (full textbook search)** |
 
 ---
 
 ## 2. Feature Target — Professional Parity
 
 ### Tier 1: Core Calculations (Must Have)
-_These match what every professional tool provides._
 
 - [x] Rasi chart (D-1) with 9 planets + lagna
 - [x] Vimsottari dasa with sub-periods
-- [ ] **Varga charts D-2 through D-60** (16+ levels, all variants)
-- [ ] Shadbala (6-source planetary strength)
+- [x] **Varga charts D-2 through D-60** — 23 levels, all variants implemented (305 lines)
+- [x] **Shadbala** (6-source planetary strength) — all 6 components (491 lines, 48 tests)
+- [x] **Yogas detection** — 10+ types, 12 categories, 100+ combos (488 lines)
+- [x] **Ashtottari dasa** (108-year system) — MD/AD periods, applicability conditions (142 lines)
+- [x] **House cusps** — via SweEngine (12+ house systems supported by Swiss Ephemeris)
 - [ ] Ashtakavarga (8-bindu system)
-- [ ] 25+ dasa systems (nakshatra + rasi + graha)
+- [ ] 23 more dasa systems (Narayana, Kalachakra, Yogini, Chara, etc.)
 - [ ] 40+ sahamas (sensitive points)
-- [ ] Yogas detection (100+ combinations)
-- [ ] House cusps (12+ house systems)
 - [ ] Arudha padas (AL, A2-A12, UL)
 - [ ] Chara karakas (Jaimini)
 - [ ] Tajaka (solar return with compressed dasas)
 
 ### Tier 2: Advanced Analysis (Professional Differentiator)
-_These are what separates a hobbyist tool from a professional one._
 
 - [ ] Ashtakavarga: SAV, BAV, SoAV, PAV, Sodhya Pinda, Kakshya
 - [ ] Bhava bala (house strength)
@@ -59,12 +60,12 @@ _These are what separates a hobbyist tool from a professional one._
 - [ ] Progressions (D-n based Sun progression)
 
 ### Tier 3: AI & UX (Our Moat)
-_What no competitor can do because they're closed-source Windows apps._
 
+- [x] **Knowledge base** — full-text search of textbook + 14 research articles (1.9M chars, 16 sources)
+- [x] **Rule-based interpreter** — chart reading generator connected to yogas engine
 - [ ] **Local LLM interpretation** (Ollama/LM Studio) — chart → plain English reading
 - [ ] **Interactive Q&A** — ask "What does my 7th house lord in 10th mean?"
 - [ ] **AI remedy suggestions** — gemstones, mantras, rituals from classical texts
-- [ ] **Knowledge base** — search full textbook + 15 research articles
 - [ ] **Export to PDF/HTML/SVG** — beautiful client-ready reports
 - [ ] **Chart database** — SQLite client management with search/filter
 - [ ] **Ephemeris viewer** — daily planet positions for any date range
@@ -76,214 +77,210 @@ _What no competitor can do because they're closed-source Windows apps._
 
 ## 3. Architecture
 
+### Actual Directory Structure (what's implemented)
+
 ```
-jhora/
-├── core/                  ← All calculations (the 2000 functions)
-│   ├── charts/            ← ChartData, vargas, houses, arudhas
-│   ├── dasas/             ← 25+ dasa systems
-│   ├── strengths/         ← Shadbala, Ashtakavarga, Vimsopaka
-│   ├── yogas/             ← Pattern detection engine
-│   ├── transits/          ← Transit, gochara, vedha, tara
-│   ├── tajaka/            ← Solar return
-│   ├── prasna/            ← Horary
-│   ├── matchmaking/       ← Compatibility
-│   ├── muhurta/           ← Electional
-│   ├── sahamas/           ← Sensitive points
-│   ├── kalachakra/        ← Wheel of time
-│   └── panchanga/         ← Daily Vedic calendar
+src/jhora/
+├── __init__.py              # Version, public API exports
+├── __main__.py              # `python -m jhora` entry point
 │
-├── ai/                    ← LLM integration (our moat)
-│   ├── knowledge/         ← Book text + research article index
-│   ├── interpreter/       ← Chart → natural language
-│   └── chat/              ← Interactive Q&A session
+├── types/                   # 6 types, 546 total lines
+│   ├── graha.py             # Planet enum (9 grahas + properties)
+│   ├── rasi.py              # Sign enum (12 rasis + lords, elements, etc.)
+│   ├── nakshatra.py         # 27 nakshatras, padas, lords, from_longitude()
+│   ├── bhava.py             # House enum (1-12 + kendra/trikona/duhsthana queries)
+│   ├── varga.py             # VargaLevel (D-1..D-150) + VargaVariant enum
+│   └── dasa.py              # DasaSystem, PeriodLevel, DasaPeriod
 │
-├── data/                  ← Databases
-│   ├── atlas/             ← City coordinates + timezones
-│   └── texts/             ← Classical text excerpts
+├── calc/                    # 4 modules, 1,131 total lines
+│   ├── angles.py            # Longitude arithmetic (diff, add, aspect, midpoint)
+│   ├── dignities.py         # DignityChecker (exalted/debilitated/moolatrikona/own/neutral)
+│   ├── shadbala.py          # ShadbalaComputer (sthana, dig, kala, chesta, naisargika, drik)
+│   └── yogas.py             # detect_all() + helpers (10+ yoga types, 100+ combos)
 │
-├── ui/                    ← PyQt6 desktop app
-│   ├── charts/            ← Vector chart rendering (3 styles)
-│   ├── dasa_view/         ← Timeline visualization
-│   ├── database/          ← Client management
-│   └── reports/           ← Print/export
+├── ephemeris/               # 1 module, 200 lines
+│   └── swe.py               # SweEngine — wraps 18 Swiss Ephemeris API calls
 │
-├── cli/                   ← Terminal interface
-│   ├── commands/          ← chart, dasa, transit, etc.
-│   └── output/            ← Rich-formatted terminal display
+├── charts/                  # 2 modules, 486 lines
+│   ├── chart.py             # ChartBuilder, ChartData (frozen), PlanetChartData
+│   └── varga.py             # VargaChartComputer — all D-1..D-150 with 30+ variant mappings
 │
-└── api/                   ← RESTful API (future)
-    └── routes/            ← Chart, dasa, transit endpoints
+├── dasas/                   # 3 modules, 398 lines
+│   ├── base.py              # DasaBase, DasaOptions — abstract engine with period tree builder
+│   ├── vimsottari.py        # VimsottariDasa (120-year, 9 planets, MD/AD)
+│   └── ashtottari.py        # AshtottariDasa (108-year, 8 planets, applicability conditions)
+│
+├── interpreter/             # 3 modules, 335 lines
+│   ├── engine.py            # ChartInterpreter — rule-based reading generator
+│   ├── knowledge_base.py    # KnowledgeBase — full-text search across 16 sources
+│   └── texts.py             # Reference texts (planet/house/rasi/nakshatra meanings)
+│
+├── cli/                     # 1 module, 491 lines
+│   └── main.py              # 9 Typer commands: chart, dasa, navamsa, varga, shadbala,
+│                            #   yogas, interpret, knowledge, gui
+│
+├── ui/                      # 2 modules, 800 lines
+│   ├── main_window.py       # MainWindow — dark theme PyQt6 app with tabs
+│   └── chart_widget.py      # ChartWidget — South/North/East Indian chart rendering
+│
+└── (19 empty stub directories for future modules)
 ```
+
+### Actual vs Aspirational
+
+The `docs/python_architecture.md` describes the **target** architecture with 50+ modules. Currently **10 out of 32 directories** contain code (32 `.py` files, 4,442 lines). 19 directories are empty stubs for future development.
 
 ### Key Design Principles
 
-1. **Core is deterministic, pure Python** — no AI in the calculation path. Same inputs → same chart, always.
-2. **AI only for interpretation** — LLM reads computed `ChartData` and generates natural language. Never touches numbers.
-3. **Everything cached** — varga charts, strengths, dasas computed once per `ChartData` and memoized.
-4. **Pluggable dasas** — one abstract base, 25+ implementations, registry-based discovery.
-5. **Immutable ChartData** — thread-safe, cacheable, serializable to JSON.
+1. **Core is deterministic, pure Python** — no AI in the calculation path
+2. **AI only for interpretation** — LLM reads `ChartData`, never touches numbers
+3. **Everything cached** — memoized per `ChartData`
+4. **Pluggable dasas** — one abstract base, 25+ implementations, registry-based
+5. **Immutable ChartData** — thread-safe, cacheable, serializable to JSON
 
 ---
 
-## 4. AI Integration Architecture
+## 4. AI Integration Architecture (Target)
 
 ```
-User birth data
-    │
-    ▼
-Core Engine ──► ChartData (pure numbers)
-    │
-    ├── ► Rule-based interpreter (planet dignities, house lords, yogas)
-    │        │
-    │        ▼
-    ├── ► LLM Interpreter (Ollama / LM Studio / OpenAI API)
-    │        │
-    │        ├── ChartData formatted as structured text
-    │        ├── Knowledge base excerpts (retrieved via semantic search)
-    │        ├── System prompt: "You are PVR Narasimha Rao..."
-    │        └── Output: natural language chart reading
-    │
-    ├── ► Interactive Chat (context = chart + knowledge)
-    │        │
-    │        └── User: "When will I get married?"
-    │            AI: consults dasa periods, 7th house, Venus position...
-    │
-    └── ► Remedy Engine (text-based, from classical sources)
-             │
-             └── "Jupiter in 8th: remedy with Yellow Sapphire..."
+User birth data → Core Engine → ChartData (pure numbers)
+  ├── Rule-based interpreter (planet dignities, house lords, yogas) ✓ done
+  ├── LLM Interpreter (Ollama / LM Studio / OpenAI API) — planned
+  │     ├── ChartData formatted as structured text
+  │     ├── Knowledge base excerpts (semantic search) ✓ done
+  │     ├── System prompt: "You are PVR Narasimha Rao..."
+  │     └── Output: natural language chart reading
+  ├── Interactive Chat (context = chart + knowledge) — planned
+  └── Remedy Engine (text-based, from classical sources) — planned
 ```
 
-**Supported LLM backends:**
-- Ollama (local, free, private) — `llama3`, `qwen2.5`, etc.
-- LM Studio (local, free, private)
-- OpenAI API / OpenRouter (cloud, for users without local GPU)
-- Configurable: model, temperature, system prompt
+**Supported LLM backends (planned):** Ollama, LM Studio, OpenAI API / OpenRouter. Configurable model, temperature, system prompt.
 
 ---
 
 ## 5. UI Design Philosophy
 
-### For Casual Users
-- "Enter birth data → get reading" in 2 clicks
-- Beautiful dark theme, no clutter
-- Plain English interpretation with AI
-- Learn astrology interactively (click any planet → explanation)
+**Casual Users:** "Enter birth data → get reading" in 2 clicks, beautiful dark theme, plain English with AI, interactive learning.
 
-### For Professionals
-- ALL the numbers: shadbala virupas, ashtakavarga bindus, varga charts
-- Side-by-side chart comparison
-- Export client-ready PDF reports
-- Chart database with search/filter
-- Customizable chart styles and display options
+**Professionals:** ALL the numbers (shadbala virupas, varga charts, dasa periods), PDF reports, chart database, customizable styles.
 
-### Chart Styles
-- **South Indian** — fixed rasi grid (4×4) ✓ implemented
-- **North Indian** — bhava diamond with house numbers ✓ implemented
-- **East Indian** — circular Sun chart ✓ implemented
-- **D-9 Navamsa** overlay on D-1 ✓ planned
-- **Multi-wheel** — natal + transit + dasa lord ✓ planned
+**Chart Styles:**
+- South Indian — fixed rasi grid (4×4) ✓ implemented
+- North Indian — bhava diamond with house numbers ✓ implemented
+- East Indian — circular Sun chart ✓ implemented
+- D-9 Navamsa overlay on D-1 ✓ implemented (toggle)
+- Multi-wheel — natal + transit + dasa lord — planned
 
 ---
 
-## 6. Roadmap
+## 6. Roadmap (Phased)
 
-### Phase 1: Core Engine (Weeks 1–3)
-_Get all calculations working. CLI-first, verify against JHora._
+### Phase 1: Core Engine (Weeks 1-6) ← we are here
 
-| Week | Focus | Deliverables |
-|------|-------|-------------|
-| 1 | Vargas + Houses | D-1 through D-60, all variants, bhava support |
-| 2 | Dasas + Strengths | 10 dasa systems, Shadbala, Ashtakavarga |
-| 3 | Yogas + Sahamas | 100+ yogas, 40+ sahamas, Arudhas, Karakas |
+| Area | Status | Remaining |
+|------|--------|-----------|
+| Vargas (D-1..D-150) | ✅ 23 levels, all variants | — |
+| Dasas | ✅ Vimsottari + Ashtottari | ~23 more systems |
+| Strengths | ✅ Shadbala | Ashtakavarga, Vimsopaka, Bhava bala |
+| Yogas | ✅ 10+ types, 100+ combos | Nabhasa, finer sub-types |
+| CLI commands | ✅ chart, dasa, navamsa, varga, shadbala, yogas, interpret, knowledge, gui | strengths, transits, match, prasna, tajaka, config, atlas |
+| GUI tabs | ✅ planets, houses, dasa, varga, yogas, shadbala | transits, matchmaking, ashtakavarga, client DB |
 
-### Phase 2: Professional Features (Weeks 4–6)
-_Match or exceed Parashara's Light feature set._
+### Phase 2: Professional Features (Weeks 7-12)
 
-| Week | Focus | Deliverables |
-|------|-------|-------------|
-| 4 | Transits + Tajaka | Transit analysis, solar return, TP charts |
-| 5 | Matchmaking + Prasna | Kuta matching, horary engine, muhurta |
-| 6 | Panchanga + Mundane | Daily calendar, world astrology, progressions |
+| Area | Deliverables |
+|------|-------------|
+| Dasa engine | Narayana, Kalachakra, Yogini, Chara, Sudasa + 18 more |
+| Strengths | Ashtakavarga (SAV/BAV/SoAV/PAV), Vimsopaka, Bhava bala |
+| Specialized | Arudhas, Chara karakas, Sahamas, Tajaka, Tithi Pravesha |
+| CLI | Transit, matchmaking, prasna, muhurta, config commands |
+| GUI | Dasas tab → system selector + AD/PD drilldown, Ashtakavarga tab |
 
-### Phase 3: AI Layer (Weeks 7–8)
-_The moat — what no competitor has._
+### Phase 3: AI Layer (Weeks 13-14)
 
-| Week | Focus | Deliverables |
-|------|-------|-------------|
-| 7 | Knowledge base + Interpreter | Semantic search, rule-based reading, LLM integration |
-| 8 | Chat + Remedies | Interactive Q&A, remedy suggestions, report generation |
+| Area | Deliverables |
+|------|-------------|
+| Knowledge base | Semantic search (vector embeddings) |
+| LLM interpreter | Chart → natural language via Ollama/LM Studio |
+| Chat | Interactive Q&A session with chart context |
 
-### Phase 4: GUI Polish (Weeks 9–12)
-_Beautiful, professional desktop app._
+### Phase 4: GUI Polish & Release (Weeks 15-18)
 
-| Week | Focus | Deliverables |
-|------|-------|-------------|
-| 9 | Chart rendering | Vector charts (all 3 styles), multi-chart view, D-9 overlay |
-| 10 | Dasa visualization | Timeline with zoom/scroll, event markers, print export |
-| 11 | Client database | Add/edit/search clients, chart history, batch operations |
-| 12 | Release | PDF reports, packaging, documentation, website |
+| Area | Deliverables |
+|------|-------------|
+| Chart rendering | Multi-wheel views, PDF/HTML export |
+| Client database | SQLite add/edit/search, batch operations |
+| Packaging | PyPI package, AppImage/Flatpak/Windows installer |
+| Documentation | User guide, API reference, example gallery |
 
 ---
 
 ## 7. Competitive Comparison
 
-| Feature | JHora | PL ($299) | Kala ($255) | SJS ($300+) | **Ours** |
-|---------|:-----:|:---------:|:-----------:|:-----------:|:--------:|
-| Free | ✓ | ✗ | ✗ | ✗ | **✓** |
-| Open source | ✗ | ✗ | ✗ | ✗ | **✓** |
-| Cross-platform | ✗ | ✗ | ✗ | ✗ | **✓** |
-| Vargas (D-1–D-60) | ✓ | ✓ | ✓ | ✓ | **✓** |
-| 25+ Dasas | ✓ | ✓ | ✓ | ✓ | **✓** |
-| Shadbala | ✓ | ✓ | ✓ | ✓ | **✓** |
-| Ashtakavarga | ✓ | ✓ | ✓ | ✓ | **✓** |
-| Yogas | ✓ | ✓ | ✓ | ✓ | **✓** |
-| Tajaka | ✓ | ✓ | ✓ | ✓ | **✓** |
-| Matchmaking | ✓ | ✓ | ✓ | ✓ | **✓** |
-| Prasna | ✓ | ✓ | ✓ | ✓ | **✓** |
-| Muhurta | ✓ | ✓ | ✓ | ✓ | **✓** |
-| Transit analysis | ✓ | ✓ | ✓ | ✓ | **✓** |
-| World atlas | ✗ | ✓ (5M) | ✓ | ✓ | **Planned** |
-| Auto interpretation | ✗ | ✓ (textbook) | ✓ | ✓ | **✓ + AI** |
-| AI Q&A | ✗ | ✗ | ✗ | ✗ | **✓** |
-| Vector charts | ✗ | ✗ | ✗ | ✗ | **✓** |
-| PDF reports | ✗ | ✓ | ✓ | ✓ | **✓** |
-| Dark UI theme | ✗ | ✗ | ✗ | ✗ | **✓** |
-| Python API | ✗ | ✗ | ✗ | ✗ | **✓** |
-| Local LLM | ✗ | ✗ | ✗ | ✗ | **✓** |
+| Feature | JHora Orig | PL ($299) | Kala ($255) | SJS ($300+) | **Ours** |
+|---------|:---:|:---:|:---:|:---:|:---:|
+| Rasi chart | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 20+ Vargas | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Vimsottari dasa | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 25+ dasa systems | ✓ | ✓ | ✓ | ✓ | ~2 built |
+| Shadbala | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Ashtakavarga | ✓ | ✓ | ✓ | ✓ | — |
+| Yogas | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Sahamas | ✓ | ✓ | ✓ | ✓ | — |
+| Arudha padas | ✓ | ✓ | ✓ | ✓ | — |
+| Chara karakas | ✓ | ✓ | ✓ | ✓ | — |
+| Tajaka (solar return) | ✓ | ✓ | ✓ | ✓ | — |
+| Transits + Gochara | ✓ | ✓ | ✓ | ✓ | — |
+| Matchmaking | ✓ | ✓ | ✓ | ✓ | — |
+| Prasna (horary) | ✓ | ✓ | ✓ | ✓ | — |
+| Muhurta (electional) | ✓ | ✓ | ✓ | ✓ | — |
+| Panchanga | ✓ | ✓ | ✓ | ✓ | — |
+| World Atlas | ✓ | ✓ | ✓ | ✓ | — |
+| **Free** | ✓ | ✗ | ✗ | ✗ | **✓** |
+| **Open source** | ✗ | ✗ | ✗ | ✗ | **✓** |
+| **Cross-platform** | ✗ | ✓ | ✗ | ✗ | **✓** |
+| **AI Q&A** | ✗ | ✗ | ✗ | ✗ | **Planned** |
+| **Vector charts** | ✗ | ✗ | ✗ | ✗ | **✓** |
+| **Python API** | ✗ | ✗ | ✗ | ✗ | **✓** |
+| **Knowledge base search** | Help only | ✗ | ✗ | ✗ | **✓** |
+| **Dark theme UI** | ✗ | ✗ | ✗ | ✗ | **✓** |
 
 ---
 
-## 8. Current Status
+## 8. Current Implementation Status
 
-```
-DONE:
-├── Core types (Graha, Rasi, Nakshatra, Varga, Bhava, Dasa)
-├── SweEngine wrapper (all 18 SE API calls, sidereal mode)
-├── ChartBuilder + ChartData (frozen dataclass)
-├── Planet dignity calculator
-├── Vimsottari Dasa (full MD/AD periods)
-├── Yogas engine (10+ types, 12 categories, 100+ combos)
-├── Dark PyQt6 GUI (3 chart styles, planet table, house table, dasa tab, yogas tab)
-├── CLI (chart, dasa, navamsa, yogas, gui, interpret, knowledge commands)
-├── Book knowledge base (16 sources, 1.9M chars, full-text search)
-├── Chart interpreter (rule-based reading generator, connected to yogas)
-└── Author's textbook + 15 research articles downloaded
+**DONE (60% of core engine):**
+- Core types (Graha, Rasi, Nakshatra, Varga, Bhava, Dasa) — 6 types, 546 lines
+- SweEngine — all 18 Swiss Ephemeris API calls, sidereal mode, retrograde detection
+- ChartBuilder + ChartData (frozen dataclass) with planet dignity
+- VargaChartComputer — 23 levels (D-1..D-150), 30+ variant mappings
+- Vimsottari Dasa (120-year, 9 planets, MD/AD/PD periods)
+- Ashtottari Dasa (108-year, 8 planets, applicability conditions)
+- Shadbala (all 6 components: sthana, dig, kala, chesta, naisargika, drik) — 491 lines, 48 tests
+- Yogas engine (10+ types: Raja, Dhana, Mahapurusha, Viparita Raja, etc.)
+- CLI (9 commands: chart, dasa, navamsa, varga, shadbala, yogas, interpret, knowledge, gui)
+- GUI (PyQt6 dark theme, 3 chart styles, 6 tabs: planets, houses, dasa, varga, yogas, shadbala)
+- Rule-based chart interpreter (connected to yogas engine)
+- Knowledge base (16 sources, 1.9M chars, full-text search)
+- Reference texts (planet/house/rasi/nakshatra meanings)
+- **338 tests** across 13 test files (2,400 lines of tests)
 
-NEXT:
-├── Varga charts (D-2 through D-60) ← STARTING HERE
-├── Ashtottari, Narayana, Kalachakra dasas
-├── Shadbala strength computation
-├── Dasa timeline visualization
-├── Client database
-└── AI chat integration (Ollama)
-```
+**NEXT:**
+- Ashtakavarga (SAV, BAV, SoAV, PAV) — major professional feature
+- More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
+- Arudha padas (AL, A2-A12, UL)
+- Chara karakas (Jaimini)
+- Sahamas (40+ sensitive points)
+- Tajaka (solar return)
+- Transit analysis (gochara, tara, vedha)
+- AI chat integration (Ollama)
 
 ---
 
 ## 9. References
 
 - Original JHora 8.0: `vedicastrologer.org/jh`
-- Textbook: "Vedic Astrology: An Integrated Approach" by PVR Narasimha Rao (free download)
+- Textbook: "Vedic Astrology: An Integrated Approach" by PVR Narasimha Rao
 - Swiss Ephemeris: `swisseph.com`
 - pyswisseph: `pypi.org/project/pyswisseph`
 - Parashara's Light: `parasharaslight.com`

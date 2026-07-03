@@ -1,10 +1,10 @@
 # Jagannatha Hora — Vedic Astrology Software (Python Port)
 
-**Status:** Active development — Day 3 (July 2, 2026)
+**Status:** Active development — core engine ~60% complete
 **Vision:** The most user-friendly, feature-complete, cross-platform, AI-powered Vedic astrology tool. Free and open-source. Useful for both casual users and professional astrologers.
 
 ## Origin
-Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao** (pvr108@yahoo.com), published by Sri Jagannath Vedic Centre (SJVC). Original: PE32 GUI, C++ MFC, VC++ 6.0, x86, compiled 2015-12-31.
+Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, published by Sri Jagannath Vedic Centre (SJVC). Original: PE32 GUI, C++ MFC, VC++ 6.0, x86, compiled 2015-12-31.
 
 ## Files
 
@@ -19,39 +19,44 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao** (p
 | Layer | Technology |
 |-------|-----------|
 | **Core** | Python 3.11+, pyswisseph |
-| **CLI** | Typer + Rich |
-| **GUI** | PyQt6 (dark theme, vector charts) |
-| **AI** | Ollama / LM Studio (local LLM) |
-| **Data** | SQLite (charts, atlas, clients) |
+| **CLI** | Typer + Rich (9 commands) |
+| **GUI** | PyQt6 dark theme, 3 chart styles, 6 tabs |
+| **AI** | Ollama / LM Studio (planned) |
+| **Data** | Pure Python (SQLite planned) |
 | **Calc** | Pure Python, verified against original JHora |
 
 ## Current Status
 
 ### Deployed
-- `src/jhora/` — Python package with **33 modules** across 16 subpackages
-- Core types: Graha, Rasi, Nakshatra, Varga, Bhava, Dasa
-- Ephemeris: SweEngine wrapping all 18 SE APIs, sidereal positions
-- Chart: ChartBuilder + ChartData (immutable), planet dignity
-- Dasa: Vimsottari (full MD/AD periods), **Ashtottari** (108-year system)
-- Yogas: 10+ yoga types, 12 categories, 100+ combos
-- Shadbala: Six-fold planetary strength computation (sthana, dig, kala, chesta, naisargika, drik)
-- CLI: `chart`, `dasa` (vimsottari + ashtottari), `navamsa`, `varga`, `shadbala`, `yogas`, `interpret`, `knowledge`, `gui`
-- GUI: PyQt6 dark theme, South/North/East Indian chart styles, planet/house/dasa/shadbala/yogas tables
-- Interpreter: Chart reading generator (rule-based, connected to yogas engine), knowledge base search
-- Books: Author's textbook (515pp) + margabandhu (322pp) + 14 articles downloaded & text-extracted
-- Tests: 338 passing
+- `src/jhora/` — Python package with **32 modules** across 10 subpackages (4,442 lines)
+- Core types: Graha, Rasi, Nakshatra, Varga, Bhava, Dasa (6 types, 546 lines)
+- Ephemeris: SweEngine wrapping all 18 SE APIs, sidereal positions, retrograde detection
+- Chart: ChartBuilder + ChartData (frozen), planet dignity
+- **Varga charts**: 23 levels (D-1 through D-150), 30+ variant mappings — fully implemented
+- **Dasas**: Vimsottari (120-year), Ashtottari (108-year) — MD/AD periods
+- **Shadbala**: Six-fold planetary strength (sthana, dig, kala, chesta, naisargika, drik) — 491 lines, 48 tests
+- **Yogas**: 10+ yoga types, 12 categories, 100+ combos (Pancha Mahapurusha, Raja, Dhana, Viparita Raja, Neecha Bhanga Raja, Parivartana, Chandra yogas, Surya yogas, Kemadruma, Amala, Dharma-Karma-Adhipati, Kala Sarpa)
+- CLI: `chart`, `dasa` (vimsottari/ashtottari), `navamsa`, `varga`, `shadbala`, `yogas`, `interpret`, `knowledge`, `gui`
+- GUI: PyQt6 dark theme, South/North/East Indian chart styles, 6 tabs (planets, houses, dasa system selector, varga, yogas, shadbala)
+- Interpreter: Chart reading generator (rule-based, connected to yogas engine)
+- Knowledge base: 16 sources, 1.9M chars, full-text search
+- Books: Author's textbook (515pp) + margabandhu (322pp) + 14 articles text-extracted
+- **Tests: 338 passing** (13 test files, 2,400 lines)
 
-### Building Now
-- **Varga charts** (D-2 through D-60) — the #1 professional feature
-- Ashtottari, Narayana, Kalachakra dasas
-- Shadbala strength computation
+### Building Next
+- Ashtakavarga (SAV, BAV, SoAV, PAV) — #1 professional feature
+- More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
+- Arudha padas, Chara karakas, Sahamas
+- Tajaka solar return, Transit analysis
 - AI chat integration (Ollama)
 
 ### Full Roadmap
-See [PLAN.md](PLAN.md) for competitive analysis, architecture, and 12-week roadmap.
+See [PLAN.md](PLAN.md) for competitive analysis, architecture, and phased roadmap.
 
 ## Reference
-- Author's website: `vedicastrologer.org/jh`
+- Original JHora: `vedicastrologer.org/jh`
 - Textbook: "Vedic Astrology: An Integrated Approach" (free download)
 - Full help: `docs/help/` (56 topics extracted)
 - Varga charts: `docs/varga_charts.md`
+- Function map: `docs/function_map.md`
+- SWE xrefs: `docs/swe_xrefs.md`
