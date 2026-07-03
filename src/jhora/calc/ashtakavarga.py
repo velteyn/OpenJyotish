@@ -294,35 +294,114 @@ def sodhya_pinda(
     return {g: sum(ekadhi[g]) for g in _OCCUPANT_GRAHAS}
 
 
-# ── Kakshya table ──
+# ── Kakshya (sub-divisional bindus) ──
 
-def kakshya_of(rasi_idx: int) -> Graha:
-    """Return the kakshya lord for a given rasi, based on Savya ordering.
+_KAKSHYA_REFERENCES = [
+    Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+    Graha.JUPITER, Graha.VENUS, Graha.SATURN, "LAGNA",
+]
 
-    Each rasi is divided into 8 kakshyas (of ~3.75° each), ruled in order:
-      Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Lagna (i.e., 1-8).
-    The kakshya lord for a given degree in a rasi is computed by which
-    8th of the rasi the degree falls in.
-    """
-    kakshya_lords = [
-        Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
-        Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.SUN,
-    ]
-    # Simplified: for a full-rasi-based kakshya, just use the rasi's sequential order
-    return kakshya_lords[rasi_idx % 8]
+KAKSHYA_SIZE = 3.75  # 30° / 8 = 3.75° per kakshya
+
+
+def kakshya_index_from_degree(deg_in_rasi: float) -> int:
+    """Return the kakshya index (0-7) for a given degree within a rasi."""
+    idx = int(deg_in_rasi // KAKSHYA_SIZE)
+    return min(idx, 7)  # clamp 30.0° → index 7
+
+
+def kakshya_lord(kakshya_idx: int):
+    """Return the reference (Graha or 'LAGNA') that rules the given kakshya (0-7)."""
+    return _KAKSHYA_REFERENCES[kakshya_idx]
+
+
+def _ref_contributes(
+    house_rasi: int, ref,
+    planet_rasi: Dict[Graha, int], lagna_rasi: int,
+    exclude: Optional[Graha] = None,
+    parasara_moon: bool = True,
+    parasara_venus: bool = True,
+) -> bool:
+    """Does reference R contribute a bindu to house H (for a given subject exclusion)?"""
+    if not _has_other_planet(house_rasi, planet_rasi, exclude):
+        return False
+    if isinstance(ref, Graha):
+        return _is_benefic(ref.name, planet_rasi[ref], house_rasi,
+                          parasara_moon, parasara_venus)
+    else:  # "LAGNA"
+        return _is_benefic("LAGNA", lagna_rasi, house_rasi,
+                          parasara_moon, parasara_venus)
 
 
 def kakshya_bindu_table(
+    subject: Graha,
     chart: ChartData,
     parasara_moon: bool = True,
     parasara_venus: bool = True,
-) -> Dict[str, Dict[int, List[int]]]:
-    """Generate the full 8×12×8 Kakshya bindu table.
+) -> List[List[int]]:
+    """12×8 Kakshya table for a given subject planet.
 
-    For each reference R, for each house H (0-11), the 8 kakshya sub-divisions
-    show bindus based on which reference contributes in that sub-house.
+    For each house H (0-11) and each Kakshya K (0-7), the cell shows 1
+    if the reference that rules Kakshya K contributes 1 bindu to house H
+    (per BAV rules, excluding the subject planet).
 
-    Returns {reference: {house: [8 bindu counts per kakshya]}}.
+    Returns List[12 houses][8 kakshyas].
     """
-    # This is a placeholder for the detailed kakshya-level computation
-    raise NotImplementedError("Kakshya-level computation not yet implemented")
+    planet_rasi = {g: _rasi_of(g, chart) for g in _OCCUPANT_GRAHAS}
+    lagna_r = _lagna_rasi(chart)
+    table = [[0] * 8 for _ in range(12)]
+
+    for h in range(12):
+        for k, ref in enumerate(_KAKSHYA_REFERENCES):
+            if _ref_contributes(h, ref, planet_rasi, lagna_r,
+                                exclude=subject,
+                                parasara_moon=parasara_moon,
+                                parasara_venus=parasara_venus):
+                table[h][k] = 1
+    return table
+
+
+def all_kakshya_tables(
+    chart: ChartData,
+    parasara_moon: bool = True,
+    parasara_venus: bool = True,
+) -> Dict[Graha, List[List[int]]]:
+    """Compute Kakshya tables for all 7 planets.
+
+    Returns {Graha: 12×8 table}.
+    """
+    return {
+        g: kakshya_bindu_table(g, chart, parasara_moon, parasara_venus)
+        for g in _OCCUPANT_GRAHAS
+    }
+
+
+def kakshya_totals(
+    chart: ChartData,
+    parasara_moon: bool = True,
+    parasara_venus: bool = True,
+) -> Dict[str, List[int]]:
+    """Per-reference totals across all houses and all subjects.
+
+    Sums the contribution of each reference across all 7 subject BAVs.
+    Returns {reference_name: [12 bindu counts]} — i.e., total bindus
+    contributed by each reference to each house.
+    """
+    totals = {str(r): [0] * 12 if isinstance(r, Graha) else [0] * 12
+              for r in _KAKSHYA_REFERENCES}
+    # Actually just use string keys
+    totals = {ref_to_str(r): [0] * 12 for r in _KAKSHYA_REFERENCES}
+
+    for subject in _OCCUPANT_GRAHAS:
+        table = kakshya_bindu_table(subject, chart, parasara_moon, parasara_venus)
+        for h in range(12):
+            for k, ref in enumerate(_KAKSHYA_REFERENCES):
+                totals[ref_to_str(ref)][h] += table[h][k]
+    return totals
+
+
+def ref_to_str(r) -> str:
+    """Convert a Graha or 'LAGNA' to a string key."""
+    if isinstance(r, Graha):
+        return r.name
+    return r
