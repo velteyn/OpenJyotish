@@ -9,6 +9,10 @@ from jhora.calc.ashtakavarga import (
     trikona_shodhana_all,
     ekadhipatya_shodhana,
     sodhya_pinda,
+    kakshya_bindu_table,
+    all_kakshya_tables,
+    kakshya_totals,
+    kakshya_index_from_degree,
     _OCCUPANT_GRAHAS,
     _PLANETARY_AV,
     _LAGNA_AV,
@@ -234,3 +238,61 @@ class TestEdgeCases:
         # Settings are different but the chart might not exercise the difference
         assert len(bav_para) == 12
         assert len(bav_vara) == 12
+
+
+class TestKakshya:
+    """Kakshya-level bindu tests."""
+
+    def test_kakshya_index_from_degree(self):
+        assert kakshya_index_from_degree(0.0) == 0
+        assert kakshya_index_from_degree(3.74) == 0
+        assert kakshya_index_from_degree(3.75) == 1
+        assert kakshya_index_from_degree(7.5) == 2
+        assert kakshya_index_from_degree(15.0) == 4  # Jupiter
+        assert kakshya_index_from_degree(29.99) == 7  # Lagna
+        assert kakshya_index_from_degree(30.0) == 7  # clamp
+
+    def test_kakshya_table_shape(self, chart):
+        for g in _OCCUPANT_GRAHAS:
+            table = kakshya_bindu_table(g, chart)
+            assert len(table) == 12
+            for h in range(12):
+                assert len(table[h]) == 8
+
+    def test_kakshya_values_binary(self, chart):
+        for g in _OCCUPANT_GRAHAS:
+            table = kakshya_bindu_table(g, chart)
+            for h in range(12):
+                for k in range(8):
+                    assert table[h][k] in (0, 1), f"{g.name}[{h}][{k}]={table[h][k]}"
+
+    def test_kakshya_sum_equals_bav(self, chart):
+        """Sum of all 8 kakshyas in a house should equal that house's BAV."""
+        for g in _OCCUPANT_GRAHAS:
+            bav = bhinna_ashtakavarga(chart, g)
+            table = kakshya_bindu_table(g, chart)
+            for h in range(12):
+                assert sum(table[h]) == bav[h], (
+                    f"{g.name} house {h}: kakshya sum {sum(table[h])} vs BAV {bav[h]}"
+                )
+
+    def test_all_kakshya_tables(self, chart):
+        all_tables = all_kakshya_tables(chart)
+        assert len(all_tables) == 7
+        for g in _OCCUPANT_GRAHAS:
+            assert g in all_tables
+
+    def test_kakshya_totals_shape(self, ref_chart):
+        totals = kakshya_totals(ref_chart)
+        assert len(totals) == 8  # 7 grahas + Lagna
+        for ref_name, houses in totals.items():
+            assert len(houses) == 12
+
+    def test_kakshya_subject_excludes_self(self, ref_chart):
+        """Venus is alone in Libra; Venus's kakshya table in Libra should be
+        all zeros (no planet Q ≠ Venus in Libra)."""
+        table = kakshya_bindu_table(Graha.VENUS, ref_chart)
+        libra_idx = 6
+        assert sum(table[libra_idx]) == 0, (
+            "Venus alone in Libra, kakshya should show 0 bindus in Libra"
+        )
