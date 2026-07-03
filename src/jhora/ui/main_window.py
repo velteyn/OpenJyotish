@@ -20,6 +20,7 @@ from jhora.types.varga import VargaLevel, VargaVariant
 from jhora.ui.chart_widget import ChartWidget, ChartStyle
 from jhora.calc.ashtakavarga import (
     all_bhinna_ashtakavarga, sarva_ashtakavarga, sodhya_pinda,
+    kakshya_bindu_table,
     _OCCUPANT_GRAHAS,
 )
 
@@ -521,7 +522,27 @@ class MainWindow(QMainWindow):
         self.ak_sp_table = QTableWidget()
         self.ak_sp_table.setAlternatingRowColors(True)
         layout.addWidget(self.ak_sp_table, stretch=1)
+
+        # Kakshya section
+        kakshya_ctrl = QHBoxLayout()
+        kakshya_ctrl.setSpacing(8)
+        kakshya_ctrl.addWidget(QLabel("Kakshya planet:"))
+        self.ak_kakshya_combo = QComboBox()
+        for g in _OCCUPANT_GRAHAS:
+            self.ak_kakshya_combo.addItem(g.full_name, g)
+        self.ak_kakshya_combo.currentIndexChanged.connect(self._on_ak_kakshya_changed)
+        kakshya_ctrl.addWidget(self.ak_kakshya_combo)
+        kakshya_ctrl.addStretch()
+        layout.addLayout(kakshya_ctrl)
+
+        self.ak_kakshya_table = QTableWidget()
+        self.ak_kakshya_table.setAlternatingRowColors(True)
+        layout.addWidget(self.ak_kakshya_table, stretch=2)
         return w
+
+    def _on_ak_kakshya_changed(self, index: int):
+        if self.chart_data:
+            self._populate_ashtakavarga_table(self.chart_data)
 
     def _on_ak_tradition_changed(self, text: str):
         if self.chart_data:
@@ -549,3 +570,13 @@ class MainWindow(QMainWindow):
         sp_headers = ["Planet", "Sodhya Pinda"]
         sp_rows = [[g.full_name, str(sp[g])] for g in _OCCUPANT_GRAHAS]
         self._fill_table(self.ak_sp_table, sp_headers, sp_rows)
+
+        # Kakshya table for selected planet
+        subject = self.ak_kakshya_combo.currentData()
+        kt = kakshya_bindu_table(subject, cd, parasara_venus=parasara, parasara_moon=parasara)
+        kt_headers = ["House"] + ["Su", "Mo", "Ma", "Me", "Ju", "Ve", "Sa", "La"] + ["Total"]
+        kt_rows = []
+        for h in range(12):
+            vals = [str(kt[h][k]) for k in range(8)]
+            kt_rows.append([Rasi(h).short_name] + vals + [str(sum(kt[h]))])
+        self._fill_table(self.ak_kakshya_table, kt_headers, kt_rows)

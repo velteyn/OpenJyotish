@@ -27,6 +27,7 @@ from jhora.types.dasa import DasaSystem
 from jhora.types.varga import VargaLevel, VargaVariant
 from jhora.calc.ashtakavarga import (
     all_bhinna_ashtakavarga, sarva_ashtakavarga, sodhya_pinda,
+    kakshya_bindu_table, all_kakshya_tables,
     _OCCUPANT_GRAHAS,
 )
 
@@ -366,6 +367,7 @@ def ashtakavarga(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
     parasara: bool = typer.Option(True, "--parasara/--varahamihira", help="Use Parasara (moon=1, venus=11) or Varahamihira (moon=12, venus=12)"),
+    kakshya: Optional[str] = typer.Option(None, "--kakshya", "-k", help="Show Kakshya table for a planet: sun, moon, mars, mercury, jupiter, venus, saturn"),
 ):
     """Compute Ashtakavarga — planetary strengths by house."""
     bd = parse_birthdata(birthdata)
@@ -402,6 +404,25 @@ def ashtakavarga(
     for g in _OCCUPANT_GRAHAS:
         sp_table.add_row(g.full_name, str(sp[g]))
     console.print(sp_table)
+
+    # Kakshya table (optional)
+    if kakshya:
+        try:
+            graha = Graha[kakshya.upper()]
+        except KeyError:
+            console.print(f"[red]Unknown planet: {kakshya}[/red]")
+            raise typer.Exit(1)
+        kt = kakshya_bindu_table(graha, cd, parasara_venus=parasara, parasara_moon=parasara)
+        kt_table = Table(title=f"Kakshya Bindus — {graha.full_name}")
+        kt_table.add_column("House", style="cyan")
+        ref_labels = ["Su", "Mo", "Ma", "Me", "Ju", "Ve", "Sa", "La"]
+        for rl in ref_labels:
+            kt_table.add_column(rl, style="green")
+        kt_table.add_column("Total", style="yellow bold")
+        for h in range(12):
+            vals = [str(kt[h][k]) for k in range(8)]
+            kt_table.add_row(Rasi(h).short_name, *vals, str(sum(kt[h])))
+        console.print(kt_table)
 
 
 def _parse_varga_level(name: str) -> VargaLevel:
