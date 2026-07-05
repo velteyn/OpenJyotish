@@ -37,13 +37,16 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - **Shadbala**: Six-fold planetary strength (sthana, dig, kala, chesta, naisargika, drik) — 491 lines, 48 tests
 - **Yogas**: 10+ yoga types, 12 categories, 100+ combos (Pancha Mahapurusha, Raja, Dhana, Viparita Raja, Neecha Bhanga Raja, Parivartana, Chandra yogas, Surya yogas, Kemadruma, Amala, Dharma-Karma-Adhipati, Kala Sarpa)
 - CLI: `chart`, `dasa` (vimsottari/ashtottari), `navamsa`, `varga`, `shadbala`, `yogas`, `ashtakavarga`, `interpret`, `knowledge`, `gui`
-- GUI: PyQt6 dark theme, South/North/East Indian chart styles, 8 tabs (planets, houses, dasa system selector, varga, yogas, shadbala, ashtakavarga, transit)
+- GUI: PyQt6 dark theme, South/North/East Indian chart styles (3, with diamond lines for North, radial spokes for East), 8 tabs (planets, houses, dasa system selector, varga, yogas, shadbala, ashtakavarga, transit)
 - Interpreter: Chart reading generator (rule-based, connected to yogas engine)
 - Knowledge base: 16 sources, 1.9M chars, full-text search
 - Books: Author's textbook (515pp) + margabandhu (322pp) + 14 articles text-extracted
 - **Tests: 380 passing** (15 test files, 2,700 lines)
+- **Docs**: `docs/help/chart_drawing_analysis.md` — comprehensive RE analysis of binary chart rendering vs current implementation
 - **Ashtakavarga**: BAV, SAV, PAV, Trikona/ Ekadhipatya Shodhana, Sodhya Pinda, and Kakshya-level bindu computation (8 sub-divisions per house) — `src/jhora/calc/ashtakavarga.py`
 - **Wine testbench experiment**: Attempted to recompile original JHora with debug symbols via MinGW under Wine, but blocked by Wine 10 WoW64 architecture — 64-bit LD_PRELOAD cannot access 32-bit PE memory, ptrace_scope=1 prevents external attachment, and cannot install MinGW/wine32 without sudo. No viable in-process debugging path for the original binary.
+- **Chart rendering RE**: Deep-dived binary function 0x004CB240 (15,614 B, 202 locals — guessed as "Main chart rendering" in function_map). Analysis with capstone reveals it's actually the **yoga description text builder** — calls string-append function 0x00513C3E 310× with 406 unique string references (yoga names, descriptions). Contains 3,187 instructions, zero GDI32 calls. GDI32 drawing functions (91 imported: TextOutA, MoveToEx, LineTo, Rectangle, etc.) are likely called through MFC CDC wrappers in other functions. Documented findings in `docs/help/chart_drawing_analysis.md`.
+- Chart widget improvements: North Indian diamond diagonal lines added; East Indian radial planet positioning improved; fonts optimized for cell fitting. All 380 tests pass.
 
 ### Building Next
 - More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
