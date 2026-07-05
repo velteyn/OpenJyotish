@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget,
@@ -301,10 +301,12 @@ class MainWindow(QMainWindow):
         table.setColumnCount(len(headers))
         table.setRowCount(len(rows))
         table.setHorizontalHeaderLabels(headers)
+        white = QBrush(QColor("#ffffff"))
         for r, row in enumerate(rows):
             for c, val in enumerate(row):
                 item = QTableWidgetItem(val)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                item.setForeground(white)
                 table.setItem(r, c, item)
         table.horizontalHeader().setStretchLastSection(True)
         table.resizeColumnsToContents()
@@ -430,13 +432,13 @@ class MainWindow(QMainWindow):
         from jhora.calc.yogas import detect_all
         yogas = detect_all(cd)
         self.yoga_table.setRowCount(len(yogas))
+        white = QBrush(QColor("#ffffff"))
         for i, y in enumerate(yogas):
             names = ", ".join(p.full_name for p in y.planets) if y.planets else ""
-            self.yoga_table.setItem(i, 0, QTableWidgetItem(y.name))
-            self.yoga_table.setItem(i, 1, QTableWidgetItem(y.category))
-            self.yoga_table.setItem(i, 2, QTableWidgetItem(names))
-            self.yoga_table.setItem(i, 3, QTableWidgetItem(y.strength))
-            self.yoga_table.setItem(i, 4, QTableWidgetItem(y.description))
+            for col, val in enumerate([y.name, y.category, names, y.strength, y.description]):
+                item = QTableWidgetItem(val)
+                item.setForeground(white)
+                self.yoga_table.setItem(i, col, item)
         self.yoga_table.resizeColumnsToContents()
 
     # --- Shadbala ---
