@@ -58,7 +58,8 @@ QPushButton:pressed {{ background-color: #c23152; }}
 QPushButton:checked {{ background-color: #00aa5a; }}
 QTableWidget {{ background-color: {BG2}; color: #ffffff; border: 1px solid #0f3460;
                gridline-color: #0f3460; }}
-QTableWidget::item {{ padding: 5px 8px; }}
+QTableWidget::item {{ padding: 5px 8px; background-color: {BG2}; }}
+QTableWidget::item:alternate {{ background-color: #1a2744; }}
 QHeaderView::section {{ background-color: #0f3460; color: {ACCENT}; font-weight: bold;
                        border: 1px solid {BG2}; padding: 5px 8px; }}
 QTabWidget::pane {{ background-color: {BG2}; border: 1px solid #0f3460;
@@ -314,11 +315,14 @@ class MainWindow(QMainWindow):
         table.setRowCount(len(rows))
         table.setHorizontalHeaderLabels(headers)
         white = QBrush(QColor("#ffffff"))
+        bg = QBrush(QColor("#16213e"))
+        bg_alt = QBrush(QColor("#1a2744"))
         for r, row in enumerate(rows):
             for c, val in enumerate(row):
                 item = QTableWidgetItem(val)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 item.setForeground(white)
+                item.setBackground(bg_alt if r % 2 else bg)
                 table.setItem(r, c, item)
         table.horizontalHeader().setStretchLastSection(True)
         table.resizeColumnsToContents()
@@ -445,11 +449,14 @@ class MainWindow(QMainWindow):
         yogas = detect_all(cd)
         self.yoga_table.setRowCount(len(yogas))
         white = QBrush(QColor("#ffffff"))
+        bg = QBrush(QColor("#16213e"))
+        bg_alt = QBrush(QColor("#1a2744"))
         for i, y in enumerate(yogas):
             names = ", ".join(p.full_name for p in y.planets) if y.planets else ""
             for col, val in enumerate([y.name, y.category, names, y.strength, y.description]):
                 item = QTableWidgetItem(val)
                 item.setForeground(white)
+                item.setBackground(bg_alt if i % 2 else bg)
                 self.yoga_table.setItem(i, col, item)
         self.yoga_table.resizeColumnsToContents()
 
