@@ -154,6 +154,19 @@ class MainWindow(QMainWindow):
         )
         tz_row.addWidget(tz_label)
 
+        # Lat + detect button
+        lat_row = QHBoxLayout()
+        lat_row.setSpacing(6)
+        self.geo_detect_btn = QPushButton("📍 Detect")
+        self.geo_detect_btn.setFixedWidth(90)
+        self.geo_detect_btn.clicked.connect(self._detect_location)
+        self.geo_detect_btn.setToolTip("Detect location from IP address")
+        lat_row.addWidget(self.lat_input, 1)
+        lon_row = QHBoxLayout()
+        lon_row.setSpacing(6)
+        lon_row.addWidget(self.lon_input, 1)
+        lon_row.addWidget(self.geo_detect_btn)
+
         for w in (self.date_input, self.time_input, self.tz_input,
                   self.lat_input, self.lon_input):
             w.setMinimumWidth(180)
@@ -161,8 +174,8 @@ class MainWindow(QMainWindow):
         form.addRow("Date:", self.date_input)
         form.addRow("Time:", self.time_input)
         form.addRow("TZ offset:", tz_row)
-        form.addRow("Lat:", self.lat_input)
-        form.addRow("Lon:", self.lon_input)
+        form.addRow("Lat:", lat_row)
+        form.addRow("Lon:", lon_row)
 
         # Controls row
         ctrl = QHBoxLayout()
@@ -271,6 +284,34 @@ class MainWindow(QMainWindow):
 
         self._on_varga_level_changed(0)
         self._set_example_data()
+
+    def _detect_location(self):
+        """Detect latitude/longitude from IP address via geolocation API."""
+        import json
+        import urllib.request
+        try:
+            self.statusBar().showMessage("Detecting location...")
+            req = urllib.request.Request(
+                "http://ip-api.com/json/",
+                headers={"User-Agent": "jhora/1.0"},
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode())
+            if data.get("status") != "success":
+                QMessageBox.warning(self, "Geo Error", data.get("message", "Unknown error"))
+                self.statusBar().showMessage("Location detection failed")
+                return
+            lat = data["lat"]
+            lon = data["lon"]
+            self.lat_input.setText(f"{lat:.4f}")
+            self.lon_input.setText(f"{lon:.4f}")
+            self.statusBar().showMessage(
+                f"Detected: {data.get('city', '')}, {data.get('country', '')}  "
+                f"({lat:.4f}, {lon:.4f})"
+            )
+        except Exception as e:
+            QMessageBox.warning(self, "Geo Error", f"Could not detect location:\n{e}")
+            self.statusBar().showMessage("Location detection failed")
 
     def _fill_now(self):
         """Fill date/time from system clock, auto-detect timezone offset."""
