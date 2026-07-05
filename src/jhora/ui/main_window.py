@@ -328,6 +328,11 @@ class MainWindow(QMainWindow):
         table.resizeColumnsToContents()
         table.verticalHeader().setVisible(False)
 
+    @staticmethod
+    def _dignity_short(d: str) -> str:
+        return {"exalted": "Ex", "debilitated": "Db", "moolatrikona": "MT",
+                "own": "Own", "neutral": "Neu", "node": "Nd", "lagna": "Lg"}.get(d, d)
+
     def _update_planet_table(self):
         if not self.chart_data:
             return
@@ -338,13 +343,14 @@ class MainWindow(QMainWindow):
                 p = self.chart_data.planets[g]
                 rows.append([g.full_name, f"{p.longitude:.2f}", p.rasi_name,
                              f"{p.degrees_in_rasi:.2f}", p.nakshatra_name,
-                             str(p.nakshatra_pada), p.dignity])
+                             str(p.nakshatra_pada), self._dignity_short(p.dignity)])
         rows.append(["Lagna", f"{self.chart_data.ascendant:.2f}",
                      self.chart_data.lagna.rasi_name,
                      f"{self.chart_data.lagna.degrees_in_rasi:.2f}",
                      self.chart_data.lagna.nakshatra_name,
-                     str(self.chart_data.lagna.nakshatra_pada), ""])
+                     str(self.chart_data.lagna.nakshatra_pada), "Lg"])
         self._fill_table(self.planet_table, headers, rows)
+        self.planet_table.setColumnWidth(6, 50)
 
     def _update_house_table(self):
         if not self.chart_data:
