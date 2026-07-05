@@ -311,7 +311,7 @@ def gui():
     qapp.setApplicationName("the classical tradition")
     qapp.setStyle("Fusion")
     window = MainWindow()
-    window.show()
+    window.showMaximized()
     qapp.exec()
 
 
