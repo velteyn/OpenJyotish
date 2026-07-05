@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtGui import QBrush, QColor, QFont
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget,
@@ -267,10 +267,16 @@ class MainWindow(QMainWindow):
             date_str = self.date_input.text().strip()
             time_str = self.time_input.text().strip()
             tz = self.tz_input.text().strip()
-            lat = float(self.lat_input.text().strip())
-            lon = float(self.lon_input.text().strip())
+            lat_str = self.lat_input.text().strip()
+            lon_str = self.lon_input.text().strip()
             ayanamsa = self.ayanamsa_combo.currentText().lower()
 
+            if not date_str or not time_str or not tz or not lat_str or not lon_str:
+                QMessageBox.warning(self, "Missing Fields", "Please fill in all birth data fields.")
+                return
+
+            lat = float(lat_str)
+            lon = float(lon_str)
             dt = datetime.strptime(date_str, "%Y-%m-%d")
             parts = time_str.split(":")
             hour = int(parts[0]) + int(parts[1]) / 60.0
