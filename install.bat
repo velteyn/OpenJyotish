@@ -10,13 +10,17 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: Create virtual environment
-echo Creating virtual environment...
-python -m venv venv
-if %errorlevel% neq 0 (
-    echo Failed to create venv
-    pause
-    exit /b 1
+:: Create virtual environment if not exists
+if not exist venv\Scripts\activate.bat (
+    echo Creating virtual environment...
+    python -m venv venv
+    if %errorlevel% neq 0 (
+        echo Failed to create venv
+        pause
+        exit /b 1
+    )
+) else (
+    echo venv already exists, skipping creation.
 )
 
 :: Activate and install
