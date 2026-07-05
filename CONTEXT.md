@@ -12,7 +12,11 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 |------|------|-------------|
 | `jhora.exe` | 2,375,680 B | Original binary (PE32, C++ MFC, 3,150 functions) |
 | `swedll32.dll` | 536,576 B | Swiss Ephemeris DLL (18 API functions) |
+| `jhcore/atlas/jhworld.adb` | 64 MB | JHora city/atlas database (custom `.adb` format) |
+| `jhcore/atlas/jhlite.adb` | 56 KB | Lite atlas subset |
+| `jhcore/ephe/*.se1` | ~94 MB | Swiss Ephemeris monthly files (Moon + planets, 0–162 months) |
 | `jhora.hlp` | 3,820,452 B | Windows Help — extracted to `docs/help/` |
+| `data/*.jhd` | 41–169 B each | 18 sample chart files (Gandhi, Vivekananda, PVR, etc.) — native `.jhd` format, line-based ASCII |
 
 ## Technology
 
@@ -41,14 +45,27 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - Interpreter: Chart reading generator (rule-based, connected to yogas engine)
 - Knowledge base: 16 sources, 1.9M chars, full-text search
 - Books: Author's textbook (515pp) + margabandhu (322pp) + 14 articles text-extracted
-- **Tests: 380 passing** (15 test files, 2,700 lines)
+- **Tests: 384 passing** (16 test files, 2,800 lines)
 - **Docs**: `docs/help/chart_drawing_analysis.md` — comprehensive RE analysis of binary chart rendering vs current implementation
 - **Ashtakavarga**: BAV, SAV, PAV, Trikona/ Ekadhipatya Shodhana, Sodhya Pinda, and Kakshya-level bindu computation (8 sub-divisions per house) — `src/jhora/calc/ashtakavarga.py`
 - **Wine testbench experiment**: Attempted to recompile original JHora with debug symbols via MinGW under Wine, but blocked by Wine 10 WoW64 architecture — 64-bit LD_PRELOAD cannot access 32-bit PE memory, ptrace_scope=1 prevents external attachment, and cannot install MinGW/wine32 without sudo. No viable in-process debugging path for the original binary.
-- **Chart rendering RE**: Deep-dived binary function 0x004CB240 (15,614 B, 202 locals — guessed as "Main chart rendering" in function_map). Analysis with capstone reveals it's actually the **yoga description text builder** — calls string-append function 0x00513C3E 310× with 406 unique string references (yoga names, descriptions). Contains 3,187 instructions, zero GDI32 calls. GDI32 drawing functions (91 imported: TextOutA, MoveToEx, LineTo, Rectangle, etc.) are likely called through MFC CDC wrappers in other functions. Documented findings in `docs/help/chart_drawing_analysis.md`.
-- Chart widget improvements: North Indian diamond diagonal lines added; East Indian radial planet positioning improved; fonts optimized for cell fitting. All 380 tests pass.
+- **Chart rendering RE**: Deep-dived binary function 0x004CB240 (15,614 B, 202 locals — guessed as "Main chart rendering" in function_map). Analysis with capstone reveals it's actually the **yoga description text builder** — calls string-append function 0x00513C3E 310× with 406 unique string references (yoga names, descriptions). Contains 3,187 instructions, zero GDI32 calls. Documented findings in `docs/help/chart_drawing_analysis.md`.
+- **Complete IAT map** built: 493 entries across 15 DLLs. Key finding: JHora calls GDI32 functions via **direct `call [IAT]`** instructions from application code (0x004xxxxx), NOT through MFC CDC wrapper thunks — 0 direct callers found to 0x4FAxxx thunks.
+- **Three chart drawing functions identified** in the binary: `fn44B9B6` (0x44B9B6, South Indian — 3×Rectangle + 3×CreatePen), `fn00481670` (0x481670, East Indian — 3×Ellipse + 5×CreateSolidBrush), `fn0051E3B0` (0x51E3B0, North Indian — MoveToEx+LineTo pair ×12). Dispatcher at `fn0044C170` (0x44C170) routes via 23-entry jump table on global `[0x8A4B58]`.
+- Chart widget improvements: North Indian diamond diagonal lines added; East Indian radial planet positioning improved; fonts optimized for cell fitting. All 384 tests pass.
+- **`jhcore/` data files** discovered: `atlas/*.adb` (62 MB jhworld.adb + 56 KB jhlite.adb, custom binary format — reads by atlas function 0x004c2250) and `ephe/*.se1` (~94 MB, standard Swiss Ephemeris monthly files). The `.adb` format needs RE to support native JHora atlas lookup.
+- **`data/*.jhd` sample charts** — 18 `.jhd` files for famous personalities. Line-based ASCII format with two variants: 14-line (birth data only) and 18+ line (includes computed planet positions). Valuable for testing our JHD parser and chart calculations.
+- **Graha→SE planet ID mapping fixed**: ChartBuilder uses explicit `_SE_TO_GRAHA` dict (Graha enum uses Vedic numbering, not SE IDs).
+- **UTC time conversion fixed**: `utc_hour = local_hour + tz_offset`, signed offset (negative = east of GMT). Parses HHMM (`+0530` → `-5.5`) and decimal (`-5.36`) formats.
+- **SweEngine.calc_planets() fixed**: Uses **Mean Node** for Rahu; computes Ketu as `(Mean Node + 180°) % 360` (was using `SE_OSCU_APOG` — Moon's apogee).
+- **Node dignity**: DignityChecker returns `"node"` for Rahu/Ketu (regardless of sign position).
+- **JHD parser planet order fixed**: Vedic order (Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, Ketu), not Swiss Ephemeris order.
+- **Date/Time pickers**: QDateEdit (calendar popup) + QTimeEdit (spinner) replacing raw text inputs. "Now" button auto-fills system date/time and detects TZ offset.
+- **TZ auto-detect**: Reads system UTC offset via `time.timezone` + DST flag, writes signed decimal (e.g., `-2.0` for UTC+2).
 
 ### Building Next
+- RE the `.adb` atlas format (jhcore/atlas/) — custom JHora binary database, used by atlas function 0x004c2250. Map fields (city name, lat, lon, TZ, country) and implement a Python reader.
+- Implement `.jhd` file parser (line-based ASCII, 14+ fields: date, time, TZ, lon, lat, city, country, optional computed data)
 - More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
 - Arudha padas, Chara karakas, Sahamas
 - Tajaka solar return

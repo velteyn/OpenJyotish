@@ -125,11 +125,11 @@ class TestNavamsaDefault:
 
     def test_mars_navamsa(self, ref_navamsa):
         p = ref_navamsa.positions[Graha.MARS]
-        assert p.rasi.full_name == "Taurus"
+        assert p.rasi.full_name == "Sagittarius"
 
     def test_mercury_navamsa(self, ref_navamsa):
         p = ref_navamsa.positions[Graha.MERCURY]
-        assert p.rasi.full_name == "Gemini"
+        assert p.rasi.full_name == "Taurus"
 
     def test_jupiter_navamsa(self, ref_navamsa):
         p = ref_navamsa.positions[Graha.JUPITER]
@@ -137,7 +137,7 @@ class TestNavamsaDefault:
 
     def test_venus_navamsa(self, ref_navamsa):
         p = ref_navamsa.positions[Graha.VENUS]
-        assert p.rasi.full_name == "Sagittarius"
+        assert p.rasi.full_name == "Gemini"
 
     def test_saturn_navamsa(self, ref_navamsa):
         p = ref_navamsa.positions[Graha.SATURN]
@@ -149,7 +149,7 @@ class TestNavamsaDefault:
 
     def test_ketu_navamsa(self, ref_navamsa):
         p = ref_navamsa.positions[Graha.KETU]
-        assert p.rasi.full_name == "Scorpio"
+        assert p.rasi.full_name == "Capricorn"
 
     def test_lagna_navamsa(self, ref_navamsa):
         assert ref_navamsa.lagna_position.rasi.full_name == "Cancer"

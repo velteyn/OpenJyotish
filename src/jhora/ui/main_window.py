@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import Optional
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QDate, QTime
 from PyQt6.QtGui import QBrush, QColor, QFont
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget,
     QTableWidgetItem, QHeaderView, QSplitter, QTextEdit, QTabWidget,
     QMessageBox, QGroupBox, QFormLayout,
+    QDateEdit, QTimeEdit,
 )
 
 from jhora.charts.chart import ChartBuilder, ChartData
@@ -111,17 +112,47 @@ class MainWindow(QMainWindow):
         form.setSpacing(6)
         form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
 
-        self.date_input = QLineEdit()
-        self.date_input.setPlaceholderText("1970-04-04")
-        self.date_input.setToolTip("Year-Month-Day")
-        self.time_input = QLineEdit()
-        self.time_input.setPlaceholderText("17:48:20")
+        self.date_input = QDateEdit()
+        self.date_input.setCalendarPopup(True)
+        self.date_input.setDisplayFormat("yyyy-MM-dd")
+        self.date_input.setDate(QDate(1970, 4, 4))
+        self.date_input.setToolTip("Click to open calendar")
+
+        self.time_input = QTimeEdit()
+        self.time_input.setDisplayFormat("HH:mm:ss")
+        self.time_input.setTime(QTime(17, 48, 20))
+        self.time_input.setToolTip("Local birth time")
+
         self.tz_input = QLineEdit()
-        self.tz_input.setPlaceholderText("+0530 or Asia/Kolkata")
+        self.tz_input.setPlaceholderText("-2.0 or +0530")
+        self.tz_input.setToolTip(
+            "Offset from UTC: enter signed hours.\n"
+            "  Examples:  UTC+2 → -2.0,  UTC+5:30 → +0530,  UTC-5 → +5.0"
+        )
+
         self.lat_input = QLineEdit()
         self.lat_input.setPlaceholderText("13.08")
         self.lon_input = QLineEdit()
         self.lon_input.setPlaceholderText("80.27")
+
+        # Row with TZ input + detect button + helper label
+        tz_row = QHBoxLayout()
+        tz_row.setSpacing(6)
+        self.tz_detect_btn = QPushButton("🕐 Now")
+        self.tz_detect_btn.setFixedWidth(80)
+        self.tz_detect_btn.clicked.connect(self._fill_now)
+        self.tz_detect_btn.setToolTip("Fill date/time from system clock and detect TZ")
+        tz_row.addWidget(self.tz_input, 1)
+        tz_row.addWidget(self.tz_detect_btn)
+        tz_label = QLabel("UTC = local + offset")
+        tz_label.setStyleSheet(f"color: {DIM}; font-size: 11px;")
+        tz_label.setToolTip(
+            "Enter the signed offset to convert local time to UTC.\n"
+            "  Europe summer (UTC+2) → -2.0\n"
+            "  Europe winter (UTC+1) → -1.0\n"
+            "  India (UTC+5:30) → +0530 or -5.5"
+        )
+        tz_row.addWidget(tz_label)
 
         for w in (self.date_input, self.time_input, self.tz_input,
                   self.lat_input, self.lon_input):
@@ -129,7 +160,7 @@ class MainWindow(QMainWindow):
 
         form.addRow("Date:", self.date_input)
         form.addRow("Time:", self.time_input)
-        form.addRow("TZ:", self.tz_input)
+        form.addRow("TZ offset:", tz_row)
         form.addRow("Lat:", self.lat_input)
         form.addRow("Lon:", self.lon_input)
 
@@ -241,9 +272,28 @@ class MainWindow(QMainWindow):
         self._on_varga_level_changed(0)
         self._set_example_data()
 
+    def _fill_now(self):
+        """Fill date/time from system clock, auto-detect timezone offset."""
+        now = datetime.now()
+        self.date_input.setDate(QDate(now.year, now.month, now.day))
+        self.time_input.setTime(QTime(now.hour, now.minute, now.second))
+        # Auto-detect UTC offset from system
+        import time
+        is_dst = time.localtime().tm_isdst
+        utc_offset = -time.timezone / 3600  # time.timezone is seconds west of UTC
+        if is_dst > 0:
+            utc_offset += 1  # DST adds an hour eastward
+        # Format as signed decimal: UTC+X → -X.0
+        sign = "+" if utc_offset < 0 else "-"
+        self.tz_input.setText(f"{sign}{abs(utc_offset):.1f}")
+        self.statusBar().showMessage(
+            f"Filled: {now.strftime('%Y-%m-%d %H:%M:%S')} local, "
+            f"TZ = {sign}{abs(utc_offset):.1f} (UTC{'−' if utc_offset > 0 else '+'}{abs(utc_offset):.1f})"
+        )
+
     def _set_example_data(self):
-        self.date_input.setText("1970-04-04")
-        self.time_input.setText("17:48:20")
+        self.date_input.setDate(QDate(1970, 4, 4))
+        self.time_input.setTime(QTime(17, 48, 20))
         self.tz_input.setText("+0530")
         self.lat_input.setText("13.08")
         self.lon_input.setText("80.27")
@@ -265,28 +315,25 @@ class MainWindow(QMainWindow):
 
     def _on_calculate(self):
         try:
-            date_str = self.date_input.text().strip()
-            time_str = self.time_input.text().strip()
+            qd = self.date_input.date()
+            qt = self.time_input.time()
             tz = self.tz_input.text().strip()
             lat_str = self.lat_input.text().strip()
             lon_str = self.lon_input.text().strip()
             ayanamsa = self.ayanamsa_combo.currentText().lower()
 
-            if not date_str or not time_str or not tz or not lat_str or not lon_str:
+            if not tz or not lat_str or not lon_str:
                 QMessageBox.warning(self, "Missing Fields", "Please fill in all birth data fields.")
                 return
 
             lat = float(lat_str)
             lon = float(lon_str)
-            dt = datetime.strptime(date_str, "%Y-%m-%d")
-            parts = time_str.split(":")
-            hour = int(parts[0]) + int(parts[1]) / 60.0
-            if len(parts) > 2:
-                hour += int(parts[2]) / 3600.0
+            year, month, day = qd.year(), qd.month(), qd.day()
+            hour = qt.hour() + qt.minute() / 60.0 + qt.second() / 3600.0
 
             self.statusBar().showMessage("Calculating...")
             self.chart_data = self.builder.build(
-                year=dt.year, month=dt.month, day=dt.day,
+                year=year, month=month, day=day,
                 hour=hour, lat=lat, lon=lon,
                 tz=tz, ayanamsa=ayanamsa,
             )

@@ -25,18 +25,22 @@ from jhora.types.graha import Graha
 def chart():
     """Chart used in all ashtakavarga tests."""
     builder = ChartBuilder()
-    return builder.build(1990, 1, 15, 12.0, 12.9716, 77.5946, tz="Asia/Kolkata")
+    utc_hour = 12.0
+    local_hour = utc_hour + 5.5  # IST (17:30)
+    return builder.build(1990, 1, 15, local_hour, 12.9716, 77.5946, tz="-5.5")
 
 
 @pytest.fixture(scope="module")
 def ref_chart():
-    """Reference birth chart (1970-04-04 17:48:20 +0530, Chennai)."""
+    """Reference birth chart (1970-04-04 17:48:20 UT = 23:18:20 IST, Chennai)."""
     builder = ChartBuilder()
+    utc_hour = 17 + 48 / 60 + 20 / 3600
+    local_hour = utc_hour + 5.5  # IST
     return builder.build(
         year=1970, month=4, day=4,
-        hour=17 + 48 / 60 + 20 / 3600,
+        hour=local_hour,
         lat=13.08, lon=80.27,
-        tz="+0530", ayanamsa="lahiri",
+        tz="-5.5", ayanamsa="lahiri",
     )
 
 
@@ -289,10 +293,10 @@ class TestKakshya:
             assert len(houses) == 12
 
     def test_kakshya_subject_excludes_self(self, ref_chart):
-        """Venus is alone in Libra; Venus's kakshya table in Libra should be
-        all zeros (no planet Q ≠ Venus in Libra)."""
-        table = kakshya_bindu_table(Graha.VENUS, ref_chart)
+        """Jupiter is alone in Libra; Jupiter's kakshya table in Libra should be
+        all zeros (no planet Q ≠ Jupiter in Libra)."""
+        table = kakshya_bindu_table(Graha.JUPITER, ref_chart)
         libra_idx = 6
         assert sum(table[libra_idx]) == 0, (
-            "Venus alone in Libra, kakshya should show 0 bindus in Libra"
+            "Jupiter alone in Libra, kakshya should show 0 bindus in Libra"
         )

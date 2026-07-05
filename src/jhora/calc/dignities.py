@@ -61,6 +61,9 @@ class DignityChecker:
         self._own = OWN_SIGNS
 
     def get_dignity(self, graha: Graha, rasi_index: int, deg_in_rasi: float) -> str:
+        # Nodes don't have rasi-based dignity
+        if graha in (Graha.RAHU, Graha.KETU):
+            return "node"
         # Exalted
         if graha in self._exalt:
             r, d = self._exalt[graha]
