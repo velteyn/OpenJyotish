@@ -155,7 +155,6 @@ class ChartWidget(QWidget):
         pb = self._planets_by_rasi()
         asc_rasi = Rasi.from_longitude(self.chart_data.ascendant)
 
-        # 4×4 grid with house numbers (same layout, different labels)
         ni_grid = [
             (0, 0, 10), (0, 1, 11), (0, 2, 12), (0, 3, 1),
             (1, 3, 2),  (2, 3, 3),  (3, 3, 4),  (3, 2, 5),
@@ -175,33 +174,46 @@ class ChartWidget(QWidget):
             if planets:
                 self._draw_planets(painter, rect, planets)
 
-        # Center box
         cr = self._center_rect()
         painter.setPen(QPen(PALETTE["border"], 2))
         painter.setBrush(QBrush(PALETTE["cell_bg"]))
         painter.drawRect(cr.toRect())
+
         painter.setPen(PALETTE["accent"])
-        painter.setFont(QFont("sans-serif", 12, QFont.Weight.Bold))
+        painter.setFont(QFont("sans-serif", 11, QFont.Weight.Bold))
         painter.drawText(cr, Qt.AlignmentFlag.AlignCenter,
                          f"Asc\n{asc_rasi.short_name}")
+
+        _ni_diagonal_lines = [
+            (0, 0, 1, 3), (0, 3, 3, 3),
+            (3, 3, 3, 0), (3, 0, 0, 0),
+        ]
+        lw = 1.0
+        painter.setPen(QPen(PALETTE["border"], lw))
+        for r1, c1, r2, c2 in _ni_diagonal_lines:
+            ox, oy, cw, ch = self._cell_grid()
+            x1 = ox + c1 * cw + cw / 2
+            y1 = oy + r1 * ch + ch / 2
+            x2 = ox + c2 * cw + cw / 2
+            y2 = oy + r2 * ch + ch / 2
+            painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
     def _draw_east_indian(self, painter: QPainter):
         w, h = self.width(), self.height()
         size = min(w, h) - 24
         cx, cy = w / 2, h / 2
-        outer_r, inner_r = size / 2, size * 0.275
-        mid_r = (outer_r + inner_r) / 2
+        outer_r, inner_r = size / 2, size * 0.30
+        label_r = outer_r - QFontMetrics(QFont("sans-serif", 8, QFont.Weight.Bold)).height() - 4
+        offset_r = inner_r + QFontMetrics(QFont("sans-serif", 8, QFont.Weight.Bold)).height()
 
         import math
 
-        # Draw rings
         painter.setPen(QPen(PALETTE["border"], 1.5))
         painter.setBrush(QBrush(PALETTE["cell_bg"]))
         painter.drawEllipse(QPointF(cx, cy), outer_r, outer_r)
         painter.setBrush(QBrush())
         painter.drawEllipse(QPointF(cx, cy), inner_r, inner_r)
 
-        # Spokes
         for i in range(12):
             a = math.radians(i * 30 - 90)
             painter.drawLine(QPointF(cx + inner_r * math.cos(a), cy + inner_r * math.sin(a)),
@@ -215,32 +227,29 @@ class ChartWidget(QWidget):
             a = math.radians(i * 30 - 90 + 15)
             is_asc = rasi == lagna_rasi
 
-            # Rasi name
-            lx = cx + mid_r * math.cos(a)
-            ly = cy + mid_r * math.sin(a)
-            font = QFont("sans-serif", 9, QFont.Weight.Bold)
+            lx = cx + label_r * math.cos(a)
+            ly = cy + label_r * math.sin(a)
+            font = QFont("sans-serif", 8, QFont.Weight.Bold)
             painter.setFont(font)
             painter.setPen(PALETTE["lagna"] if is_asc else PALETTE["accent"])
             label = "Asc" if is_asc else rasi.short_name
             tw = QFontMetrics(font).horizontalAdvance(label)
             painter.drawText(int(lx - tw / 2), int(ly + 4), label)
 
-            # Planets along spoke
             planets = pb.get(rasi, [])
             if planets:
                 planets.sort(key=lambda x: x[1])
                 n = len(planets)
                 for j, (graha, _) in enumerate(planets):
-                    pr = inner_r + (j + 1) * (outer_r - inner_r) / (n + 1.5)
+                    pr = offset_r + j * (label_r - offset_r) / max(n, 1)
                     px = cx + pr * math.cos(a)
                     py = cy + pr * math.sin(a)
                     self._draw_planet_glyph(painter, graha, px, py)
 
-        # Center
         painter.setPen(PALETTE["text_dim"])
-        painter.setFont(QFont("sans-serif", 10))
+        painter.setFont(QFont("sans-serif", 9))
         painter.drawText(int(cx - 40), int(cy),
-                         f"{self.chart_data.ayanamsa_name.title()}\nLagna: {lagna_rasi.short_name}")
+                         f"{self.chart_data.ayanamsa_name.title()}\n{self.chart_data.ayanamsa_value:.4f}")
 
     def _draw_cell(self, painter: QPainter, rect: QRectF, highlight: bool = False):
         bw = 1.5 if not highlight else 2.5
@@ -249,14 +258,14 @@ class ChartWidget(QWidget):
         painter.drawRect(rect.toRect())
 
     def _draw_header(self, painter: QPainter, rect: QRectF, rasi: Rasi, is_lagna: bool = False):
-        font = QFont("sans-serif", 10, QFont.Weight.Bold)
+        font = QFont("sans-serif", 9, QFont.Weight.Bold)
         painter.setFont(font)
         painter.setPen(PALETTE["lagna"] if is_lagna else PALETTE["accent"])
         label = "Asc" if is_lagna else rasi.short_name
         fm = QFontMetrics(font)
         tw = fm.horizontalAdvance(label)
         painter.drawText(int(rect.x() + rect.width() / 2 - tw / 2),
-                         int(rect.y() + fm.height() + 4), label)
+                         int(rect.y() + fm.height() + 3), label)
 
     def _draw_house_label(self, painter: QPainter, rect: QRectF,
                           house_num: int, ras: Rasi, is_asc: bool):
