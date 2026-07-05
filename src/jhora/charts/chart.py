@@ -95,6 +95,36 @@ class ChartBuilder:
     def __init__(self, swe: Optional[SweEngine] = None):
         self.swe = swe or SweEngine()
 
+    @staticmethod
+    def _parse_tz(tz: str) -> float:
+        """Parse timezone string to signed decimal hours.
+        
+        Convention: tz_offset is added to local time to get UTC.
+        For India (UTC+5:30): UTC = local - 5:30, so tz_offset = -5.5.
+        
+        Supports:
+          "+0530" (HHMM) → -5.5  (UTC+X means local ahead, so subtrahend)
+          "-0500" (HHMM) → +5.0  (UTC-X means local behind, so addend)
+          "-5.36" (decimal) → -5.36 (direct JHD format)
+        """
+        if tz == "UTC":
+            return 0.0
+        tz = tz.strip()
+        try:
+            if tz.startswith("+"):
+                rest = tz[1:]
+                if len(rest) == 4 and rest.isdigit():
+                    h, m = int(rest[:2]), int(rest[2:])
+                    return -(h + m / 60.0)
+            elif tz.startswith("-"):
+                rest = tz[1:]
+                if len(rest) == 4 and rest.isdigit():
+                    h, m = int(rest[:2]), int(rest[2:])
+                    return h + m / 60.0
+            return float(tz)
+        except (ValueError, IndexError):
+            return 0.0
+
     def build(
         self,
         year: int, month: int, day: int,
@@ -105,14 +135,20 @@ class ChartBuilder:
         house_sys: bytes = b'P',
     ) -> ChartData:
         self.swe.set_sidereal_mode(ayanamsa)
-        jd = self.swe.julday(year, month, day, hour)
+        tz_offset = self._parse_tz(tz)
+        utc_hour = hour + tz_offset  # local → UTC via signed offset
+        jd = self.swe.julday(year, month, day, utc_hour)
         ayanamsa_val = self.swe.get_ayanamsa(jd)
 
-        # Compute planets
+        # SE→Graha mapping: Graha enum uses Vedic numbering, not SE IDs
+        _SE_TO_GRAHA = {
+            0: Graha.SUN, 1: Graha.MOON, 2: Graha.MERCURY,
+            3: Graha.VENUS, 4: Graha.MARS, 5: Graha.JUPITER,
+            6: Graha.SATURN, 10: Graha.RAHU, 11: Graha.KETU,
+        }
         raw = self.swe.calc_planets(jd)
         planet_data = {}
-        for se_id in range(7):
-            g = Graha(se_id)
+        for se_id, g in _SE_TO_GRAHA.items():
             pd = raw[se_id]
             rasi = Rasi.from_longitude(pd.longitude)
             naks, pada = Nakshatra.from_longitude(pd.longitude)
@@ -123,28 +159,6 @@ class ChartBuilder:
                 rasi=rasi, degrees_in_rasi=pd.degrees_in_rasi,
                 nakshatra=naks, nakshatra_pada=pada, dignity=dignity,
             )
-
-        # Rahu and Ketu
-        pd_rahu = raw[10]
-        rasi_r = Rasi.from_longitude(pd_rahu.longitude)
-        naks_r, pada_r = Nakshatra.from_longitude(pd_rahu.longitude)
-        planet_data[Graha.RAHU] = PlanetChartData(
-            graha=Graha.RAHU, longitude=pd_rahu.longitude,
-            latitude=pd_rahu.latitude, speed=pd_rahu.speed,
-            is_retrograde=pd_rahu.is_retrograde,
-            rasi=rasi_r, degrees_in_rasi=pd_rahu.degrees_in_rasi,
-            nakshatra=naks_r, nakshatra_pada=pada_r, dignity="node",
-        )
-        pd_ketu = raw[11]
-        rasi_k = Rasi.from_longitude(pd_ketu.longitude)
-        naks_k, pada_k = Nakshatra.from_longitude(pd_ketu.longitude)
-        planet_data[Graha.KETU] = PlanetChartData(
-            graha=Graha.KETU, longitude=pd_ketu.longitude,
-            latitude=pd_ketu.latitude, speed=pd_ketu.speed,
-            is_retrograde=pd_ketu.is_retrograde,
-            rasi=rasi_k, degrees_in_rasi=pd_ketu.degrees_in_rasi,
-            nakshatra=naks_k, nakshatra_pada=pada_k, dignity="node",
-        )
 
         # Houses
         hd = self.swe.houses(jd, lat, lon, house_sys)
