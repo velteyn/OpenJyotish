@@ -1,4 +1,4 @@
 @echo off
 call venv\Scripts\activate.bat
-jhora gui
+python -m jhora.cli.main gui
 pause
