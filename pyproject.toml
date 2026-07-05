@@ -21,6 +21,9 @@ dependencies = [
 test = [
     "pytest>=8.0",
 ]
+gui = [
+    "PyQt6>=6.5",
+]
 
 [project.scripts]
 jhora = "jhora.cli.main:app"
