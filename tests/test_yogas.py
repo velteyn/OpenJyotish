@@ -15,11 +15,13 @@ from jhora.types.graha import Graha
 
 @pytest.fixture(scope="session")
 def ref_chart():
+    utc_hour = 17 + 48/60 + 20/3600
+    local_hour = utc_hour + 5.5  # IST
     return ChartBuilder().build(
         year=1970, month=4, day=4,
-        hour=17 + 48/60 + 20/3600,
+        hour=local_hour,
         lat=13.08, lon=80.27,
-        tz="+0530", ayanamsa="lahiri",
+        tz="-5.5", ayanamsa="lahiri",
     )
 
 
@@ -108,8 +110,8 @@ class TestPanchaMahapurusha:
 
 class TestGajaKesari:
     def test_gaja_kesari_on_ref(self, ref_chart):
-        """Reference chart: Moon in Pisces (11), Jupiter in Aries (0).
-        House diff from lagna Sgr (8): Moon=3, Jupiter=4. Diff=|3-4|=1 → not kendra."""
+        """Reference chart: Moon in house 3 (Pisces), Jupiter in house 10 (Libra).
+        Diff = 7, not in kendra → no Gaja Kesari."""
         planet_rasi = {g: int(p.longitude // 30) % 12 for g, p in ref_chart.planets.items()}
         asc = int(ref_chart.ascendant // 30) % 12
         planet_house = {g: house_from_lagna(asc, r) for g, r in planet_rasi.items()}

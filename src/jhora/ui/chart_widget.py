@@ -184,14 +184,28 @@ class ChartWidget(QWidget):
         painter.drawText(cr, Qt.AlignmentFlag.AlignCenter,
                          f"Asc\n{asc_rasi.short_name}")
 
-        _ni_diagonal_lines = [
+        _ni_perimeter = [
+            (0, 0, 0, 1), (0, 1, 0, 2), (0, 2, 0, 3),  # top edge
+            (0, 3, 1, 3), (1, 3, 2, 3), (2, 3, 3, 3),  # right edge
+            (3, 3, 3, 2), (3, 2, 3, 1), (3, 1, 3, 0),  # bottom edge
+            (3, 0, 2, 0), (2, 0, 1, 0), (1, 0, 0, 0),  # left edge
+        ]
+        lw = 1.5
+        painter.setPen(QPen(PALETTE["border"], lw))
+        ox, oy, cw, ch = self._cell_grid()
+        for r1, c1, r2, c2 in _ni_perimeter:
+            x1 = ox + c1 * cw + cw / 2
+            y1 = oy + r1 * ch + ch / 2
+            x2 = ox + c2 * cw + cw / 2
+            y2 = oy + r2 * ch + ch / 2
+            painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+        # Diagonal corners → diamond vertices at cell midpoints
+        _ni_diagonals = [
             (0, 0, 1, 3), (0, 3, 3, 3),
             (3, 3, 3, 0), (3, 0, 0, 0),
         ]
-        lw = 1.0
-        painter.setPen(QPen(PALETTE["border"], lw))
-        for r1, c1, r2, c2 in _ni_diagonal_lines:
-            ox, oy, cw, ch = self._cell_grid()
+        painter.setPen(QPen(PALETTE["border"], 1.0))
+        for r1, c1, r2, c2 in _ni_diagonals:
             x1 = ox + c1 * cw + cw / 2
             y1 = oy + r1 * ch + ch / 2
             x2 = ox + c2 * cw + cw / 2
@@ -202,22 +216,39 @@ class ChartWidget(QWidget):
         w, h = self.width(), self.height()
         size = min(w, h) - 24
         cx, cy = w / 2, h / 2
-        outer_r, inner_r = size / 2, size * 0.30
+        outer_r = size / 2
+        mid_r = size * 0.36
+        inner_r = size * 0.18
         label_r = outer_r - QFontMetrics(QFont("sans-serif", 8, QFont.Weight.Bold)).height() - 4
         offset_r = inner_r + QFontMetrics(QFont("sans-serif", 8, QFont.Weight.Bold)).height()
 
         import math
 
-        painter.setPen(QPen(PALETTE["border"], 1.5))
-        painter.setBrush(QBrush(PALETTE["cell_bg"]))
-        painter.drawEllipse(QPointF(cx, cy), outer_r, outer_r)
-        painter.setBrush(QBrush())
-        painter.drawEllipse(QPointF(cx, cy), inner_r, inner_r)
+        colors = [
+            (0xD2D2FF, 1.5),   # outer ring — light blue (matches 0xD2D2FF)
+            (0xFFFFFF, 1.5),   # middle ring — white (matches 0xFFFFFF)
+            (0xD2FFD2, 0),     # inner ring — light green fill, no border (matches 0xD2FFD2)
+        ]
+
+        radii = [(outer_r, 1.5), (mid_r, 1.5), (inner_r, 0)]
+        for i, (radius, pen_w) in enumerate(radii):
+            color = colors[i][0]
+            if pen_w:
+                painter.setPen(QPen(QColor(color), pen_w))
+            else:
+                painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(QColor(color)))
+            painter.drawEllipse(QPointF(cx, cy), radius, radius)
 
         for i in range(12):
             a = math.radians(i * 30 - 90)
+            painter.setPen(QPen(PALETTE["border"], 1.0))
             painter.drawLine(QPointF(cx + inner_r * math.cos(a), cy + inner_r * math.sin(a)),
                              QPointF(cx + outer_r * math.cos(a), cy + outer_r * math.sin(a)))
+
+        painter.setPen(QPen(PALETTE["border"], 1.0))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(QPointF(cx, cy), mid_r, mid_r)
 
         pb = self._planets_by_rasi()
         lagna_rasi = Rasi.from_longitude(self.chart_data.ascendant)

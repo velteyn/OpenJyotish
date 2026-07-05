@@ -210,6 +210,12 @@ Notable overridden virtual methods identified in vtables (JHora-specific or sign
 | `0x0049bb00` | — | — | **Planet position** via `_swe_calc` |
 | `0x0040b2a0` | — | — | **Eclipse calculator** |
 | `0x0049a3a0` | — | — | **Ayanamsa mode setter** (16+ modes) |
+| `0x0044b9b6` | — | 0x450 B | **South Indian chart rendering** — 3×CreatePen, 3×Rectangle, 2×CreateBrushIndirect |
+| `0x00481670` | — | — | **East Indian chart rendering** — 3×Ellipse, 5×CreateSolidBrush, CreatePen |
+| `0x0044c170` | — | 0x420 B | **Chart type dispatcher** — 23-entry switch on chart type global |
+| `0x0051e3b0` | — | — | **North Indian diamond line** — MoveToEx+LineTo (called ×12 in loop) |
+| `0x0050dd04` | — | — | **Text rendering helper** — 4×ExtTextOutA calls for chart text |
+| `0x00510ad0` | — | — | **Text rendering helper** — DrawTextA + SetTextColor for labels |
 | `0x004b8d70` | — | — | **Secondary calc engine** (sidereal + stars) |
 | `0x004b9390` | — | — | **Topocentric setup** |
 | `0x004a1350` | — | — | **Rise/transit times** |
@@ -271,7 +277,7 @@ D-1 through D-150 with multiple variants:
 | `0x004df940` | 574 | 5,224 B | **Print/display formatting** |
 | `0x004b6c80` | 561 | 4,697 B | **INI/config handler** |
 | `0x004dd410` | 307 | 8,846 B | **Report generator** |
-| `0x004cb240` | 202 | 15,614 B | **Chart rendering** |
+| `0x004cb240` | 202 | 15,614 B | **Yoga description builder** |
 | `0x0041d820` | 219 | 8,558 B | **Chart computation** |
 | `0x0040c540` | 139 | 5,957 B | **Prasna (horary)** |
 
@@ -320,10 +326,11 @@ The following MFC functions are statically linked (identified by their calling c
 ## Analysis Notes
 
 1. **All 3,150 functions are unnamed in the binary** — no COFF symbols, no exports, no debug info, no RTTI names.
-2. **MFC statically linked** — all ~650 vtables are MFC internal classes. Only two JHora class name strings exist (`CJHoraDoc`, `CJHoraView`).
-3. **Largest function** is `0x004cb240` (15,614 bytes, 202 locals) — almost certainly the main chart drawing routine.
-4. **Core astronomy** is `fcn.0049aaa0` (4,147 B) — calls `_swe_calc`, `_swe_houses`, `_swe_fixstar`, `_swe_rise_trans`, etc.
-5. **Config/INI** handler at `fcn.004b6c80` has 561 locals — likely reads all `jhora.ini` settings into a table.
-6. **Document type** is JHD (Jagannatha Hora Data) with OLE registration as `JHora.Document`.
-7. **Multiple Dasa variants** — 20+ named dasa strings in `.data` section.
-8. **MDI application** — `CMDIChildWnd` vtable confirms multi-document interface.
+2. **Data files in `jhcore/`** complement the binary: `atlas/*.adb` (custom binary format, 64 MB jhworld.adb + 56 KB jhlite.adb) is the city database read by atlas function 0x004c2250; `ephe/*.se1` (~94 MB) are Swiss Ephemeris data files (pyswisseph bundles its own). The `.adb` format needs RE work to support native JHora atlas lookup.
+3. **MFC statically linked** — all ~650 vtables are MFC internal classes. Only two JHora class name strings exist (`CJHoraDoc`, `CJHoraView`).
+4. **Largest function** is `0x004cb240` (15,614 bytes, 202 locals) — yoga description text builder (NOT chart rendering). Chart drawing is in the 0x44B9B6–0x44BDF0 range (South Indian), 0x481670 (East Indian), and 0x51E3B0 (North Indian).
+5. **Core astronomy** is `fcn.0049aaa0` (4,147 B) — calls `_swe_calc`, `_swe_houses`, `_swe_fixstar`, `_swe_rise_trans`, etc.
+6. **Config/INI** handler at `fcn.004b6c80` has 561 locals — likely reads all `jhora.ini` settings into a table.
+7. **Document type** is JHD (Jagannatha Hora Data) with OLE registration as `JHora.Document`.
+8. **Multiple Dasa variants** — 20+ named dasa strings in `.data` section.
+9. **MDI application** — `CMDIChildWnd` vtable confirms multi-document interface.
