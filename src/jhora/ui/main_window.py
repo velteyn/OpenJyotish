@@ -70,6 +70,12 @@ QTabBar::tab:selected {{ background-color: {BG2}; color: {ACCENT};
 QStatusBar {{ background-color: #0f3460; color: {DIM}; }}
 QTextEdit {{ background-color: {BG2}; color: {TEXT}; border: 1px solid #0f3460;
              padding: 8px; font-size: 12px; }}
+QWidget#msgBox {{ background-color: #ffffff; color: #000000;
+                 font-size: 14px; }}
+QMessageBox {{ background-color: #ffffff; }}
+QMessageBox QLabel {{ color: #000000; font-size: 14px; }}
+QMessageBox QPushButton {{ background-color: #e94560; color: white;
+                          padding: 6px 24px; font-size: 13px; }}
 QSplitter::handle {{ background-color: #0f3460; width: 2px; }}
 """
 
