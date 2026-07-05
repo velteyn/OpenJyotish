@@ -282,30 +282,42 @@ class ChartWidget(QWidget):
         painter.setFont(font)
         fm = QFontMetrics(font)
         nf = QFont("sans-serif", 7)
-        nfm = QFontMetrics(nf)
-        lh = fm.height() + 3
-        y0 = rect.y() + fm.height() + 10
-        x0 = rect.x() + 4
         has_nav = self.navamsa_overlay and self.navamsa_data is not None
 
+        n = len(planets)
+        cols = 2 if n > 2 else 1
+        rows = (n + cols - 1) // cols
+
+        cell_w = rect.width()
+        cell_h = rect.height()
+        header_h = fm.height() + 6
+
+        avail_w = cell_w - 8
+        avail_h = cell_h - header_h - 4
+
+        row_h = min(fm.height() + 4, avail_h // max(rows, 1))
+        col_w = avail_w // cols
+
         for i, (graha, _) in enumerate(planets):
-            y = y0 + i * lh
-            if y + lh > rect.y() + rect.height() - 2:
-                break
+            col = i % cols
+            row = i // cols
 
-            self._draw_planet_glyph(painter, graha, x0, y)
+            cx = rect.x() + 4 + col * col_w
+            cy = rect.y() + header_h + row * row_h + (row_h - fm.height()) // 2 + fm.ascent()
 
-            tx = x0 + fm.horizontalAdvance(graha.short_name) + 3
+            self._draw_planet_glyph(painter, graha, cx, cy)
+
+            tx = cx + fm.horizontalAdvance(graha.short_name) + 3
 
             if self.chart_data and self.chart_data.planets[graha].is_retrograde:
                 painter.setPen(PALETTE["retro"])
-                painter.drawText(int(tx), int(y), "R")
+                painter.drawText(int(tx), int(cy), "R")
                 tx += fm.horizontalAdvance("R") + 2
 
             if has_nav and graha in self.navamsa_data:
                 painter.setFont(nf)
                 painter.setPen(PALETTE["navamsa"])
-                painter.drawText(int(tx), int(y), self._navamsa_label(self.navamsa_data[graha]))
+                painter.drawText(int(tx), int(cy), self._navamsa_label(self.navamsa_data[graha]))
                 painter.setFont(font)
 
     def _draw_planet_glyph(self, painter: QPainter, graha: Graha, x: float, y: float):
