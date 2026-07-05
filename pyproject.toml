@@ -12,6 +12,7 @@ authors = [
 license = {text = "GPL-3.0-or-later"}
 requires-python = ">=3.11"
 dependencies = [
+    "PyQt6>=6.5",
     "pyswisseph>=2.10",
     "typer>=0.9",
     "rich>=13.0",
@@ -20,9 +21,6 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     "pytest>=8.0",
-]
-gui = [
-    "PyQt6>=6.5",
 ]
 
 [project.scripts]

@@ -22,8 +22,9 @@ if %errorlevel% neq 0 (
 :: Activate and install
 echo Installing dependencies...
 call venv\Scripts\activate.bat
-pip install -e ".[gui]"
+pip install -e .
 if %errorlevel% neq 0 (
+    echo Retrying with explicit packages...
     pip install PyQt6 pyswisseph typer rich
 )
 if %errorlevel% neq 0 (
