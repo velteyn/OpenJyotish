@@ -134,12 +134,29 @@ class SweEngine:
         )
 
     def calc_planets(self, jd: float) -> Dict[int, PlanetData]:
-        """Compute all 7 planets + Rahu + Ketu at once."""
+        """Compute all 7 planets + Rahu + Ketu at once.
+        
+        Uses Mean Node for Rahu; Ketu = Rahu + 180°.
+        """
         planets = {}
         for pid in range(7):  # SUN(0) through SATURN(6)
             planets[pid] = self.calc_planet(pid, jd)
-        planets[10] = self.calc_planet(swe.TRUE_NODE, jd)  # Rahu
-        planets[11] = self.calc_planet(swe.OSCU_APOG, jd)  # Ketu
+        rahu = self.calc_planet(swe.MEAN_NODE, jd)
+        planets[10] = PlanetData(
+            longitude=rahu.longitude,
+            latitude=rahu.latitude,
+            speed=rahu.speed,
+            distance_au=rahu.distance_au,
+            is_retrograde=rahu.is_retrograde,
+        )
+        ketu_lon = (rahu.longitude + 180) % 360
+        planets[11] = PlanetData(
+            longitude=ketu_lon,
+            latitude=-rahu.latitude,
+            speed=rahu.speed,
+            distance_au=rahu.distance_au,
+            is_retrograde=not rahu.is_retrograde,
+        )
         return planets
 
     def houses(self, jd: float, lat: float, lon: float, house_sys: bytes = b'P') -> HouseData:

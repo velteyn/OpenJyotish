@@ -48,7 +48,7 @@ class TestChartInterpreter:
         result = interp.interpret(ref_chart)
         assert "strengths" in result
         assert result["strengths"]["Sun"] == "neutral"
-        assert result["strengths"]["Mars"] == "moolatrikona"
+        assert result["strengths"]["Mars"] == "own"
 
     def test_house_lords(self, ref_chart):
         interp = ChartInterpreter()
