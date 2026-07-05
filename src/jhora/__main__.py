@@ -20,7 +20,7 @@ def _run_gui():
     app.setApplicationName("the classical tradition")
     app.setStyle("Fusion")
     window = MainWindow()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec())
 
 
