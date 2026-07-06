@@ -32,12 +32,12 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 ## Current Status
 
 ### Deployed
-- `src/jhora/` — Python package with **37 modules** across 10 subpackages (5,979 lines)
+- `src/jhora/` — Python package with **42 modules** across 10 subpackages (7,379 lines)
 - Core types: Graha, Rasi, Nakshatra, Varga, Bhava, Dasa (6 types, 546 lines)
 - Ephemeris: SweEngine wrapping all 18 SE APIs, sidereal positions, retrograde detection
 - Chart: ChartBuilder + ChartData (frozen), planet dignity
 - **Varga charts**: 23 levels (D-1 through D-150), 30+ variant mappings — fully implemented
-- **Dasas**: Vimsottari (120-year), Ashtottari (108-year) — MD/AD periods
+- **Dasas**: Vimsottari (120-year), Ashtottari (108-year), **Yogini (36-year, 8-yogini cycle)**, **Sudasa (Sreelagna Kendradi Rasi Dasa)**, **Chara (78-year, rasi-based)**, **Narayana (rasi-based, lagna-progression)**, **Kalachakra (12-year, nakshatra pada deha/jeeva)** — MD/AD periods, all 7 systems selectable in GUI dasa combo box
 - **Shadbala**: Six-fold planetary strength (sthana, dig, kala, chesta, naisargika, drik) — 491 lines, 48 tests
 - **Yogas**: 10+ yoga types, 12 categories, 100+ combos (Pancha Mahapurusha, Raja, Dhana, Viparita Raja, Neecha Bhanga Raja, Parivartana, Chandra yogas, Surya yogas, Kemadruma, Amala, Dharma-Karma-Adhipati, Kala Sarpa)
 - CLI: `chart`, `dasa` (vimsottari/ashtottari), `navamsa`, `varga`, `shadbala`, `yogas`, `ashtakavarga`, `interpret`, `knowledge`, `gui`
@@ -86,7 +86,8 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - **JHD file save/load**: File → Open (`Ctrl+O`) parses `.jhd` files and fills all form fields. File → Save / Save As (`Ctrl+S` / `Ctrl+Shift+S`) writes form data back to `.jhd` in BIRTH_CITY format (14 lines). Auto-calculates chart on open, updates window title with chart name. `save_jhd()` in `jhd_parser.py` — symmetric write function for `parse_jhd()`.
 
 ### Building Next
-- More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
+- Arudha padas, Chara karakas, Sahamas
+- Tajaka solar return
 - Arudha padas, Chara karakas, Sahamas
 - Tajaka solar return
 - **Gochara (Transit)**: Done — `src/jhora/calc/gochara.py`, CLI `jhora transit`, GUI tab — shows per-planet transit house, BAV/SAV scores, favorable flags
