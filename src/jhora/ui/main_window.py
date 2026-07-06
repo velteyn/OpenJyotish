@@ -310,6 +310,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.varga_widget, "Varga")
         self.tabs.addTab(self._build_yoga_tab(), "Yogas")
         self.tabs.addTab(self._build_shadbala_tab(), "Shadbala")
+        self.tabs.addTab(self._build_arudha_tab(), "Arudha")
         self.tabs.addTab(self._build_ashtakavarga_tab(), "Ashtakavarga")
         self.tabs.addTab(self._build_transit_tab(), "Transit")
 
@@ -578,6 +579,7 @@ class MainWindow(QMainWindow):
             self._update_dasa_text()
             self._populate_yoga_table(self.chart_data)
             self._populate_shadbala_table(self.chart_data)
+            self._populate_arudha_table(self.chart_data)
             self._populate_ashtakavarga_table(self.chart_data)
             self._populate_transit_table(self.chart_data)
 
@@ -878,6 +880,52 @@ class MainWindow(QMainWindow):
         self.ak_kakshya_table.setAlternatingRowColors(True)
         layout.addWidget(self.ak_kakshya_table, stretch=2)
         return w
+
+    def _build_arudha_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        layout.addWidget(QLabel("Bhava Arudhas (Pada of each house):"))
+        self.arudha_bhava_table = QTableWidget()
+        self.arudha_bhava_table.setAlternatingRowColors(True)
+        layout.addWidget(self.arudha_bhava_table, stretch=3)
+
+        layout.addWidget(QLabel("Graha Arudhas (Pada of each planet):"))
+        self.arudha_graha_table = QTableWidget()
+        self.arudha_graha_table.setAlternatingRowColors(True)
+        layout.addWidget(self.arudha_graha_table, stretch=2)
+
+        return w
+
+    def _populate_arudha_table(self, cd: ChartData):
+        from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
+        planets = {g: {"longitude": p.longitude, "speed": p.speed}
+                   for g, p in cd.planets.items()}
+
+        # Bhava arudhas
+        bhava = all_bhava_arudhas(cd.ascendant, planets)
+        headers = ["House", "Pada Name", "Sign"]
+        rows = []
+        for n in range(1, 13):
+            name = {1: "AL (Arudha Lagna)", 2: "A2 (Dhana)", 3: "A3 (Vikrama)",
+                    4: "A4 (Sukha)", 5: "A5 (Mantra)", 6: "A6 (Satru)",
+                    7: "A7 (Dara)", 8: "A8 (Mrityu)", 9: "A9 (Bhagya)",
+                    10: "A10 (Karma)", 11: "A11 (Labha)", 12: "A12 (Upapada)"}.get(n, f"A{n}")
+            rows.append([str(n), name, bhava[n].full_name])
+        self._fill_table(self.arudha_bhava_table, headers, rows)
+
+        # Graha arudhas
+        graha_arus = all_graha_arudhas(planets)
+        headers = ["Planet", "Pada Name", "Sign"]
+        rows = []
+        for g in Graha:
+            if g in graha_arus:
+                rows.append([g.full_name,
+                            f"A({g.short_name})",
+                            graha_arus[g].full_name])
+        self._fill_table(self.arudha_graha_table, headers, rows)
 
     def _on_ak_kakshya_changed(self, index: int):
         if self.chart_data:
