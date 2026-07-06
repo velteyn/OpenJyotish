@@ -32,7 +32,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 ## Current Status
 
 ### Deployed
-- `src/jhora/` — Python package with **33 modules** across 10 subpackages (4,972 lines)
+- `src/jhora/` — Python package with **37 modules** across 10 subpackages (5,793 lines)
 - Core types: Graha, Rasi, Nakshatra, Varga, Bhava, Dasa (6 types, 546 lines)
 - Ephemeris: SweEngine wrapping all 18 SE APIs, sidereal positions, retrograde detection
 - Chart: ChartBuilder + ChartData (frozen), planet dignity
@@ -78,11 +78,14 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
   - `search(query)` → substring match across all city names
   - `load_all()` → full dataset
   - Verified: London (51.50°N 0.12°W), Mumbai (18.97°N 72.83°E), Delhi (28.67°N 77.22°E)
+- **City lookup widget**: `QLineEdit` + search button in birth data form (between Time and TZ)
+  - Real-time search with 300ms debounce via `AtlasReader.search()`
+  - Results in styled `QListWidget` below the form
+  - Click selection auto-fills lat, lon, and TZ (converted from UTC offset to JHora convention)
+  - Lazy-loads atlas on first search (62 MB, ~60ms)
 
 ### Building Next
 - Parse US group sub‑structure (state-level groups within US)
-- Add city lookup widget to GUI (search → lat/lon/TZ auto‑fill)
-- Implement `.jhd` file parser (line-based ASCII, 14+ fields: date, time, TZ, lon, lat, city, country, optional computed data)
 - Implement `.jhd` file parser (line-based ASCII, 14+ fields: date, time, TZ, lon, lat, city, country, optional computed data)
 - More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
 - Arudha padas, Chara karakas, Sahamas
