@@ -86,7 +86,6 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - **JHD file save/load**: File → Open (`Ctrl+O`) parses `.jhd` files and fills all form fields. File → Save / Save As (`Ctrl+S` / `Ctrl+Shift+S`) writes form data back to `.jhd` in BIRTH_CITY format (14 lines). Auto-calculates chart on open, updates window title with chart name. `save_jhd()` in `jhd_parser.py` — symmetric write function for `parse_jhd()`.
 
 ### Building Next
-- Parse US group sub‑structure (state-level groups within US)
 - More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
 - Arudha padas, Chara karakas, Sahamas
 - Tajaka solar return
