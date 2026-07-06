@@ -902,11 +902,17 @@ class MainWindow(QMainWindow):
         self.karaka_table.setAlternatingRowColors(True)
         layout.addWidget(self.karaka_table, stretch=2)
 
+        layout.addWidget(QLabel("Sahamas (sensitive points):"))
+        self.sahama_table = QTableWidget()
+        self.sahama_table.setAlternatingRowColors(True)
+        layout.addWidget(self.sahama_table, stretch=3)
+
         return w
 
     def _populate_arudha_table(self, cd: ChartData):
         from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
         from jhora.calc.karaka import compute_chara_karakas
+        from jhora.calc.sahama import compute_sahamas
         planets = {g: {"longitude": p.longitude, "speed": p.speed}
                    for g, p in cd.planets.items()}
 
@@ -940,6 +946,23 @@ class MainWindow(QMainWindow):
                 k.graha.full_name, f"{k.longitude:.2f}°", k.meaning,
             ])
         self._fill_table(self.karaka_table, headers, rows)
+
+        is_day = 6.0 <= cd.time_of_day_hours < 18.0
+        sahamas = compute_sahamas(cd.ascendant, planets, day=is_day)
+        headers = ["Sahama", "Meaning", "Longitude", "Sign", "House"]
+        rows = []
+        for sah in sahamas:
+            sign = ZodiacSign(int(sah.longitude / 30))
+            house = int(sah.longitude / 30) - int(cd.ascendant / 30) + 1
+            if house <= 0:
+                house += 12
+            rows.append([
+                sah.name, sah.meaning,
+                f"{sah.longitude:.2f}°",
+                sign.full_name,
+                str(house),
+            ])
+        self._fill_table(self.sahama_table, headers, rows)
 
     def _on_ak_kakshya_changed(self, index: int):
         if self.chart_data:
