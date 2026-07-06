@@ -661,15 +661,28 @@ class MainWindow(QMainWindow):
             se = SweEngine()
             lines = [f"{system} Dasa Periods", "─" * 48, ""]
             for md in periods:
-                y1, m1, d1, _ = se.revjul(md.start_jd)
-                y2, m2, d2, _ = se.revjul(md.end_jd)
-                lines.append(
-                    f"{md.lord_name:14s}  {int(y1)}/{int(m1):02d}/{int(d1):02d}"
-                    f"  →  {int(y2)}/{int(m2):02d}/{int(d2):02d}"
-                    f"  ({md.duration_years:.2f} yrs)")
+                lines.extend(self._render_period_tree(md, se, 0))
             self.dasa_text.setText("\n".join(lines))
         except Exception as e:
             self.dasa_text.setText(f"Dasa computation error:\n{e}")
+
+    @staticmethod
+    def _render_period_tree(period: "DasaPeriod", se, depth: int) -> list:
+        indent = "  " * depth
+        y1, m1, d1, _ = se.revjul(period.start_jd)
+        y2, m2, d2, _ = se.revjul(period.end_jd)
+        level_labels = ["", "MD", "AD", "PD", "SD", "D"]
+        label = level_labels[depth] if depth < len(level_labels) else ""
+        line = (
+            f"{indent}{period.lord_name:16s} {label:3s} "
+            f"{int(y1)}/{int(m1):02d}/{int(d1):02d} → "
+            f"{int(y2)}/{int(m2):02d}/{int(d2):02d}  "
+            f"({period.duration_years:.2f})")
+        result = [line]
+        if period.sub_periods:
+            for sp in period.sub_periods:
+                result.extend(MainWindow._render_period_tree(sp, se, depth + 1))
+        return result
 
     def _get_dasa_engine(self, system: str):
         if system == "Vimsottari":
