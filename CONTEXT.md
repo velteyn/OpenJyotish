@@ -63,8 +63,26 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - **Date/Time pickers**: QDateEdit (calendar popup) + QTimeEdit (spinner) replacing raw text inputs. "Now" button auto-fills system date/time and detects TZ offset.
 - **TZ auto-detect**: Reads system UTC offset via `time.timezone` + DST flag, writes signed decimal (e.g., `-2.0` for UTC+2).
 
+### Deployed (atlas)
+- **`.adb` atlas format fully reverse-engineered**:
+  - 64-byte header: `"Jagannatha Hora\0\0\0\x01"` (version 1)
+  - Big-endian 4-byte offset index at 0x60 pointing to `0xC0`-delimited country groups
+  - **291 groups** covering ~2.63M cities globally
+  - **10-byte city data block**: `[lon_int, lon_min, 0, lat_int, lat_min, 0, 0, 0, tz_qh, tz_dst_qh]`
+  - **Sign encoding**: `byte[1] < 128` → WEST longitude (minutes stored directly); `byte[1] >= 128` → EAST longitude (`byte[1] - 128`). Same pattern for `byte[4]` (lat: < 128 = south, >= 128 = north)
+  - **TZ encoding**: `byte[8]` as signed quarter-hours from UTC (÷4 → hours). `byte[9]` = DST offset (same encoding)
+  - **`0x80` section markers**: 4-byte sub-region boundaries (e.g., UK counties) — skip to continue parsing
+  - Minimum name length: 2 chars (e.g., "At" in India)
+  - **US group**: Has a different sub‑group structure with state codes (not yet parsed)
+- **AtlasReader class**: parses `jhworld.adb` (62 MB, 2.63M cities) and `jhlite.adb` (56 KB)
+  - `search(query)` → substring match across all city names
+  - `load_all()` → full dataset
+  - Verified: London (51.50°N 0.12°W), Mumbai (18.97°N 72.83°E), Delhi (28.67°N 77.22°E)
+
 ### Building Next
-- RE the `.adb` atlas format (jhcore/atlas/) — custom JHora binary database, used by atlas function 0x004c2250. Map fields (city name, lat, lon, TZ, country) and implement a Python reader.
+- Parse US group sub‑structure (state-level groups within US)
+- Add city lookup widget to GUI (search → lat/lon/TZ auto‑fill)
+- Implement `.jhd` file parser (line-based ASCII, 14+ fields: date, time, TZ, lon, lat, city, country, optional computed data)
 - Implement `.jhd` file parser (line-based ASCII, 14+ fields: date, time, TZ, lon, lat, city, country, optional computed data)
 - More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
 - Arudha padas, Chara karakas, Sahamas
