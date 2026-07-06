@@ -310,7 +310,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.varga_widget, "Varga")
         self.tabs.addTab(self._build_yoga_tab(), "Yogas")
         self.tabs.addTab(self._build_shadbala_tab(), "Shadbala")
-        self.tabs.addTab(self._build_arudha_tab(), "Arudha")
+        self.tabs.addTab(self._build_arudha_tab(), "Arudha & Karaka")
         self.tabs.addTab(self._build_ashtakavarga_tab(), "Ashtakavarga")
         self.tabs.addTab(self._build_transit_tab(), "Transit")
 
@@ -897,14 +897,19 @@ class MainWindow(QMainWindow):
         self.arudha_graha_table.setAlternatingRowColors(True)
         layout.addWidget(self.arudha_graha_table, stretch=2)
 
+        layout.addWidget(QLabel("Chara Karakas (8 significators by longitude):"))
+        self.karaka_table = QTableWidget()
+        self.karaka_table.setAlternatingRowColors(True)
+        layout.addWidget(self.karaka_table, stretch=2)
+
         return w
 
     def _populate_arudha_table(self, cd: ChartData):
         from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
+        from jhora.calc.karaka import compute_chara_karakas
         planets = {g: {"longitude": p.longitude, "speed": p.speed}
                    for g, p in cd.planets.items()}
 
-        # Bhava arudhas
         bhava = all_bhava_arudhas(cd.ascendant, planets)
         headers = ["House", "Pada Name", "Sign"]
         rows = []
@@ -916,7 +921,6 @@ class MainWindow(QMainWindow):
             rows.append([str(n), name, bhava[n].full_name])
         self._fill_table(self.arudha_bhava_table, headers, rows)
 
-        # Graha arudhas
         graha_arus = all_graha_arudhas(planets)
         headers = ["Planet", "Pada Name", "Sign"]
         rows = []
@@ -926,6 +930,16 @@ class MainWindow(QMainWindow):
                             f"A({g.short_name})",
                             graha_arus[g].full_name])
         self._fill_table(self.arudha_graha_table, headers, rows)
+
+        karakas = compute_chara_karakas(planets)
+        headers = ["Rank", "Karaka", "Planet", "Longitude", "Meaning"]
+        rows = []
+        for k in karakas:
+            rows.append([
+                str(k.rank), f"{k.short_name} ({k.full_name})",
+                k.graha.full_name, f"{k.longitude:.2f}°", k.meaning,
+            ])
+        self._fill_table(self.karaka_table, headers, rows)
 
     def _on_ak_kakshya_changed(self, index: int):
         if self.chart_data:
