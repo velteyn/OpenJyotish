@@ -36,6 +36,7 @@ class KalachakraDasa(DasaBase):
             lord_names[lord_idx] = rasi.full_name
             rasies.append((lord_idx, 1.0))
 
+        sub_lord_names = {i: Rasi(i).full_name for i in range(12)}
         return self.build_period_tree(
             lords=rasies,
             start_jd=birth_jd,
@@ -44,6 +45,7 @@ class KalachakraDasa(DasaBase):
             y_per_d=y_per_d,
             max_level=opts.subdivision_level,
             lord_names=lord_names,
+            sub_lord_names=sub_lord_names,
         )
 
     @staticmethod

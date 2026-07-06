@@ -52,6 +52,7 @@ class NarayanaDasa(DasaBase):
 
         sub_ratios = [_rasi_vimsottari_years(Rasi(i)) for i in range(12)]
 
+        sub_lord_names = {i: Rasi(i).full_name for i in range(12)}
         return self.build_period_tree(
             lords=rasies,
             start_jd=birth_jd,
@@ -60,6 +61,7 @@ class NarayanaDasa(DasaBase):
             y_per_d=y_per_d,
             max_level=opts.subdivision_level,
             lord_names=lord_names,
+            sub_lord_names=sub_lord_names,
         )
 
     @staticmethod

@@ -74,6 +74,7 @@ class DasaBase(ABC):
         y_per_d: float = 365.2425,
         max_level: PeriodLevel = PeriodLevel.PRATYANTARDASA,
         lord_names: Optional[Dict[int, str]] = None,
+        sub_lord_names: Optional[Dict[int, str]] = None,
     ) -> List[DasaPeriod]:
         """Build hierarchical period tree from lord sequence.
         
@@ -85,8 +86,17 @@ class DasaBase(ABC):
             y_per_d: Days per year (solar=365.2425, savana=360)
             max_level: How deep to subdivide
             lord_names: Optional dict mapping lord_index → display name
+            sub_lord_names: Optional dict mapping ratio-index → sub-period display name
         """
         lord_names = lord_names or {}
+        if sub_lord_names is None:
+            sub_lord_names = {}
+            for i in range(len(sub_ratios)):
+                try:
+                    from jhora.types.graha import Graha
+                    sub_lord_names[i] = Graha(i).full_name
+                except (ValueError, ImportError):
+                    sub_lord_names[i] = str(i)
         periods = []
         current_jd = start_jd
         for lord_idx, lord_yrs in lords:
@@ -110,7 +120,7 @@ class DasaBase(ABC):
             )
             if max_level.value >= PeriodLevel.ANTARDASA.value:
                 md.sub_periods = _subdivide(
-                    md, sub_ratios, y_per_d, 1, max_level, lord_names
+                    md, sub_ratios, y_per_d, 1, max_level, sub_lord_names
                 )
             periods.append(md)
             current_jd = end_jd
@@ -123,12 +133,12 @@ def _subdivide(
     y_per_d: float,
     depth: int,
     max_depth: PeriodLevel,
-    lord_names: Optional[Dict[int, str]] = None,
+    sub_lord_names: Optional[Dict[int, str]] = None,
 ) -> List[DasaPeriod]:
     """Create subdivision periods for a parent period."""
     if depth > max_depth.value:
         return None
-    lord_names = lord_names or {}
+    sub_lord_names = sub_lord_names or {}
     total_ratio = sum(ratios)
     periods = []
     level_map = {
@@ -144,7 +154,7 @@ def _subdivide(
     for i, ratio in enumerate(ratios):
         dur = parent_duration * (ratio / total_ratio)
         end_jd = current_jd + dur
-        sub_name = lord_names.get(i, str(i))
+        sub_name = sub_lord_names.get(i, str(i))
         sub = DasaPeriod(
             lord_index=i,
             lord_name=sub_name,
@@ -154,7 +164,7 @@ def _subdivide(
             level=level,
         )
         if depth < max_depth.value:
-            sub.sub_periods = _subdivide(sub, ratios, y_per_d, depth + 1, max_depth, lord_names)
+            sub.sub_periods = _subdivide(sub, ratios, y_per_d, depth + 1, max_depth, sub_lord_names)
         periods.append(sub)
         current_jd = end_jd
     return periods

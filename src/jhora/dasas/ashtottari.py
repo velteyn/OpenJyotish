@@ -82,6 +82,7 @@ class AshtottariDasa(DasaBase):
 
         y_per_d = 365.2425 if opts.year_definition == "solar" else 360.0
 
+        sub_lord_names = {i: self.CYCLE_LORDS[i].full_name for i in range(8)}
         return self.build_period_tree(
             lords=lords,
             start_jd=birth_jd,
@@ -89,6 +90,7 @@ class AshtottariDasa(DasaBase):
             sub_ratios=self.CYCLE_YEARS,
             y_per_d=y_per_d,
             max_level=opts.subdivision_level,
+            sub_lord_names=sub_lord_names,
         )
 
     @staticmethod
