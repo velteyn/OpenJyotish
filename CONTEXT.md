@@ -41,12 +41,15 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - **Shadbala**: Six-fold planetary strength (sthana, dig, kala, chesta, naisargika, drik) — 491 lines, 48 tests
 - **Yogas**: 10+ yoga types, 12 categories, 100+ combos (Pancha Mahapurusha, Raja, Dhana, Viparita Raja, Neecha Bhanga Raja, Parivartana, Chandra yogas, Surya yogas, Kemadruma, Amala, Dharma-Karma-Adhipati, Kala Sarpa)
 - CLI: `chart`, `dasa` (vimsottari/ashtottari), `navamsa`, `varga`, `shadbala`, `yogas`, `ashtakavarga`, `interpret`, `knowledge`, `gui`
-- GUI: PyQt6 dark theme, South/North/East Indian chart styles (3, with diamond lines for North, radial spokes for East), 8 tabs (planets, houses, dasa system selector, varga, yogas, shadbala, ashtakavarga, transit)
+- GUI: PyQt6 dark theme, South/North/East Indian chart styles (3, with diamond lines for North, radial spokes for East), 9 tabs (planets, houses, dasa system selector, varga, yogas, shadbala, ashtakavarga, transit, arudha/karaka/sahama)
 - Interpreter: Chart reading generator (rule-based, connected to yogas engine)
 - Knowledge base: 16 sources, 1.9M chars, full-text search
 - Books: Author's textbook (515pp) + margabandhu (322pp) + 14 articles text-extracted
-- **Tests: 384 passing** (16 test files, 2,800 lines)
+- **Tests: 427 passing** (18 test files, 2,800+ lines)
 - **Docs**: `docs/help/chart_drawing_analysis.md` — comprehensive RE analysis of binary chart rendering vs current implementation
+- **Arudha Padas**: Bhava arudhas (AL, A2–A12) + Graha arudhas — `src/jhora/calc/arudha.py`, tested, wired in 9th GUI tab
+- **Chara Karakas**: 8 planetary karakas by longitude ranking — `src/jhora/calc/karaka.py`, tested, wired in 9th GUI tab
+- **Sahamas**: 36 sensitive points (Punya, Vidya, Samartha, Artha, etc.) — `src/jhora/calc/sahama.py`, 13 tests, wired in 9th GUI tab
 - **Ashtakavarga**: BAV, SAV, PAV, Trikona/ Ekadhipatya Shodhana, Sodhya Pinda, and Kakshya-level bindu computation (8 sub-divisions per house) — `src/jhora/calc/ashtakavarga.py`
 - **Wine testbench experiment**: Attempted to recompile original JHora with debug symbols via MinGW under Wine, but blocked by Wine 10 WoW64 architecture — 64-bit LD_PRELOAD cannot access 32-bit PE memory, ptrace_scope=1 prevents external attachment, and cannot install MinGW/wine32 without sudo. No viable in-process debugging path for the original binary.
 - **Chart rendering RE**: Deep-dived binary function 0x004CB240 (15,614 B, 202 locals — guessed as "Main chart rendering" in function_map). Analysis with capstone reveals it's actually the **yoga description text builder** — calls string-append function 0x00513C3E 310× with 406 unique string references (yoga names, descriptions). Contains 3,187 instructions, zero GDI32 calls. Documented findings in `docs/help/chart_drawing_analysis.md`.
@@ -85,15 +88,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
   - Lazy-loads atlas on first search (62 MB, ~60ms)
 - **JHD file save/load**: File → Open (`Ctrl+O`) parses `.jhd` files and fills all form fields. File → Save / Save As (`Ctrl+S` / `Ctrl+Shift+S`) writes form data back to `.jhd` in BIRTH_CITY format (14 lines). Auto-calculates chart on open, updates window title with chart name. `save_jhd()` in `jhd_parser.py` — symmetric write function for `parse_jhd()`.
 
-### Building Next
-- Arudha padas, Chara karakas, Sahamas
-- Tajaka solar return
-- Arudha padas, Chara karakas, Sahamas
-- Tajaka solar return
-- **Gochara (Transit)**: Done — `src/jhora/calc/gochara.py`, CLI `jhora transit`, GUI tab — shows per-planet transit house, BAV/SAV scores, favorable flags
-- AI chat integration (Ollama)
-
-### Full Roadmap
+### Deployed (atlas)
 See [PLAN.md](PLAN.md) for competitive analysis, architecture, and phased roadmap.
 
 ## Reference

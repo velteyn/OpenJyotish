@@ -4,7 +4,7 @@
 
 **Origin:** Reverse engineer JHora 8.0 Lite (PVR Narasimha Rao, 2015). All calculations verified against the original.
 
-**Status:** Core engine ~60% complete (5,650+ lines of Python, 338 tests)
+**Status:** Core engine ~70% complete (7,380+ lines of Python, 427 tests)
 
 ---
 
@@ -38,16 +38,16 @@
 - [x] **Yogas detection** — 10+ types, 12 categories, 100+ combos (488 lines)
 - [x] **Ashtottari dasa** (108-year system) — MD/AD periods, applicability conditions (142 lines)
 - [x] **House cusps** — via SweEngine (12+ house systems supported by Swiss Ephemeris)
-- [ ] Ashtakavarga (8-bindu system)
-- [ ] 23 more dasa systems (Narayana, Kalachakra, Yogini, Chara, etc.)
-- [ ] 40+ sahamas (sensitive points)
-- [ ] Arudha padas (AL, A2-A12, UL)
-- [ ] Chara karakas (Jaimini)
+- [x] Ashtakavarga (8-bindu system)
+- [x] 5 more dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa)
+- [x] 36 sahamas (sensitive points)
+- [x] Arudha padas (AL, A2-A12, UL)
+- [x] Chara karakas (Jaimini)
 - [ ] Tajaka (solar return with compressed dasas)
 
 ### Tier 2: Advanced Analysis (Professional Differentiator)
 
-- [ ] Ashtakavarga: SAV, BAV, SoAV, PAV, Sodhya Pinda, Kakshya
+- [x] Ashtakavarga: SAV, BAV, SoAV, PAV, Sodhya Pinda, Kakshya
 - [ ] Bhava bala (house strength)
 - [ ] Vimsopaka bala (Shadvarga through Shodasa)
 - [ ] Digbala, Kalabala, Cheshtabala details
@@ -180,11 +180,11 @@ User birth data → Core Engine → ChartData (pure numbers)
 | Area | Status | Remaining |
 |------|--------|-----------|
 | Vargas (D-1..D-150) | ✅ 23 levels, all variants | — |
-| Dasas | ✅ Vimsottari + Ashtottari | ~23 more systems |
-| Strengths | ✅ Shadbala | Ashtakavarga, Vimsopaka, Bhava bala |
+| Dasas | ✅ Vimsottari + Ashtottari + Yogini + Sudasa + Chara + Narayana + Kalachakra | ~20 more systems |
+| Strengths | ✅ Shadbala + Ashtakavarga | Vimsopaka, Bhava bala |
 | Yogas | ✅ 10+ types, 100+ combos | Nabhasa, finer sub-types |
 | CLI commands | ✅ chart, dasa, navamsa, varga, shadbala, yogas, interpret, knowledge, gui | strengths, transits, match, prasna, tajaka, config, atlas |
-| GUI tabs | ✅ planets, houses, dasa, varga, yogas, shadbala | transits, matchmaking, ashtakavarga, client DB |
+| GUI tabs | ✅ planets, houses, dasa, varga, yogas, shadbala, ashtakavarga, transit, arudha | matchmaking, client DB |
 
 ### Phase 2: Professional Features (Weeks 7-12)
 
@@ -249,28 +249,26 @@ User birth data → Core Engine → ChartData (pure numbers)
 
 ## 8. Current Implementation Status
 
-**DONE (60% of core engine):**
+**DONE (70% of core engine):**
 - Core types (Graha, Rasi, Nakshatra, Varga, Bhava, Dasa) — 6 types, 546 lines
 - SweEngine — all 18 Swiss Ephemeris API calls, sidereal mode, retrograde detection
 - ChartBuilder + ChartData (frozen dataclass) with planet dignity
 - VargaChartComputer — 23 levels (D-1..D-150), 30+ variant mappings
-- Vimsottari Dasa (120-year, 9 planets, MD/AD/PD periods)
-- Ashtottari Dasa (108-year, 8 planets, applicability conditions)
+- 7 dasa systems: Vimsottari, Ashtottari, Yogini, Sudasa, Chara, Narayana, Kalachakra
 - Shadbala (all 6 components: sthana, dig, kala, chesta, naisargika, drik) — 491 lines, 48 tests
+- Ashtakavarga (BAV, SAV, PAV, Sodhya Pinda, Kakshya)
 - Yogas engine (10+ types: Raja, Dhana, Mahapurusha, Viparita Raja, etc.)
 - CLI (9 commands: chart, dasa, navamsa, varga, shadbala, yogas, interpret, knowledge, gui)
-- GUI (PyQt6 dark theme, 3 chart styles, 6 tabs: planets, houses, dasa, varga, yogas, shadbala)
+- GUI (PyQt6 dark theme, 3 chart styles, 9 tabs)
+- Arudha padas (Bhava + Graha)
+- Chara karakas (Jaimini, 8 karakas)
+- Sahamas (36 sensitive points)
 - Rule-based chart interpreter (connected to yogas engine)
 - Knowledge base (16 sources, 1.9M chars, full-text search)
 - Reference texts (planet/house/rasi/nakshatra meanings)
-- **338 tests** across 13 test files (2,400 lines of tests)
+- **427 tests** across 18 test files (2,800+ lines of tests)
 
 **NEXT:**
-- Ashtakavarga (SAV, BAV, SoAV, PAV) — major professional feature
-- More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
-- Arudha padas (AL, A2-A12, UL)
-- Chara karakas (Jaimini)
-- Sahamas (40+ sensitive points)
 - Tajaka (solar return)
 - Transit analysis (gochara, tara, vedha)
 - AI chat integration (Ollama)
