@@ -32,7 +32,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 ## Current Status
 
 ### Deployed
-- `src/jhora/` — Python package with **37 modules** across 10 subpackages (5,793 lines)
+- `src/jhora/` — Python package with **37 modules** across 10 subpackages (5,979 lines)
 - Core types: Graha, Rasi, Nakshatra, Varga, Bhava, Dasa (6 types, 546 lines)
 - Ephemeris: SweEngine wrapping all 18 SE APIs, sidereal positions, retrograde detection
 - Chart: ChartBuilder + ChartData (frozen), planet dignity
@@ -83,10 +83,10 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
   - Results in styled `QListWidget` below the form
   - Click selection auto-fills lat, lon, and TZ (converted from UTC offset to JHora convention)
   - Lazy-loads atlas on first search (62 MB, ~60ms)
+- **JHD file save/load**: File → Open (`Ctrl+O`) parses `.jhd` files and fills all form fields. File → Save / Save As (`Ctrl+S` / `Ctrl+Shift+S`) writes form data back to `.jhd` in BIRTH_CITY format (14 lines). Auto-calculates chart on open, updates window title with chart name. `save_jhd()` in `jhd_parser.py` — symmetric write function for `parse_jhd()`.
 
 ### Building Next
 - Parse US group sub‑structure (state-level groups within US)
-- Implement `.jhd` file parser (line-based ASCII, 14+ fields: date, time, TZ, lon, lat, city, country, optional computed data)
 - More dasa systems (Narayana, Kalachakra, Yogini, Chara, Sudasa, etc.)
 - Arudha padas, Chara karakas, Sahamas
 - Tajaka solar return
