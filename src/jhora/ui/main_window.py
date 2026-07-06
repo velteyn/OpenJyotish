@@ -1,15 +1,17 @@
 from datetime import datetime
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QDate, QTime
+from PyQt6.QtCore import Qt, QDate, QTime, QTimer
 from PyQt6.QtGui import QBrush, QColor, QFont
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QApplication, QListWidget, QListWidgetItem, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget,
     QTableWidgetItem, QHeaderView, QSplitter, QTextEdit, QTabWidget,
     QMessageBox, QGroupBox, QFormLayout,
     QDateEdit, QTimeEdit,
 )
+
+from jhora.io.atlas import AtlasCity, AtlasReader
 
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
@@ -123,6 +125,25 @@ class MainWindow(QMainWindow):
         self.time_input.setTime(QTime(17, 48, 20))
         self.time_input.setToolTip("Local birth time")
 
+        self._atlas: Optional[AtlasReader] = None
+        self._city_search_timer = QTimer()
+        self._city_search_timer.setSingleShot(True)
+        self._city_search_timer.setInterval(300)
+        self._city_search_timer.timeout.connect(self._on_city_search)
+
+        self.city_input = QLineEdit()
+        self.city_input.setPlaceholderText("Search city...")
+        self.city_input.textChanged.connect(self._on_city_text_changed)
+
+        self.city_search_btn = QPushButton("🔍")
+        self.city_search_btn.setFixedWidth(40)
+        self.city_search_btn.clicked.connect(self._on_city_search)
+
+        city_row = QHBoxLayout()
+        city_row.setSpacing(6)
+        city_row.addWidget(self.city_input, 1)
+        city_row.addWidget(self.city_search_btn)
+
         self.tz_input = QLineEdit()
         self.tz_input.setPlaceholderText("-2.0 or +0530")
         self.tz_input.setToolTip(
@@ -167,12 +188,13 @@ class MainWindow(QMainWindow):
         lon_row.addWidget(self.lon_input, 1)
         lon_row.addWidget(self.geo_detect_btn)
 
-        for w in (self.date_input, self.time_input, self.tz_input,
+        for w in (self.date_input, self.time_input, self.city_input, self.tz_input,
                   self.lat_input, self.lon_input):
             w.setMinimumWidth(180)
 
         form.addRow("Date:", self.date_input)
         form.addRow("Time:", self.time_input)
+        form.addRow("City:", city_row)
         form.addRow("TZ offset:", tz_row)
         form.addRow("Lat:", lat_row)
         form.addRow("Lon:", lon_row)
@@ -202,6 +224,19 @@ class MainWindow(QMainWindow):
         form.addRow(ctrl)
 
         left_layout.addWidget(input_group)
+
+        self.city_results = QListWidget()
+        self.city_results.setHidden(True)
+        self.city_results.setMaximumHeight(200)
+        self.city_results.itemClicked.connect(self._on_city_selected)
+        self.city_results.setStyleSheet(f"""
+            QListWidget {{ background-color: {BG2}; color: #ffffff;
+                          border: 1px solid {BORDER}; border-radius: 4px; }}
+            QListWidget::item {{ padding: 6px 8px; }}
+            QListWidget::item:selected {{ background-color: {BORDER}; }}
+            QListWidget::item:hover {{ background-color: #0f3460; }}
+        """)
+        left_layout.addWidget(self.city_results)
 
         # Chart
         self.chart_widget = ChartWidget()
@@ -330,6 +365,63 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(
             f"Filled: {now.strftime('%Y-%m-%d %H:%M:%S')} local, "
             f"TZ = {sign}{abs(utc_offset):.1f} (UTC{'−' if utc_offset > 0 else '+'}{abs(utc_offset):.1f})"
+        )
+
+    def _init_atlas(self) -> Optional[AtlasReader]:
+        if self._atlas is not None:
+            return self._atlas
+        try:
+            self._atlas = AtlasReader("jhcore/atlas/jhworld.adb")
+            return self._atlas
+        except Exception as e:
+            self.statusBar().showMessage(f"Could not load atlas: {e}")
+            return None
+
+    def _on_city_text_changed(self, text: str):
+        self._city_search_timer.start()
+
+    def _on_city_search(self):
+        text = self.city_input.text().strip()
+        if len(text) < 2:
+            self.city_results.setHidden(True)
+            return
+        atlas = self._init_atlas()
+        if atlas is None:
+            return
+        results = atlas.search(text, max_results=15)
+        self.city_results.clear()
+        if results:
+            for city in results:
+                ns = "N" if city.latitude >= 0 else "S"
+                ew = "E" if city.longitude >= 0 else "W"
+                item_text = (
+                    f"{city.name}  —  "
+                    f"{abs(city.latitude):.2f}°{ns}  "
+                    f"{abs(city.longitude):.2f}°{ew}  "
+                    f"TZ={city.tz_offset:+.1f}h"
+                )
+                item = QListWidgetItem(item_text)
+                item.setData(Qt.ItemDataRole.UserRole, city)
+                self.city_results.addItem(item)
+            self.city_results.setHidden(False)
+        else:
+            self.city_results.setHidden(True)
+
+    def _on_city_selected(self, item: QListWidgetItem):
+        city: AtlasCity = item.data(Qt.ItemDataRole.UserRole)
+        self.lat_input.setText(f"{city.latitude:.4f}")
+        self.lon_input.setText(f"{city.longitude:.4f}")
+        jhora_tz = -city.tz_offset
+        sign = "+" if jhora_tz >= 0 else "-"
+        self.tz_input.setText(f"{sign}{abs(jhora_tz):.1f}")
+        self.city_input.blockSignals(True)
+        self.city_input.setText(city.name)
+        self.city_input.blockSignals(False)
+        self.city_results.setHidden(True)
+        self.statusBar().showMessage(
+            f"Selected: {city.name}  ({abs(city.latitude):.2f}°{'N' if city.latitude >= 0 else 'S'}, "
+            f"{abs(city.longitude):.2f}°{'E' if city.longitude >= 0 else 'W'})  "
+            f"TZ={city.tz_offset:+.1f}h"
         )
 
     def _set_example_data(self):
