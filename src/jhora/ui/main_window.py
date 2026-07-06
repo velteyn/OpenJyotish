@@ -267,7 +267,10 @@ class MainWindow(QMainWindow):
         dl.setContentsMargins(8, 8, 8, 8)
         dl.setSpacing(8)
         self.dasa_system_combo = QComboBox()
-        self.dasa_system_combo.addItems(["Vimsottari", "Ashtottari"])
+        self.dasa_system_combo.addItems([
+            "Vimsottari", "Ashtottari", "Yogini", "Sudasa",
+            "Chara", "Narayana", "Kalachakra",
+        ])
         self.dasa_system_combo.currentTextChanged.connect(self._update_dasa_text)
         dl.addWidget(self.dasa_system_combo)
         self.dasa_text = QTextEdit()
@@ -651,14 +654,8 @@ class MainWindow(QMainWindow):
                             for g, p in self.chart_data.planets.items()},
                 "lagna_lon": self.chart_data.ascendant,
             }
-            if system == "Vimsottari":
-                from jhora.dasas.vimsottari import VimsottariDasa
-                engine = VimsottariDasa()
-            elif system == "Ashtottari":
-                from jhora.dasas.ashtottari import AshtottariDasa
-                engine = AshtottariDasa()
-            else:
-                engine = VimsottariDasa()
+
+            engine = self._get_dasa_engine(system)
 
             periods = engine.compute(self.chart_data.julian_day, chart_dict)
             se = SweEngine()
@@ -666,17 +663,38 @@ class MainWindow(QMainWindow):
             for md in periods:
                 y1, m1, d1, _ = se.revjul(md.start_jd)
                 y2, m2, d2, _ = se.revjul(md.end_jd)
-                try:
-                    lord = Graha(int(md.lord_index)).full_name
-                except ValueError:
-                    lord = str(md.lord_index)
                 lines.append(
-                    f"{lord:14s}  {int(y1)}/{int(m1):02d}/{int(d1):02d}"
+                    f"{md.lord_name:14s}  {int(y1)}/{int(m1):02d}/{int(d1):02d}"
                     f"  →  {int(y2)}/{int(m2):02d}/{int(d2):02d}"
                     f"  ({md.duration_years:.2f} yrs)")
             self.dasa_text.setText("\n".join(lines))
         except Exception as e:
             self.dasa_text.setText(f"Dasa computation error:\n{e}")
+
+    def _get_dasa_engine(self, system: str):
+        if system == "Vimsottari":
+            from jhora.dasas.vimsottari import VimsottariDasa
+            return VimsottariDasa()
+        elif system == "Ashtottari":
+            from jhora.dasas.ashtottari import AshtottariDasa
+            return AshtottariDasa()
+        elif system == "Yogini":
+            from jhora.dasas.yogini import YoginiDasa
+            return YoginiDasa()
+        elif system == "Sudasa":
+            from jhora.dasas.sudasa import Sudasa
+            return Sudasa()
+        elif system == "Chara":
+            from jhora.dasas.chara import CharaDasa
+            return CharaDasa()
+        elif system == "Narayana":
+            from jhora.dasas.narayana import NarayanaDasa
+            return NarayanaDasa()
+        elif system == "Kalachakra":
+            from jhora.dasas.kalachakra import KalachakraDasa
+            return KalachakraDasa()
+        from jhora.dasas.vimsottari import VimsottariDasa
+        return VimsottariDasa()
 
     # --- Varga ---
 
