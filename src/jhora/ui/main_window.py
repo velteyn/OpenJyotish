@@ -8,10 +8,12 @@ from PyQt6.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget,
     QTableWidgetItem, QHeaderView, QSplitter, QTextEdit, QTabWidget,
     QMessageBox, QGroupBox, QFormLayout,
-    QDateEdit, QTimeEdit,
+    QDateEdit, QTimeEdit, QFileDialog,
 )
+from PyQt6.QtGui import QAction
 
 from jhora.io.atlas import AtlasCity, AtlasReader
+from jhora.io.jhd_parser import parse_jhd, save_jhd, JhdData, JhdFormat
 
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
@@ -88,8 +90,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.chart_data: Optional[ChartData] = None
+        self.current_file: Optional[str] = None
         self.builder = ChartBuilder()
         self._init_ui()
+        self._create_menu_bar()
 
     def _init_ui(self):
         self.setWindowTitle("Jagannatha Hora — Vedic Astrology")
@@ -319,6 +323,101 @@ class MainWindow(QMainWindow):
 
         self._on_varga_level_changed(0)
         self._set_example_data()
+
+    def _create_menu_bar(self):
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu("&File")
+
+        open_act = QAction("&Open...", self)
+        open_act.setShortcut("Ctrl+O")
+        open_act.triggered.connect(self._on_file_open)
+        file_menu.addAction(open_act)
+
+        save_act = QAction("&Save", self)
+        save_act.setShortcut("Ctrl+S")
+        save_act.triggered.connect(self._on_file_save)
+        file_menu.addAction(save_act)
+
+        save_as_act = QAction("Save &As...", self)
+        save_as_act.setShortcut("Ctrl+Shift+S")
+        save_as_act.triggered.connect(self._on_file_save_as)
+        file_menu.addAction(save_as_act)
+
+        file_menu.addSeparator()
+
+        exit_act = QAction("E&xit", self)
+        exit_act.setShortcut("Ctrl+Q")
+        exit_act.triggered.connect(self.close)
+        file_menu.addAction(exit_act)
+
+    def _on_file_open(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Open JHora Data", "", "JHora Data (*.jhd);;All Files (*)"
+        )
+        if not path:
+            return
+        try:
+            data = parse_jhd(path)
+            self.date_input.setDate(QDate(data.year, data.month, data.day))
+            h = int(data.time_hours)
+            m = int((data.time_hours - h) * 60)
+            s = int(round(((data.time_hours - h) * 60 - m) * 60))
+            self.time_input.setTime(QTime(h, m, s))
+            tz_sign = "+" if data.tz_offset >= 0 else "-"
+            self.tz_input.setText(f"{tz_sign}{abs(data.tz_offset):.1f}")
+            self.lat_input.setText(f"{data.latitude:.4f}")
+            self.lon_input.setText(f"{-data.longitude:.4f}")
+            if data.city:
+                self.city_input.setText(data.city)
+            self.current_file = path
+            self.setWindowTitle(f"Jagannatha Hora — {data.name}")
+            self.statusBar().showMessage(f"Opened: {path}")
+        except Exception as e:
+            QMessageBox.warning(self, "Open Error", f"Could not open file:\n{e}")
+
+    def _on_file_save(self):
+        if self.current_file:
+            self._do_save(self.current_file)
+        else:
+            self._on_file_save_as()
+
+    def _on_file_save_as(self):
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save JHora Data", "", "JHora Data (*.jhd);;All Files (*)"
+        )
+        if path:
+            if not path.endswith(".jhd"):
+                path += ".jhd"
+            self._do_save(path)
+            self.current_file = path
+
+    def _do_save(self, path: str):
+        try:
+            qd = self.date_input.date()
+            qt = self.time_input.time()
+            tz_str = self.tz_input.text().strip()
+            lat = float(self.lat_input.text().strip())
+            lon = float(self.lon_input.text().strip())
+            city = self.city_input.text().strip()
+            hour = qt.hour() + qt.minute() / 60.0 + qt.second() / 3600.0
+            tz_offset = ChartBuilder._parse_tz(tz_str)
+
+            data = JhdData(
+                filename=path.split("/")[-1],
+                format=JhdFormat.BIRTH_CITY,
+                day=qd.day(), month=qd.month(), year=qd.year(),
+                time_hours=hour,
+                tz_offset=tz_offset,
+                longitude=-lon,
+                latitude=lat,
+                ayanamsa_override=0.0,
+                city=city, country="",
+            )
+            save_jhd(path, data)
+            self.setWindowTitle(f"Jagannatha Hora — {data.name}")
+            self.statusBar().showMessage(f"Saved: {path}")
+        except Exception as e:
+            QMessageBox.warning(self, "Save Error", f"Could not save file:\n{e}")
 
     def _detect_location(self):
         """Detect latitude/longitude from IP address via geolocation API."""

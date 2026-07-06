@@ -52,6 +52,33 @@ def _parse_float(val: str) -> float:
     return float(val.strip())
 
 
+def save_jhd(path: str, data: JhdData) -> None:
+    lines = [
+        str(data.day),
+        str(data.month),
+        str(data.year),
+        f"{data.time_hours:.6f}",
+        f"{data.tz_offset:.6f}",
+        f"{data.longitude:.6f}",
+        f"{data.latitude:.6f}",
+        f"{data.ayanamsa_override:.6f}",
+        f"{data.ayanamsa_override:.6f}",
+        f"{data.ayanamsa_override:.6f}",
+        "0",
+        "0",
+        data.city or "Unknown",
+        data.country or "",
+    ]
+    if data.planet_longitudes and len(data.planet_longitudes) >= 9:
+        lines.append("18")
+        lines.append("0")
+        for pl in data.planet_longitudes:
+            lines.append(f"{pl:.6f}")
+    text = "\r\n".join(lines) + "\r\n"
+    with open(path, "w", newline="") as f:
+        f.write(text)
+
+
 def parse_jhd(path: str) -> JhdData:
     with open(path, "rb") as f:
         raw = f.read()
