@@ -1,12 +1,18 @@
-"""Kuta Porutham — Vedic marriage compatibility matching (10 Porutham).
+"""Kuta Porutham — Vedic marriage compatibility matching.
+
+Supports two scoring systems:
+  1. 10 Porutham (19 points) — standard South Indian matchmaking
+  2. Ashta Koota (36 points, 8 factors) — original JHora binary system
 
 References:
   - "Vedic Astrology: An Integrated Approach" by P.V.R. Narasimha Rao
+  - Original JHora 8.0 binary (Ashta Koota: format string at 0x591a3c,
+    score table lookup at function_4b3b10)
   - "The 10 Poruthams" — standard South Indian matchmaking
-  - Original JHora 8.0 binary (function 0x0044c170)
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from enum import Enum
 from typing import Dict, List, Tuple
 
 from jhora.types.graha import Graha
@@ -14,11 +20,18 @@ from jhora.types.nakshatra import Nakshatra
 from jhora.types.rasi import Rasi
 
 
-# ── Result type ──────────────────────────────────────────────────────────────
+# ── Scoring system enum ──────────────────────────────────────────────────────
+
+class ScoringSystem(Enum):
+    PORUTHAM = "porutham"      # 10 Porutham, 19 points
+    ASHTA_KOOTA = "ashta_koota"  # Ashta Koota, 36 points
+
+
+# ── Result types ─────────────────────────────────────────────────────────────
 
 @dataclass(frozen=True)
 class Porutham:
-    """Result of a single porutham check."""
+    """Result of a single porutham/ashta-koota factor check."""
     name: str
     score: float
     max_score: float
@@ -33,6 +46,30 @@ class Porutham:
         return self.score >= self.max_score / 2
 
 
+_GUNANKA_LEVELS: List[Tuple[int, int, str]] = [
+    (30, 36, "Excellent"),
+    (24, 30, "Good"),
+    (18, 24, "Fair"),
+    (12, 18, "Average"),
+    (0, 12, "Below average"),
+]
+
+
+def gunanka_level(score: float) -> str:
+    """Categorize Ashta Koota Gunanka score into qualitative level.
+
+    Matches the original JHora binary format string:
+    'Gunanka score after matching ashta koota (group of eight factors)
+     = %d (out of 36).'
+    """
+    for lo, hi, label in _GUNANKA_LEVELS:
+        if lo <= score < hi:
+            return label
+    if score == 36:
+        return "Excellent"
+    return "Below average"
+
+
 @dataclass(frozen=True)
 class KutaResult:
     """Full matchmaking result for a pair of horoscopes."""
@@ -41,6 +78,7 @@ class KutaResult:
     girl_rasi: Rasi
     boy_rasi: Rasi
     poruthams: List[Porutham]
+    system: ScoringSystem = ScoringSystem.PORUTHAM
 
     @property
     def total_score(self) -> float:
@@ -55,6 +93,17 @@ class KutaResult:
         if self.max_score == 0:
             return 0.0
         return self.total_score / self.max_score * 100
+
+    @property
+    def system_name(self) -> str:
+        if self.system == ScoringSystem.ASHTA_KOOTA:
+            return "Ashta Koota"
+        return "10 Porutham"
+
+    @property
+    def gunanka_level(self) -> str:
+        """Only meaningful for Ashta Koota; returns level label."""
+        return gunanka_level(self.total_score)
 
 
 # ── Gana ─────────────────────────────────────────────────────────────────────
@@ -292,6 +341,35 @@ def _lord_friendship(lord1: str, lord2: str) -> str:
     return "neutral"
 
 
+# ── Ashta Koota: Varna — rasi lord caste ──────────────────────────────────────
+
+# Varna hierarchy (higher number = lower varna per traditional texts)
+_VARNA: Dict[str, int] = {
+    "Jupiter": 1,  # Brahmin (guru)
+    "Venus": 1,    # Brahmin (teacher of asuras)
+    "Sun": 2,      # Kshatriya (king)
+    "Mars": 2,     # Kshatriya (commander)
+    "Mercury": 3,  # Vaishya (trader)
+    "Saturn": 3,   # Vaishya (worker)
+    "Moon": 4,     # Shudra (common people)
+}
+
+
+# ── Ashta Koota: Graha Maitri — planetary friendship table (explicit) ────────
+
+# Friendship relations for Graha Maitri (5 pts in Ashta Koota)
+# Key: planet name, Value: (friends, neutrals, enemies)
+_GRAHA_MAITRI: Dict[str, Tuple[List[str], List[str], List[str]]] = {
+    "Sun":     (["Moon", "Mars", "Jupiter"],  ["Mercury"],               ["Venus", "Saturn"]),
+    "Moon":    (["Sun", "Mercury"],            ["Jupiter", "Venus", "Saturn"], ["Mars"]),
+    "Mars":    (["Sun", "Moon", "Jupiter"],    ["Venus", "Saturn"],      ["Mercury"]),
+    "Mercury": (["Sun", "Venus", "Saturn"],    ["Mars", "Jupiter", "Moon"], []),
+    "Jupiter": (["Sun", "Moon", "Mars"],       ["Saturn"],               ["Mercury", "Venus"]),
+    "Venus":   (["Mercury", "Saturn"],         ["Mars", "Jupiter"],      ["Sun", "Moon"]),
+    "Saturn":  (["Mercury", "Venus"],          ["Jupiter"],              ["Sun", "Moon", "Mars"]),
+}
+
+
 # ── Individual porutham checks ────────────────────────────────────────────────
 
 def _check_dina(girl_nak: Nakshatra, boy_nak: Nakshatra) -> Porutham:
@@ -461,25 +539,236 @@ def _check_mahendra(girl_nak: Nakshatra, boy_nak: Nakshatra) -> Porutham:
     return Porutham("Mahendra", 0.0, 1.0, f"Count {count} — not good")
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Ashta Koota (8 factors, 36 points) — used by original JHora binary
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _ak_check_varna(girl_rasi: Rasi, boy_rasi: Rasi) -> Porutham:
+    """Varna (1 pt) — caste/spiritual compatibility of rasi lords.
+
+    Assigns varna hierarchy to rasi lords. Same varna → 1 pt.
+    """
+    gl = _rasi_lord_str(girl_rasi)
+    bl = _rasi_lord_str(boy_rasi)
+    gv = _VARNA.get(gl, 0)
+    bv = _VARNA.get(bl, 0)
+    if gv == bv:
+        return Porutham("Varna", 1.0, 1.0, f"Both {gl} ({bv}) — same varna")
+    return Porutham("Varna", 0.0, 1.0,
+                    f"{gl} (varna {gv}) vs {bl} (varna {bv}) — different")
+
+
+def _ak_check_vashya(girl_rasi: Rasi, boy_rasi: Rasi) -> Porutham:
+    """Vashya (2 pts) — mutual control/attraction based on sign nature.
+
+    Same nature group (chara/sthira/dwisvabhava) → 2 pts.
+    6/8 opposition → 0 pts.
+    Otherwise → 1 pt.
+    """
+    gg = _RASI_VASHA_GROUP[girl_rasi]
+    bg = _RASI_VASHA_GROUP[boy_rasi]
+    if gg == bg:
+        return Porutham("Vashya", 2.0, 2.0, f"Both {gg} — compatible")
+    diff = (boy_rasi.value - girl_rasi.value) % 12
+    if diff in (5, 7):
+        return Porutham("Vashya", 0.0, 2.0, "6/8 opposition — not good")
+    return Porutham("Vashya", 1.0, 2.0, f"{gg} ↔ {bg} — partial")
+
+
+def _ak_check_tara(girl_nak: Nakshatra, boy_nak: Nakshatra) -> Porutham:
+    """Tara/Dina (3 pts) — birth star compatibility.
+
+    Count from girl's nakshatra to boy's (forward, 1-indexed).
+    Check mod 9:
+      - 3, 6, 7, 0/9 → Uttama (3 pts)
+      - 2, 4, 8     → Madhyama (2 pts)
+      - 1, 5        → Adhama (0 pts)
+    This matches the standard Ashta Koota Tara scoring.
+    """
+    count = (boy_nak.value - girl_nak.value) % 27 + 1
+    r = count % 9
+    if r in (3, 6, 7, 0):
+        return Porutham("Tara/Dina", 3.0, 3.0,
+                        f"Count {count}, rem {r} — Uttama")
+    if r in (2, 4, 8):
+        return Porutham("Tara/Dina", 2.0, 3.0,
+                        f"Count {count}, rem {r} — Madhyama")
+    return Porutham("Tara/Dina", 0.0, 3.0,
+                    f"Count {count}, rem {r} — Adhama")
+
+
+def _ak_check_yoni(girl_nak: Nakshatra, boy_nak: Nakshatra) -> Porutham:
+    """Yoni (4 pts) — sexual compatibility via animal symbols.
+
+    Same animal, opposite sex → 4 pts (best)
+    Same animal, same sex → 3 pts
+    Friend animals → 2 pts
+    Neutral → 1 pt
+    Enemy → 0 pts
+    """
+    gy = _YONI[girl_nak]
+    by = _YONI[boy_nak]
+    if gy.animal == by.animal:
+        if gy.is_male != by.is_male:
+            return Porutham("Yoni", 4.0, 4.0, f"{gy.animal} opposite sex — best")
+        return Porutham("Yoni", 3.0, 4.0, f"{gy.animal} same sex — good")
+    if _is_friend(gy.animal, by.animal) or _is_friend(by.animal, gy.animal):
+        return Porutham("Yoni", 2.0, 4.0, f"{gy.animal} ↔ {by.animal} — friends")
+    if _is_enemy(gy.animal, by.animal) or _is_enemy(by.animal, gy.animal):
+        return Porutham("Yoni", 0.0, 4.0, f"{gy.animal} ↔ {by.animal} — enemies")
+    return Porutham("Yoni", 1.0, 4.0, f"{gy.animal} ↔ {by.animal} — neutral")
+
+
+_YONI_ENEMIES: Dict[str, List[str]] = {
+    "Serpent": ["Mongoose"],
+    "Mongoose": ["Serpent"],
+    "Cat": ["Mouse", "Dog"],
+    "Mouse": ["Cat"],
+    "Dog": ["Cat"],
+    "Tiger": ["Deer"],
+    "Deer": ["Tiger"],
+}
+
+
+def _is_enemy(a: str, b: str) -> bool:
+    """Check if two animals (yoni) are natural enemies.
+
+    Explicit enemy pairs are defined in _YONI_ENEMIES.
+    Animals that are not friends and not enemies are neutral.
+    """
+    if a == b:
+        return False
+    return b in _YONI_ENEMIES.get(a, [])
+
+
+def _ak_check_graha_maitri(girl_rasi: Rasi, boy_rasi: Rasi) -> Porutham:
+    """Graha Maitri (5 pts) — rasi lord friendship.
+
+    Same lord → 5 pts
+    Friend lords → 3 pts
+    Neutral lords → 1 pt
+    Enemy lords → 0 pts
+    """
+    gl = _rasi_lord_str(girl_rasi)
+    bl = _rasi_lord_str(boy_rasi)
+    if gl == bl:
+        return Porutham("Graha Maitri", 5.0, 5.0, f"Both {gl} — same lord")
+    friends, neutrals, enemies = _GRAHA_MAITRI.get(gl, ([], [], []))
+    if bl in friends:
+        return Porutham("Graha Maitri", 3.0, 5.0, f"{gl} ↔ {bl} — friends")
+    if bl in enemies:
+        return Porutham("Graha Maitri", 0.0, 5.0, f"{gl} ↔ {bl} — enemies")
+    return Porutham("Graha Maitri", 1.0, 5.0, f"{gl} ↔ {bl} — neutral")
+
+
+def _ak_check_gana(girl_nak: Nakshatra, boy_nak: Nakshatra) -> Porutham:
+    """Gana (6 pts) — temperament compatibility.
+
+    Same gana → 6 pts.
+    Deva → Rakshasa (or vice versa) → 0 pts (opposite extremes).
+    Other mismatch → 3 pts.
+    """
+    gg = _GANA[girl_nak]
+    bg = _GANA[boy_nak]
+    if gg == bg:
+        return Porutham("Gana", 6.0, 6.0, f"Both {gg}")
+    if set([gg, bg]) == {"Deva", "Rakshasa"}:
+        return Porutham("Gana", 0.0, 6.0,
+                        f"Girl: {gg}, Boy: {bg} — opposite extremes")
+    return Porutham("Gana", 3.0, 6.0,
+                    f"Girl: {gg}, Boy: {bg} — partial")
+
+
+def _ak_check_bhakoota(girl_rasi: Rasi, boy_rasi: Rasi) -> Porutham:
+    """Bhakoota/Rasi (7 pts) — rasi position compatibility.
+
+    If signs are 2, 6, 8, or 12 from each other → 0 pts (maraka/enemy).
+    Same sign → 0 pts.
+    3rd/11th → 5 pts.
+    4th/10th → 3 pts.
+    7th → 1 pt.
+    5th/9th → 7 pts (best — trinal).
+    """
+    diff = (boy_rasi.value - girl_rasi.value) % 12
+    # diff: 0=same, 1=2nd, 2=3rd, 3=4th, 4=5th, 5=6th,
+    #       6=7th, 7=8th, 8=9th, 9=10th, 10=11th, 11=12th
+    if diff in (0, 1, 5, 7, 11):
+        label = {0: "same", 1: "2nd", 5: "6th", 7: "8th", 11: "12th"}.get(diff, str(diff))
+        return Porutham("Bhakoota", 0.0, 7.0, f"{label} house — not good")
+    if diff == 2 or diff == 10:
+        return Porutham("Bhakoota", 5.0, 7.0, "3rd/11th — good")
+    if diff == 3 or diff == 9:
+        return Porutham("Bhakoota", 3.0, 7.0, "4th/10th — fair")
+    if diff == 6:
+        return Porutham("Bhakoota", 1.0, 7.0, "7th — neutral")
+    # diff == 4 or 8 → 5th/9th
+    return Porutham("Bhakoota", 7.0, 7.0, "5th/9th — excellent (trinal)")
+
+
+def _ak_check_nadi(girl_nak: Nakshatra, boy_nak: Nakshatra) -> Porutham:
+    """Nadi (8 pts) — health/heredity compatibility.
+
+    Different nadi → 8 pts (best).
+    Same nadi → 0 pts (worst — genetic incompatibility).
+    """
+    gn = _NADI[girl_nak]
+    bn = _NADI[boy_nak]
+    if gn != bn:
+        return Porutham("Nadi", 8.0, 8.0, f"Girl: {gn}, Boy: {bn} — different")
+    return Porutham("Nadi", 0.0, 8.0, f"Both {gn} — same nadi")
+
+
+def _compute_ashta_koota(
+    girl_nak: Nakshatra,
+    boy_nak: Nakshatra,
+    girl_rasi: Rasi,
+    boy_rasi: Rasi,
+) -> KutaResult:
+    """Compute Ashta Koota (8 factors, 36 points) matchmaking."""
+    factors = [
+        _ak_check_varna(girl_rasi, boy_rasi),           # 1 pt
+        _ak_check_vashya(girl_rasi, boy_rasi),          # 2 pts
+        _ak_check_tara(girl_nak, boy_nak),              # 3 pts
+        _ak_check_yoni(girl_nak, boy_nak),              # 4 pts
+        _ak_check_graha_maitri(girl_rasi, boy_rasi),    # 5 pts
+        _ak_check_gana(girl_nak, boy_nak),              # 6 pts
+        _ak_check_bhakoota(girl_rasi, boy_rasi),        # 7 pts
+        _ak_check_nadi(girl_nak, boy_nak),              # 8 pts
+    ]
+    return KutaResult(
+        girl_nakshatra=girl_nak,
+        boy_nakshatra=boy_nak,
+        girl_rasi=girl_rasi,
+        boy_rasi=boy_rasi,
+        poruthams=factors,
+        system=ScoringSystem.ASHTA_KOOTA,
+    )
+
+
 # ── Main entry point ─────────────────────────────────────────────────────────
 
 def compute_kuta(
     girl_moon_longitude: float,
     boy_moon_longitude: float,
+    system: ScoringSystem = ScoringSystem.PORUTHAM,
 ) -> KutaResult:
-    """Compute all 10 Kuta Poruthams between two horoscopes.
+    """Compute marriage compatibility between two horoscopes.
 
     Args:
         girl_moon_longitude: Moon's sidereal longitude for the girl (0-360).
         boy_moon_longitude: Moon's sidereal longitude for the boy (0-360).
+        system: Scoring system to use (PORUTHAM or ASHTA_KOOTA).
 
     Returns:
-        KutaResult with all 10 poruthams and totals.
+        KutaResult with poruthams/factors and totals.
     """
     girl_nak, _ = Nakshatra.from_longitude(girl_moon_longitude)
     boy_nak, _ = Nakshatra.from_longitude(boy_moon_longitude)
     girl_rasi = Rasi.from_longitude(girl_moon_longitude)
     boy_rasi = Rasi.from_longitude(boy_moon_longitude)
+
+    if system == ScoringSystem.ASHTA_KOOTA:
+        return _compute_ashta_koota(girl_nak, boy_nak, girl_rasi, boy_rasi)
 
     poruthams = [
         _check_dina(girl_nak, boy_nak),

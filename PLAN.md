@@ -53,7 +53,7 @@
 - [ ] Digbala, Kalabala, Cheshtabala details
 - [ ] Bhava/chalit chakra for 23 varga charts
 - [x] Transit analysis with vedha, tara, gochara
-- [x] Matchmaking: Kuta matching (10 Porutham, 19-point scoring)
+- [x] Matchmaking: Kuta matching — 10 Porutham (19-pt) + Ashta Koota (36-pt, original JHora binary scoring)
 - [ ] Prasna (horary): 108/249/1800 modes
 - [ ] Muhurta (electional) with planetary hour analysis
 - [ ] Tithi Pravesha charts (annual/monthly/daily)
