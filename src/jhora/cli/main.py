@@ -729,6 +729,70 @@ def transit(
     console.print(sav_table)
 
 
+@app.command()
+def prasna(
+    number: int = typer.Argument(..., help="Query number (1-108, 1-249, or 1-1800)"),
+    mode: str = typer.Option("108", "--mode", "-m", help="Prasna mode: 108, 249, or nadi"),
+    table_: bool = typer.Option(False, "--table", "-t", help="Show all positions for the mode"),
+):
+    """Prasna (Horary) — compute Prasna Lagna from a query number."""
+    from jhora.calc.prasna import (
+        PrasnaMode, compute_prasna, all_prasna_results,
+    )
+
+    mode_map = {
+        "108": PrasnaMode.MODE_108,
+        "249": PrasnaMode.MODE_249,
+        "nadi": PrasnaMode.NADI,
+    }
+    if mode.lower() not in mode_map:
+        console.print(f"[red]Unknown mode: {mode}. Use 108, 249, or nadi.[/red]")
+        raise typer.Exit(1)
+
+    pm = mode_map[mode.lower()]
+
+    if table_:
+        results = all_prasna_results(pm)
+        table = Table(title=f"{pm.label} — All {pm.max_number} Positions")
+        table.add_column("#", style="cyan")
+        table.add_column("PL (°)", style="yellow")
+        table.add_column("Rasi", style="green")
+        table.add_column("Deg", style="white")
+        if pm == PrasnaMode.MODE_108:
+            table.add_column("Navamsa", style="magenta")
+        elif pm == PrasnaMode.MODE_249:
+            table.add_column("Nakshatra", style="magenta")
+            table.add_column("Sub", style="cyan")
+        for r in results:
+            row = [
+                str(r.number),
+                f"{r.prasna_lagna:.4f}",
+                r.rasi.short_name,
+                f"{r.degrees_in_rasi:.2f}",
+            ]
+            if pm == PrasnaMode.MODE_108:
+                row.append(r.navamsa_rasi.short_name if r.navamsa_rasi else "")
+            elif pm == PrasnaMode.MODE_249:
+                row.append(r.nakshatra.name.replace("_", " ").title())
+                row.append(r.sub_lord.name.title() if r.sub_lord else "")
+            table.add_row(*row)
+        console.print(table)
+        return
+
+    r = compute_prasna(number, pm)
+    console.print(f"[bold]{pm.label}[/bold] — Number [cyan]#{number}[/cyan]")
+    console.print(f"  Prasna Lagna: [yellow]{r.prasna_lagna:.4f}°[/yellow]")
+    console.print(f"  Rasi: {r.rasi.short_name} ({r.rasi.full_name})")
+    console.print(f"  Degrees in Rasi: {r.degrees_in_rasi:.2f}°")
+    console.print(f"  Nakshatra: {r.nakshatra.name.replace('_', ' ').title()}")
+    console.print(f"  Pada: {r.nakshatra_pada}")
+    if r.navamsa_rasi:
+        console.print(f"  Navamsa: {r.navamsa_rasi.short_name} ({r.navamsa_rasi.full_name})")
+    if r.sub_lord:
+        console.print(f"  Sub Lord: {r.sub_lord.name.title()}")
+    console.print(f"  [dim]{r.description}[/dim]")
+
+
 @app.callback()
 def cli():
     """Jagannatha Hora — Vedic astrology calculator (Python port)."""
