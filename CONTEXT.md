@@ -32,7 +32,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 ## Current Status
 
 ### Deployed
-- `src/jhora/` — Python package with **42 modules** across 10 subpackages (7,379 lines)
+- `src/jhora/` — Python package with **43 modules** across 10 subpackages (7,700+ lines)
 - Core types: Graha, Rasi, Nakshatra, Varga, Bhava, Dasa (6 types, 546 lines)
 - Ephemeris: SweEngine wrapping all 18 SE APIs, sidereal positions, retrograde detection
 - Chart: ChartBuilder + ChartData (frozen), planet dignity
@@ -40,14 +40,15 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - **Dasas**: Vimsottari (120-year), Ashtottari (108-year), **Yogini (36-year, 8-yogini cycle)**, **Sudasa (Sreelagna Kendradi Rasi Dasa)**, **Chara (78-year, rasi-based)**, **Narayana (rasi-based, lagna-progression)**, **Kalachakra (12-year, nakshatra pada deha/jeeva)** — MD/AD periods, all 7 systems selectable in GUI dasa combo box
 - **Shadbala**: Six-fold planetary strength (sthana, dig, kala, chesta, naisargika, drik) — 491 lines, 48 tests
 - **Yogas**: 10+ yoga types, 12 categories, 100+ combos (Pancha Mahapurusha, Raja, Dhana, Viparita Raja, Neecha Bhanga Raja, Parivartana, Chandra yogas, Surya yogas, Kemadruma, Amala, Dharma-Karma-Adhipati, Kala Sarpa)
-- CLI: `chart`, `dasa` (vimsottari/ashtottari), `navamsa`, `varga`, `shadbala`, `yogas`, `ashtakavarga`, `interpret`, `knowledge`, `gui`
-- GUI: PyQt6 dark theme, South/North/East Indian chart styles (3, with diamond lines for North, radial spokes for East), 9 tabs (planets, houses, dasa system selector, varga, yogas, shadbala, ashtakavarga, transit, arudha/karaka/sahama)
+- CLI: `chart`, `dasa` (vimsottari/ashtottari), `navamsa`, `varga`, `shadbala`, `yogas`, `ashtakavarga`, `interpret`, `knowledge`, `gui`, `kuta`
+- GUI: PyQt6 dark theme, South/North/East Indian chart styles (3, with diamond lines for North, radial spokes for East), 11 tabs (planets, houses, dasa system selector, varga, yogas, shadbala, ashtakavarga, transit, arudha/karaka/sahama, tajaka, matchmaking)
 - Interpreter: Chart reading generator (rule-based, connected to yogas engine)
 - Knowledge base: 16 sources, 1.9M chars, full-text search
 - Books: Author's textbook (515pp) + margabandhu (322pp) + 14 articles text-extracted
-- **Tests: 446 passing** (19 test files, 3,000+ lines)
+- **Tests: 490 passing** (20 test files, 3,200+ lines)
 - **Docs**: `docs/help/chart_drawing_analysis.md` — comprehensive RE analysis of binary chart rendering vs current implementation
 - **Tajaka (Solar Return)**: Varsha Pravesh (Sun return search via `swe.solcross_ut`), Muntha (progressed lagna), Harsha Bala (4-source strength), Patyayini Dasa (krisamsa/patyamsa), Mudda Dasa (compressed Vimsottari) — `src/jhora/calc/tajaka.py`, 19 tests, CLI `jhora tajaka` command, wired in 10th GUI tab
+- **Kuta Porutham** (Matchmaking): 10 Porutham (Dina, Gana, Yoni, Rasi, Rasyadhipati, Nadi, Rajju, Vedha, Vashya, Mahendra) with 19-point scoring — `src/jhora/calc/kuta.py`, 44 tests, CLI `jhora kuta` command, wired in 11th GUI tab
 - **Arudha Padas**: Bhava arudhas (AL, A2–A12) + Graha arudhas — `src/jhora/calc/arudha.py`, tested, wired in 9th GUI tab
 - **Chara Karakas**: 8 planetary karakas by longitude ranking — `src/jhora/calc/karaka.py`, tested, wired in 9th GUI tab
 - **Sahamas**: 36 sensitive points (Punya, Vidya, Samartha, Artha, etc.) — `src/jhora/calc/sahama.py`, 13 tests, wired in 9th GUI tab
