@@ -616,9 +616,16 @@ def kuta(
     girl: str = typer.Argument(..., help="Girl birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     boy: str = typer.Argument(..., help="Boy birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    ashta_koota: bool = typer.Option(False, "--ashta-koota", "-k",
+                                     help="Use Ashta Koota (36pt, 8 factors) instead of 10 Porutham (19pt)"),
 ):
-    """Compute Kuta Porutham (marriage matchmaking) between two charts."""
-    from jhora.calc.kuta import compute_kuta
+    """Compute marriage compatibility between two charts.
+
+    10 Porutham (19pt) is the default. Use --ashta-koota for the Ashta Koota
+    36-point system used by the original JHora binary.
+    """
+    from jhora.calc.kuta import compute_kuta, ScoringSystem, gunanka_level
+    system = ScoringSystem.ASHTA_KOOTA if ashta_koota else ScoringSystem.PORUTHAM
     bd_g = parse_birthdata(girl)
     bd_b = parse_birthdata(boy)
     cb = ChartBuilder()
@@ -637,17 +644,22 @@ def kuta(
     result = compute_kuta(
         g_chart.planet(Graha.MOON).longitude,
         b_chart.planet(Graha.MOON).longitude,
+        system=system,
     )
 
-    console.print(f"\n[bold]Kuta Porutham — Matchmaking[/bold]")
+    system_label = result.system_name
+    console.print(f"\n[bold]{system_label} — Matchmaking[/bold]")
     console.print(f"  Girl: [yellow]{result.girl_nakshatra.name}[/yellow] / "
                   f"[cyan]{result.girl_rasi.full_name}[/cyan]")
     console.print(f"  Boy:  [yellow]{result.boy_nakshatra.name}[/yellow] / "
                   f"[cyan]{result.boy_rasi.full_name}[/cyan]")
     console.print()
 
-    table = Table(title=f"10 Porutham — {result.total_score:.0f}/{result.max_score:.0f} ({result.percentage:.0f}%)")
-    table.add_column("Porutham", style="yellow")
+    title = f"{system_label} — {result.total_score:.0f}/{result.max_score:.0f} ({result.percentage:.0f}%)"
+    if result.system == ScoringSystem.ASHTA_KOOTA:
+        title += f" — [bold]{result.gunanka_level}[/bold]"
+    table = Table(title=title)
+    table.add_column("Factor" if ashta_koota else "Porutham", style="yellow")
     table.add_column("Score", style="cyan")
     table.add_column("Result", style="white")
     for p in result.poruthams:

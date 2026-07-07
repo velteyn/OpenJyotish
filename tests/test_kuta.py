@@ -2,10 +2,14 @@
 
 import unittest
 from jhora.calc.kuta import (
-    compute_kuta, KutaResult, Porutham,
+    compute_kuta, KutaResult, Porutham, ScoringSystem,
+    gunanka_level,
     _check_dina, _check_gana, _check_yoni, _check_rasi,
     _check_rasyadhipati, _check_nadi, _check_rajju,
     _check_vedha, _check_vashya, _check_mahendra,
+    _ak_check_varna, _ak_check_vashya, _ak_check_tara,
+    _ak_check_yoni, _ak_check_graha_maitri, _ak_check_gana,
+    _ak_check_bhakoota, _ak_check_nadi,
 )
 from jhora.types.nakshatra import Nakshatra
 from jhora.types.rasi import Rasi
@@ -283,6 +287,347 @@ class TestComputeKuta(unittest.TestCase):
     def test_fraction_on_porutham(self):
         p = _check_dina(Nakshatra.ASVINI, Nakshatra.BHARANI)
         self.assertEqual(p.fraction, "1/1")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Ashta Koota (36-point, 8-factor) Tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestAKVarna(unittest.TestCase):
+    """Ashta Koota Varna (1 pt) — same rasi lord varna."""
+
+    def test_same_lord(self):
+        """Aries+Scorpio both Mars → same varna (Kshatriya=2)."""
+        r = _ak_check_varna(Rasi.ARIES, Rasi.SCORPIO)
+        self.assertEqual(r.score, 1.0)
+
+    def test_same_varna_diff_lord(self):
+        """Leo(Sun, Kshatriya=2) + Aries(Mars, Kshatriya=2)."""
+        r = _ak_check_varna(Rasi.LEO, Rasi.ARIES)
+        self.assertEqual(r.score, 1.0)
+
+    def test_diff_varna(self):
+        """Aries(Mars, Kshatriya=2) + Taurus(Venus, Brahmin=1)."""
+        r = _ak_check_varna(Rasi.ARIES, Rasi.TAURUS)
+        self.assertEqual(r.score, 0.0)
+
+    def test_brahmin_same(self):
+        """Sagittarius(Jupiter) + Pisces(Jupiter) → both Brahmin."""
+        r = _ak_check_varna(Rasi.SAGITTARIUS, Rasi.PISCES)
+        self.assertEqual(r.score, 1.0)
+
+    def test_shudra_moon(self):
+        """Cancer(Moon, Shudra=4) + Cancer(Moon, Shudra=4) → same."""
+        r = _ak_check_varna(Rasi.CANCER, Rasi.CANCER)
+        self.assertEqual(r.score, 1.0)
+
+
+class TestAKVashya(unittest.TestCase):
+    """Ashta Koota Vashya (2 pts) — sign nature group."""
+
+    def test_same_group(self):
+        """Aries+Libra both chara."""
+        r = _ak_check_vashya(Rasi.ARIES, Rasi.LIBRA)
+        self.assertEqual(r.score, 2.0)
+
+    def test_six_eight_opposition(self):
+        """Aries(0) → Virgo(5): diff=5 (6th)."""
+        r = _ak_check_vashya(Rasi.ARIES, Rasi.VIRGO)
+        self.assertEqual(r.score, 0.0)
+
+    def test_eighth_opposition(self):
+        """Taurus(1) → Libra(6): diff=5 (6th)."""
+        r = _ak_check_vashya(Rasi.TAURUS, Rasi.LIBRA)
+        self.assertEqual(r.score, 0.0)
+
+    def test_partial_mixed(self):
+        """Aries(chara) + Taurus(sthira) → partial (1 pt)."""
+        r = _ak_check_vashya(Rasi.ARIES, Rasi.TAURUS)
+        self.assertEqual(r.score, 1.0)
+
+    def test_partial_dual_chara(self):
+        """Gemini(dwisvabhava) + Aries(chara) → partial."""
+        r = _ak_check_vashya(Rasi.GEMINI, Rasi.ARIES)
+        self.assertEqual(r.score, 1.0)
+
+
+class TestAKTara(unittest.TestCase):
+    """Ashta Koota Tara/Dina (3 pts) — nakshatra counting."""
+
+    def test_uttama_3(self):
+        """Ashwini(0) → Punarvasu(6): count=7, 7%9=7 → Uttama (3)."""
+        r = _ak_check_tara(Nakshatra.ASVINI, Nakshatra.PUNARVASU)
+        self.assertEqual(r.score, 3.0)
+
+    def test_uttama_0(self):
+        """Ashwini(0) → Ashlesha(8): count=9, 9%9=0 → Uttama (3)."""
+        r = _ak_check_tara(Nakshatra.ASVINI, Nakshatra.ASHLESHA)
+        self.assertEqual(r.score, 3.0)
+
+    def test_madhyama_2(self):
+        """Ashwini(0) → Bharani(1): count=2, 2%9=2 → Madhyama (2)."""
+        r = _ak_check_tara(Nakshatra.ASVINI, Nakshatra.BHARANI)
+        self.assertEqual(r.score, 2.0)
+
+    def test_madhyama_4(self):
+        """Ashwini(0) → Rohini(3): count=4 → Madhyama (2)."""
+        r = _ak_check_tara(Nakshatra.ASVINI, Nakshatra.ROHINI)
+        self.assertEqual(r.score, 2.0)
+
+    def test_adhama_1(self):
+        """Ashwini(0) → Ashwini(0): same nak, count=1 → Adhama (0)."""
+        r = _ak_check_tara(Nakshatra.ASVINI, Nakshatra.ASVINI)
+        self.assertEqual(r.score, 0.0)
+
+    def test_adhama_5(self):
+        """Ashwini(0) → Mrigashira(4): count=5 → Adhama (0)."""
+        r = _ak_check_tara(Nakshatra.ASVINI, Nakshatra.MRIGASHIRA)
+        self.assertEqual(r.score, 0.0)
+
+
+class TestAKYoni(unittest.TestCase):
+    """Ashta Koota Yoni (4 pts) — animal compatibility."""
+
+    def test_best_opposite_sex(self):
+        """Ashwini (Horse M) + Shatabhisha (Horse F) → best (4)."""
+        r = _ak_check_yoni(Nakshatra.ASVINI, Nakshatra.SHATABHISHA)
+        self.assertEqual(r.score, 4.0)
+
+    def test_good_same_sex(self):
+        """Ardra (Dog M) + Mula (Dog F) → same animal, opp sex → best (4).
+        Actually Ardra(Dog M, 6) + Mula(Dog F, 18) — wait, check _YONI.
+        """
+        r = _ak_check_yoni(Nakshatra.ARDRA, Nakshatra.MULA)
+        self.assertEqual(r.score, 4.0)
+
+    def test_friends(self):
+        """Ashwini (Horse) + Bharani (Elephant) → friends (2)."""
+        r = _ak_check_yoni(Nakshatra.ASVINI, Nakshatra.BHARANI)
+        self.assertEqual(r.score, 2.0)
+
+    def test_neutral(self):
+        """Cat ↔ Mongoose: not friends, not enemies → neutral (1)."""
+        r = _ak_check_yoni(Nakshatra.ASHLESHA, Nakshatra.UTTARA_SHADHA)
+        self.assertEqual(r.score, 1.0)
+
+    def test_enemy(self):
+        """Ardra (Dog) + Punarvasu (Cat) → not friends → enemy (0)."""
+        r = _ak_check_yoni(Nakshatra.ARDRA, Nakshatra.PUNARVASU)
+        self.assertEqual(r.score, 0.0)
+
+
+class TestAKGrahaMaitri(unittest.TestCase):
+    """Graha Maitri (5 pts) — rasi lord friendship."""
+
+    def test_same_lord(self):
+        """Aries+Scorpio both Mars → 5 pts."""
+        r = _ak_check_graha_maitri(Rasi.ARIES, Rasi.SCORPIO)
+        self.assertEqual(r.score, 5.0)
+
+    def test_friends(self):
+        """Leo(Sun) + Sagittarius(Jupiter) → Sun-Jupiter friends → 3 pts."""
+        r = _ak_check_graha_maitri(Rasi.LEO, Rasi.SAGITTARIUS)
+        self.assertEqual(r.score, 3.0)
+
+    def test_enemies(self):
+        """Libra(Venus) + Leo(Sun) → Venus-Sun enemies → 0 pts."""
+        r = _ak_check_graha_maitri(Rasi.LIBRA, Rasi.LEO)
+        self.assertEqual(r.score, 0.0)
+
+    def test_neutral(self):
+        """Aries(Mars) + Capricorn(Saturn) → Mars neutral with Saturn → 1 pt."""
+        r = _ak_check_graha_maitri(Rasi.ARIES, Rasi.CAPRICORN)
+        self.assertEqual(r.score, 1.0)
+
+
+class TestAKGana(unittest.TestCase):
+    """Ashta Koota Gana (6 pts) — temperament."""
+
+    def test_same_deva(self):
+        """Ashwini + Punarvasu → both Deva → 6."""
+        r = _ak_check_gana(Nakshatra.ASVINI, Nakshatra.PUNARVASU)
+        self.assertEqual(r.score, 6.0)
+
+    def test_same_manushya(self):
+        """Bharani + Rohini → both Manushya → 6."""
+        r = _ak_check_gana(Nakshatra.BHARANI, Nakshatra.ROHINI)
+        self.assertEqual(r.score, 6.0)
+
+    def test_deva_rakshasa(self):
+        """Ashwini(Deva) + Krittika(Rakshasa) → opposite → 0."""
+        r = _ak_check_gana(Nakshatra.ASVINI, Nakshatra.KRITTIKA)
+        self.assertEqual(r.score, 0.0)
+
+    def test_deva_manushya(self):
+        """Ashwini(Deva) + Bharani(Manushya) → partial → 3."""
+        r = _ak_check_gana(Nakshatra.ASVINI, Nakshatra.BHARANI)
+        self.assertEqual(r.score, 3.0)
+
+
+class TestAKBhakoota(unittest.TestCase):
+    """Ashta Koota Bhakoota (7 pts) — rasi position."""
+
+    def test_trinal_best(self):
+        """Aries(0) + Leo(4): diff=4 → 5th → 7 pts."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.LEO)
+        self.assertEqual(r.score, 7.0)
+
+    def test_maraka_2nd(self):
+        """Aries(0) + Taurus(1): diff=1 → 2nd → 0 pts."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.TAURUS)
+        self.assertEqual(r.score, 0.0)
+
+    def test_same_sign(self):
+        """Aries + Aries → 0 pts."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.ARIES)
+        self.assertEqual(r.score, 0.0)
+
+    def test_sixth(self):
+        """Aries(0) + Virgo(5): diff=5 → 6th → 0 pts."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.VIRGO)
+        self.assertEqual(r.score, 0.0)
+
+    def test_eighth(self):
+        """Aries(0) + Scorpio(7): diff=7 → 8th → 0 pts."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.SCORPIO)
+        self.assertEqual(r.score, 0.0)
+
+    def test_twelfth(self):
+        """Aries(0) + Pisces(11): diff=11 → 12th → 0 pts."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.PISCES)
+        self.assertEqual(r.score, 0.0)
+
+    def test_third_good(self):
+        """Aries(0) + Gemini(2): diff=2 → 3rd → 5 pts."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.GEMINI)
+        self.assertEqual(r.score, 5.0)
+
+    def test_eleventh(self):
+        """Aries(0) + Aquarius(10): diff=10 → 11th → 5 pts."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.AQUARIUS)
+        self.assertEqual(r.score, 5.0)
+
+    def test_fourth_fair(self):
+        """Aries(0) + Cancer(3): diff=3 → 4th → 3 pts."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.CANCER)
+        self.assertEqual(r.score, 3.0)
+
+    def test_tenth_fair(self):
+        """Aries(0) + Capricorn(9): diff=9 → 10th → 3 pts."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.CAPRICORN)
+        self.assertEqual(r.score, 3.0)
+
+    def test_seventh_neutral(self):
+        """Aries(0) + Libra(6): diff=6 → 7th → 1 pt."""
+        r = _ak_check_bhakoota(Rasi.ARIES, Rasi.LIBRA)
+        self.assertEqual(r.score, 1.0)
+
+
+class TestAKNadi(unittest.TestCase):
+    """Ashta Koota Nadi (8 pts) — same scoring as 10 Porutham."""
+
+    def test_diff_nadi(self):
+        """Ashwini (Adya) + Bharani (Madhya)."""
+        r = _ak_check_nadi(Nakshatra.ASVINI, Nakshatra.BHARANI)
+        self.assertEqual(r.score, 8.0)
+
+    def test_same_nadi(self):
+        r = _ak_check_nadi(Nakshatra.ASVINI, Nakshatra.ARDRA)
+        self.assertEqual(r.score, 0.0)
+
+
+class TestGunankaLevel(unittest.TestCase):
+    """Ashta Koota Gunanka category levels."""
+
+    def test_excellent(self):
+        self.assertEqual(gunanka_level(36), "Excellent")
+
+    def test_good(self):
+        self.assertEqual(gunanka_level(28), "Good")
+
+    def test_fair(self):
+        self.assertEqual(gunanka_level(20), "Fair")
+
+    def test_average(self):
+        self.assertEqual(gunanka_level(15), "Average")
+
+    def test_below_average(self):
+        self.assertEqual(gunanka_level(5), "Below average")
+
+    def test_excellent_30(self):
+        self.assertEqual(gunanka_level(30), "Excellent")
+
+    def test_good_boundary(self):
+        self.assertEqual(gunanka_level(24), "Good")
+
+    def test_fair_boundary(self):
+        self.assertEqual(gunanka_level(18), "Fair")
+
+
+class TestScoringSystemEnum(unittest.TestCase):
+    """ScoringSystem enum."""
+
+    def test_porutham_value(self):
+        self.assertEqual(ScoringSystem.PORUTHAM.value, "porutham")
+
+    def test_ashta_koota_value(self):
+        self.assertEqual(ScoringSystem.ASHTA_KOOTA.value, "ashta_koota")
+
+
+class TestComputeAshtaKoota(unittest.TestCase):
+    """Integration tests for Ashta Koota scoring."""
+
+    def test_returns_all_factors(self):
+        """Should return exactly 8 factors."""
+        r = compute_kuta(10.0, 100.0, system=ScoringSystem.ASHTA_KOOTA)
+        self.assertIsInstance(r, KutaResult)
+        self.assertEqual(len(r.poruthams), 8)
+
+    def test_max_score_36(self):
+        """Max should always be 36."""
+        r = compute_kuta(10.0, 100.0, system=ScoringSystem.ASHTA_KOOTA)
+        self.assertEqual(r.max_score, 36.0)
+
+    def test_score_within_bounds(self):
+        """Score between 0 and 36."""
+        r = compute_kuta(10.0, 100.0, system=ScoringSystem.ASHTA_KOOTA)
+        self.assertGreaterEqual(r.total_score, 0)
+        self.assertLessEqual(r.total_score, 36.0)
+
+    def test_system_attribute(self):
+        """System should be ASHTA_KOOTA."""
+        r = compute_kuta(10.0, 100.0, system=ScoringSystem.ASHTA_KOOTA)
+        self.assertEqual(r.system, ScoringSystem.ASHTA_KOOTA)
+
+    def test_system_name(self):
+        r = compute_kuta(10.0, 100.0, system=ScoringSystem.ASHTA_KOOTA)
+        self.assertEqual(r.system_name, "Ashta Koota")
+
+    def test_gunanka_level_output(self):
+        r = compute_kuta(10.0, 100.0, system=ScoringSystem.ASHTA_KOOTA)
+        self.assertIn(r.gunanka_level,
+                      ["Excellent", "Good", "Fair", "Average", "Below average"])
+
+    def test_factor_names(self):
+        r = compute_kuta(10.0, 100.0, system=ScoringSystem.ASHTA_KOOTA)
+        expected = ["Varna", "Vashya", "Tara/Dina", "Yoni",
+                     "Graha Maitri", "Gana", "Bhakoota", "Nadi"]
+        names = [p.name for p in r.poruthams]
+        self.assertEqual(names, expected)
+
+    def test_porutham_default(self):
+        """Default system should still be 10 Porutham."""
+        r = compute_kuta(10.0, 100.0)
+        self.assertEqual(r.system, ScoringSystem.PORUTHAM)
+        self.assertEqual(len(r.poruthams), 10)
+
+    def test_porutham_system_name(self):
+        r = compute_kuta(10.0, 100.0)
+        self.assertEqual(r.system_name, "10 Porutham")
+
+    def test_max_score_porutham(self):
+        r = compute_kuta(10.0, 100.0)
+        self.assertEqual(r.max_score, 19.0)
 
 
 if __name__ == "__main__":
