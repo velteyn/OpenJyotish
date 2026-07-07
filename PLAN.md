@@ -53,7 +53,7 @@
 - [ ] Digbala, Kalabala, Cheshtabala details
 - [ ] Bhava/chalit chakra for 23 varga charts
 - [x] Transit analysis with vedha, tara, gochara
-- [ ] Matchmaking: Kuta matching (10+ criteria), Porutham
+- [x] Matchmaking: Kuta matching (10 Porutham, 19-point scoring)
 - [ ] Prasna (horary): 108/249/1800 modes
 - [ ] Muhurta (electional) with planetary hour analysis
 - [ ] Tithi Pravesha charts (annual/monthly/daily)
@@ -184,7 +184,7 @@ User birth data → Core Engine → ChartData (pure numbers)
 | Strengths | ✅ Shadbala + Ashtakavarga | Vimsopaka, Bhava bala |
 | Yogas | ✅ 10+ types, 100+ combos | Nabhasa, finer sub-types |
 | CLI commands | ✅ chart, dasa, navamsa, varga, shadbala, yogas, interpret, knowledge, gui, tajaka | strengths, match, prasna, config, atlas |
-| GUI tabs | ✅ planets, houses, dasa, varga, yogas, shadbala, ashtakavarga, transit, arudha, tajaka | matchmaking, client DB |
+| GUI tabs | ✅ planets, houses, dasa, varga, yogas, shadbala, ashtakavarga, transit, arudha, tajaka, matchmaking | client DB |
 
 ### Phase 2: Professional Features (Weeks 7-12)
 
@@ -231,7 +231,7 @@ User birth data → Core Engine → ChartData (pure numbers)
 | Chara karakas | ✓ | ✓ | ✓ | ✓ | — |
 | Tajaka (solar return) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Transits + Gochara | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Matchmaking | ✓ | ✓ | ✓ | ✓ | — |
+| Matchmaking | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Prasna (horary) | ✓ | ✓ | ✓ | ✓ | — |
 | Muhurta (electional) | ✓ | ✓ | ✓ | ✓ | — |
 | Panchanga | ✓ | ✓ | ✓ | ✓ | — |
@@ -249,7 +249,7 @@ User birth data → Core Engine → ChartData (pure numbers)
 
 ## 8. Current Implementation Status
 
-**DONE (70% of core engine):**
+**DONE (72% of core engine):**
 - Core types (Graha, Rasi, Nakshatra, Varga, Bhava, Dasa) — 6 types, 546 lines
 - SweEngine — all 18 Swiss Ephemeris API calls, sidereal mode, retrograde detection
 - ChartBuilder + ChartData (frozen dataclass) with planet dignity
@@ -264,11 +264,12 @@ User birth data → Core Engine → ChartData (pure numbers)
 - Chara karakas (Jaimini, 8 karakas)
 - Sahamas (36 sensitive points)
 - Tajaka (solar return, Muntha, Harsha Bala, Patyayini Dasa, Mudda Dasa)
+- Kuta Porutham (matchmaking): 10 Porutham, 19-point scoring, CLI `jhora kuta`, GUI tab 11
 - Transit analysis (Gochara with BAV/SAV scores)
 - Rule-based chart interpreter (connected to yogas engine)
 - Knowledge base (16 sources, 1.9M chars, full-text search)
 - Reference texts (planet/house/rasi/nakshatra meanings)
-- **446 tests** across 19 test files (3,000+ lines of tests)
+- **490 tests** across 20 test files (3,200+ lines of tests)
 
 **NEXT:**
 - AI chat integration (Ollama)

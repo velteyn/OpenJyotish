@@ -612,6 +612,57 @@ def tajaka(
 
 
 @app.command()
+def kuta(
+    girl: str = typer.Argument(..., help="Girl birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    boy: str = typer.Argument(..., help="Boy birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Compute Kuta Porutham (marriage matchmaking) between two charts."""
+    from jhora.calc.kuta import compute_kuta
+    bd_g = parse_birthdata(girl)
+    bd_b = parse_birthdata(boy)
+    cb = ChartBuilder()
+    cb.swe.set_sidereal_mode(ayanamsa)
+    g_chart = cb.build(
+        year=bd_g["year"], month=bd_g["month"], day=bd_g["day"],
+        hour=bd_g["hour"], lat=bd_g["lat"], lon=bd_g["lon"],
+        tz=bd_g["tz"], ayanamsa=ayanamsa,
+    )
+    b_chart = cb.build(
+        year=bd_b["year"], month=bd_b["month"], day=bd_b["day"],
+        hour=bd_b["hour"], lat=bd_b["lat"], lon=bd_b["lon"],
+        tz=bd_b["tz"], ayanamsa=ayanamsa,
+    )
+
+    result = compute_kuta(
+        g_chart.planet(Graha.MOON).longitude,
+        b_chart.planet(Graha.MOON).longitude,
+    )
+
+    console.print(f"\n[bold]Kuta Porutham — Matchmaking[/bold]")
+    console.print(f"  Girl: [yellow]{result.girl_nakshatra.name}[/yellow] / "
+                  f"[cyan]{result.girl_rasi.full_name}[/cyan]")
+    console.print(f"  Boy:  [yellow]{result.boy_nakshatra.name}[/yellow] / "
+                  f"[cyan]{result.boy_rasi.full_name}[/cyan]")
+    console.print()
+
+    table = Table(title=f"10 Porutham — {result.total_score:.0f}/{result.max_score:.0f} ({result.percentage:.0f}%)")
+    table.add_column("Porutham", style="yellow")
+    table.add_column("Score", style="cyan")
+    table.add_column("Result", style="white")
+    for p in result.poruthams:
+        status = "[green]Good[/green]" if p.is_good else "[red]Not Good[/red]"
+        table.add_row(p.name, f"{p.score:.0f}/{p.max_score:.0f}", status)
+    console.print(table)
+
+    # Detail descriptions
+    console.print("\n[bold]Details:[/bold]")
+    for p in result.poruthams:
+        status = "✓" if p.is_good else "✗"
+        console.print(f"  {status} [yellow]{p.name}[/yellow]: {p.description}")
+
+
+@app.command()
 def transit(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
