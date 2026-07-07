@@ -1175,6 +1175,15 @@ class MainWindow(QMainWindow):
         bg.addWidget(self.kuta_boy_lon)
         layout.addWidget(boy_group)
 
+        # Scoring system toggle
+        system_row = QHBoxLayout()
+        system_row.addWidget(QLabel("Scoring system:"))
+        self.kuta_system_combo = QComboBox()
+        self.kuta_system_combo.addItems(["10 Porutham (19 pts)", "Ashta Koota (36 pts)"])
+        system_row.addWidget(self.kuta_system_combo)
+        system_row.addStretch()
+        layout.addLayout(system_row)
+
         match_row = QHBoxLayout()
         self.kuta_match_btn = QPushButton("Compute Match")
         self.kuta_match_btn.clicked.connect(self._on_kuta_match)
@@ -1197,7 +1206,7 @@ class MainWindow(QMainWindow):
         return w
 
     def _on_kuta_match(self):
-        from jhora.calc.kuta import compute_kuta
+        from jhora.calc.kuta import compute_kuta, ScoringSystem
         qd_g = self.kuta_girl_date.date()
         qt_g = self.kuta_girl_time.time()
         qd_b = self.kuta_boy_date.date()
@@ -1209,6 +1218,9 @@ class MainWindow(QMainWindow):
         lat_b = float(self.kuta_boy_lat.text().strip())
         lon_b = float(self.kuta_boy_lon.text().strip())
         ayanamsa = self.ayanamsa_combo.currentText().lower()
+
+        is_ashta_koota = self.kuta_system_combo.currentIndex() == 1
+        system = ScoringSystem.ASHTA_KOOTA if is_ashta_koota else ScoringSystem.PORUTHAM
 
         builder = ChartBuilder()
         builder.swe.set_sidereal_mode(ayanamsa)
@@ -1226,9 +1238,10 @@ class MainWindow(QMainWindow):
         result = compute_kuta(
             g_chart.planet(Graha.MOON).longitude,
             b_chart.planet(Graha.MOON).longitude,
+            system=system,
         )
 
-        self.kuta_score_label.setText(
+        score_text = (
             f"Total: {result.total_score:.0f}/{result.max_score:.0f} "
             f"({result.percentage:.0f}%)  |  "
             f"Girl: {result.girl_nakshatra.name} "
@@ -1236,8 +1249,12 @@ class MainWindow(QMainWindow):
             f"Boy: {result.boy_nakshatra.name} "
             f"({result.boy_rasi.short_name})"
         )
+        if is_ashta_koota:
+            score_text += f"  |  Level: {result.gunanka_level}"
+        self.kuta_score_label.setText(score_text)
 
-        headers = ["Porutham", "Score", "Status"]
+        factor_label = "Factor" if is_ashta_koota else "Porutham"
+        headers = [factor_label, "Score", "Status"]
         rows = []
         for p in result.poruthams:
             status = "Good" if p.is_good else "Not Good"
