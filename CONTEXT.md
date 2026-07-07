@@ -45,8 +45,9 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - Interpreter: Chart reading generator (rule-based, connected to yogas engine)
 - Knowledge base: 16 sources, 1.9M chars, full-text search
 - Books: Author's textbook (515pp) + margabandhu (322pp) + 14 articles text-extracted
-- **Tests: 427 passing** (18 test files, 2,800+ lines)
+- **Tests: 446 passing** (19 test files, 3,000+ lines)
 - **Docs**: `docs/help/chart_drawing_analysis.md` — comprehensive RE analysis of binary chart rendering vs current implementation
+- **Tajaka (Solar Return)**: Varsha Pravesh (Sun return search via `swe.solcross_ut`), Muntha (progressed lagna), Harsha Bala (4-source strength), Patyayini Dasa (krisamsa/patyamsa), Mudda Dasa (compressed Vimsottari) — `src/jhora/calc/tajaka.py`, 19 tests, CLI `jhora tajaka` command, wired in 10th GUI tab
 - **Arudha Padas**: Bhava arudhas (AL, A2–A12) + Graha arudhas — `src/jhora/calc/arudha.py`, tested, wired in 9th GUI tab
 - **Chara Karakas**: 8 planetary karakas by longitude ranking — `src/jhora/calc/karaka.py`, tested, wired in 9th GUI tab
 - **Sahamas**: 36 sensitive points (Punya, Vidya, Samartha, Artha, etc.) — `src/jhora/calc/sahama.py`, 13 tests, wired in 9th GUI tab

@@ -4,7 +4,7 @@
 
 **Origin:** Reverse engineer JHora 8.0 Lite (PVR Narasimha Rao, 2015). All calculations verified against the original.
 
-**Status:** Core engine ~70% complete (7,380+ lines of Python, 427 tests)
+**Status:** Core engine ~75% complete (7,600+ lines of Python, 446 tests)
 
 ---
 
@@ -43,7 +43,7 @@
 - [x] 36 sahamas (sensitive points)
 - [x] Arudha padas (AL, A2-A12, UL)
 - [x] Chara karakas (Jaimini)
-- [ ] Tajaka (solar return with compressed dasas)
+- [x] Tajaka (solar return with compressed dasas)
 
 ### Tier 2: Advanced Analysis (Professional Differentiator)
 
@@ -52,7 +52,7 @@
 - [ ] Vimsopaka bala (Shadvarga through Shodasa)
 - [ ] Digbala, Kalabala, Cheshtabala details
 - [ ] Bhava/chalit chakra for 23 varga charts
-- [ ] Transit analysis with vedha, tara, gochara
+- [x] Transit analysis with vedha, tara, gochara
 - [ ] Matchmaking: Kuta matching (10+ criteria), Porutham
 - [ ] Prasna (horary): 108/249/1800 modes
 - [ ] Muhurta (electional) with planetary hour analysis
@@ -183,8 +183,8 @@ User birth data → Core Engine → ChartData (pure numbers)
 | Dasas | ✅ Vimsottari + Ashtottari + Yogini + Sudasa + Chara + Narayana + Kalachakra | ~20 more systems |
 | Strengths | ✅ Shadbala + Ashtakavarga | Vimsopaka, Bhava bala |
 | Yogas | ✅ 10+ types, 100+ combos | Nabhasa, finer sub-types |
-| CLI commands | ✅ chart, dasa, navamsa, varga, shadbala, yogas, interpret, knowledge, gui | strengths, transits, match, prasna, tajaka, config, atlas |
-| GUI tabs | ✅ planets, houses, dasa, varga, yogas, shadbala, ashtakavarga, transit, arudha | matchmaking, client DB |
+| CLI commands | ✅ chart, dasa, navamsa, varga, shadbala, yogas, interpret, knowledge, gui, tajaka | strengths, match, prasna, config, atlas |
+| GUI tabs | ✅ planets, houses, dasa, varga, yogas, shadbala, ashtakavarga, transit, arudha, tajaka | matchmaking, client DB |
 
 ### Phase 2: Professional Features (Weeks 7-12)
 
@@ -192,8 +192,8 @@ User birth data → Core Engine → ChartData (pure numbers)
 |------|-------------|
 | Dasa engine | Narayana, Kalachakra, Yogini, Chara, Sudasa + 18 more |
 | Strengths | Ashtakavarga (SAV/BAV/SoAV/PAV), Vimsopaka, Bhava bala |
-| Specialized | Arudhas, Chara karakas, Sahamas, Tajaka, Tithi Pravesha |
-| CLI | Transit, matchmaking, prasna, muhurta, config commands |
+| Specialized | Tithi Pravesha |
+| CLI | matchmaking, prasna, muhurta, config commands |
 | GUI | Dasas tab → system selector + AD/PD drilldown, Ashtakavarga tab |
 
 ### Phase 3: AI Layer (Weeks 13-14)
@@ -229,8 +229,8 @@ User birth data → Core Engine → ChartData (pure numbers)
 | Sahamas | ✓ | ✓ | ✓ | ✓ | — |
 | Arudha padas | ✓ | ✓ | ✓ | ✓ | — |
 | Chara karakas | ✓ | ✓ | ✓ | ✓ | — |
-| Tajaka (solar return) | ✓ | ✓ | ✓ | ✓ | — |
-| Transits + Gochara | ✓ | ✓ | ✓ | ✓ | — |
+| Tajaka (solar return) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Transits + Gochara | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Matchmaking | ✓ | ✓ | ✓ | ✓ | — |
 | Prasna (horary) | ✓ | ✓ | ✓ | ✓ | — |
 | Muhurta (electional) | ✓ | ✓ | ✓ | ✓ | — |
@@ -258,19 +258,19 @@ User birth data → Core Engine → ChartData (pure numbers)
 - Shadbala (all 6 components: sthana, dig, kala, chesta, naisargika, drik) — 491 lines, 48 tests
 - Ashtakavarga (BAV, SAV, PAV, Sodhya Pinda, Kakshya)
 - Yogas engine (10+ types: Raja, Dhana, Mahapurusha, Viparita Raja, etc.)
-- CLI (9 commands: chart, dasa, navamsa, varga, shadbala, yogas, interpret, knowledge, gui)
-- GUI (PyQt6 dark theme, 3 chart styles, 9 tabs)
+- CLI (10 commands: chart, dasa, navamsa, varga, shadbala, yogas, interpret, knowledge, gui, tajaka)
+- GUI (PyQt6 dark theme, 3 chart styles, 10 tabs)
 - Arudha padas (Bhava + Graha)
 - Chara karakas (Jaimini, 8 karakas)
 - Sahamas (36 sensitive points)
+- Tajaka (solar return, Muntha, Harsha Bala, Patyayini Dasa, Mudda Dasa)
+- Transit analysis (Gochara with BAV/SAV scores)
 - Rule-based chart interpreter (connected to yogas engine)
 - Knowledge base (16 sources, 1.9M chars, full-text search)
 - Reference texts (planet/house/rasi/nakshatra meanings)
-- **427 tests** across 18 test files (2,800+ lines of tests)
+- **446 tests** across 19 test files (3,000+ lines of tests)
 
 **NEXT:**
-- Tajaka (solar return)
-- Transit analysis (gochara, tara, vedha)
 - AI chat integration (Ollama)
 
 ---
