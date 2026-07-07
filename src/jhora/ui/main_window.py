@@ -313,6 +313,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_arudha_tab(), "Arudha & Karaka")
         self.tabs.addTab(self._build_ashtakavarga_tab(), "Ashtakavarga")
         self.tabs.addTab(self._build_transit_tab(), "Transit")
+        self.tabs.addTab(self._build_tajaka_tab(), "Tajaka")
 
         right_layout.addWidget(self.tabs)
 
@@ -1006,6 +1007,112 @@ class MainWindow(QMainWindow):
         self._fill_table(self.ak_kakshya_table, kt_headers, kt_rows)
 
     # --- Transit tab ---
+
+    def _build_tajaka_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        top = QHBoxLayout()
+        top.addWidget(QLabel("Year:"))
+        self.taj_year_combo = QComboBox()
+        self.taj_year_combo.setEditable(True)
+        self.taj_year_combo.setCurrentText("2001")
+        top.addWidget(self.taj_year_combo)
+        self.taj_find_btn = QPushButton("Find Tajaka Chart")
+        self.taj_find_btn.clicked.connect(self._on_tajaka_find)
+        top.addWidget(self.taj_find_btn)
+        top.addStretch()
+        layout.addLayout(top)
+
+        self.taj_info = QLabel("")
+        self.taj_info.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        layout.addWidget(self.taj_info)
+
+        self.taj_chart_table = QTableWidget()
+        self.taj_chart_table.setAlternatingRowColors(True)
+        layout.addWidget(self.taj_chart_table, stretch=1)
+
+        self.taj_harsha_table = QTableWidget()
+        self.taj_harsha_table.setAlternatingRowColors(True)
+        self.taj_harsha_table.setMaximumHeight(140)
+        layout.addWidget(self.taj_harsha_table)
+
+        self.taj_patyayini_table = QTableWidget()
+        self.taj_patyayini_table.setAlternatingRowColors(True)
+        layout.addWidget(self.taj_patyayini_table, stretch=1)
+
+        self.taj_mudda_table = QTableWidget()
+        self.taj_mudda_table.setAlternatingRowColors(True)
+        layout.addWidget(self.taj_mudda_table, stretch=1)
+
+        return w
+
+    def _on_tajaka_find(self):
+        if not self.chart_data:
+            return
+        from jhora.calc.tajaka import (
+            build_tajaka_chart, compute_harsha_bala,
+            compute_patyayini_dasa, compute_mudda_dasa,
+        )
+        try:
+            target_year = int(self.taj_year_combo.currentText().strip())
+        except ValueError:
+            return
+
+        cb = ChartBuilder(self.builder.swe)
+        taj = build_tajaka_chart(self.builder.swe, cb, self.chart_data, target_year)
+        chart = taj.chart
+
+        y, m, d, h = self.builder.swe.revjul(taj.varsha_pravesh_jd)
+        muntha_name = ["Ar", "Ta", "Ge", "Cn", "Le", "Vi",
+                        "Li", "Sc", "Sg", "Cp", "Aq", "Pi"][taj.muntha_sign]
+        self.taj_info.setText(
+            f"Varsha Pravesh: {int(y)}-{int(m):02d}-{int(d):02d} {h:.2f}h UT  |  "
+            f"Year {taj.year_index}  |  Muntha: {muntha_name} ({taj.muntha_sign})"
+        )
+
+        headers = ["Graha", "Longitude", "Sign", "Nakshatra", "Pada"]
+        rows = []
+        for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                   Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
+            p = chart.planets[g]
+            rows.append([
+                g.short_name, f"{p.longitude:.2f}°",
+                p.rasi_name, p.nakshatra_name, str(p.nakshatra_pada),
+            ])
+        self._fill_table(self.taj_chart_table, headers, rows)
+
+        hb = compute_harsha_bala(chart, taj.varsha_pravesh_jd)
+        hb_headers = ["Planet", "Score"]
+        hb_rows = []
+        for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                   Graha.JUPITER, Graha.VENUS, Graha.SATURN]:
+            hb_rows.append([g.short_name, str(hb.get(g, 0))])
+        self._fill_table(self.taj_harsha_table, hb_headers, hb_rows)
+
+        periods = compute_patyayini_dasa(chart.planets, chart.ascendant, taj.varsha_pravesh_jd)
+        pd_headers = ["Lord", "Days", "Start JD", "End JD"]
+        pd_rows = []
+        for p in periods:
+            pd_rows.append([
+                p.lord_name, f"{p.duration_years * 365:.2f}",
+                f"{p.start_jd:.4f}", f"{p.end_jd:.4f}",
+            ])
+        self._fill_table(self.taj_patyayini_table, pd_headers, pd_rows)
+
+        md = compute_mudda_dasa(
+            self.chart_data.moon.longitude, taj.year_index - 1, taj.varsha_pravesh_jd,
+        )
+        md_headers = ["Lord", "Days", "Start JD", "End JD"]
+        md_rows = []
+        for p in md:
+            md_rows.append([
+                p.lord_name, f"{p.duration_years * 365:.2f}",
+                f"{p.start_jd:.4f}", f"{p.end_jd:.4f}",
+            ])
+        self._fill_table(self.taj_mudda_table, md_headers, md_rows)
 
     def _build_transit_tab(self):
         w = QWidget()
