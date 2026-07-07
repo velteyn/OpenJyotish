@@ -198,8 +198,11 @@ Notable overridden virtual methods identified in vtables (JHora-specific or sign
 | `0x004362d0` | 6,735 B | 108 | **Muhurta/electional** |
 | `0x00460bd0` | 6,893 B | 106 | **Ashtakavarga computation** |
 | `0x0040c540` | 5,957 B | 139 | **Horary (Prasna) engine** |
-| `0x0044c170` | 5,590 B | 134 | **Matchmaking/Kuta** |
+| `0x0044c170` | 136 B | 5 | **Chart-drawing dispatcher** — reads `[0x8a4b58]` jump table, routes to 23 chart-drawing sub-functions. Was incorrectly labeled as "Matchmaking/Kuta" in earlier guesses. |
 | `0x0044a330` | 5,233 B | 91 | **Dasa timing** — sub-period calculations |
+| `0x004b3b10` | 12,048 B | — | **Ashta Koota Gunanka table lookup** — 36×36 pre-computed match score table. Takes 5 params (sex flag + 2×2 nakshatra params). Uses `function_4b37a0` to compute indices. |
+| `0x004b37a0` | 865 B | — | **Nakshatra→index mapper** — maps girl/boy nakshatra+pada to 0-35 index for Ashta Koota table lookup. |
+| `0x004e8db0` | 619 B | — | **Matchmaking result view** — calls `function_4b3b10`, formats result with "Gunanka score after matching ashta koota..." string, shows dialog titled "Result of Horoscope Matching for Marriage". |
 | `0x004df940` | 5,224 B | 574 | **Print/display formatting** — many string locals |
 | `0x004b6c80` | 4,697 B | 561 | **INI/config file handler** — many config keys |
 | `0x0049aaa0` | 4,147 B | 95 | **Core astronomical engine** — planets, houses, stars, rise/set |
@@ -212,7 +215,6 @@ Notable overridden virtual methods identified in vtables (JHora-specific or sign
 | `0x0049a3a0` | — | — | **Ayanamsa mode setter** (16+ modes) |
 | `0x0044b9b6` | — | 0x450 B | **South Indian chart rendering** — 3×CreatePen, 3×Rectangle, 2×CreateBrushIndirect |
 | `0x00481670` | — | — | **East Indian chart rendering** — 3×Ellipse, 5×CreateSolidBrush, CreatePen |
-| `0x0044c170` | — | 0x420 B | **Chart type dispatcher** — 23-entry switch on chart type global |
 | `0x0051e3b0` | — | — | **North Indian diamond line** — MoveToEx+LineTo (called ×12 in loop) |
 | `0x0050dd04` | — | — | **Text rendering helper** — 4×ExtTextOutA calls for chart text |
 | `0x00510ad0` | — | — | **Text rendering helper** — DrawTextA + SetTextColor for labels |
