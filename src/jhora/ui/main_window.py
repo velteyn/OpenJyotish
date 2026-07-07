@@ -314,6 +314,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_ashtakavarga_tab(), "Ashtakavarga")
         self.tabs.addTab(self._build_transit_tab(), "Transit")
         self.tabs.addTab(self._build_tajaka_tab(), "Tajaka")
+        self.tabs.addTab(self._build_kuta_tab(), "Matchmaking")
 
         right_layout.addWidget(self.tabs)
 
@@ -1113,6 +1114,141 @@ class MainWindow(QMainWindow):
                 f"{p.start_jd:.4f}", f"{p.end_jd:.4f}",
             ])
         self._fill_table(self.taj_mudda_table, md_headers, md_rows)
+
+    # --- Kuta / Matchmaking tab ---
+
+    def _build_kuta_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        # Girl inputs
+        girl_group = QGroupBox("Girl (or use current chart)")
+        gg = QHBoxLayout(girl_group)
+        gg.addWidget(QLabel("Date:"))
+        self.kuta_girl_date = QDateEdit()
+        self.kuta_girl_date.setCalendarPopup(True)
+        self.kuta_girl_date.setDate(QDate(2000, 1, 1))
+        gg.addWidget(self.kuta_girl_date)
+        gg.addWidget(QLabel("Time:"))
+        self.kuta_girl_time = QTimeEdit()
+        self.kuta_girl_time.setTime(QTime(12, 0))
+        gg.addWidget(self.kuta_girl_time)
+        gg.addWidget(QLabel("TZ:"))
+        self.kuta_girl_tz = QLineEdit("+0530")
+        self.kuta_girl_tz.setMaximumWidth(80)
+        gg.addWidget(self.kuta_girl_tz)
+        gg.addWidget(QLabel("Lat:"))
+        self.kuta_girl_lat = QLineEdit("13.08")
+        self.kuta_girl_lat.setMaximumWidth(80)
+        gg.addWidget(self.kuta_girl_lat)
+        gg.addWidget(QLabel("Lon:"))
+        self.kuta_girl_lon = QLineEdit("80.27")
+        self.kuta_girl_lon.setMaximumWidth(80)
+        gg.addWidget(self.kuta_girl_lon)
+        layout.addWidget(girl_group)
+
+        # Boy inputs
+        boy_group = QGroupBox("Boy")
+        bg = QHBoxLayout(boy_group)
+        bg.addWidget(QLabel("Date:"))
+        self.kuta_boy_date = QDateEdit()
+        self.kuta_boy_date.setCalendarPopup(True)
+        self.kuta_boy_date.setDate(QDate(2000, 1, 1))
+        bg.addWidget(self.kuta_boy_date)
+        bg.addWidget(QLabel("Time:"))
+        self.kuta_boy_time = QTimeEdit()
+        self.kuta_boy_time.setTime(QTime(12, 0))
+        bg.addWidget(self.kuta_boy_time)
+        bg.addWidget(QLabel("TZ:"))
+        self.kuta_boy_tz = QLineEdit("+0530")
+        self.kuta_boy_tz.setMaximumWidth(80)
+        bg.addWidget(self.kuta_boy_tz)
+        bg.addWidget(QLabel("Lat:"))
+        self.kuta_boy_lat = QLineEdit("13.08")
+        self.kuta_boy_lat.setMaximumWidth(80)
+        bg.addWidget(self.kuta_boy_lat)
+        bg.addWidget(QLabel("Lon:"))
+        self.kuta_boy_lon = QLineEdit("80.27")
+        self.kuta_boy_lon.setMaximumWidth(80)
+        bg.addWidget(self.kuta_boy_lon)
+        layout.addWidget(boy_group)
+
+        match_row = QHBoxLayout()
+        self.kuta_match_btn = QPushButton("Compute Match")
+        self.kuta_match_btn.clicked.connect(self._on_kuta_match)
+        match_row.addWidget(self.kuta_match_btn)
+        self.kuta_score_label = QLabel("")
+        self.kuta_score_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold; font-size: 14px;")
+        match_row.addWidget(self.kuta_score_label)
+        match_row.addStretch()
+        layout.addLayout(match_row)
+
+        self.kuta_table = QTableWidget()
+        self.kuta_table.setAlternatingRowColors(True)
+        layout.addWidget(self.kuta_table, stretch=1)
+
+        self.kuta_detail = QTextEdit()
+        self.kuta_detail.setReadOnly(True)
+        self.kuta_detail.setMaximumHeight(160)
+        layout.addWidget(self.kuta_detail)
+
+        return w
+
+    def _on_kuta_match(self):
+        from jhora.calc.kuta import compute_kuta
+        qd_g = self.kuta_girl_date.date()
+        qt_g = self.kuta_girl_time.time()
+        qd_b = self.kuta_boy_date.date()
+        qt_b = self.kuta_boy_time.time()
+        tz_g = self.kuta_girl_tz.text().strip()
+        tz_b = self.kuta_boy_tz.text().strip()
+        lat_g = float(self.kuta_girl_lat.text().strip())
+        lon_g = float(self.kuta_girl_lon.text().strip())
+        lat_b = float(self.kuta_boy_lat.text().strip())
+        lon_b = float(self.kuta_boy_lon.text().strip())
+        ayanamsa = self.ayanamsa_combo.currentText().lower()
+
+        builder = ChartBuilder()
+        builder.swe.set_sidereal_mode(ayanamsa)
+        g_chart = builder.build(
+            year=qd_g.year(), month=qd_g.month(), day=qd_g.day(),
+            hour=qt_g.hour() + qt_g.minute() / 60.0 + qt_g.second() / 3600.0,
+            lat=lat_g, lon=lon_g, tz=tz_g, ayanamsa=ayanamsa,
+        )
+        b_chart = builder.build(
+            year=qd_b.year(), month=qd_b.month(), day=qd_b.day(),
+            hour=qt_b.hour() + qt_b.minute() / 60.0 + qt_b.second() / 3600.0,
+            lat=lat_b, lon=lon_b, tz=tz_b, ayanamsa=ayanamsa,
+        )
+
+        result = compute_kuta(
+            g_chart.planet(Graha.MOON).longitude,
+            b_chart.planet(Graha.MOON).longitude,
+        )
+
+        self.kuta_score_label.setText(
+            f"Total: {result.total_score:.0f}/{result.max_score:.0f} "
+            f"({result.percentage:.0f}%)  |  "
+            f"Girl: {result.girl_nakshatra.name} "
+            f"({result.girl_rasi.short_name})  →  "
+            f"Boy: {result.boy_nakshatra.name} "
+            f"({result.boy_rasi.short_name})"
+        )
+
+        headers = ["Porutham", "Score", "Status"]
+        rows = []
+        for p in result.poruthams:
+            status = "Good" if p.is_good else "Not Good"
+            rows.append([p.name, p.fraction, status])
+        self._fill_table(self.kuta_table, headers, rows)
+
+        detail_lines = []
+        for p in result.poruthams:
+            icon = "✓" if p.is_good else "✗"
+            detail_lines.append(f"{icon} {p.name} ({p.fraction}): {p.description}")
+        self.kuta_detail.setText("\n".join(detail_lines))
 
     def _build_transit_tab(self):
         w = QWidget()
