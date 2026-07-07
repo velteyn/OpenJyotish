@@ -315,6 +315,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_transit_tab(), "Transit")
         self.tabs.addTab(self._build_tajaka_tab(), "Tajaka")
         self.tabs.addTab(self._build_kuta_tab(), "Matchmaking")
+        self.tabs.addTab(self._build_prasna_tab(), "Prasna")
 
         right_layout.addWidget(self.tabs)
 
@@ -1204,6 +1205,145 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.kuta_detail)
 
         return w
+
+    def _build_prasna_tab(self):
+        from jhora.calc.prasna import PrasnaMode
+
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        # Mode + number row
+        input_row = QHBoxLayout()
+        input_row.addWidget(QLabel("Mode:"))
+        self.prasna_mode_combo = QComboBox()
+        for pm in PrasnaMode:
+            self.prasna_mode_combo.addItem(f"{pm.label} (1-{pm.max_number})", pm)
+        self.prasna_mode_combo.currentIndexChanged.connect(self._on_prasna_mode_changed)
+        input_row.addWidget(self.prasna_mode_combo)
+
+        input_row.addWidget(QLabel("Number:"))
+        self.prasna_number_input = QLineEdit()
+        self.prasna_number_input.setPlaceholderText("1-108")
+        self.prasna_number_input.setMaximumWidth(100)
+        input_row.addWidget(self.prasna_number_input)
+
+        self.prasna_calc_btn = QPushButton("Compute")
+        self.prasna_calc_btn.clicked.connect(self._on_prasna_compute)
+        input_row.addWidget(self.prasna_calc_btn)
+
+        self.prasna_table_btn = QPushButton("Show All")
+        self.prasna_table_btn.clicked.connect(self._on_prasna_show_all)
+        input_row.addWidget(self.prasna_table_btn)
+
+        input_row.addStretch()
+        layout.addLayout(input_row)
+
+        # Result label
+        self.prasna_result_label = QLabel("")
+        self.prasna_result_label.setWordWrap(True)
+        self.prasna_result_label.setStyleSheet(
+            f"color: {ACCENT}; font-weight: bold; font-size: 14px;"
+            f" padding: 8px; background-color: {BG2}; border-radius: 4px;"
+        )
+        layout.addWidget(self.prasna_result_label)
+
+        # Detail text
+        self.prasna_detail = QTextEdit()
+        self.prasna_detail.setReadOnly(True)
+        self.prasna_detail.setMaximumHeight(150)
+        layout.addWidget(self.prasna_detail)
+
+        # All positions table
+        self.prasna_table = QTableWidget()
+        self.prasna_table.setAlternatingRowColors(True)
+        layout.addWidget(self.prasna_table, stretch=1)
+
+        return w
+
+    def _on_prasna_mode_changed(self, index: int):
+        pm = self.prasna_mode_combo.currentData()
+        self.prasna_number_input.setPlaceholderText(f"1-{pm.max_number}")
+
+    def _on_prasna_compute(self):
+        from jhora.calc.prasna import PrasnaMode, compute_prasna
+
+        pm = self.prasna_mode_combo.currentData()
+        try:
+            n = int(self.prasna_number_input.text().strip())
+        except (ValueError, AttributeError):
+            QMessageBox.warning(self, "Input Error", f"Enter a number between 1 and {pm.max_number}")
+            return
+
+        try:
+            r = compute_prasna(n, pm)
+        except ValueError as e:
+            QMessageBox.warning(self, "Input Error", str(e))
+            return
+
+        lines = [
+            f"Prasna Lagna: {r.prasna_lagna:.4f}°",
+            f"Rasi: {r.rasi.short_name} ({r.rasi.full_name})",
+            f"Nakshatra: {r.nakshatra.name.replace('_', ' ').title()} — Pada {r.nakshatra_pada}",
+        ]
+        if r.navamsa_rasi:
+            lines.append(f"Navamsa Rasi: {r.navamsa_rasi.short_name} ({r.navamsa_rasi.full_name})")
+        if r.sub_lord:
+            lines.append(f"Sub Lord: {r.sub_lord.name.title()}")
+        lines.append(f"")
+        lines.append(r.description)
+
+        self.prasna_result_label.setText(
+            f"Prasna Lagna: {r.prasna_lagna:.4f}° — {r.rasi.short_name} — "
+            f"{r.nakshatra.name.replace('_', ' ').title()}"
+        )
+        self.prasna_detail.setText("\n".join(lines))
+
+        # Clear table
+        self.prasna_table.setRowCount(0)
+
+    def _on_prasna_show_all(self):
+        from jhora.calc.prasna import PrasnaMode, all_prasna_results
+
+        pm = self.prasna_mode_combo.currentData()
+        results = all_prasna_results(pm)
+
+        headers = ["#", "PL (°)", "Rasi", "Deg"]
+        if pm == PrasnaMode.MODE_108:
+            headers.append("Navamsa")
+        elif pm == PrasnaMode.MODE_249:
+            headers.append("Nakshatra")
+            headers.append("Sub")
+        elif pm == PrasnaMode.NADI:
+            headers.append("Nadyamsa")
+
+        self.prasna_table.setColumnCount(len(headers))
+        self.prasna_table.setHorizontalHeaderLabels(headers)
+        self.prasna_table.setRowCount(len(results))
+
+        for i, r in enumerate(results):
+            self.prasna_table.setItem(i, 0, QTableWidgetItem(str(r.number)))
+            self.prasna_table.setItem(i, 1, QTableWidgetItem(f"{r.prasna_lagna:.4f}"))
+            self.prasna_table.setItem(i, 2, QTableWidgetItem(r.rasi.short_name))
+            self.prasna_table.setItem(i, 3, QTableWidgetItem(f"{r.degrees_in_rasi:.2f}"))
+            col = 4
+            if pm == PrasnaMode.MODE_108:
+                self.prasna_table.setItem(i, col, QTableWidgetItem(
+                    r.navamsa_rasi.short_name if r.navamsa_rasi else ""
+                ))
+            elif pm == PrasnaMode.MODE_249:
+                self.prasna_table.setItem(i, col, QTableWidgetItem(
+                    r.nakshatra.name.replace("_", " ").title()
+                ))
+                self.prasna_table.setItem(i, col + 1, QTableWidgetItem(
+                    r.sub_lord.name.title() if r.sub_lord else ""
+                ))
+            elif pm == PrasnaMode.NADI:
+                self.prasna_table.setItem(i, col, QTableWidgetItem(str(i + 1)))
+
+        self.prasna_table.resizeColumnsToContents()
+        self.statusBar().showMessage(f"Showing all {len(results)} positions for {pm.label}")
 
     def _on_kuta_match(self):
         from jhora.calc.kuta import compute_kuta, ScoringSystem
