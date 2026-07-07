@@ -552,6 +552,66 @@ def _display_varga(vcd: VargaChartData, title: str = ""):
 
 
 @app.command()
+def tajaka(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    target_year: int = typer.Argument(..., help="Target year for yearly chart"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Compute Tajaka solar return chart for a given year."""
+    from jhora.calc.tajaka import build_tajaka_chart, compute_harsha_bala, compute_patyayini_dasa, compute_mudda_dasa
+    bd = parse_birthdata(birthdata)
+    cb = ChartBuilder()
+    cb.swe.set_sidereal_mode(ayanamsa)
+    natal = cb.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    taj = build_tajaka_chart(cb.swe, cb, natal, target_year)
+    chart = taj.chart
+
+    y, m, d, h = cb.swe.revjul(taj.varsha_pravesh_jd)
+    console.print(f"\n[bold]Tajaka Varsha Pravesh[/bold]: {int(y)}-{int(m):02d}-{int(d):02d} {h:.2f}h UT")
+    console.print(f"Natal lagna: {natal.ascendant:.2f}° ({int(natal.ascendant//30)%12})")
+    console.print(f"Year index: {taj.year_index}, Muntha sign: {taj.muntha_sign}")
+
+    table = Table(title=f"Solar Return Chart (Year {target_year})")
+    table.add_column("Graha", style="yellow")
+    table.add_column("Longitude", style="cyan")
+    table.add_column("Sign", style="green")
+    for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+               Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
+        p = chart.planets[g]
+        table.add_row(g.short_name, f"{p.longitude:.2f}°", p.rasi_name)
+    console.print(table)
+
+    hb = compute_harsha_bala(chart, taj.varsha_pravesh_jd)
+    hb_table = Table(title="Harsha Bala")
+    hb_table.add_column("Planet", style="yellow")
+    hb_table.add_column("Score", style="cyan")
+    for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+               Graha.JUPITER, Graha.VENUS, Graha.SATURN]:
+        hb_table.add_row(g.short_name, str(hb.get(g, 0)))
+    console.print(hb_table)
+
+    periods = compute_patyayini_dasa(chart.planets, chart.ascendant, taj.varsha_pravesh_jd)
+    pd_table = Table(title="Patyayini Dasa")
+    pd_table.add_column("Lord", style="yellow")
+    pd_table.add_column("Days", style="cyan")
+    for p in periods:
+        pd_table.add_row(p.lord_name, f"{p.duration_years*365:.2f}")
+    console.print(pd_table)
+
+    md = compute_mudda_dasa(natal.moon.longitude, taj.year_index - 1, taj.varsha_pravesh_jd)
+    md_table = Table(title="Mudda Dasa (Varsha Vimsottari)")
+    md_table.add_column("Lord", style="yellow")
+    md_table.add_column("Days", style="cyan")
+    for p in md:
+        md_table.add_row(p.lord_name, f"{p.duration_years*365:.2f}")
+    console.print(md_table)
+
+
+@app.command()
 def transit(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),

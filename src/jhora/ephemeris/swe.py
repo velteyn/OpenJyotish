@@ -190,6 +190,39 @@ class SweEngine:
         year, month, day, hour = swe.revjul(jd)
         return int(year), int(month), int(day), float(hour)
 
+    def solcross_ut(self, x2cross: float, jd_start: float,
+                    flags: Optional[int] = None) -> float:
+        """Find next UT time when Sun crosses a given longitude.
+
+        Args:
+            x2cross: target longitude (degrees)
+            jd_start: start search from this Julian day (UT)
+            flags: calculation flags (uses default if None)
+
+        Returns:
+            Julian day (UT) of the crossing.
+        """
+        f = flags if flags is not None else self._flags
+        return swe.solcross_ut(x2cross % 360, jd_start, f)
+
+    def helio_cross_ut(self, planet: int, x2cross: float, jd_start: float,
+                       flags: Optional[int] = None,
+                       backwards: bool = False) -> float:
+        """Find when a planet crosses a given longitude (heliocentric, UT).
+
+        Args:
+            planet: SE planet ID
+            x2cross: target longitude (degrees)
+            jd_start: start search from this Julian day (UT)
+            flags: calculation flags
+            backwards: search backwards in time
+
+        Returns:
+            Julian day (UT) of the crossing.
+        """
+        f = flags if flags is not None else self._flags
+        return swe.helio_cross_ut(planet, x2cross % 360, jd_start, f, backwards)
+
     def rise_trans(self, jd: float, body: int, lat: float, lon: float, 
                    rise: bool = True) -> Optional[float]:
         """Compute sunrise/sunset or moonrise/moonset time.
