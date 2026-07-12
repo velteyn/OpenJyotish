@@ -160,6 +160,9 @@ class TestChartData:
     def test_varga_positions_default_empty(self, ref_chart):
         assert ref_chart.varga_positions == {}
 
+    def test_time_of_day_hours_matches_local_input(self, ref_chart):
+        assert ref_chart.time_of_day_hours == pytest.approx(REF_BIRTH["hour"], abs=1e-6)
+
     def test_frozen_dataclass(self, ref_chart):
         with pytest.raises(Exception):
             ref_chart.ayanamsa_name = "raman"  # type: ignore
@@ -206,6 +209,7 @@ class TestChartBuilderCustomInput:
         cd = builder.build(year=2000, month=1, day=1, hour=0.0,
                            lat=40.71, lon=-74.01, tz="-0500")
         assert isinstance(cd, ChartData)
+        assert cd.time_of_day_hours == pytest.approx(0.0, abs=1e-6)
 
     def test_build_twice_with_same_input_yields_consistent(self):
         builder1 = ChartBuilder()
