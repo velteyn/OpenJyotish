@@ -45,7 +45,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - Interpreter: Chart reading generator (rule-based, connected to yogas engine)
 - Knowledge base: 16 sources, 1.9M chars, full-text search
 - Books: Author's textbook (515pp) + margabandhu (322pp) + 14 articles text-extracted
-- **Tests: 552 passing** (20 test files, 3,500+ lines)
+- **Tests: 593 passing** (21 test files, 3,500+ lines)
 - **Docs**: `docs/help/chart_drawing_analysis.md` — comprehensive RE analysis of binary chart rendering vs current implementation
 - **Tajaka (Solar Return)**: Varsha Pravesh (Sun return search via `swe.solcross_ut`), Muntha (progressed lagna), Harsha Bala (4-source strength), Patyayini Dasa (krisamsa/patyamsa), Mudda Dasa (compressed Vimsottari) — `src/jhora/calc/tajaka.py`, 19 tests, CLI `jhora tajaka` command, wired in 10th GUI tab
 - **Kuta Porutham** (Matchmaking): Two scoring systems: 10 Porutham (Dina, Gana, Yoni, Rasi, Rasyadhipati, Nadi, Rajju, Vedha, Vashya, Mahendra, 19pt) + Ashta Koota (Varna, Vashya, Tara, Yoni, Graha Maitri, Gana, Bhakoota, Nadi, 36pt — matching original JHora binary's `function_4b3b10` 36×36 lookup table). `compute_kuta()` with `ScoringSystem` enum, `--ashta-koota/-k` CLI flag. `gunanka_level()` for qualitative score bands. `src/jhora/calc/kuta.py`, 106 tests
@@ -83,6 +83,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
   - `search(query)` → substring match across all city names
   - `load_all()` → full dataset
   - Verified: London (51.50°N 0.12°W), Mumbai (18.97°N 72.83°E), Delhi (28.67°N 77.22°E)
+- **Static atlas fallback**: when `jhworld.adb` / `jhlite.adb` is not present in the checkout, the GUI now falls back to `data/jhd_samples.json` so city search still returns shipped sample cities instead of appearing dead
 - **City lookup widget**: `QLineEdit` + search button in birth data form (between Time and TZ)
   - Real-time search with 300ms debounce via `AtlasReader.search()`
   - Results in styled `QListWidget` below the form

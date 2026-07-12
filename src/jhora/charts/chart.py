@@ -88,6 +88,13 @@ class ChartData:
     def moon(self) -> PlanetChartData:
         return self.planets[Graha.MOON]
 
+    @property
+    def time_of_day_hours(self) -> float:
+        """Local clock time in decimal hours, derived from JD and timezone."""
+        _year, _month, _day, utc_hour = SweEngine().revjul(self.julian_day)
+        local_hour = utc_hour - ChartBuilder._parse_tz(self.timezone)
+        return local_hour % 24.0
+
 
 class ChartBuilder:
     """Builds ChartData from birth information."""
