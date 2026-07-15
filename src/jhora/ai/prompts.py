@@ -120,6 +120,20 @@ TOPIC_GUIDANCE = {
     "spirituality": "Spiritual path: 5H, 9H, 12H. Jupiter/Ketu/Saturn. Moksha indicators.",
     "children": "Children: 5H, Jupiter. Afflictions. Timing/number indicated.",
     "finance": "Wealth: 2H, 11H, 5H, 9H. Jupiter/Venus. Dhana yogas. Financial timing.",
+    "mundane": """Analyze this chart for WORLD/NATIONAL events (mundane astrology).
+Use mundane house meanings:
+  H1=People/masses, H2=Economy/treasury, H3=Media/neighbors,
+  H4=Land/agriculture, H5=Education/speculation, H6=Military/conflict,
+  H7=Foreign relations/war, H8=Disasters/debt, H9=Religion/law,
+  H10=Government/leader, H11=Parliament/allies, H12=Hidden enemies.
+
+Focus on:
+- Conflict indicators: Mars/Saturn afflictions, Rahu in kendras
+- Economic indicators: Jupiter/Venus/Mercury in 2H/11H
+- Leadership: Sun in 10H, 10H lord strength
+- Major planetary conjunctions indicating world shifts
+- Eclipses and their mundane effects
+- The country whose capital was used to cast this chart""",
 }
 
 
