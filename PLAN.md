@@ -4,7 +4,7 @@
 
 **Origin:** Reverse engineer JHora 8.0 Lite (PVR Narasimha Rao, 2015). All calculations verified against the original.
 
-**Status:** Core engine ~75% complete (7,600+ lines of Python, 446 tests)
+**Status:** Core engine ~88% complete (10,500+ lines of Python, 629 tests)
 
 ---
 
@@ -48,14 +48,14 @@
 ### Tier 2: Advanced Analysis (Professional Differentiator)
 
 - [x] Ashtakavarga: SAV, BAV, SoAV, PAV, Sodhya Pinda, Kakshya
-- [ ] Bhava bala (house strength)
+- [x] Bhava bala (house strength)
 - [ ] Vimsopaka bala (Shadvarga through Shodasa)
 - [ ] Digbala, Kalabala, Cheshtabala details
 - [ ] Bhava/chalit chakra for 23 varga charts
 - [x] Transit analysis with vedha, tara, gochara
 - [x] Matchmaking: Kuta matching — 10 Porutham (19-pt) + Ashta Koota (36-pt, original JHora binary scoring)
-- [ ] Prasna (horary): 108/249/1800 modes
-- [ ] Muhurta (electional) with planetary hour analysis
+- [x] Prasna (horary): 108/249/1800 modes
+- [x] Muhurta (electional) with planetary hour analysis
 - [ ] Tithi Pravesha charts (annual/monthly/daily)
 - [ ] Progressions (D-n based Sun progression)
 
