@@ -24,6 +24,9 @@ from jhora.calc.mundane import MundaneCalculator, MUNDANE_HOUSES
 from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
 from jhora.calc.chalit import ChalitComputer
 from jhora.export.report import generate_chart_report
+from jhora.calc.ephemeris import generate_ephemeris
+from jhora.calc.comparison import compare_natal_transit
+from jhora.calc.dasa_timeline import dasa_timeline_text
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
@@ -330,6 +333,101 @@ def yogas(
         names = ", ".join(p.full_name for p in y.planets) if y.planets else ""
         table.add_row(y.name, y.category, names, y.strength, y.description)
     console.print(table)
+
+
+@app.command()
+def ephemeris(
+    start: str = typer.Argument(..., help="Start date: YYYY-MM-DD"),
+    end: str = typer.Argument(None, help="End date (default: +30 days)"),
+    step: int = typer.Option(7, "--step", "-s", help="Days between entries"),
+):
+    """Generate daily planet positions for a date range."""
+    from datetime import datetime as dt
+    start_dt = dt.strptime(start, "%Y-%m-%d")
+    if end:
+        end_dt = dt.strptime(end, "%Y-%m-%d")
+    else:
+        from datetime import timedelta
+        end_dt = start_dt + timedelta(days=30)
+
+    entries = generate_ephemeris(start_dt, end_dt, step)
+    table = Table(title=f"Ephemeris: {start_dt.strftime('%Y-%m-%d')} to {end_dt.strftime('%Y-%m-%d')} (every {step}d)")
+    table.add_column("Date", style="cyan")
+    for g in ["Su", "Mo", "Ma", "Me", "Ju", "Ve", "Sa", "Ra", "Ke"]:
+        table.add_column(g, style="yellow")
+    for e in entries:
+        row = [e.date.strftime("%Y-%m-%d")]
+        for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                  Graha.JUPITER, Graha.VENUS, Graha.SATURN,
+                  Graha.RAHU, Graha.KETU]:
+            p = e.planets.get(g, {})
+            row.append(f"{p.get('sign', '?')} {p.get('longitude', 0):.0f}°")
+        table.add_row(*row)
+    console.print(table)
+
+
+@app.command()
+def compare(
+    chart1: str = typer.Argument(..., help="First chart data"),
+    chart2: str = typer.Argument(None, help="Second chart (or 'transit' for current transit)"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Compare two charts or natal vs transit."""
+    from jhora.calc.comparison import compare_two_charts, compare_natal_transit
+    bd1 = parse_birthdata(chart1)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd1 = builder.build(year=bd1["year"], month=bd1["month"], day=bd1["day"],
+                        hour=bd1["hour"], lat=bd1["lat"], lon=bd1["lon"],
+                        tz=bd1["tz"], ayanamsa=ayanamsa)
+
+    if chart2 is None or chart2 == "transit":
+        entries = compare_natal_transit(cd1)
+        table = Table(title="Natal vs Current Transit Comparison")
+        table.add_column("Planet", style="cyan")
+        table.add_column("Natal", style="yellow")
+        table.add_column("Transit", style="green")
+        table.add_column("SAV", style="white")
+        table.add_column("Fav")
+        for e in entries:
+            fav = "✓" if e.is_favorable else "✗"
+            table.add_row(e.graha.short_name,
+                         f"{e.natal_sign} H{e.natal_house}",
+                         f"{e.transit_sign} H{e.transit_house}",
+                         str(e.sav_score), fav)
+        console.print(table)
+    else:
+        bd2 = parse_birthdata(chart2)
+        cd2 = builder.build(year=bd2["year"], month=bd2["month"], day=bd2["day"],
+                            hour=bd2["hour"], lat=bd2["lat"], lon=bd2["lon"],
+                            tz=bd2["tz"], ayanamsa=ayanamsa)
+        comp = compare_two_charts(cd1, cd2, "Chart 1", "Chart 2")
+        table = Table(title=f"{comp.chart1_name} vs {comp.chart2_name}")
+        table.add_column("Planet", style="cyan")
+        table.add_column("Chart 1", style="yellow")
+        table.add_column("Chart 2", style="green")
+        table.add_column("Δ")
+        for e in comp.entries:
+            m = "→" if e["moved"] else ""
+            table.add_row(e["graha"], f"{e['sign1']} {e['lon1']:.0f}°",
+                         f"{e['sign2']} {e['lon2']:.0f}°", m)
+        console.print(table)
+
+
+@app.command()
+def dasa_timeline(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Display Vimsottari dasa timeline as text visualization."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+    text = dasa_timeline_text(cd)
+    console.print(text)
 
 
 @app.command()
