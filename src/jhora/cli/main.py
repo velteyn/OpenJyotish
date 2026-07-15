@@ -979,6 +979,10 @@ def ai(
                               help="concise, detailed, or professional"),
     question: str = typer.Option("", "--question", "-q",
                                  help="Question for ask mode"),
+    topic: str = typer.Option("general", "--topic", "-t",
+                              help="general, relationship, career, health, spirituality, children, finance"),
+    context: int = typer.Option(4096, "--context", "-c",
+                                help="Max prompt tokens (2048-16384)"),
 ):
     """AI-powered chart interpretation via local LLM (Ollama/LM Studio/Unsloth)."""
     if not birthdata:
@@ -994,7 +998,7 @@ def ai(
         tz=bd["tz"], ayanamsa=ayanamsa,
     )
 
-    config = AiConfig(provider=provider, base_url=base_url)
+    config = AiConfig(provider=provider, base_url=base_url, max_context_tokens=context)
     if model:
         config.model = model
     engine = AiEngine(config)
@@ -1015,7 +1019,7 @@ def ai(
         raise typer.Exit(1)
 
     if mode == "interpret":
-        engine.interpret(cd, style, on_token=_on_token)
+        engine.interpret(cd, style, topic, on_token=_on_token)
     elif mode == "ask":
         engine.ask(cd, question, on_token=_on_token)
     elif mode == "remedies":

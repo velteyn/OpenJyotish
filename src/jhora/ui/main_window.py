@@ -1899,6 +1899,13 @@ class MainWindow(QMainWindow):
         btn_row.addWidget(QLabel("Style:"))
         btn_row.addWidget(self.ai_style)
 
+        self.ai_topic = QComboBox()
+        self.ai_topic.addItems(["general", "relationship", "career", "health",
+                                "spirituality", "children", "finance"])
+        self.ai_topic.setCurrentText("general")
+        btn_row.addWidget(QLabel("Topic:"))
+        btn_row.addWidget(self.ai_topic)
+
         self.ai_ask_input = QLineEdit()
         self.ai_ask_input.setPlaceholderText("Or ask a specific question...")
         self.ai_ask_input.returnPressed.connect(self._on_ai_ask)
@@ -1952,13 +1959,15 @@ class MainWindow(QMainWindow):
             self.ai_output.setText("[Compute a chart first using the main form]")
             return
         style = self.ai_style.currentText()
+        topic = self.ai_topic.currentText()
         self.ai_output.clear()
         self.ai_output.append(f"[Generating {mode} with {self.ai_provider.currentText()}/{self.ai_model.text()}...]\n")
         self._set_ai_buttons_enabled(False)
 
         engine = self._get_ai_engine()
         if mode == "interpret":
-            self._ai_worker = _AiWorker(engine, "interpret", cd, style=style)
+            self._ai_worker = _AiWorker(engine, "interpret", cd, style=style, topic=topic)
+        elif mode == "remedies"
         elif mode == "remedies":
             self._ai_worker = _AiWorker(engine, "remedies", cd)
 
@@ -2009,20 +2018,21 @@ class _AiWorker(QThread):
     token = pyqtSignal(str)
     done = pyqtSignal()
     error = pyqtSignal(str)
-
     def __init__(self, engine: AiEngine, mode: str, chart: ChartData,
-                 style: str = "", question: str = ""):
+                 style: str = "", question: str = "", topic: str = "general"):
         super().__init__()
         self.engine = engine
         self.mode = mode
         self.chart = chart
         self.style = style
         self.question = question
+        self.topic = topic
 
     def run(self):
         try:
             if self.mode == "interpret":
-                self.engine.interpret(self.chart, self.style, on_token=self.token.emit)
+                self.engine.interpret(self.chart, self.style, self.topic,
+                                      on_token=self.token.emit)
             elif self.mode == "remedies":
                 self.engine.remedies(self.chart, on_token=self.token.emit)
             elif self.mode == "ask":
