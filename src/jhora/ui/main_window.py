@@ -316,6 +316,9 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_tajaka_tab(), "Tajaka")
         self.tabs.addTab(self._build_kuta_tab(), "Matchmaking")
         self.tabs.addTab(self._build_prasna_tab(), "Prasna")
+        self.tabs.addTab(self._build_muhurta_tab(), "Muhurta")
+        self.tabs.addTab(self._build_knowledge_tab(), "Knowledge")
+        self.tabs.addTab(self._build_interpreter_tab(), "Reading")
 
         right_layout.addWidget(self.tabs)
 
@@ -477,7 +480,7 @@ class MainWindow(QMainWindow):
         if self._atlas is not None:
             return self._atlas
         try:
-            self._atlas = AtlasReader("jhcore/atlas/jhworld.adb")
+            self._atlas = AtlasReader("data/cities.db")
             return self._atlas
         except Exception as e:
             self.statusBar().showMessage(f"Could not load atlas: {e}")
@@ -1344,6 +1347,326 @@ class MainWindow(QMainWindow):
 
         self.prasna_table.resizeColumnsToContents()
         self.statusBar().showMessage(f"Showing all {len(results)} positions for {pm.label}")
+
+    def _build_muhurta_tab(self):
+        from jhora.calc.muhurta import MuhurtaTask
+
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        # Input form
+        form = QFormLayout()
+        form.setSpacing(6)
+
+        self.muhurta_task_combo = QComboBox()
+        for t in MuhurtaTask:
+            self.muhurta_task_combo.addItem(t.label, t)
+        form.addRow("Task:", self.muhurta_task_combo)
+
+        self.muhurta_date = QDateEdit()
+        self.muhurta_date.setCalendarPopup(True)
+        self.muhurta_date.setDate(self.date_input.date())
+        form.addRow("Date:", self.muhurta_date)
+
+        self.muhurta_time = QTimeEdit()
+        self.muhurta_time.setDisplayFormat("HH:mm")
+        self.muhurta_time.setTime(self.time_input.time())
+        form.addRow("Time:", self.muhurta_time)
+
+        self.muhurta_tz = QLineEdit()
+        self.muhurta_tz.setPlaceholderText("-2.0 or +0530")
+        self.muhurta_tz.setText(self.tz_input.text() or "-2.0")
+        form.addRow("TZ:", self.muhurta_tz)
+
+        self.muhurta_lat = QLineEdit()
+        self.muhurta_lat.setPlaceholderText("13.08")
+        self.muhurta_lat.setText(self.lat_input.text() or "13.08")
+        form.addRow("Lat:", self.muhurta_lat)
+
+        self.muhurta_lon = QLineEdit()
+        self.muhurta_lon.setPlaceholderText("80.27")
+        self.muhurta_lon.setText(self.lon_input.text() or "80.27")
+        form.addRow("Lon:", self.muhurta_lon)
+
+        layout.addLayout(form)
+
+        # Buttons row
+        btn_row = QHBoxLayout()
+        self.muhurta_eval_btn = QPushButton("Evaluate")
+        self.muhurta_eval_btn.clicked.connect(self._on_muhurta_evaluate)
+        btn_row.addWidget(self.muhurta_eval_btn)
+
+        self.muhurta_find_btn = QPushButton("Find Auspicious Times")
+        self.muhurta_find_btn.clicked.connect(self._on_muhurta_find)
+        btn_row.addWidget(self.muhurta_find_btn)
+
+        self.muhurta_best_spin = QComboBox()
+        self.muhurta_best_spin.addItems(["5", "10", "20", "All"])
+        self.muhurta_best_spin.setCurrentIndex(0)
+        btn_row.addWidget(QLabel("Show Top:"))
+        btn_row.addWidget(self.muhurta_best_spin)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+
+        # Result label
+        self.muhurta_result = QLabel("")
+        self.muhurta_result.setWordWrap(True)
+        self.muhurta_result.setStyleSheet(
+            f"color: {ACCENT}; font-weight: bold; font-size: 14px;"
+            f" padding: 8px; background-color: {BG2}; border-radius: 4px;"
+        )
+        layout.addWidget(self.muhurta_result)
+
+        # Detail text
+        self.muhurta_detail = QTextEdit()
+        self.muhurta_detail.setReadOnly(True)
+        self.muhurta_detail.setMaximumHeight(160)
+        layout.addWidget(self.muhurta_detail)
+
+        # Results table
+        self.muhurta_table = QTableWidget()
+        self.muhurta_table.setAlternatingRowColors(True)
+        layout.addWidget(self.muhurta_table, stretch=1)
+
+        return w
+
+    def _get_muhurta_inputs(self):
+        from jhora.charts.chart import ChartBuilder
+        from datetime import datetime
+
+        qd = self.muhurta_date.date()
+        qt = self.muhurta_time.time()
+        dt = datetime(qd.year(), qd.month(), qd.day(),
+                      qt.hour(), qt.minute(), 0)
+        raw_tz = ChartBuilder._parse_tz(self.muhurta_tz.text().strip())
+        tz_offset = -raw_tz if raw_tz < 0 else raw_tz
+        lat = float(self.muhurta_lat.text().strip())
+        lon = float(self.muhurta_lon.text().strip())
+        return dt, tz_offset, lat, lon
+
+    def _on_muhurta_evaluate(self):
+        from jhora.calc.muhurta import evaluate_time, MuhurtaTask
+
+        try:
+            dt, tz_offset, lat, lon = self._get_muhurta_inputs()
+        except (ValueError, AttributeError) as e:
+            QMessageBox.warning(self, "Input Error", f"Invalid input: {e}")
+            return
+
+        task = self.muhurta_task_combo.currentData()
+        r = evaluate_time(dt, lat, lon, tz_offset, task)
+
+        status = "AUSPICIOUS" if r.is_good else "INAUSPICIOUS"
+        color = "#00ff88" if r.is_good else "#ff6666"
+        self.muhurta_result.setText(
+            f'<span style="color:{color}">[{status}]</span> '
+            f'Score: <b>{r.score:.2f}</b> / 1.00 — {task.label}'
+        )
+
+        self.muhurta_table.setRowCount(0)
+
+        lines = []
+        p = r.panchanga
+        t_s = "✓" if r.tithi_ok else "✗"
+        v_s = "✓" if r.weekday_ok else "✗"
+        n_s = "✓" if r.nakshatra_ok else "✗"
+        l_s = "✓" if r.lagna_ok else "✗"
+
+        lines.append(f"Tithi: {p.tithi.name} {t_s}  |  Vara: {p.weekday_name} {v_s}")
+        lines.append(f"Nakshatra: {p.nakshatra.name.replace('_', ' ').title()} {n_s}")
+        lines.append(f"Yoga: index {p.yoga_index}  |  Karana: index {p.karana_index}")
+        lines.append(f"Lagna: {r.lagna_rasi.short_name} {l_s}")
+
+        if r.in_abhijit:
+            lines.append("★ Abhijit Muhurta! (48-min window around noon)")
+
+        for ip in r.inauspicious_periods:
+            s_utc = ((ip.start + 0.5) - int(ip.start + 0.5)) * 24
+            e_utc = ((ip.end + 0.5) - int(ip.end + 0.5)) * 24
+            s_loc = (s_utc + tz_offset) % 24
+            e_loc = (e_utc + tz_offset) % 24
+            lines.append(f"{ip.kind}: {s_loc:.1f}h-{e_loc:.1f}h")
+
+        if r.score_detail and r.score_detail != "All good":
+            lines.append(f"\nIssues: {r.score_detail}")
+
+        self.muhurta_detail.setText("\n".join(lines))
+
+    def _on_muhurta_find(self):
+        from jhora.calc.muhurta import find_muhurta, MuhurtaTask
+
+        try:
+            dt, tz_offset, lat, lon = self._get_muhurta_inputs()
+        except (ValueError, AttributeError) as e:
+            QMessageBox.warning(self, "Input Error", f"Invalid input: {e}")
+            return
+
+        task = self.muhurta_task_combo.currentData()
+        results = find_muhurta(dt, lat, lon, tz_offset, task, step_minutes=10)
+
+        top_text = self.muhurta_best_spin.currentText()
+        if top_text == "All":
+            results = results
+        else:
+            results = results[:int(top_text)]
+
+        headers = ["Time", "Score", "Tithi", "Vara", "Nakshatra", "Lagna", "Abhijit"]
+        self.muhurta_table.setColumnCount(len(headers))
+        self.muhurta_table.setHorizontalHeaderLabels(headers)
+        self.muhurta_table.setRowCount(len(results))
+
+        for i, r in enumerate(results):
+            time_str = r.datetime.strftime("%H:%M")
+            score_str = f"{r.score:.2f}"
+            ti = f"{'✓' if r.tithi_ok else '✗'} {r.panchanga.tithi.name}"
+            vr = f"{'✓' if r.weekday_ok else '✗'} {r.panchanga.weekday_name}"
+            nk = f"{'✓' if r.nakshatra_ok else '✗'} {r.panchanga.nakshatra.name.replace('_', ' ').title()}"
+            lg = f"{'✓' if r.lagna_ok else '✗'} {r.lagna_rasi.short_name}"
+            ab = "★" if r.in_abhijit else ""
+
+            self.muhurta_table.setItem(i, 0, QTableWidgetItem(time_str))
+            self.muhurta_table.setItem(i, 1, QTableWidgetItem(score_str))
+            self.muhurta_table.setItem(i, 2, QTableWidgetItem(ti))
+            self.muhurta_table.setItem(i, 3, QTableWidgetItem(vr))
+            self.muhurta_table.setItem(i, 4, QTableWidgetItem(nk))
+            self.muhurta_table.setItem(i, 5, QTableWidgetItem(lg))
+            self.muhurta_table.setItem(i, 6, QTableWidgetItem(ab))
+
+        self.muhurta_table.resizeColumnsToContents()
+
+        self.muhurta_result.setText(
+            f"Found <b>{len(results)}</b> times  |  "
+            f"Best score: <b>{results[0].score:.2f}</b> — "
+            f"{self.muhurta_date.date().toString('yyyy-MM-dd')}"
+        )
+
+    def _build_knowledge_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        # Search row
+        row = QHBoxLayout()
+        self.kb_query = QLineEdit()
+        self.kb_query.setPlaceholderText("Search Vedic astrology texts...")
+        row.addWidget(self.kb_query, 1)
+
+        self.kb_search_btn = QPushButton("Search")
+        self.kb_search_btn.clicked.connect(self._on_kb_search)
+        row.addWidget(self.kb_search_btn)
+
+        self.kb_max_spin = QComboBox()
+        self.kb_max_spin.addItems(["5", "10", "20"])
+        self.kb_max_spin.setCurrentIndex(0)
+        row.addWidget(QLabel("Results:"))
+        row.addWidget(self.kb_max_spin)
+        layout.addLayout(row)
+
+        # Sources info
+        self.kb_source_label = QLabel("")
+        self.kb_source_label.setStyleSheet(f"color: {DIM}; font-size: 11px;")
+        layout.addWidget(self.kb_source_label)
+
+        # Results list
+        self.kb_results = QTextEdit()
+        self.kb_results.setReadOnly(True)
+        self.kb_results.setStyleSheet(
+            f"background-color: {BG2}; color: #ffffff;"
+            f" border: 1px solid #0f3460; border-radius: 4px; padding: 6px;"
+        )
+        layout.addWidget(self.kb_results, stretch=1)
+
+        return w
+
+    def _on_kb_search(self):
+        from jhora.interpreter.knowledge_base import KnowledgeBase
+
+        query = self.kb_query.text().strip()
+        if not query:
+            return
+
+        kb = KnowledgeBase()
+        max_r = int(self.kb_max_spin.currentText())
+        results = kb.search(query, max_results=max_r)
+
+        self.kb_source_label.setText(
+            f"Loaded {kb.loaded} sources  |  "
+            f"Found {len(results)} matches for \"{query}\""
+        )
+
+        if not results:
+            self.kb_results.setText("No results found.")
+            return
+
+        lines = []
+        for i, r in enumerate(results, 1):
+            lines.append(f"[{i}] {r['source']}  (score: {r['score']:.2f})")
+            lines.append(f"    {r['excerpt'][:400]}")
+            lines.append("")
+        self.kb_results.setText("\n".join(lines))
+
+    def _build_interpreter_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        row = QHBoxLayout()
+        self.int_style_combo = QComboBox()
+        self.int_style_combo.addItems(["concise", "detailed"])
+        row.addWidget(QLabel("Style:"))
+        row.addWidget(self.int_style_combo)
+
+        self.int_generate_btn = QPushButton("Generate Reading")
+        self.int_generate_btn.clicked.connect(self._on_interpreter_generate)
+        row.addWidget(self.int_generate_btn)
+        row.addStretch()
+        layout.addLayout(row)
+
+        self.int_output = QTextEdit()
+        self.int_output.setReadOnly(True)
+        self.int_output.setStyleSheet(
+            f"background-color: {BG2}; color: #ffffff;"
+            f" border: 1px solid #0f3460; border-radius: 4px; padding: 6px;"
+            f" font-family: 'DejaVu Sans Mono'; font-size: 12px;"
+        )
+        layout.addWidget(self.int_output, stretch=1)
+
+        return w
+
+    def _on_interpreter_generate(self):
+        from jhora.interpreter.engine import ChartInterpreter
+
+        cd = self._get_chart_data()
+        if cd is None:
+            return
+
+        style = self.int_style_combo.currentText()
+        interpreter = ChartInterpreter()
+        text = interpreter.interpret_text(cd, style=style)
+        self.int_output.setText(text)
+
+    def _get_chart_data(self) -> Optional[ChartData]:
+        try:
+            builder = ChartBuilder()
+            qd = self.date_input.date()
+            qt = self.time_input.time()
+            hour = qt.hour() + qt.minute() / 60.0
+            ay = self.ayanamsa_combo.currentText().lower()
+            tz_raw = self.tz_input.text().strip()
+            lat = float(self.lat_input.text().strip())
+            lon = float(self.lon_input.text().strip())
+            cd = builder.build(
+                year=qd.year(), month=qd.month(), day=qd.day(),
+                hour=hour, lat=lat, lon=lon, tz=tz_raw, ayanamsa=ay,
+            )
+            return cd
+        except Exception as e:
+            QMessageBox.warning(self, "Chart Error", f"Cannot compute chart: {e}")
+            return None
 
     def _on_kuta_match(self):
         from jhora.calc.kuta import compute_kuta, ScoringSystem
