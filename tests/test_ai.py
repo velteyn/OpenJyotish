@@ -1,7 +1,7 @@
 """Tests for AI engine — offline-only (no LLM server required)."""
 
 from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
-from jhora.ai.prompts import chart_to_text, interpret_prompt, question_prompt, remedy_prompt
+from jhora.ai.prompts import interpret_prompt, question_prompt, remedy_prompt, _chart_compact, _estimate_tokens
 from jhora.charts.chart import ChartBuilder
 
 
@@ -11,20 +11,20 @@ def _sample_chart():
 
 
 class TestPrompts:
-    def test_chart_to_text(self):
+    def test_chart_compact(self):
         cd = _sample_chart()
-        text = chart_to_text(cd)
-        assert "Birth:" in text
-        assert "Virgo" in text
-        assert "Sun:" in text
-        assert "House 1:" in text
-        assert "House 12:" in text
+        text = _chart_compact(cd)
+        assert "Asc" in text
+        assert "Su" in text
+        assert "Sun" not in text[:50]  # compact uses short names
+        assert "H1:" in text
 
     def test_interpret_prompt(self):
         cd = _sample_chart()
         prompt = interpret_prompt(cd, "concise")
-        assert "concise" not in prompt.lower().split()[:10]  # style hint is internal
-        assert "Please interpret" in prompt
+        assert "CHART" in prompt
+        assert "TASK" in prompt
+        assert _estimate_tokens(prompt) < 8000  # should fit within budget
 
     def test_question_prompt(self):
         cd = _sample_chart()
@@ -34,7 +34,7 @@ class TestPrompts:
     def test_remedy_prompt(self):
         cd = _sample_chart()
         prompt = remedy_prompt(cd)
-        assert "remedial" in prompt.lower()
+        assert "REMEDIES" in prompt
 
 
 class TestAiEngine:

@@ -47,7 +47,9 @@ class AiConfig:
     model: str = ""
     temperature: float = 0.7
     max_tokens: int = 2048
+    max_context_tokens: int = 4096  # total prompt budget (truncates if exceeded)
     timeout: int = 120
+    short_context: bool = False  # if True, use compact mode (<2K tokens)
 
 
 class AiEngine:
@@ -103,11 +105,14 @@ class AiEngine:
         return "".join(full)
 
     def interpret(self, cd: ChartData, style: str = "detailed",
+                  topic: str = "general",
                   on_token: Optional[Callable[[str], None]] = None) -> str:
         """Generate a full chart interpretation."""
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": interpret_prompt(cd, style)},
+            {"role": "user", "content": interpret_prompt(
+                cd, style, topic, max_context=self.config.max_context_tokens,
+            )},
         ]
         try:
             resp = self._call(messages, stream=True)
@@ -122,7 +127,9 @@ class AiEngine:
         """Answer a specific question about the chart."""
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": question_prompt(cd, question)},
+            {"role": "user", "content": question_prompt(
+                cd, question, max_context=self.config.max_context_tokens,
+            )},
         ]
         try:
             resp = self._call(messages, stream=True)
@@ -137,7 +144,9 @@ class AiEngine:
         """Suggest Vedic remedies based on chart weaknesses."""
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": remedy_prompt(cd)},
+            {"role": "user", "content": remedy_prompt(
+                cd, max_context=self.config.max_context_tokens,
+            )},
         ]
         try:
             resp = self._call(messages, stream=True)
