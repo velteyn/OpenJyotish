@@ -17,6 +17,7 @@ from rich.table import Table
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
 from jhora.calc.shadbala import ShadbalaComputer
+from jhora.calc.bhava_bala import BhavaBalaComputer
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
@@ -319,8 +320,9 @@ def gui():
 def shadbala(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    bhava: bool = typer.Option(False, "--bhava", "-b", help="Show Bhava Bala (house strengths) instead"),
 ):
-    """Compute Shadbala (six-fold planetary strength)."""
+    """Compute Shadbala (six-fold planetary strength) or Bhava Bala (house strength)."""
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()
     cd = builder.build(
@@ -358,6 +360,35 @@ def shadbala(
             f"{r.drik.rupa:.2f}",
             f"{r.total_rupa:.2f}",
             f"{r.total_virupa:.0f}",
+        )
+    console.print(table)
+
+    if bhava:
+        console.print()
+        _print_bhava_bala(cd)
+
+
+def _print_bhava_bala(cd):
+    from jhora.types.rasi import Rasi
+    bb = BhavaBalaComputer(cd)
+    report = bb.compute_all()
+    table = Table(title="Bhava Bala — House Strengths")
+    table.add_column("H", style="cyan")
+    table.add_column("Sign", style="yellow")
+    table.add_column("Lord", style="yellow")
+    table.add_column("Sthana", style="green")
+    table.add_column("Drishti", style="green")
+    table.add_column("Dig", style="green")
+    table.add_column("Adhip", style="green")
+    table.add_column("Drig", style="green")
+    table.add_column("Total", style="white bold")
+    for h in range(1, 13):
+        r = report.results[h]
+        rasi_idx = (int(cd.ascendant / 30) + h - 1) % 12
+        table.add_row(
+            str(h), Rasi(rasi_idx).short_name, Rasi(rasi_idx).lord,
+            f"{r.sthana:.1f}", f"{r.drishti:.1f}", f"{r.dig:.1f}",
+            f"{r.adhipati:.1f}", f"{r.drig:+.1f}", f"{r.total:.1f}",
         )
     console.print(table)
 
