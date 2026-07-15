@@ -49,6 +49,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by PVR Narasimha Rao (SJVC,
 - **Knowledge base**: 16 textbooks/articles (1.96M chars), FTS5 full-text search
 - **AI Engine**: OpenAI-compatible client for Ollama/LM Studio/Unsloth
 - **RAG Pipeline**: Chart data + computed analysis + textbook citations → LLM prompt
+- **AI Teacher**: Interactive Guru — teaches Vedic astrology using textbook embeddings
 - **Context Budgeting**: Auto-truncation for local model limits (2K-8K tokens)
 - **7 AI Topics**: general, relationship, career, health, spirituality, children, finance
 - **Mundane AI**: Medini Jyotisha topic with national house meanings
