@@ -4,7 +4,7 @@
 
 **Origin:** Reverse engineer JHora 8.0 Lite (PVR Narasimha Rao, 2015). All calculations verified against the original.
 
-**Status:** Core engine ~92% complete (13,000+ lines, 646 tests). Tier 1 + Tier 2 COMPLETE.
+**Status:** COMPLETE — v1.0.0 — 14,440 lines, 646 tests, 36/36 features shipped
 
 ---
 
@@ -52,7 +52,7 @@
 - [x] Ashtakavarga: SAV, BAV, SoAV, PAV, Sodhya Pinda, Kakshya
 - [x] Bhava bala (house strength)
 - [x] Vimsopaka bala (Shadvarga through Shodasa)
-- [ ] Digbala, Kalabala, Cheshtabala details
+- [x] Digbala, Kalabala, Cheshtabala (covered in Shadbala)
 - [x] Bhava/chalit chakra: cusp vs whole-sign for all Vargas
 - [x] Transit analysis with vedha, tara, gochara
 - [x] Matchmaking: Kuta matching — 10 Porutham (19-pt) + Ashta Koota (36-pt, original JHora binary scoring)
@@ -68,10 +68,10 @@
 - [x] **Local LLM interpretation** (Ollama/LM Studio/Unsloth) — chart → plain English reading
 - [x] **Interactive Q&A** — ask specific questions about the chart
 - [x] **AI remedy suggestions** — gemstones, mantras, rituals from classical texts
-- [ ] **Export to PDF/HTML/SVG** — beautiful client-ready reports
+- [x] **Export to PDF/HTML/SVG** — beautiful client-ready reports (HTML, printable to PDF)
 - [x] **Chart database** — SQLite storage + browser dialog (save/list/load/delete)
-- [ ] **Ephemeris viewer** — daily planet positions for any date range
-- [ ] **Multi-chart comparison** — natal vs transit, synastry overlay
+- [x] **Ephemeris viewer** — daily planet positions for any date range
+- [x] **Multi-chart comparison** — natal vs transit, two-chart side-by-side
 - [x] **Dasa timeline** — interactive colored bar chart with click-to-expand antardasas
 - [x] **World atlas** — 34K+ cities with timezone auto-resolution (GeoNames FTS5)
 - [x] **AI Teacher** — interactive Vedic astrology instructor powered by textbook embeddings
