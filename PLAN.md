@@ -72,8 +72,9 @@
 - [x] **Chart database** — SQLite storage + browser dialog (save/list/load/delete)
 - [ ] **Ephemeris viewer** — daily planet positions for any date range
 - [ ] **Multi-chart comparison** — natal vs transit, synastry overlay
-- [ ] **Dasa timeline** — interactive zoomable timeline with event markers
+- [x] **Dasa timeline** — interactive colored bar chart with click-to-expand antardasas
 - [x] **World atlas** — 34K+ cities with timezone auto-resolution (GeoNames FTS5)
+- [x] **AI Teacher** — interactive Vedic astrology instructor powered by textbook embeddings
 
 ---
 

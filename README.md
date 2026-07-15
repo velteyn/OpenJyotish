@@ -3,8 +3,8 @@
 Free, open-source, cross-platform Vedic astrology toolkit. CLI + PyQt6 GUI + Terminal UI. AI-powered chart readings via local LLMs.
 
 ```
-📊 18 GUI tabs   |   🖥 24 CLI commands   |   ⌨ 16 TUI panels
-🔮 35 features   |   📝 13,967 lines Python   |   ✅ 646 tests
+📊 19 GUI tabs   |   🖥 25 CLI commands   |   ⌨ 16 TUI panels
+🔮 36 features   |   📝 14,500 lines Python   |   ✅ 646 tests
 ```
 
 ## Quick Start
@@ -41,6 +41,8 @@ jhora kuta "girl" "boy"            # Matchmaking compatibility
 jhora knowledge "query"            # Search 16 Vedic textbooks
 
 # CLI — AI interpretation (requires Ollama/LM Studio)
+jhora teach "question"                # AI teacher — learn Vedic astrology
+jhora teach "question" --chart "..."     # Learn with your chart
 jhora ai "..."                     # Full chart reading via local LLM
 jhora ai --topic career "..."      # Career-focused reading
 jhora ai --mode remedies "..."     # Gemstone/mantra suggestions
@@ -128,6 +130,7 @@ cp -r /path/to/jhora/jhcore/ephe/ jhcore/ephe/
 | `interpret` | Rule-based reading |
 | `knowledge` | Search textbook knowledge base |
 | `ai` | LLM-powered reading via local AI |
+| `teach` | AI Teacher — learn Vedic astrology |
 | `ephemeris` | Daily planet table |
 | `export` | HTML report |
 | `tui` | Interactive terminal UI |
