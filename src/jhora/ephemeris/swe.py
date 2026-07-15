@@ -223,15 +223,16 @@ class SweEngine:
         f = flags if flags is not None else self._flags
         return swe.helio_cross_ut(planet, x2cross % 360, jd_start, f, backwards)
 
-    def rise_trans(self, jd: float, body: int, lat: float, lon: float, 
+    def rise_trans(self, jd: float, body: int, lat: float, lon: float,
                    rise: bool = True) -> Optional[float]:
         """Compute sunrise/sunset or moonrise/moonset time.
         
         Returns JD of the event, or None if it doesn't occur.
         """
-        flags = 1 if rise else 0  # SE_CALC_RISE / SE_CALC_SET
-        result = swe.rise_trans(jd, body, 0, flags)
-        return result[0] if result else None
+        rsmi = swe.CALC_RISE if rise else swe.CALC_SET
+        geopos = (lon, lat, 0.0)
+        result = swe.rise_trans(jd, body, rsmi, geopos)
+        return result[1][0] if result[0] == 0 else None
 
     def deltat(self, jd: float) -> float:
         """Get Delta T (difference between TT and UT) in days."""
