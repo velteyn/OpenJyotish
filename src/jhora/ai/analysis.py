@@ -21,41 +21,65 @@ from jhora.types.rasi import Rasi
 def dasa_snapshot(cd: ChartData) -> str:
     """Current dasa period and upcoming transitions."""
     try:
+        from datetime import datetime
         from jhora.dasas.vimsottari import VimsottariDasa
-        dasa = VimsottariDasa(cd)
+        dasa = VimsottariDasa()
         chart_dict = {
             "planets": {g.value: {"longitude": p.longitude}
                         for g, p in cd.planets.items()},
             "lagna_lon": cd.ascendant,
         }
         periods = dasa.compute(cd.julian_day, chart_dict)
-        now = cd.birth_date
-        # Find current main and sub periods
-        current = []
-        upcoming = []
+        now = datetime.now()
+
+        current_md = None
         for p in periods:
-            if p.start <= now <= p.end:
-                current.append(p)
-            elif p.start > now:
-                upcoming.append(p)
-            if len(current) >= 3 and len(upcoming) >= 5:
+            if p.start_date <= now <= p.end_date:
+                current_md = p
                 break
 
+        if not current_md:
+            return ""
+
         lines = ["Current Dasa Periods:"]
-        for p in current[:3]:
-            lines.append(
-                f"  {p.lord.full_name} {p.level.value if hasattr(p.level, 'value') else str(p.level)}: "
-                f"{p.start.strftime('%Y-%m-%d')} to {p.end.strftime('%Y-%m-%d')}"
-            )
-        lines.append("Upcoming Transitions:")
-        for p in upcoming[:5]:
-            lines.append(
-                f"  {p.lord.full_name} {p.level.value if hasattr(p.level, 'value') else str(p.level)} "
-                f"begins {p.start.strftime('%Y-%m-%d')}"
-            )
+        lines.append(
+            f"  {current_md.lord_name} Mahadasha: "
+            f"{current_md.start_date.strftime('%Y-%m-%d')} to "
+            f"{current_md.end_date.strftime('%Y-%m-%d')}"
+        )
+
+        # Find current sub-period (AD)
+        for sp in (current_md.sub_periods or []):
+            if sp.start_date <= now <= sp.end_date:
+                lines.append(
+                    f"    Current {sp.lord_name} Antardasha: "
+                    f"{sp.start_date.strftime('%Y-%m-%d')} to "
+                    f"{sp.end_date.strftime('%Y-%m-%d')}"
+                )
+
+        # Upcoming ADs within current MD
+        upcoming = sorted(
+            [sp for sp in (current_md.sub_periods or []) if sp.start_date > now],
+            key=lambda x: x.start_date,
+        )
+        if upcoming:
+            lines.append("  Upcoming Antardashas:")
+            for sp in upcoming[:5]:
+                lines.append(
+                    f"    {sp.lord_name}: "
+                    f"{sp.start_date.strftime('%Y-%m-%d')} to "
+                    f"{sp.end_date.strftime('%Y-%m-%d')}"
+                )
         return "\n".join(lines) if len(lines) > 2 else ""
     except Exception:
         return ""
+
+
+def _level_name(level) -> str:
+    """Convert PeriodLevel to readable string."""
+    v = level.value if hasattr(level, 'value') else level
+    names = {0: "MD", 1: "AD", 2: "PD", 3: "SD"}
+    return names.get(v, f"Level-{v}")
 
 
 def transit_snapshot(cd: ChartData) -> str:
