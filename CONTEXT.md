@@ -1,6 +1,6 @@
 # Jagannatha Hora — Vedic Astrology Software (Python Port)
 
-**Status:** Active development — core engine ~90% complete
+**Status:** Complete — **v1.0.0** — all 35 planned features shipped
 **Vision:** The most user-friendly, feature-complete, cross-platform, AI-powered Vedic astrology tool. Free and open-source.
 
 ## Origin
