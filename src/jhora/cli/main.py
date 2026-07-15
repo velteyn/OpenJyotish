@@ -1316,6 +1316,43 @@ def ai(
 
 
 @app.command()
+def teach(
+    question: str = typer.Argument(..., help="What do you want to learn about Vedic astrology?"),
+    birthdata: str = typer.Option(None, "--chart", "-c", help="Optional: your birth data for chart-based teaching"),
+    provider: str = typer.Option("ollama", "--provider", "-p"),
+    model: str = typer.Option("", "--model", "-m"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """AI Teacher — learn Vedic astrology from the textbook corpus."""
+    chart = None
+    if birthdata:
+        bd = parse_birthdata(birthdata)
+        builder = ChartBuilder()
+        builder.swe.set_sidereal_mode(ayanamsa)
+        chart = builder.build(
+            year=bd["year"], month=bd["month"], day=bd["day"],
+            hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+            tz=bd["tz"], ayanamsa=ayanamsa,
+        )
+
+    from jhora.ai.teacher import AiTeacher
+    base_url = {
+        "ollama": "http://localhost:11434/v1",
+        "lmstudio": "http://localhost:1234/v1",
+        "unsloth": "http://localhost:8000/v1",
+    }.get(provider, "http://localhost:11434/v1")
+
+    teacher = AiTeacher(provider=provider, base_url=base_url, model=model or "")
+
+    def _print(token):
+        console.print(token, end="", highlight=False)
+
+    console.print(f"[dim]Teacher ({provider}):[/dim]\n")
+    teacher.ask(question, chart=chart, on_token=_print)
+    console.print()
+
+
+@app.command()
 def mundane(
     year: int = typer.Argument(None, help="Year to analyze (default: current year)"),
     lat: float = typer.Option(28.61, "--lat", help="Latitude of location (default: Delhi)"),

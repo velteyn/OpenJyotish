@@ -347,6 +347,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_knowledge_tab(), "Knowledge")
         self.tabs.addTab(self._build_interpreter_tab(), "Reading")
         self.tabs.addTab(self._build_ai_chat_tab(), "AI Chat")
+        self.tabs.addTab(self._build_ai_teacher_tab(), "AI Teacher")
         self.tabs.addTab(self._build_mundane_tab(), "Mundane")
         self.tabs.addTab(self._build_ephemeris_tab(), "Ephemeris")
 
@@ -2193,6 +2194,109 @@ class MainWindow(QMainWindow):
         for btn in [self.ai_interpret_btn, self.ai_remedy_btn, self.ai_ask_btn]:
             btn.setEnabled(enabled)
 
+    # --- AI Teacher Tab ---
+
+    def _build_ai_teacher_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
+        cfg = QHBoxLayout()
+        cfg.addWidget(QLabel("Provider:"))
+        self.teach_provider = QComboBox()
+        self.teach_provider.addItems(["ollama", "lmstudio", "unsloth", "custom"])
+        cfg.addWidget(self.teach_provider)
+        cfg.addWidget(QLabel("Model:"))
+        self.teach_model = QLineEdit("llama3.2")
+        self.teach_model.setFixedWidth(140)
+        cfg.addWidget(self.teach_model)
+        cfg.addStretch()
+        layout.addLayout(cfg)
+
+        self.teach_input = QLineEdit()
+        self.teach_input.setPlaceholderText("Ask the Guru — learn Vedic astrology step by step...")
+        self.teach_input.returnPressed.connect(self._on_teach_ask)
+        layout.addWidget(self.teach_input)
+
+        btn_row = QHBoxLayout()
+        self.teach_btn = QPushButton("Ask Guru")
+        self.teach_btn.clicked.connect(self._on_teach_ask)
+        btn_row.addWidget(self.teach_btn)
+        self.teach_topic = QComboBox()
+        self.teach_topic.addItems([
+            "Ask anything...", "Explain my lagna", "What is the 7th house?",
+            "How do I read dasa periods?", "What are yogas?",
+            "How does transit work?", "What is Shadbala?",
+            "Explain Vimsopaka Bala", "How to predict career?",
+            "How to predict relationships?", "What is Tithi Pravesha?",
+            "How to use the Chalit chart?", "What is mundane astrology?",
+        ])
+        self.teach_topic.currentTextChanged.connect(self._on_teach_topic)
+        btn_row.addWidget(self.teach_topic)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+
+        self.teach_output = QTextEdit()
+        self.teach_output.setReadOnly(True)
+        self.teach_output.setStyleSheet(
+            "QTextEdit { background-color: #0d1b2a; color: #e0e0e0; "
+            "font-family: 'Segoe UI', sans-serif; font-size: 13px; "
+            "border: 1px solid #2a3f5f; border-radius: 4px; padding: 8px; }"
+        )
+        layout.addWidget(self.teach_output)
+
+        self._build_teacher_btn = QPushButton("Build Textbook Index")
+        self._build_teacher_btn.clicked.connect(self._on_build_teacher_index)
+        self._build_teacher_btn.setToolTip(
+            "Chunk all textbooks and generate embedding vectors (requires Ollama + nomic-embed-text)"
+        )
+        layout.addWidget(self._build_teacher_btn)
+        return w
+
+    def _on_build_teacher_index(self):
+        from jhora.ai.embeddings import EmbeddingStore
+        self.teach_output.append("[Building textbook index...]\n")
+        self._build_teacher_btn.setEnabled(False)
+        try:
+            store = EmbeddingStore()
+            count = store.build()
+            self.teach_output.append(f"[✓ Index built: {count} chunks]\n")
+        except Exception as e:
+            self.teach_output.append(f"[✗ Error: {e}]\n")
+        self._build_teacher_btn.setEnabled(True)
+
+    def _on_teach_topic(self, text: str):
+        if text != "Ask anything...":
+            self.teach_input.setText(text)
+
+    def _on_teach_ask(self):
+        question = self.teach_input.text().strip()
+        if not question:
+            return
+        self.teach_output.clear()
+        self.teach_output.append(f"[Guru, {question}]\n")
+        self.teach_btn.setEnabled(False)
+
+        provider = self.teach_provider.currentText()
+        model = self.teach_model.text().strip()
+        base_url = {"ollama": "http://localhost:11434/v1",
+                     "lmstudio": "http://localhost:1234/v1",
+                     "unsloth": "http://localhost:8000/v1"}.get(provider,
+                                                               "http://localhost:11434/v1")
+        chart = self.chart_data if hasattr(self, "chart_data") else None
+
+        self._teacher_worker = _TeacherWorker(question, chart, provider, base_url, model)
+        self._teacher_worker.token.connect(self._on_teach_token)
+        self._teacher_worker.done.connect(lambda: self.teach_btn.setEnabled(True))
+        self._teacher_worker.start()
+
+    def _on_teach_token(self, text: str):
+        cursor = self.teach_output.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        cursor.insertText(text)
+        self.teach_output.ensureCursorVisible()
+
     # --- Chart Browser ---
 
     def _on_chart_browse(self):
@@ -2439,6 +2543,29 @@ class MainWindow(QMainWindow):
                     item.setForeground(QColor("#ff6666"))
                 self.eph_table.setItem(i, j + 1, item)
         self.eph_table.resizeColumnsToContents()
+
+
+class _TeacherWorker(QThread):
+    token = pyqtSignal(str)
+    done = pyqtSignal()
+
+    def __init__(self, question, chart, provider, base_url, model):
+        super().__init__()
+        self.question = question
+        self.chart = chart
+        self.provider = provider
+        self.base_url = base_url
+        self.model = model
+
+    def run(self):
+        try:
+            from jhora.ai.teacher import AiTeacher
+            teacher = AiTeacher(self.provider, self.base_url, self.model)
+            teacher.ask(self.question, chart=self.chart, on_token=self.token.emit)
+            self.done.emit()
+        except Exception as e:
+            self.token.emit(str(e))
+            self.done.emit()
 
 
 class _AiWorker(QThread):
