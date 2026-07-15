@@ -18,6 +18,7 @@ from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
 from jhora.calc.shadbala import ShadbalaComputer
 from jhora.calc.bhava_bala import BhavaBalaComputer
+from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
 from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
 from jhora.calc.mundane import MundaneCalculator, MUNDANE_HOUSES
 from jhora.dasas.vimsottari import VimsottariDasa
@@ -322,7 +323,11 @@ def gui():
 def shadbala(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
-    bhava: bool = typer.Option(False, "--bhava", "-b", help="Show Bhava Bala (house strengths) instead"),
+    bhava: bool = typer.Option(False, "--bhava", "-b", help="Show Bhava Bala (house strengths)"),
+    vimsopaka: bool = typer.Option(False, "--vimsopaka", "-v",
+                                   help="Show Vimsopaka Bala (varga-weighted strength)"),
+    scheme: str = typer.Option("shadvarga", "--scheme",
+                               help="Vimsopaka scheme: shadvarga, saptavarga, dashavarga, shodasavarga"),
 ):
     """Compute Shadbala (six-fold planetary strength) or Bhava Bala (house strength)."""
     bd = parse_birthdata(birthdata)
@@ -369,6 +374,10 @@ def shadbala(
         console.print()
         _print_bhava_bala(cd)
 
+    if vimsopaka:
+        console.print()
+        _print_vimsopaka(cd, scheme)
+
 
 def _print_bhava_bala(cd):
     from jhora.types.rasi import Rasi
@@ -392,6 +401,26 @@ def _print_bhava_bala(cd):
             f"{r.sthana:.1f}", f"{r.drishti:.1f}", f"{r.dig:.1f}",
             f"{r.adhipati:.1f}", f"{r.drig:+.1f}", f"{r.total:.1f}",
         )
+    console.print(table)
+
+
+def _print_vimsopaka(cd, scheme_name: str = "shadvarga"):
+    scheme_map = {s.value: s for s in VimsopakaScheme}
+    scheme = scheme_map.get(scheme_name, VimsopakaScheme.SHADVARGA)
+    vc = VimsopakaComputer(cd)
+    results = sorted(vc.compute_all(scheme), key=lambda r: r.total, reverse=True)
+
+    table = Table(title=f"Vimsopaka Bala — {scheme.value.upper()} (20-point scale)")
+    table.add_column("Planet", style="cyan")
+    table.add_column("Score", style="green")
+    table.add_column("%", style="yellow")
+    table.add_column("Breakdown", style="white")
+    for r in results:
+        breakdown = ", ".join(
+            f"{c.varga}={c.dignity[:3]}" for c in r.components
+        )
+        table.add_row(r.graha.full_name, f"{r.total:.1f}/20",
+                     f"{r.percentage:.0f}%", breakdown)
     console.print(table)
 
 
