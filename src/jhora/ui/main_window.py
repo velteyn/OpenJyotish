@@ -14,7 +14,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QAction
 
 from jhora.io.atlas import AtlasCity, AtlasReader, StaticAtlasReader, open_default_atlas
-from jhora.io.jhd_parser import parse_jhd, save_jhd, JhdData, JhdFormat
+from jhora.io.jhd_parser import (
+    parse_jhd, save_jhd, JhdData, JhdFormat,
+    save_chart_to_db, load_chart_from_db, list_charts, delete_chart,
+    import_jhd_to_db, export_chart_to_jhd,
+)
+from jhora.core.database import get_db, set_db_path
 
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
@@ -341,20 +346,20 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
         file_menu = menubar.addMenu("&File")
 
-        open_act = QAction("&Open...", self)
+        open_act = QAction("&Import .jhd...", self)
         open_act.setShortcut("Ctrl+O")
         open_act.triggered.connect(self._on_file_open)
         file_menu.addAction(open_act)
 
-        save_act = QAction("&Save", self)
+        save_act = QAction("&Save to Database", self)
         save_act.setShortcut("Ctrl+S")
         save_act.triggered.connect(self._on_file_save)
         file_menu.addAction(save_act)
 
-        save_as_act = QAction("Save &As...", self)
-        save_as_act.setShortcut("Ctrl+Shift+S")
-        save_as_act.triggered.connect(self._on_file_save_as)
-        file_menu.addAction(save_as_act)
+        export_act = QAction("&Export .jhd...", self)
+        export_act.setShortcut("Ctrl+Shift+S")
+        export_act.triggered.connect(self._on_file_export)
+        file_menu.addAction(export_act)
 
         file_menu.addSeparator()
 
@@ -365,46 +370,35 @@ class MainWindow(QMainWindow):
 
     def _on_file_open(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open JHora Data", "", "JHora Data (*.jhd);;All Files (*)"
+            self, "Import JHora Chart", "", "JHora Data (*.jhd);;All Files (*)"
         )
         if not path:
             return
         try:
             data = parse_jhd(path)
-            self.date_input.setDate(QDate(data.year, data.month, data.day))
-            h = int(data.time_hours)
-            m = int((data.time_hours - h) * 60)
-            s = int(round(((data.time_hours - h) * 60 - m) * 60))
-            self.time_input.setTime(QTime(h, m, s))
-            tz_sign = "+" if data.tz_offset >= 0 else "-"
-            self.tz_input.setText(f"{tz_sign}{abs(data.tz_offset):.1f}")
-            self.lat_input.setText(f"{data.latitude:.4f}")
-            self.lon_input.setText(f"{-data.longitude:.4f}")
-            if data.city:
-                self.city_input.setText(data.city)
-            self.current_file = path
-            self.setWindowTitle(f"Jagannatha Hora — {data.name}")
-            self.statusBar().showMessage(f"Opened: {path}")
+            self._fill_form_from_jhd(data, path)
         except Exception as e:
             QMessageBox.warning(self, "Open Error", f"Could not open file:\n{e}")
 
+    def _fill_form_from_jhd(self, data: JhdData, filepath: str = ""):
+        self.date_input.setDate(QDate(data.year, data.month, data.day))
+        h = int(data.time_hours)
+        m = int((data.time_hours - h) * 60)
+        s = int(round(((data.time_hours - h) * 60 - m) * 60))
+        self.time_input.setTime(QTime(h, m, s))
+        tz_sign = "+" if data.tz_offset >= 0 else "-"
+        self.tz_input.setText(f"{tz_sign}{abs(data.tz_offset):.1f}")
+        self.lat_input.setText(f"{data.latitude:.4f}")
+        self.lon_input.setText(f"{-data.longitude:.4f}")
+        if data.city:
+            self.city_input.setText(data.city)
+        self.current_file = filepath
+        self.setWindowTitle(f"Jagannatha Hora — {data.name}")
+        if filepath:
+            self.statusBar().showMessage(f"Opened: {filepath}")
+
     def _on_file_save(self):
-        if self.current_file:
-            self._do_save(self.current_file)
-        else:
-            self._on_file_save_as()
-
-    def _on_file_save_as(self):
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Save JHora Data", "", "JHora Data (*.jhd);;All Files (*)"
-        )
-        if path:
-            if not path.endswith(".jhd"):
-                path += ".jhd"
-            self._do_save(path)
-            self.current_file = path
-
-    def _do_save(self, path: str):
+        """Save chart to database."""
         try:
             qd = self.date_input.date()
             qt = self.time_input.time()
@@ -414,23 +408,48 @@ class MainWindow(QMainWindow):
             city = self.city_input.text().strip()
             hour = qt.hour() + qt.minute() / 60.0 + qt.second() / 3600.0
             tz_offset = ChartBuilder._parse_tz(tz_str)
+            name = f"{city or 'Unknown'} {qd.day():02d}/{qd.month():02d}/{qd.year()}"
+            chart_id = save_chart_to_db(
+                name=name, day=qd.day(), month=qd.month(), year=qd.year(),
+                time_hours=hour, tz_offset=tz_offset,
+                latitude=lat, longitude=-lon,
+                city=city,
+            )
+            self.setWindowTitle(f"Jagannatha Hora — {name}")
+            self.statusBar().showMessage(f"Saved to database (ID: {chart_id})")
+        except Exception as e:
+            QMessageBox.warning(self, "Save Error", f"Could not save:\n{e}")
 
+    def _on_file_export(self):
+        """Export current chart data to .jhd file."""
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export Chart", "", "JHora Data (*.jhd);;All Files (*)"
+        )
+        if not path:
+            return
+        if not path.endswith(".jhd"):
+            path += ".jhd"
+        try:
+            qd = self.date_input.date()
+            qt = self.time_input.time()
+            tz_str = self.tz_input.text().strip()
+            lat = float(self.lat_input.text().strip())
+            lon = float(self.lon_input.text().strip())
+            city = self.city_input.text().strip()
+            hour = qt.hour() + qt.minute() / 60.0 + qt.second() / 3600.0
+            tz_offset = ChartBuilder._parse_tz(tz_str)
             data = JhdData(
                 filename=path.split("/")[-1],
                 format=JhdFormat.BIRTH_CITY,
                 day=qd.day(), month=qd.month(), year=qd.year(),
-                time_hours=hour,
-                tz_offset=tz_offset,
-                longitude=-lon,
-                latitude=lat,
-                ayanamsa_override=0.0,
+                time_hours=hour, tz_offset=tz_offset,
+                longitude=-lon, latitude=lat,
                 city=city, country="",
             )
             save_jhd(path, data)
-            self.setWindowTitle(f"Jagannatha Hora — {data.name}")
-            self.statusBar().showMessage(f"Saved: {path}")
+            self.statusBar().showMessage(f"Exported: {path}")
         except Exception as e:
-            QMessageBox.warning(self, "Save Error", f"Could not save file:\n{e}")
+            QMessageBox.warning(self, "Export Error", f"Could not export:\n{e}")
 
     def _detect_location(self):
         """Detect latitude/longitude from IP address via geolocation API."""
@@ -483,12 +502,10 @@ class MainWindow(QMainWindow):
         if self._atlas is not None:
             return self._atlas
         try:
-            self._atlas = open_default_atlas(
-                Path(__file__).resolve().parents[3]
-            )
+            self._atlas = open_default_atlas()
             if isinstance(self._atlas, StaticAtlasReader):
                 self.statusBar().showMessage(
-                    "Bundled atlas not found; using sample city fallback."
+                    "City atlas not found; using sample data fallback."
                 )
             return self._atlas
         except Exception as e:

@@ -17,6 +17,10 @@ docs/books/
 data/cities15000.txt
 data/cities15000.zip
 
+# SQLite WAL/shared memory (runtime files)
+data/jhora.db-wal
+data/jhora.db-shm
+
 # Python
 venv/
 __pycache__/

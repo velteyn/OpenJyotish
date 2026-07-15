@@ -1,7 +1,12 @@
-from dataclasses import dataclass, field
+"""Chart data I/O — .jhd file parser + SQLite chart storage."""
+
+from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional
+
+from jhora.core.database import get_db
 
 
 class JhdFormat(Enum):
@@ -28,25 +33,14 @@ class JhdData:
     planet_longitudes: Optional[List[float]] = None
 
     @property
-    def datetime_utc(self) -> datetime:
-        local = datetime(self.year, self.month, self.day,
-                        int(self.time_hours),
-                        int((self.time_hours % 1) * 60),
-                        int(((self.time_hours * 60) % 1) * 60))
-        offset = timedelta(hours=self.tz_offset)
-        tz = timezone(offset)
-        return local.replace(tzinfo=tz).astimezone(timezone.utc).replace(tzinfo=None)
-
-    @property
     def name(self) -> str:
         return self.filename.removesuffix(".jhd").strip()
 
 
-_PLANET_ORDER = [
-    "Sun", "Moon", "Mars", "Mercury",
-    "Jupiter", "Venus", "Saturn", "Rahu", "Ketu",
-]
+_PLANET_ORDER = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
 
+
+# ---- .jhd file I/O (kept for compatibility with original format) ----
 
 def _parse_float(val: str) -> float:
     return float(val.strip())
@@ -54,20 +48,12 @@ def _parse_float(val: str) -> float:
 
 def save_jhd(path: str, data: JhdData) -> None:
     lines = [
-        str(data.day),
-        str(data.month),
-        str(data.year),
-        f"{data.time_hours:.6f}",
-        f"{data.tz_offset:.6f}",
-        f"{data.longitude:.6f}",
-        f"{data.latitude:.6f}",
-        f"{data.ayanamsa_override:.6f}",
-        f"{data.ayanamsa_override:.6f}",
-        f"{data.ayanamsa_override:.6f}",
-        "0",
-        "0",
-        data.city or "Unknown",
-        data.country or "",
+        str(data.day), str(data.month), str(data.year),
+        f"{data.time_hours:.6f}", f"{data.tz_offset:.6f}",
+        f"{data.longitude:.6f}", f"{data.latitude:.6f}",
+        f"{data.ayanamsa_override:.6f}", f"{data.ayanamsa_override:.6f}",
+        f"{data.ayanamsa_override:.6f}", "0", "0",
+        data.city or "Unknown", data.country or "",
     ]
     if data.planet_longitudes and len(data.planet_longitudes) >= 9:
         lines.append("18")
@@ -84,76 +70,141 @@ def parse_jhd(path: str) -> JhdData:
         raw = f.read()
     lines = raw.decode("ascii", errors="replace").strip().split("\r\n")
     n = len(lines)
-
     filename = path.split("/")[-1]
 
-    # All variants share first 7 fields
-    day = int(lines[0])
-    month = int(lines[1])
-    year = int(lines[2])
+    day, month, year = int(lines[0]), int(lines[1]), int(lines[2])
     time_hours = _parse_float(lines[3])
     tz_offset = _parse_float(lines[4])
     longitude = _parse_float(lines[5])
     latitude = _parse_float(lines[6])
-
-    ayanamsa_override = 0.0
+    ayanamsa_override = _parse_float(lines[7]) if n > 7 else 0.0
 
     if n <= 8:
-        # BIRTH_ONLY — just birth data
-        if n == 8:
-            ayanamsa_override = _parse_float(lines[7])
-        return JhdData(
-            filename=filename, format=JhdFormat.BIRTH_ONLY,
-            day=day, month=month, year=year,
-            time_hours=time_hours, tz_offset=tz_offset,
-            longitude=longitude, latitude=latitude,
-            ayanamsa_override=ayanamsa_override,
-        )
+        return JhdData(filename=filename, format=JhdFormat.BIRTH_ONLY,
+                       day=day, month=month, year=year, time_hours=time_hours,
+                       tz_offset=tz_offset, longitude=longitude, latitude=latitude,
+                       ayanamsa_override=ayanamsa_override)
 
-    # n >= 14 — check if line 12 is a city name (non-numeric)
     is_city = n > 12 and not lines[12].replace(".", "").replace("-", "").replace(" ", "").isdigit()
-
     if is_city:
-        # BIRTH_CITY variant
-        ayanamsa_override = _parse_float(lines[7])
         city = lines[12].strip()
         country = lines[13].strip() if n > 13 else ""
         planet_longitudes = None
-
-        if n >= 18 and lines[14].replace(".","").replace("-","").isdigit():
+        if n >= 18 and all(c.isdigit() or c in '.-' for c in lines[14]) and float(lines[14]) > 100:
+            planet_longitudes = [_parse_float(lines[i]) for i in range(14, min(23, n))]
             fmt = JhdFormat.BIRTH_CITY_EXTRA
-            # lines[14-17] = extra computed fields
         else:
             fmt = JhdFormat.BIRTH_CITY
+        return JhdData(filename=filename, format=fmt,
+                       day=day, month=month, year=year, time_hours=time_hours,
+                       tz_offset=tz_offset, longitude=longitude, latitude=latitude,
+                       ayanamsa_override=ayanamsa_override, city=city, country=country,
+                       planet_longitudes=planet_longitudes)
 
-        return JhdData(
-            filename=filename, format=fmt,
-            day=day, month=month, year=year,
-            time_hours=time_hours, tz_offset=tz_offset,
-            longitude=longitude, latitude=latitude,
-            ayanamsa_override=ayanamsa_override,
-            city=city, country=country,
-            planet_longitudes=planet_longitudes,
-        )
-
-    # No city — check if we have planet positions (lines 8-16 are large longitudes)
-    if n >= 17 and all(c.isdigit() or c in '.-' for c in lines[8]) and float(lines[8]) > 100:
-        ayanamsa_override = _parse_float(lines[7])
+    if n >= 17 and float(lines[8]) > 100:
         planet_longitudes = [_parse_float(lines[i]) for i in range(8, min(17, n))]
-        return JhdData(
-            filename=filename, format=JhdFormat.PLANET_POSITIONS,
-            day=day, month=month, year=year,
-            time_hours=time_hours, tz_offset=tz_offset,
-            longitude=longitude, latitude=latitude,
-            ayanamsa_override=ayanamsa_override,
-            planet_longitudes=planet_longitudes,
-        )
+        return JhdData(filename=filename, format=JhdFormat.PLANET_POSITIONS,
+                       day=day, month=month, year=year, time_hours=time_hours,
+                       tz_offset=tz_offset, longitude=longitude, latitude=latitude,
+                       ayanamsa_override=ayanamsa_override,
+                       planet_longitudes=planet_longitudes)
 
-    ayanamsa_override = _parse_float(lines[7])
-    return JhdData(
-        filename=filename, format=JhdFormat.BIRTH_ONLY,
-        day=day, month=month, year=year,
-        time_hours=time_hours, tz_offset=tz_offset,
-        longitude=longitude, latitude=latitude,
-        ayanamsa_override=ayanamsa_override,
+    return JhdData(filename=filename, format=JhdFormat.BIRTH_ONLY,
+                   day=day, month=month, year=year, time_hours=time_hours,
+                   tz_offset=tz_offset, longitude=longitude, latitude=latitude,
+                   ayanamsa_override=ayanamsa_override)
+
+
+# ---- SQLite chart storage ----
+
+def save_chart_to_db(name: str, day: int, month: int, year: int,
+                      time_hours: float, tz_offset: float,
+                      latitude: float, longitude: float,
+                      ayanamsa: str = "lahiri",
+                      city: str = "", country: str = "",
+                      notes: str = "",
+                      planet_longitudes: Optional[List[float]] = None) -> int:
+    db = get_db()
+    cur = db.execute(
+        "INSERT INTO charts (name, day, month, year, time_hours, tz_offset, "
+        "latitude, longitude, ayanamsa, city, country, notes) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        (name, day, month, year, time_hours, tz_offset,
+         latitude, longitude, ayanamsa, city, country, notes),
     )
+    chart_id = cur.lastrowid
+    if planet_longitudes:
+        for i, lon in enumerate(planet_longitudes):
+            db.execute(
+                "INSERT INTO chart_planets (chart_id, graha, longitude) "
+                "VALUES (?,?,?)", (chart_id, i, lon),
+            )
+    db.commit()
+    return chart_id
+
+
+def load_chart_from_db(chart_id: int) -> Optional[dict]:
+    db = get_db()
+    row = db.execute("SELECT * FROM charts WHERE id = ?", (chart_id,)).fetchone()
+    if row is None:
+        return None
+    result = dict(row)
+    planets = db.execute(
+        "SELECT graha, longitude, latitude, speed, is_retrograde "
+        "FROM chart_planets WHERE chart_id = ? ORDER BY graha",
+        (chart_id,),
+    ).fetchall()
+    result["planet_longitudes"] = {p["graha"]: dict(p) for p in planets}
+    return result
+
+
+def list_charts(search: str = "") -> List[dict]:
+    db = get_db()
+    if search:
+        rows = db.execute(
+            "SELECT id, name, created_at, city, country, day, month, year "
+            "FROM charts WHERE name LIKE ? ORDER BY created_at DESC LIMIT 50",
+            (f"%{search}%",),
+        ).fetchall()
+    else:
+        rows = db.execute(
+            "SELECT id, name, created_at, city, country, day, month, year "
+            "FROM charts ORDER BY created_at DESC LIMIT 50",
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_chart(chart_id: int):
+    db = get_db()
+    db.execute("DELETE FROM charts WHERE id = ?", (chart_id,))
+    db.commit()
+
+
+def import_jhd_to_db(path: str) -> int:
+    """Parse a .jhd file and save it to the database."""
+    data = parse_jhd(path)
+    return save_chart_to_db(
+        name=data.name,
+        day=data.day, month=data.month, year=data.year,
+        time_hours=data.time_hours, tz_offset=data.tz_offset,
+        latitude=data.latitude, longitude=data.longitude,
+        city=data.city, country=data.country,
+        planet_longitudes=data.planet_longitudes,
+    )
+
+
+def export_chart_to_jhd(chart_id: int, path: str):
+    """Load a chart from DB and save as .jhd file."""
+    data = load_chart_from_db(chart_id)
+    if data is None:
+        raise ValueError(f"Chart {chart_id} not found")
+    jhd = JhdData(
+        filename=Path(path).name,
+        format=JhdFormat.BIRTH_CITY,
+        day=data["day"], month=data["month"], year=data["year"],
+        time_hours=data["time_hours"], tz_offset=data["tz_offset"],
+        longitude=data["longitude"], latitude=data["latitude"],
+        city=data.get("city", ""), country=data.get("country", ""),
+        planet_longitudes=list(data.get("planet_longitudes", {}).keys()),
+    )
+    save_jhd(path, jhd)

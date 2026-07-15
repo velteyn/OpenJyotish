@@ -1,10 +1,15 @@
-"""City atlas — SQLite-backed search using GeoNames.org data (CC BY 4.0)."""
+"""City atlas — SQLite-backed search using GeoNames.org data (CC BY 4.0).
+
+Uses the unified Jhora database (data/jhora.db). The AtlasReader wraps a subset
+of queries on the `cities` and `cities_fts` tables.
+"""
 
 import json
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import List, Dict
+
+from jhora.core.database import get_db
 
 
 @dataclass
@@ -17,17 +22,10 @@ class AtlasCity:
 
 
 class AtlasReader:
-    def __init__(self, path: str | Path):
-        self._path = Path(path)
-        self._conn: Optional[sqlite3.Connection] = None
+    """Query the cities table in the unified database."""
 
-    @property
-    def _db(self) -> sqlite3.Connection:
-        if self._conn is None:
-            self._conn = sqlite3.connect(str(self._path))
-            self._conn.row_factory = sqlite3.Row
-            self._conn.execute("PRAGMA journal_mode=WAL")
-        return self._conn
+    def __init__(self, path: str | Path | None = None):
+        self._db = get_db()
 
     def search(self, query: str, max_results: int = 20) -> List[AtlasCity]:
         q = query.strip()
@@ -69,13 +67,11 @@ class AtlasReader:
         return results
 
     def close(self):
-        if self._conn:
-            self._conn.close()
-            self._conn = None
+        pass
 
 
 class StaticAtlasReader:
-    """Fallback atlas: loads from a JSON file of city entries (e.g. jhd_samples.json)."""
+    """Fallback atlas: loads from a JSON file (e.g. jhd_samples.json)."""
 
     def __init__(self, cities: List[AtlasCity]):
         self._city_map: Dict[str, List[AtlasCity]] = {}
@@ -120,27 +116,20 @@ class StaticAtlasReader:
 
 
 def open_default_atlas(base_dir: str | Path | None = None) -> AtlasReader | StaticAtlasReader:
-    if base_dir is not None:
-        roots = [Path(base_dir)]
-    else:
-        roots = [
-            Path.cwd(),
-            Path(__file__).resolve().parents[3],
-        ]
-    checked: List[Path] = []
-    for root in roots:
-        for rel in ("data/cities.db",):
-            candidate = (root / rel).resolve()
-            if candidate in checked:
-                continue
-            checked.append(candidate)
-            if candidate.exists():
-                return AtlasReader(candidate)
+    """Open the atlas — tries DB first, then JSON fallback in base_dir."""
+    if base_dir is None:
+        try:
+            reader = AtlasReader()
+            results = reader.search("lon", max_results=1)
+            if results:
+                return reader
+        except Exception:
+            pass
+
+    roots = [Path(base_dir)] if base_dir else [Path.cwd()]
     for root in roots:
         sample_path = (root / "data" / "jhd_samples.json").resolve()
         if sample_path.exists():
             return StaticAtlasReader.from_jhd_samples(sample_path)
-    checked_paths = ", ".join(str(p) for p in checked)
-    raise FileNotFoundError(
-        f"Could not find cities.db or data/jhd_samples.json ({checked_paths})"
-    )
+
+    raise FileNotFoundError("No atlas available — cities table empty or missing")
