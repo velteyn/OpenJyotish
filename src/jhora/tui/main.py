@@ -316,14 +316,37 @@ class TuiApp:
         except Exception as e:
             parts.append(f"[red]TP: {e}[/red]")
 
+        # Progressions
+        try:
+            pc = ProgressionCalculator(self.chart)
+            age = (datetime.now() - self.chart.birth_date).total_seconds() / (365.25 * 86400)
+            sec = pc.secondary(target_age=age)
+            if sec.chart:
+                n_l = Rasi.from_longitude(self.chart.ascendant).short_name
+                p_l = Rasi.from_longitude(sec.chart.ascendant).short_name
+                moved_planets = []
+                for g in CHART_ORDER:
+                    nr = Rasi.from_longitude(self.chart.planet(g).longitude).short_name
+                    pr = Rasi.from_longitude(sec.chart.planet(g).longitude).short_name
+                    if nr != pr:
+                        moved_planets.append(f"{g.short_name}: {nr}→{pr}")
+                parts.append(
+                    f"[bold]Progression (age {age:.1f})[/bold]\n"
+                    f"Lagna: {n_l} → {p_l}\n"
+                    f"Moved: {', '.join(moved_planets) if moved_planets else 'none'}"
+                )
+        except Exception as e:
+            parts.append(f"[red]Prog: {e}[/red]")
+
         cols = Columns(parts)
-        return Panel(cols, title="Tajaka + Tithi Pravesha")
+        return Panel(cols, title="Tajaka + Tithi Pravesha + Progressions")
 
     def _tithi_pravesha_panel(self) -> Panel:
         if not self.chart:
             return Panel("[dim]No chart loaded[/dim]")
         try:
-            from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
+from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
+from jhora.calc.progressions import ProgressionCalculator
             tp = TithiPraveshaCalculator(self.chart)
             now_y = datetime.now().year
             entries = tp.compute_range(now_y - 1, now_y + 1)
