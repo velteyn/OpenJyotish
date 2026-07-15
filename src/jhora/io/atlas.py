@@ -1,9 +1,10 @@
 """City atlas — SQLite-backed search using GeoNames.org data (CC BY 4.0)."""
 
+import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 
 @dataclass
@@ -71,3 +72,75 @@ class AtlasReader:
         if self._conn:
             self._conn.close()
             self._conn = None
+
+
+class StaticAtlasReader:
+    """Fallback atlas: loads from a JSON file of city entries (e.g. jhd_samples.json)."""
+
+    def __init__(self, cities: List[AtlasCity]):
+        self._city_map: Dict[str, List[AtlasCity]] = {}
+        for city in cities:
+            key = city.name.lower()
+            self._city_map.setdefault(key, []).append(city)
+
+    @classmethod
+    def from_jhd_samples(cls, path: str | Path) -> "StaticAtlasReader":
+        raw = json.loads(Path(path).read_text(encoding="utf-8"))
+        seen: set = set()
+        cities: List[AtlasCity] = []
+        for entry in raw:
+            name = str(entry.get("city", "")).strip()
+            if not name or name.lower() == "unknown":
+                continue
+            city = AtlasCity(
+                name=name,
+                latitude=float(entry["latitude"]),
+                longitude=float(entry["longitude"]),
+                tz_offset=float(entry["tz_offset"]),
+            )
+            key = (city.name.lower(), city.latitude, city.longitude, city.tz_offset)
+            if key in seen:
+                continue
+            seen.add(key)
+            cities.append(city)
+        return cls(cities)
+
+    def search(self, query: str, max_results: int = 20) -> List[AtlasCity]:
+        q = query.lower()
+        results: List[AtlasCity] = []
+        for key, cities in self._city_map.items():
+            if q in key:
+                results.extend(cities)
+                if len(results) >= max_results:
+                    break
+        return results[:max_results]
+
+    def close(self):
+        pass
+
+
+def open_default_atlas(base_dir: str | Path | None = None) -> AtlasReader | StaticAtlasReader:
+    if base_dir is not None:
+        roots = [Path(base_dir)]
+    else:
+        roots = [
+            Path.cwd(),
+            Path(__file__).resolve().parents[3],
+        ]
+    checked: List[Path] = []
+    for root in roots:
+        for rel in ("data/cities.db",):
+            candidate = (root / rel).resolve()
+            if candidate in checked:
+                continue
+            checked.append(candidate)
+            if candidate.exists():
+                return AtlasReader(candidate)
+    for root in roots:
+        sample_path = (root / "data" / "jhd_samples.json").resolve()
+        if sample_path.exists():
+            return StaticAtlasReader.from_jhd_samples(sample_path)
+    checked_paths = ", ".join(str(p) for p in checked)
+    raise FileNotFoundError(
+        f"Could not find cities.db or data/jhd_samples.json ({checked_paths})"
+    )
