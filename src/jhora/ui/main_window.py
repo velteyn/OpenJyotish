@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtCore import Qt, QDate, QTime, QTimer
@@ -12,7 +13,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QAction
 
-from jhora.io.atlas import AtlasCity, AtlasReader
+from jhora.io.atlas import AtlasCity, AtlasReader, StaticAtlasReader, open_default_atlas
 from jhora.io.jhd_parser import parse_jhd, save_jhd, JhdData, JhdFormat
 
 from jhora.charts.chart import ChartBuilder, ChartData
@@ -129,7 +130,7 @@ class MainWindow(QMainWindow):
         self.time_input.setTime(QTime(17, 48, 20))
         self.time_input.setToolTip("Local birth time")
 
-        self._atlas: Optional[AtlasReader] = None
+        self._atlas: Optional[AtlasReader | StaticAtlasReader] = None
         self._city_search_timer = QTimer()
         self._city_search_timer.setSingleShot(True)
         self._city_search_timer.setInterval(300)
@@ -138,9 +139,11 @@ class MainWindow(QMainWindow):
         self.city_input = QLineEdit()
         self.city_input.setPlaceholderText("Search city...")
         self.city_input.textChanged.connect(self._on_city_text_changed)
+        self.city_input.returnPressed.connect(self._on_city_search)
 
-        self.city_search_btn = QPushButton("🔍")
-        self.city_search_btn.setFixedWidth(40)
+        self.city_search_btn = QPushButton("Search")
+        self.city_search_btn.setFixedWidth(80)
+        self.city_search_btn.setToolTip("Search city in bundled atlas data")
         self.city_search_btn.clicked.connect(self._on_city_search)
 
         city_row = QHBoxLayout()
@@ -476,7 +479,7 @@ class MainWindow(QMainWindow):
             f"TZ = {sign}{abs(utc_offset):.1f} (UTC{'−' if utc_offset > 0 else '+'}{abs(utc_offset):.1f})"
         )
 
-    def _init_atlas(self) -> Optional[AtlasReader]:
+    def _init_atlas(self) -> Optional[AtlasReader | StaticAtlasReader]:
         if self._atlas is not None:
             return self._atlas
         try:
@@ -493,6 +496,7 @@ class MainWindow(QMainWindow):
         text = self.city_input.text().strip()
         if len(text) < 2:
             self.city_results.setHidden(True)
+            self.statusBar().showMessage("Enter at least 2 letters to search for a city.")
             return
         atlas = self._init_atlas()
         if atlas is None:
@@ -513,8 +517,10 @@ class MainWindow(QMainWindow):
                 item.setData(Qt.ItemDataRole.UserRole, city)
                 self.city_results.addItem(item)
             self.city_results.setHidden(False)
+            self.statusBar().showMessage(f"Found {len(results)} city match(es) for '{text}'.")
         else:
             self.city_results.setHidden(True)
+            self.statusBar().showMessage(f"No city matches found for '{text}'.")
 
     def _on_city_selected(self, item: QListWidgetItem):
         city: AtlasCity = item.data(Qt.ItemDataRole.UserRole)
@@ -958,7 +964,7 @@ class MainWindow(QMainWindow):
         headers = ["Sahama", "Meaning", "Longitude", "Sign", "House"]
         rows = []
         for sah in sahamas:
-            sign = ZodiacSign(int(sah.longitude / 30))
+            sign = Rasi(int(sah.longitude / 30))
             house = int(sah.longitude / 30) - int(cd.ascendant / 30) + 1
             if house <= 0:
                 house += 12
