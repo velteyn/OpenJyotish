@@ -23,6 +23,7 @@ from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
 from jhora.calc.mundane import MundaneCalculator, MUNDANE_HOUSES
 from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
 from jhora.calc.chalit import ChalitComputer
+from jhora.export.report import generate_chart_report
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
@@ -329,6 +330,26 @@ def yogas(
         names = ", ".join(p.full_name for p in y.planets) if y.planets else ""
         table.add_row(y.name, y.category, names, y.strength, y.description)
     console.print(table)
+
+
+@app.command()
+def export(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    output: str = typer.Option("chart_report.html", "--output", "-o", help="Output file path"),
+    style: str = typer.Option("full", "--style", "-s", help="full or compact"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Export chart as styled HTML report."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    path = generate_chart_report(cd, output, style)
+    console.print(f"[green]Report saved: {path}[/green]")
 
 
 @app.command()
