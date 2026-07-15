@@ -59,7 +59,7 @@
 - [x] Prasna (horary): 108/249/1800 modes
 - [x] Muhurta (electional) with planetary hour analysis
 - [x] Tithi Pravesha charts (annual/monthly/daily)
-- [ ] Progressions (D-n based Sun progression)
+- [x] Progressions (secondary: 1 day=1 year, solar arc, natal aspects)
 
 ### Tier 3: AI & UX (Our Moat)
 
