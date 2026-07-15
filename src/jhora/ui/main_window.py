@@ -31,6 +31,7 @@ from jhora.ephemeris.swe import SweEngine
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 from jhora.types.varga import VargaLevel, VargaVariant
+from jhora.ui.dasa_timeline_widget import DasaTimelineWidget
 from jhora.ui.chart_widget import ChartWidget, ChartStyle
 from jhora.calc.ashtakavarga import (
     all_bhinna_ashtakavarga, sarva_ashtakavarga, sodhya_pinda,
@@ -300,6 +301,9 @@ class MainWindow(QMainWindow):
         self.dasa_text.setReadOnly(True)
         dl.addWidget(self.dasa_text)
 
+        self.dasa_timeline = DasaTimelineWidget()
+        dl.addWidget(self.dasa_timeline)
+
         # Varga tab
         self.varga_widget = QWidget()
         vg = QVBoxLayout(self.varga_widget)
@@ -344,6 +348,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_interpreter_tab(), "Reading")
         self.tabs.addTab(self._build_ai_chat_tab(), "AI Chat")
         self.tabs.addTab(self._build_mundane_tab(), "Mundane")
+        self.tabs.addTab(self._build_ephemeris_tab(), "Ephemeris")
 
         right_layout.addWidget(self.tabs)
 
@@ -666,6 +671,7 @@ class MainWindow(QMainWindow):
             self._populate_transit_table(self.chart_data)
             self._populate_tithi_pravesha(self.chart_data)
             self._populate_progressions(self.chart_data)
+            self.dasa_timeline.set_chart(self.chart_data)
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -2370,6 +2376,69 @@ class MainWindow(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.mun_eclipse_table.setItem(i, j, item)
         self.mun_eclipse_table.resizeColumnsToContents()
+
+    # --- Ephemeris Tab ---
+
+    def _build_ephemeris_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
+        ctrl = QHBoxLayout()
+        ctrl.addWidget(QLabel("Start:"))
+        self.eph_start = QDateEdit(QDate.currentDate().addDays(-15))
+        self.eph_start.setCalendarPopup(True)
+        ctrl.addWidget(self.eph_start)
+        ctrl.addWidget(QLabel("End:"))
+        self.eph_end = QDateEdit(QDate.currentDate().addDays(15))
+        self.eph_end.setCalendarPopup(True)
+        ctrl.addWidget(self.eph_end)
+        ctrl.addWidget(QLabel("Step:"))
+        self.eph_step = QComboBox()
+        self.eph_step.addItems(["1", "7", "14", "30"])
+        self.eph_step.setCurrentText("7")
+        ctrl.addWidget(self.eph_step)
+
+        self.eph_go = QPushButton("Generate")
+        self.eph_go.clicked.connect(self._on_ephemeris_generate)
+        ctrl.addWidget(self.eph_go)
+        ctrl.addStretch()
+        layout.addLayout(ctrl)
+
+        self.eph_table = QTableWidget()
+        self.eph_table.setAlternatingRowColors(True)
+        layout.addWidget(self.eph_table)
+        return w
+
+    def _on_ephemeris_generate(self):
+        from jhora.calc.ephemeris import generate_ephemeris
+        from jhora.types.graha import Graha
+        start = self.eph_start.date().toPyDate()
+        end = self.eph_end.date().toPyDate()
+        step = int(self.eph_step.currentText())
+        entries = generate_ephemeris(
+            datetime(start.year, start.month, start.day),
+            datetime(end.year, end.month, end.day), step,
+        )
+
+        grahas = [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                  Graha.JUPITER, Graha.VENUS, Graha.SATURN,
+                  Graha.RAHU, Graha.KETU]
+        headers = ["Date"] + [g.short_name for g in grahas]
+        self.eph_table.setColumnCount(len(headers))
+        self.eph_table.setHorizontalHeaderLabels(headers)
+        self.eph_table.setRowCount(len(entries))
+        for i, e in enumerate(entries):
+            self.eph_table.setItem(i, 0, QTableWidgetItem(e.date.strftime("%Y-%m-%d")))
+            for j, g in enumerate(grahas):
+                p = e.planets.get(g, {})
+                item = QTableWidgetItem(f"{p.get('sign', '?')} {p.get('longitude', 0):.0f}°")
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                if p.get("retrograde"):
+                    item.setForeground(QColor("#ff6666"))
+                self.eph_table.setItem(i, j + 1, item)
+        self.eph_table.resizeColumnsToContents()
 
 
 class _AiWorker(QThread):
