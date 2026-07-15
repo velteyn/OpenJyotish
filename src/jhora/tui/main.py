@@ -334,20 +334,29 @@ class TuiApp:
     def _knowledge_panel(self) -> Panel:
         t = Table(box=box.SIMPLE)
         t.add_column("Source", style="yellow")
-        t.add_column("Chars", justify="right")
-        for src in self.kb.list_sources():
-            txt = self.kb.docs.get(src, "")
-            t.add_row(src, str(len(txt)))
-        return Panel(t, title=f"Knowledge Base ({self.kb.loaded} sources)")
+        sources = self.kb.list_sources()
+        for src in sources:
+            t.add_row(src, "")
+        if self.chart and sources:
+            try:
+                results = self.kb.search("yoga", max_results=2)
+                if results:
+                    t.add_row("", "")
+                    t.add_row("[bold italic]Sample search: 'yoga'[/bold italic]", "")
+                    for r in results:
+                        t.add_row(r["source"][:30], r["excerpt"][:80])
+            except Exception:
+                pass
+        return Panel(t, title=f"Knowledge Base ({self.kb.loaded} sources)\nFull search: jhora knowledge 'query'")
 
-    def _reading_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded — compute a chart first[/dim]")
-        try:
-            text = self.interpreter.interpret_text(self.chart, style="concise")
-            return Panel(text[:2000], title="Chart Reading (concise)")
-        except Exception as e:
-            return Panel(f"[red]Error: {e}[/red]", title="Chart Reading")
+    def _kuta_panel(self) -> Panel:
+        return Panel(
+            "[yellow]Matchmaking requires two charts[/yellow]\n\n"
+            "CLI: [bold]jhora kuta[/bold] 'chart1' 'chart2'\n"
+            "GUI: Matchmaking tab (interactive)\n\n"
+            "Systems: 10 Porutham (19pt) | Ashta Koota (36pt)",
+            title="Matchmaking",
+        )
 
     def _ai_panel(self) -> Panel:
         if not self.chart:
@@ -356,19 +365,20 @@ class TuiApp:
             engine = AiEngine(AiConfig(provider="ollama"))
             health = engine.health_check()
             if health["ok"]:
-                info = f"AI ready ({len(health['models'])} models)"
+                info = f"[green]Ready ({len(health['models'])} models)[/green]"
             else:
-                info = f"AI offline: {health['error'][:60]}"
+                info = f"[yellow]{health['error'][:40]}[/yellow]"
         except Exception as e:
-            info = f"AI error: {e}"
+            info = f"[red]{e}[/red]"
         return Panel(
-            f"[bold]AI Chart Reading[/bold]\n\n"
             f"Status: {info}\n\n"
-            f"Use the CLI for AI interpretation:\n"
-            f"  [cyan]jhora ai[/cyan] 'YYYY-MM-DD HH:MM TZ LAT LON'\n"
-            f"  [cyan]jhora ai[/cyan] --mode remedies\n"
-            f"  [cyan]jhora ai[/cyan] --mode ask --question 'What about my career?'\n\n"
-            f"Providers: ollama, lmstudio, unsloth, custom",
+            f"[bold]Recommended: CLI or GUI for full interaction[/bold]\n\n"
+            f"CLI: [cyan]jhora ai[/cyan] --topic general 'data'\n"
+            f"CLI: [cyan]jhora ai[/cyan] --mode ask -q 'question' 'data'\n"
+            f"GUI: AI Chat tab (streaming output)\n\n"
+            f"Topics: general, relationship, career,\n"
+            f"  health, spirituality, children,\n"
+            f"  finance, mundane",
             title="AI Chat",
         )
 
