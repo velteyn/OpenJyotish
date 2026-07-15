@@ -22,6 +22,7 @@ from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
 from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
 from jhora.calc.mundane import MundaneCalculator, MUNDANE_HOUSES
 from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
+from jhora.calc.chalit import ChalitComputer
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
@@ -68,6 +69,7 @@ def parse_birthdata(input_str: str) -> dict:
 def chart(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    chalit: bool = typer.Option(False, "--chalit", help="Show Bhava/Chalit house positions"),
 ):
     """Compute and display birth chart."""
     bd = parse_birthdata(birthdata)
@@ -79,6 +81,8 @@ def chart(
     )
     _display_chart(chart_data)
     _display_chart_yogas(chart_data)
+    if chalit:
+        _display_chalit(chart_data)
 
 
 @app.command()
@@ -194,6 +198,28 @@ def _lord_name(idx: int) -> str:
         return Graha(idx).full_name
     except ValueError:
         return str(idx)
+
+
+def _display_chalit(cd: ChartData):
+    cc = ChalitComputer(cd)
+    for vl in [VargaLevel.D_1, VargaLevel.D_9]:
+        r = cc.compute(vl)
+        table = Table(title=f"{vl.name} Chalit Chakra — Bhava (cusp) vs Rasi (sign)")
+        table.add_column("Planet", style="cyan")
+        table.add_column("Sign", style="yellow")
+        table.add_column("Sign H", justify="right")
+        table.add_column("Cusp H", justify="right", style="green")
+        table.add_column("Shift", style="red")
+        for e in r.entries:
+            marker = "← MOVED" if e.moved else ""
+            table.add_row(e.graha.short_name, e.sign,
+                         str(e.sign_house), str(e.cusp_house), marker)
+        if r.moved_planets:
+            moved = ", ".join(f"{e.graha.short_name}(H{e.sign_house}→H{e.cusp_house})"
+                             for e in r.moved_planets)
+            table.caption = f"Planets that shifted houses: {moved}"
+        console.print(table)
+        console.print()
 
 
 def _display_dasa_table(periods, title: str = "Dasa Periods"):
@@ -694,7 +720,6 @@ def progression(
         from datetime import datetime
         age = (datetime.now() - cd.birth_date).total_seconds() / (365.25 * 86400)
 
-    from jhora.calc.progressions import ProgressionCalculator
     pc = ProgressionCalculator(cd)
     sec = pc.secondary(target_age=age)
 
