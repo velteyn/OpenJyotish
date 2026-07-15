@@ -5,7 +5,7 @@ from typing import Optional
 from PyQt6.QtCore import Qt, QDate, QTime, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QFont
 from PyQt6.QtWidgets import (
-    QApplication, QListWidget, QListWidgetItem, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QApplication, QDialog, QListWidget, QListWidgetItem, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget,
     QTableWidgetItem, QHeaderView, QSplitter, QTextEdit, QTabWidget,
     QMessageBox, QGroupBox, QFormLayout,
@@ -331,6 +331,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_knowledge_tab(), "Knowledge")
         self.tabs.addTab(self._build_interpreter_tab(), "Reading")
         self.tabs.addTab(self._build_ai_chat_tab(), "AI Chat")
+        self.tabs.addTab(self._build_mundane_tab(), "Mundane")
 
         right_layout.addWidget(self.tabs)
 
@@ -364,6 +365,13 @@ class MainWindow(QMainWindow):
         export_act.setShortcut("Ctrl+Shift+S")
         export_act.triggered.connect(self._on_file_export)
         file_menu.addAction(export_act)
+
+        file_menu.addSeparator()
+
+        browse_act = QAction("&Browse Charts...", self)
+        browse_act.setShortcut("Ctrl+B")
+        browse_act.triggered.connect(self._on_chart_browse)
+        file_menu.addAction(browse_act)
 
         file_menu.addSeparator()
 
@@ -1996,7 +2004,6 @@ class MainWindow(QMainWindow):
         engine = self._get_ai_engine()
         if mode == "interpret":
             self._ai_worker = _AiWorker(engine, "interpret", cd, style=style, topic=topic)
-        elif mode == "remedies"
         elif mode == "remedies":
             self._ai_worker = _AiWorker(engine, "remedies", cd)
 
@@ -2041,6 +2048,190 @@ class MainWindow(QMainWindow):
     def _set_ai_buttons_enabled(self, enabled: bool):
         for btn in [self.ai_interpret_btn, self.ai_remedy_btn, self.ai_ask_btn]:
             btn.setEnabled(enabled)
+
+    # --- Chart Browser ---
+
+    def _on_chart_browse(self):
+        charts = list_charts()
+        if not charts:
+            QMessageBox.information(self, "Browse Charts", "No saved charts found.\n\nUse File → Save to Database to save charts.")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Browse Saved Charts")
+        dialog.resize(700, 400)
+        dialog.setStyleSheet(self.styleSheet())
+        layout = QVBoxLayout(dialog)
+
+        table = QTableWidget()
+        table.setColumnCount(5)
+        table.setHorizontalHeaderLabels(["Name", "Date", "City", "Country", "ID"])
+        table.setRowCount(len(charts))
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.horizontalHeader().setStretchLastSection(True)
+        table.setAlternatingRowColors(True)
+        for i, ch in enumerate(charts):
+            dt = f"{ch.get('day','')}/{ch.get('month','')}/{ch.get('year','')}"
+            for j, val in enumerate([ch.get("name", ""), dt,
+                                     ch.get("city", ""), ch.get("country", ""),
+                                     str(ch.get("id", ""))]):
+                table.setItem(i, j, QTableWidgetItem(str(val)))
+        layout.addWidget(table)
+
+        btn_row = QHBoxLayout()
+        load_btn = QPushButton("Load")
+        delete_btn = QPushButton("Delete")
+        close_btn = QPushButton("Close")
+        btn_row.addWidget(load_btn)
+        btn_row.addWidget(delete_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
+
+        def _load():
+            row = table.currentRow()
+            if row < 0:
+                return
+            chart_id = int(table.item(row, 4).text())
+            data = load_chart_from_db(chart_id)
+            if data:
+                self.date_input.setDate(QDate(data["year"], data["month"], data["day"]))
+                th = data["time_hours"]
+                self.time_input.setTime(QTime(int(th), int((th % 1) * 60), 0))
+                tz_sign = "+" if data["tz_offset"] >= 0 else "-"
+                self.tz_input.setText(f"{tz_sign}{abs(data['tz_offset']):.1f}")
+                self.lat_input.setText(f"{data['latitude']:.4f}")
+                self.lon_input.setText(f"{-data['longitude']:.4f}")
+                if data.get("city"):
+                    self.city_input.setText(data["city"])
+                self.setWindowTitle(f"Jagannatha Hora — {data['name']}")
+                dialog.accept()
+
+        def _delete():
+            row = table.currentRow()
+            if row < 0:
+                return
+            chart_id = int(table.item(row, 4).text())
+            name = table.item(row, 0).text()
+            reply = QMessageBox.question(dialog, "Delete Chart",
+                                        f"Delete '{name}'?",
+                                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.Yes:
+                delete_chart(chart_id)
+                table.removeRow(row)
+
+        load_btn.clicked.connect(_load)
+        delete_btn.clicked.connect(_delete)
+        close_btn.clicked.connect(dialog.reject)
+        table.doubleClicked.connect(lambda *_: _load())
+        dialog.exec()
+
+    # --- Mundane Tab ---
+
+    def _build_mundane_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
+        # Controls
+        ctrl = QHBoxLayout()
+        ctrl.addWidget(QLabel("Year:"))
+        self.mun_year = QLineEdit(str(datetime.now().year))
+        self.mun_year.setFixedWidth(60)
+        ctrl.addWidget(self.mun_year)
+        ctrl.addWidget(QLabel("Lat:"))
+        self.mun_lat = QLineEdit("28.61")
+        self.mun_lat.setFixedWidth(70)
+        ctrl.addWidget(self.mun_lat)
+        ctrl.addWidget(QLabel("Lon:"))
+        self.mun_lon = QLineEdit("77.21")
+        self.mun_lon.setFixedWidth(70)
+        ctrl.addWidget(QLabel("TZ:"))
+        self.mun_tz = QLineEdit("+0530")
+        self.mun_tz.setFixedWidth(60)
+
+        self.mun_compute_btn = QPushButton("Compute")
+        self.mun_compute_btn.clicked.connect(self._on_mundane_compute)
+        ctrl.addWidget(self.mun_compute_btn)
+        ctrl.addStretch()
+        layout.addLayout(ctrl)
+
+        # Ingress table
+        self.mun_ingress_label = QLabel("")
+        self.mun_ingress_label.setStyleSheet("font-weight: bold; color: #e0b050;")
+        layout.addWidget(self.mun_ingress_label)
+
+        self.mun_ingress_table = QTableWidget()
+        self.mun_ingress_table.setColumnCount(4)
+        self.mun_ingress_table.setHorizontalHeaderLabels(["Sign", "Date/Time (UT)", "Lagna", "Planets"])
+        self.mun_ingress_table.horizontalHeader().setStretchLastSection(True)
+        self.mun_ingress_table.setAlternatingRowColors(True)
+        layout.addWidget(self.mun_ingress_table)
+
+        # Eclipses
+        self.mun_eclipse_label = QLabel("")
+        self.mun_eclipse_label.setStyleSheet("font-weight: bold; color: #e0b050; margin-top: 8px;")
+        layout.addWidget(self.mun_eclipse_label)
+        self.mun_eclipse_table = QTableWidget()
+        self.mun_eclipse_table.setColumnCount(2)
+        self.mun_eclipse_table.setHorizontalHeaderLabels(["Event", "Date/Time (UT)"])
+        self.mun_eclipse_table.horizontalHeader().setStretchLastSection(True)
+        self.mun_eclipse_table.setAlternatingRowColors(True)
+        layout.addWidget(self.mun_eclipse_table)
+
+        return w
+
+    def _on_mundane_compute(self):
+        from jhora.calc.mundane import MundaneCalculator
+        from jhora.types.rasi import Rasi
+        from jhora.types.graha import Graha
+
+        try:
+            year = int(self.mun_year.text())
+            lat = float(self.mun_lat.text())
+            lon = float(self.mun_lon.text())
+            tz = self.mun_tz.text()
+        except ValueError:
+            return
+
+        mc = MundaneCalculator(lat=lat, lon=lon, tz=tz)
+
+        # Ingress table
+        self.mun_ingress_label.setText(f"Solar Ingresses {year}")
+        ingresses = mc.solar_ingresses(year)
+        self.mun_ingress_table.setRowCount(len(ingresses))
+        for i, e in enumerate(ingresses):
+            row = [e.sign, e.datetime_utc, "", ""]
+            if e.chart is None:
+                e.chart = mc._chart(e.julian_day)
+            ch = e.chart
+            if ch:
+                lagna = Rasi.from_longitude(ch.ascendant).short_name
+                planets = ", ".join(
+                    f"{Rasi.from_longitude(ch.planet(g).longitude).short_name}"
+                    for g in [Graha.SUN, Graha.MOON, Graha.MARS]
+                )
+                row[2] = lagna
+                row[3] = planets
+            for j, val in enumerate(row):
+                item = QTableWidgetItem(val)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.mun_ingress_table.setItem(i, j, item)
+        self.mun_ingress_table.resizeColumnsToContents()
+
+        # Eclipse table
+        eclipses = mc.eclipses()
+        self.mun_eclipse_label.setText(f"Upcoming Eclipses ({len(eclipses)})")
+        self.mun_eclipse_table.setRowCount(len(eclipses))
+        for i, e in enumerate(eclipses):
+            for j, val in enumerate([e.name, e.datetime_utc]):
+                item = QTableWidgetItem(val)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.mun_eclipse_table.setItem(i, j, item)
+        self.mun_eclipse_table.resizeColumnsToContents()
 
 
 class _AiWorker(QThread):
