@@ -19,6 +19,7 @@ from rich import box
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer
 from jhora.calc.shadbala import ShadbalaComputer
+from jhora.calc.bhava_bala import BhavaBalaComputer
 from jhora.calc.yogas import detect_all
 from jhora.calc.ashtakavarga import sarva_ashtakavarga
 from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
@@ -171,20 +172,40 @@ class TuiApp:
         if not self.chart:
             return Panel("[dim]No chart loaded[/dim]")
         comp = ShadbalaComputer(self.chart)
-        t = Table(box=box.SIMPLE)
-        t.add_column("Planet", style="yellow")
+        t_gr = Table(box=box.SIMPLE)
+        t_gr.add_column("Planet", style="yellow")
         cols = ["Sthana", "Dig", "Kala", "Chesta", "Naisarg", "Drik", "Total"]
         for c in cols:
-            t.add_column(c, justify="right")
+            t_gr.add_column(c, justify="right")
         for g in CHART_ORDER:
             try:
-                sb = comp.compute_all(g)
-                vals = [sb.get(k, 0) for k in ["sthana","dig","kala","chesta","naisargika","drik"]]
-                total = sum(vals)
-                t.add_row(g.short_name, *[f"{v:.1f}" for v in vals], f"[bold]{total:.1f}[/bold]")
+                sb = comp.compute_one(g)
+                vals = [sb.sthana_total, sb.dig_total, sb.kala_total,
+                        sb.chesta_total, sb.naisargika.virupa, sb.drik.virupa]
+                total = sb.total_virupa
+                t_gr.add_row(g.short_name, *[f"{v:.1f}" for v in vals], f"[bold]{total:.1f}[/bold]")
             except Exception:
                 continue
-        return Panel(t, title="Shadbala (virupas)")
+
+        # Bhava Bala
+        bb = BhavaBalaComputer(self.chart)
+        report = bb.compute_all()
+        t_bh = Table(box=box.SIMPLE)
+        t_bh.add_column("H", style="yellow")
+        t_bh.add_column("Sthana", justify="right")
+        t_bh.add_column("Drishti", justify="right")
+        t_bh.add_column("Dig", justify="right")
+        t_bh.add_column("Adhip", justify="right")
+        t_bh.add_column("Drig", justify="right")
+        t_bh.add_column("Total", justify="right", style="bold")
+        for h in range(1, 13):
+            r = report.results[h]
+            t_bh.add_row(str(h), f"{r.sthana:.1f}", f"{r.drishti:.1f}",
+                         f"{r.dig:.1f}", f"{r.adhipati:.1f}",
+                         f"{r.drig:.1f}", f"[bold]{r.total:.1f}[/bold]")
+
+        cols_layout = Columns([t_gr, t_bh])
+        return Panel(cols_layout, title="Shadbala + Bhava Bala (virupas)")
 
     def _arudha_panel(self) -> Panel:
         if not self.chart:

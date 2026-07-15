@@ -24,6 +24,7 @@ from jhora.core.database import get_db, set_db_path
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
 from jhora.calc.shadbala import ShadbalaComputer
+from jhora.calc.bhava_bala import BhavaBalaComputer
 from jhora.ephemeris.swe import SweEngine
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
@@ -819,6 +820,11 @@ class MainWindow(QMainWindow):
         w = QWidget()
         layout = QVBoxLayout(w)
         layout.setContentsMargins(8, 8, 8, 8)
+
+        lbl_gr = QLabel("Shadbala — Planetary Strengths (rupa / virupa)")
+        lbl_gr.setStyleSheet("font-weight: bold; color: #e0b050;")
+        layout.addWidget(lbl_gr)
+
         self.shadbala_table = QTableWidget()
         headers = ["Planet", "Sthana (R)", "Dig (R)", "Kala (R)", "Chesta (R)",
                    "Naisargika (R)", "Drik (R)", "Total (R)", "Total (V)", "Rel Str"]
@@ -827,6 +833,19 @@ class MainWindow(QMainWindow):
         self.shadbala_table.horizontalHeader().setStretchLastSection(True)
         self.shadbala_table.setAlternatingRowColors(True)
         layout.addWidget(self.shadbala_table)
+
+        lbl_bh = QLabel("Bhava Bala — House Strengths (virupas)")
+        lbl_bh.setStyleSheet("font-weight: bold; color: #e0b050; margin-top: 8px;")
+        layout.addWidget(lbl_bh)
+
+        self.bhava_bala_table = QTableWidget()
+        bh_headers = ["House", "Sign", "Lord", "Sthana", "Drishti", "Dig",
+                      "Adhipati", "Drig", "Total"]
+        self.bhava_bala_table.setColumnCount(len(bh_headers))
+        self.bhava_bala_table.setHorizontalHeaderLabels(bh_headers)
+        self.bhava_bala_table.horizontalHeader().setStretchLastSection(True)
+        self.bhava_bala_table.setAlternatingRowColors(True)
+        layout.addWidget(self.bhava_bala_table)
         return w
 
     def _populate_shadbala_table(self, cd: ChartData):
@@ -868,6 +887,25 @@ class MainWindow(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.shadbala_table.setItem(i, c, item)
         self.shadbala_table.resizeColumnsToContents()
+
+        # Bhava Bala
+        from jhora.calc.bhava_bala import BhavaBalaComputer
+        from jhora.types.rasi import Rasi
+        bb = BhavaBalaComputer(cd)
+        report = bb.compute_all()
+        self.bhava_bala_table.setRowCount(12)
+        for h in range(1, 13):
+            r = report.results[h]
+            rasi_idx = (int(cd.ascendant / 30) + h - 1) % 12
+            lord_str = Rasi(rasi_idx).lord
+            row = [str(h), Rasi(rasi_idx).short_name, lord_str,
+                   f"{r.sthana:.1f}", f"{r.drishti:.1f}", f"{r.dig:.1f}",
+                   f"{r.adhipati:.1f}", f"{r.drig:+.1f}", f"{r.total:.1f}"]
+            for c, val in enumerate(row):
+                item = QTableWidgetItem(val)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.bhava_bala_table.setItem(h - 1, c, item)
+        self.bhava_bala_table.resizeColumnsToContents()
 
     # --- Ashtakavarga ---
 

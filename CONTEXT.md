@@ -27,6 +27,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - **Varga charts**: 23 levels (D-1 through D-150), 30+ variant mappings
 - **Dasas**: 7 systems — Vimsottari, Ashtottari, Yogini, Sudasa, Chara, Narayana, Kalachakra
 - **Shadbala**: Six-fold planetary strength (sthana, dig, kala, chesta, naisargika, drik)
+- **Bhava Bala**: Five-factor house strength (sthana, drishti, dig, adhipati, drig) — shown in GUI Shadbala tab, CLI `--bhava` flag, TUI
 - **Yogas**: 10+ types, 200+ combinations
 - **Ashtakavarga**: BAV, SAV, PAV, Trikona/Ekadhipatya Shodhana, Kakshya-level bindu
 - **Arudha Padas**: Bhava (AL, A2-A12) + Graha arudhas
@@ -43,7 +44,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by **PVR Narasimha Rao**, p
 - **CLI**: 16 commands — chart, dasa, navamsa, varga, interpret, knowledge, yogas, gui, shadbala, ashtakavarga, tajaka, kuta, transit, prasna, muhurta, tui
 - **GUI**: PyQt6 dark theme, 3 chart styles, 15 tabs (Planets, Houses, Dasa, Varga, Yogas, Shadbala, Arudha & Karaka, Ashtakavarga, Transit, Tajaka, Matchmaking, Prasna, Muhurta, Knowledge, Reading)
 - **TUI**: Rich-based interactive terminal, 15 keyboard-navigable tabs
-- **Tests: 619 passing** (24 test files, 4,721 lines)
+- **Tests: 629 passing** (25 test files, 4,800+ lines)
 - **Atlas**: SQLite database from GeoNames.org (CC BY 4.0), 34,006 cities, FTS5 full-text search, 3.8 MB — replaces proprietary `.adb` format
 
 ## Files
