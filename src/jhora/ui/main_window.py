@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QDate, QTime, QTimer
+from PyQt6.QtCore import Qt, QDate, QTime, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QFont
 from PyQt6.QtWidgets import (
     QApplication, QListWidget, QListWidgetItem, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -20,6 +20,7 @@ from jhora.io.jhd_parser import (
     import_jhd_to_db, export_chart_to_jhd,
 )
 from jhora.core.database import get_db, set_db_path
+from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
 
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
@@ -328,6 +329,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_muhurta_tab(), "Muhurta")
         self.tabs.addTab(self._build_knowledge_tab(), "Knowledge")
         self.tabs.addTab(self._build_interpreter_tab(), "Reading")
+        self.tabs.addTab(self._build_ai_chat_tab(), "AI Chat")
 
         right_layout.addWidget(self.tabs)
 
@@ -1846,3 +1848,185 @@ class MainWindow(QMainWindow):
         sav_headers = [Rasi(r).short_name for r in range(12)]
         sav_row = [str(result.sav[r]) for r in range(12)]
         self._fill_table(self.tr_sav_table, sav_headers, [sav_row])
+
+    # --- AI Chat ---
+
+    def _build_ai_chat_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
+        # Provider config row
+        cfg = QHBoxLayout()
+        cfg.addWidget(QLabel("Provider:"))
+        self.ai_provider = QComboBox()
+        self.ai_provider.addItems(list(PROVIDERS.keys()))
+        self.ai_provider.setCurrentText("ollama")
+        self.ai_provider.currentTextChanged.connect(self._on_ai_provider_changed)
+        cfg.addWidget(self.ai_provider)
+
+        cfg.addWidget(QLabel("Model:"))
+        self.ai_model = QLineEdit("llama3.2")
+        self.ai_model.setFixedWidth(140)
+        cfg.addWidget(self.ai_model)
+
+        self.ai_check_btn = QPushButton("Check")
+        self.ai_check_btn.setFixedWidth(60)
+        self.ai_check_btn.clicked.connect(self._on_ai_health_check)
+        cfg.addWidget(self.ai_check_btn)
+
+        self.ai_status = QLabel("")
+        self.ai_status.setStyleSheet("color: #888888;")
+        cfg.addWidget(self.ai_status)
+        cfg.addStretch()
+        layout.addLayout(cfg)
+
+        # Action buttons
+        btn_row = QHBoxLayout()
+        self.ai_interpret_btn = QPushButton("Interpret Chart")
+        self.ai_interpret_btn.clicked.connect(lambda: self._on_ai_action("interpret"))
+        btn_row.addWidget(self.ai_interpret_btn)
+
+        self.ai_remedy_btn = QPushButton("Suggest Remedies")
+        self.ai_remedy_btn.clicked.connect(lambda: self._on_ai_action("remedies"))
+        btn_row.addWidget(self.ai_remedy_btn)
+
+        self.ai_style = QComboBox()
+        self.ai_style.addItems(["concise", "detailed", "professional"])
+        self.ai_style.setCurrentText("detailed")
+        self.ai_style.setFixedWidth(120)
+        btn_row.addWidget(QLabel("Style:"))
+        btn_row.addWidget(self.ai_style)
+
+        self.ai_ask_input = QLineEdit()
+        self.ai_ask_input.setPlaceholderText("Or ask a specific question...")
+        self.ai_ask_input.returnPressed.connect(self._on_ai_ask)
+        btn_row.addWidget(self.ai_ask_input)
+
+        self.ai_ask_btn = QPushButton("Ask")
+        self.ai_ask_btn.clicked.connect(self._on_ai_ask)
+        btn_row.addWidget(self.ai_ask_btn)
+        layout.addLayout(btn_row)
+
+        # Output area
+        self.ai_output = QTextEdit()
+        self.ai_output.setReadOnly(True)
+        self.ai_output.setStyleSheet(
+            "QTextEdit { background-color: #0d1b2a; color: #e0e0e0; "
+            "font-family: 'Segoe UI', sans-serif; font-size: 13px; "
+            "border: 1px solid #2a3f5f; border-radius: 4px; padding: 8px; }"
+        )
+        layout.addWidget(self.ai_output)
+
+        self._ai_worker: Optional[_AiWorker] = None
+        self._ai_engine: Optional[AiEngine] = None
+        return w
+
+    def _get_ai_engine(self) -> AiEngine:
+        config = AiConfig(
+            provider=self.ai_provider.currentText(),
+            model=self.ai_model.text().strip(),
+            base_url=PROVIDERS.get(self.ai_provider.currentText(), {}).get("base_url", ""),
+        )
+        return AiEngine(config)
+
+    def _on_ai_provider_changed(self, provider: str):
+        preset = PROVIDERS.get(provider, {})
+        self.ai_model.setText(preset.get("default_model", ""))
+
+    def _on_ai_health_check(self):
+        self.ai_check_btn.setEnabled(False)
+        self.ai_status.setText("Checking...")
+        engine = self._get_ai_engine()
+        result = engine.health_check()
+        if result["ok"]:
+            self.ai_status.setText(f"OK — {len(result['models'])} models")
+        else:
+            self.ai_status.setText(f"Error: {result['error'][:60]}")
+        self.ai_check_btn.setEnabled(True)
+
+    def _on_ai_action(self, mode: str):
+        cd = self.chart_data
+        if cd is None:
+            self.ai_output.setText("[Compute a chart first using the main form]")
+            return
+        style = self.ai_style.currentText()
+        self.ai_output.clear()
+        self.ai_output.append(f"[Generating {mode} with {self.ai_provider.currentText()}/{self.ai_model.text()}...]\n")
+        self._set_ai_buttons_enabled(False)
+
+        engine = self._get_ai_engine()
+        if mode == "interpret":
+            self._ai_worker = _AiWorker(engine, "interpret", cd, style=style)
+        elif mode == "remedies":
+            self._ai_worker = _AiWorker(engine, "remedies", cd)
+
+        self._ai_worker.token.connect(self._on_ai_token)
+        self._ai_worker.done.connect(self._on_ai_done)
+        self._ai_worker.error.connect(self._on_ai_error)
+        self._ai_worker.start()
+
+    def _on_ai_ask(self):
+        q = self.ai_ask_input.text().strip()
+        if not q:
+            return
+        cd = self.chart_data
+        if cd is None:
+            self.ai_output.setText("[Compute a chart first using the main form]")
+            return
+        self.ai_output.clear()
+        self.ai_output.append(f"[Asking: {q}]\n")
+        self._set_ai_buttons_enabled(False)
+
+        engine = self._get_ai_engine()
+        self._ai_worker = _AiWorker(engine, "ask", cd, question=q)
+        self._ai_worker.token.connect(self._on_ai_token)
+        self._ai_worker.done.connect(self._on_ai_done)
+        self._ai_worker.error.connect(self._on_ai_error)
+        self._ai_worker.start()
+
+    def _on_ai_token(self, text: str):
+        cursor = self.ai_output.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        cursor.insertText(text)
+        self.ai_output.ensureCursorVisible()
+
+    def _on_ai_done(self):
+        self.ai_output.append("\n\n[done]")
+        self._set_ai_buttons_enabled(True)
+
+    def _on_ai_error(self, msg: str):
+        self.ai_output.append(f"\n\n[Error: {msg}]")
+        self._set_ai_buttons_enabled(True)
+
+    def _set_ai_buttons_enabled(self, enabled: bool):
+        for btn in [self.ai_interpret_btn, self.ai_remedy_btn, self.ai_ask_btn]:
+            btn.setEnabled(enabled)
+
+
+class _AiWorker(QThread):
+    token = pyqtSignal(str)
+    done = pyqtSignal()
+    error = pyqtSignal(str)
+
+    def __init__(self, engine: AiEngine, mode: str, chart: ChartData,
+                 style: str = "", question: str = ""):
+        super().__init__()
+        self.engine = engine
+        self.mode = mode
+        self.chart = chart
+        self.style = style
+        self.question = question
+
+    def run(self):
+        try:
+            if self.mode == "interpret":
+                self.engine.interpret(self.chart, self.style, on_token=self.token.emit)
+            elif self.mode == "remedies":
+                self.engine.remedies(self.chart, on_token=self.token.emit)
+            elif self.mode == "ask":
+                self.engine.ask(self.chart, self.question, on_token=self.token.emit)
+            self.done.emit()
+        except Exception as e:
+            self.error.emit(str(e))

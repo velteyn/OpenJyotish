@@ -34,12 +34,14 @@ from jhora.types.rasi import Rasi
 from jhora.types.varga import VargaLevel
 from jhora.interpreter.engine import ChartInterpreter
 from jhora.interpreter.knowledge_base import KnowledgeBase
+from jhora.ai.engine import AiEngine, AiConfig
 
 
 TAB_NAMES = [
     "Planets", "Houses", "Dasa", "Varga", "Yogas",
     "Shadbala", "Arudha", "Ashtakavarga", "Transit", "Tajaka",
     "Matchmaking", "Prasna", "Muhurta", "Knowledge", "Reading",
+    "AI Chat",
 ]
 
 
@@ -78,7 +80,7 @@ class TuiApp:
     def _header_text(self) -> str:
         total = len(TAB_NAMES)
         return (f"Jhora TUI  —  {TAB_NAMES[self.tab]}  ({self.tab+1}/{total})  |  "
-                f"[1-9,0] tabs | ← → nav | r refresh | q quit")
+                f"[1-9,0,a] tabs | ← → nav | r refresh | q quit")
 
     def _planet_table(self) -> Table:
         t = Table(box=box.SIMPLE)
@@ -334,6 +336,29 @@ class TuiApp:
         except Exception as e:
             return Panel(f"[red]Error: {e}[/red]", title="Chart Reading")
 
+    def _ai_panel(self) -> Panel:
+        if not self.chart:
+            return Panel("[dim]No chart loaded[/dim]")
+        try:
+            engine = AiEngine(AiConfig(provider="ollama"))
+            health = engine.health_check()
+            if health["ok"]:
+                info = f"AI ready ({len(health['models'])} models)"
+            else:
+                info = f"AI offline: {health['error'][:60]}"
+        except Exception as e:
+            info = f"AI error: {e}"
+        return Panel(
+            f"[bold]AI Chart Reading[/bold]\n\n"
+            f"Status: {info}\n\n"
+            f"Use the CLI for AI interpretation:\n"
+            f"  [cyan]jhora ai[/cyan] 'YYYY-MM-DD HH:MM TZ LAT LON'\n"
+            f"  [cyan]jhora ai[/cyan] --mode remedies\n"
+            f"  [cyan]jhora ai[/cyan] --mode ask --question 'What about my career?'\n\n"
+            f"Providers: ollama, lmstudio, unsloth, custom",
+            title="AI Chat",
+        )
+
     def _render_tab(self):
         renderers: List = [
             self._planet_table,       # 0
@@ -351,6 +376,7 @@ class TuiApp:
             self._muhurta_panel,      # 12
             self._knowledge_panel,    # 13
             self._reading_panel,      # 14
+            self._ai_panel,           # 15
         ]
         if 0 <= self.tab < len(renderers):
             content = renderers[self.tab]()
@@ -372,6 +398,8 @@ class TuiApp:
                             self.tab = len(TAB_NAMES) - 1
                     elif ch == "0":
                         self.tab = 9
+                    elif ch == "a":
+                        self.tab = 15
                     elif ch == "\x1b":
                         seq = ""
                         if sys.stdin.read(0):

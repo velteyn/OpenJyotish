@@ -18,6 +18,7 @@ from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
 from jhora.calc.shadbala import ShadbalaComputer
 from jhora.calc.bhava_bala import BhavaBalaComputer
+from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
@@ -962,6 +963,66 @@ def tui(
     except Exception as e:
         console.print(f"[yellow]TUI fallback: printing static view[/yellow]")
         app_tui.run_no_live()
+
+
+@app.command()
+def ai(
+    birthdata: str = typer.Argument(None, help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    provider: str = typer.Option("ollama", "--provider", "-p",
+                                 help="AI provider: ollama, lmstudio, unsloth, custom"),
+    model: str = typer.Option("", "--model", "-m", help="Model name"),
+    base_url: str = typer.Option("", "--url", help="Custom API base URL"),
+    mode: str = typer.Option("interpret", "--mode",
+                             help="interpret, ask, or remedies"),
+    style: str = typer.Option("detailed", "--style", "-s",
+                              help="concise, detailed, or professional"),
+    question: str = typer.Option("", "--question", "-q",
+                                 help="Question for ask mode"),
+):
+    """AI-powered chart interpretation via local LLM (Ollama/LM Studio/Unsloth)."""
+    if not birthdata:
+        console.print("[red]Birth data required[/red]")
+        raise typer.Exit(1)
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+
+    config = AiConfig(provider=provider, base_url=base_url)
+    if model:
+        config.model = model
+    engine = AiEngine(config)
+
+    health = engine.health_check()
+    if not health["ok"]:
+        console.print(f"[red]AI server unreachable: {health['error']}[/red]")
+        console.print("[yellow]Make sure your LLM server is running.[/yellow]")
+        raise typer.Exit(1)
+
+    console.print(f"[dim]Using {config.provider} / {config.model}...[/dim]\n")
+
+    def _on_token(token: str):
+        console.print(token, end="", highlight=False)
+
+    if mode == "ask" and not question:
+        console.print("[red]--question required for ask mode[/red]")
+        raise typer.Exit(1)
+
+    if mode == "interpret":
+        engine.interpret(cd, style, on_token=_on_token)
+    elif mode == "ask":
+        engine.ask(cd, question, on_token=_on_token)
+    elif mode == "remedies":
+        engine.remedies(cd, on_token=_on_token)
+    else:
+        console.print(f"[red]Unknown mode: {mode}[/red]")
+    console.print()
 
 
 @app.callback()
