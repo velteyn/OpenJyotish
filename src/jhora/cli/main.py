@@ -19,6 +19,7 @@ from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_
 from jhora.calc.shadbala import ShadbalaComputer
 from jhora.calc.bhava_bala import BhavaBalaComputer
 from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
+from jhora.calc.mundane import MundaneCalculator, MUNDANE_HOUSES
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
@@ -1027,6 +1028,91 @@ def ai(
     else:
         console.print(f"[red]Unknown mode: {mode}[/red]")
     console.print()
+
+
+@app.command()
+def mundane(
+    year: int = typer.Argument(None, help="Year to analyze (default: current year)"),
+    lat: float = typer.Option(28.61, "--lat", help="Latitude of location (default: Delhi)"),
+    lon: float = typer.Option(77.21, "--lon", help="Longitude (default: Delhi)"),
+    tz: str = typer.Option("+0530", "--tz", help="Timezone (default: +0530)"),
+    ai: bool = typer.Option(False, "--ai", help="Use AI to interpret the ingress chart"),
+    provider: str = typer.Option("ollama", "--provider", "-p"),
+    model: str = typer.Option("", "--model", "-m"),
+):
+    """Mundane astrology — solar ingresses, eclipses, world event indicators."""
+    if year is None:
+        from datetime import datetime
+        year = datetime.now().year
+
+    mc = MundaneCalculator(lat=lat, lon=lon, tz=tz)
+
+    # Aries ingress (most important)
+    aries = mc.aries_ingress(year)
+    if aries and aries.chart:
+        from jhora.types.rasi import Rasi
+        l = Rasi.from_longitude(aries.chart.ascendant)
+        table = Table(title=f"Mesha Sankranti (Aries Ingress) {year} — Annual World Chart")
+        table.add_column("", style="cyan")
+        table.add_column("Lagna", style="yellow")
+        table.add_column("", style="green")
+        table.add_row("Date", aries.datetime_utc, "")
+        table.add_row("Lagna", l.full_name, f"{aries.chart.ascendant:.1f}°")
+        from jhora.types.graha import Graha
+        for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                  Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
+            p = aries.chart.planet(g)
+            r = Rasi.from_longitude(p.longitude)
+            table.add_row(g.full_name, r.full_name,
+                         f"{p.longitude:.1f}°" + (" R" if p.is_retrograde else ""))
+        console.print(table)
+
+    # All ingresses
+    console.print()
+    ing_table = Table(title=f"2026 Solar Ingresses (Sankrantis)")
+    ing_table.add_column("Sign", style="cyan")
+    ing_table.add_column("Date/Time (UT)", style="white")
+    for e in mc.solar_ingresses(year):
+        ing_table.add_row(e.sign, e.datetime_utc)
+    console.print(ing_table)
+
+    # Eclipses
+    eclipses = mc.eclipses()
+    if eclipses:
+        console.print()
+        ec_table = Table(title="Upcoming Eclipses")
+        ec_table.add_column("Type", style="red")
+        ec_table.add_column("Date/Time (UT)", style="white")
+        for e in eclipses:
+            ec_table.add_row(e.name, e.datetime_utc)
+        console.print(ec_table)
+
+    # Major conjunctions
+    conj = mc.conjunctions(year)
+    if conj:
+        console.print()
+        cj_table = Table(title=f"Major Conjunctions {year}")
+        cj_table.add_column("Event", style="yellow")
+        cj_table.add_column("Date (UT)", style="white")
+        cj_table.add_column("Sign", style="cyan")
+        for c in conj:
+            cj_table.add_row(c.name, c.datetime_utc, c.sign)
+        console.print(cj_table)
+
+    # AI interpretation if requested
+    if ai and aries and aries.chart:
+        console.print("\n[bold]AI Mundane Interpretation:[/bold]\n")
+        config = AiConfig(provider=provider)
+        if model:
+            config.model = model
+        engine = AiEngine(config)
+        health = engine.health_check()
+        if not health["ok"]:
+            console.print(f"[red]AI offline: {health['error']}[/red]")
+        else:
+            engine.interpret(aries.chart, style="detailed", topic="mundane",
+                            on_token=lambda t: console.print(t, end="", highlight=False))
+            console.print()
 
 
 @app.callback()
