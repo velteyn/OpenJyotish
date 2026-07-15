@@ -4,7 +4,7 @@
 
 **Origin:** Reverse engineer JHora 8.0 Lite (PVR Narasimha Rao, 2015). All calculations verified against the original.
 
-**Status:** Core engine ~90% complete (12,300+ lines of Python, 646 tests)
+**Status:** Core engine ~92% complete (13,000+ lines, 646 tests). Tier 1 + Tier 2 COMPLETE.
 
 ---
 
@@ -53,7 +53,7 @@
 - [x] Bhava bala (house strength)
 - [x] Vimsopaka bala (Shadvarga through Shodasa)
 - [ ] Digbala, Kalabala, Cheshtabala details
-- [ ] Bhava/chalit chakra for 23 varga charts
+- [x] Bhava/chalit chakra: cusp vs whole-sign for all Vargas
 - [x] Transit analysis with vedha, tara, gochara
 - [x] Matchmaking: Kuta matching — 10 Porutham (19-pt) + Ashta Koota (36-pt, original JHora binary scoring)
 - [x] Prasna (horary): 108/249/1800 modes
