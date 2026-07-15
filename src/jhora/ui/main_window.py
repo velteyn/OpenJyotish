@@ -269,8 +269,20 @@ class MainWindow(QMainWindow):
         # Planet tab
         self.planet_table = QTableWidget()
 
-        # House tab
+        # House tab — includes chalit
+        self.house_widget = QWidget()
+        hl = QVBoxLayout(self.house_widget)
+        hl.setContentsMargins(4, 4, 4, 4)
+        hl.setSpacing(6)
         self.house_table = QTableWidget()
+        hl.addWidget(self.house_table)
+
+        self.chalit_label = QLabel("Chalit (Bhava) Shifts — cusp-based house positions")
+        self.chalit_label.setStyleSheet("font-weight: bold; color: #e0b050;")
+        hl.addWidget(self.chalit_label)
+        self.chalit_table = QTableWidget()
+        self.chalit_table.setMaximumHeight(260)
+        hl.addWidget(self.chalit_table)
 
         # Dasa tab
         self.dasa_widget = QWidget()
@@ -316,7 +328,7 @@ class MainWindow(QMainWindow):
         vg.addWidget(self.varga_table, 1)
 
         self.tabs.addTab(self.planet_table, "Planets")
-        self.tabs.addTab(self.house_table, "Houses")
+        self.tabs.addTab(self.house_widget, "Houses")
         self.tabs.addTab(self.dasa_widget, "Dasa Periods")
         self.tabs.addTab(self.varga_widget, "Varga")
         self.tabs.addTab(self._build_yoga_tab(), "Yogas")
@@ -694,6 +706,28 @@ class MainWindow(QMainWindow):
             r = Rasi.from_longitude(cusp)
             rows.append([str(i + 1), r.full_name, r.lord, f"{cusp:.2f}"])
         self._fill_table(self.house_table, headers, rows)
+
+        # Chalit / Bhava table
+        from jhora.calc.chalit import ChalitComputer
+        cc = ChalitComputer(self.chart_data)
+        chalit = cc.compute()
+        ch_headers = ["Planet", "Sign", "Sign H", "Cusp H", "Shift"]
+        self.chalit_table.setColumnCount(len(ch_headers))
+        self.chalit_table.setHorizontalHeaderLabels(ch_headers)
+        self.chalit_table.setRowCount(len(chalit.entries))
+        for i, e in enumerate(chalit.entries):
+            for j, val in enumerate([e.graha.full_name, e.sign,
+                                     str(e.sign_house), str(e.cusp_house),
+                                     "← MOVED" if e.moved else ""]):
+                item = QTableWidgetItem(val)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                if e.moved:
+                    item.setForeground(QColor("#ff6666"))
+                self.chalit_table.setItem(i, j, item)
+        self.chalit_table.resizeColumnsToContents()
+        moved = len(chalit.moved_planets)
+        self.chalit_label.setText(
+            f"Chalit (Bhava) — {moved} planet(s) shifted houses vs whole-sign")
 
     def _update_dasa_text(self):
         if not self.chart_data:

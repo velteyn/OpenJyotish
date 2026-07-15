@@ -120,6 +120,23 @@ class TuiApp:
             t.add_row(str(h+1), f"{cusp:.2f}°", rasi.short_name, rasi.lord)
         return t
 
+    def _house_panel(self) -> Panel:
+        t = self._house_table()
+        # Chalit info
+        try:
+            from jhora.calc.chalit import ChalitComputer
+            cc = ChalitComputer(self.chart)
+            r = cc.compute()
+            if r.moved_planets:
+                shifts = ", ".join(
+                    f"{e.graha.short_name} H{e.sign_house}→H{e.cusp_house}"
+                    for e in r.moved_planets
+                )
+                t.caption = f"Chalit shifts: {shifts}"
+        except Exception:
+            pass
+        return Panel(t, title="Houses + Chalit")
+
     def _dasa_panel(self) -> Panel:
         if not self.chart:
             return Panel("[dim]No chart loaded[/dim]")
@@ -456,7 +473,7 @@ from jhora.calc.progressions import ProgressionCalculator
     def _render_tab(self):
         renderers: List = [
             self._planet_table,       # 0
-            self._house_table,        # 1
+            self._house_panel,        # 1
             self._dasa_panel,         # 2
             self._varga_panel,        # 3
             self._yoga_panel,         # 4
