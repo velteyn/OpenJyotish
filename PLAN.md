@@ -4,7 +4,7 @@
 
 **Origin:** Reverse engineer JHora 8.0 Lite (PVR Narasimha Rao, 2015). All calculations verified against the original.
 
-**Status:** Core engine ~88% complete (10,500+ lines of Python, 629 tests)
+**Status:** Core engine ~90% complete (12,300+ lines of Python, 646 tests)
 
 ---
 
@@ -19,7 +19,9 @@
 | **Price** | Free | $299-$450 | $255 | **Free** |
 | **Cross-platform** | Windows only | Win/Mac | Windows only | **Linux/Mac/Win** |
 | **Source** | Closed | Closed | Closed | **Open** |
-| **AI interpretation** | ✗ | ✗ | ✗ | **✓ (planned)** |
+| **AI interpretation** | ✗ | ✗ | ✗ | **✓ (Ollama/LM Studio/Unsloth)** |
+| **Mundane astrology** | ✓ | ✗ | ✗ | **✓ (solar ingress, eclipses)** |
+| **TUI** | ✗ | ✗ | ✗ | **✓ (16 panels)** |
 | **Modern UI** | ✗ (MFC) | ✗ (dated) | ✗ (dated) | **✓ (PyQt6 dark)** |
 | **Vector charts** | ✗ (bitmap) | Limited | Limited | **✓ (Canvas)** |
 | **Scriptable** | ✗ | ✗ | ✗ | **✓ (Python API)** |
@@ -49,7 +51,7 @@
 
 - [x] Ashtakavarga: SAV, BAV, SoAV, PAV, Sodhya Pinda, Kakshya
 - [x] Bhava bala (house strength)
-- [ ] Vimsopaka bala (Shadvarga through Shodasa)
+- [x] Vimsopaka bala (Shadvarga through Shodasa)
 - [ ] Digbala, Kalabala, Cheshtabala details
 - [ ] Bhava/chalit chakra for 23 varga charts
 - [x] Transit analysis with vedha, tara, gochara
@@ -63,15 +65,15 @@
 
 - [x] **Knowledge base** — full-text search of textbook + 14 research articles (1.9M chars, 16 sources)
 - [x] **Rule-based interpreter** — chart reading generator connected to yogas engine
-- [ ] **Local LLM interpretation** (Ollama/LM Studio) — chart → plain English reading
-- [ ] **Interactive Q&A** — ask "What does my 7th house lord in 10th mean?"
-- [ ] **AI remedy suggestions** — gemstones, mantras, rituals from classical texts
+- [x] **Local LLM interpretation** (Ollama/LM Studio/Unsloth) — chart → plain English reading
+- [x] **Interactive Q&A** — ask specific questions about the chart
+- [x] **AI remedy suggestions** — gemstones, mantras, rituals from classical texts
 - [ ] **Export to PDF/HTML/SVG** — beautiful client-ready reports
-- [ ] **Chart database** — SQLite client management with search/filter
+- [x] **Chart database** — SQLite storage + browser dialog (save/list/load/delete)
 - [ ] **Ephemeris viewer** — daily planet positions for any date range
 - [ ] **Multi-chart comparison** — natal vs transit, synastry overlay
 - [ ] **Dasa timeline** — interactive zoomable timeline with event markers
-- [ ] **World atlas** — 50K+ cities with timezone/DST auto-resolution
+- [x] **World atlas** — 34K+ cities with timezone auto-resolution (GeoNames FTS5)
 
 ---
 
