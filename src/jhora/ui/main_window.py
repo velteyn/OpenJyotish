@@ -483,7 +483,13 @@ class MainWindow(QMainWindow):
         if self._atlas is not None:
             return self._atlas
         try:
-            self._atlas = AtlasReader("data/cities.db")
+            self._atlas = open_default_atlas(
+                Path(__file__).resolve().parents[3]
+            )
+            if isinstance(self._atlas, StaticAtlasReader):
+                self.statusBar().showMessage(
+                    "Bundled atlas not found; using sample city fallback."
+                )
             return self._atlas
         except Exception as e:
             self.statusBar().showMessage(f"Could not load atlas: {e}")

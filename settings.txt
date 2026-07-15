@@ -1,4 +1,0 @@
-root: C:\Projects\jhora 
-path: C:\Program Files\nodejs 
-arch: 64 
-proxy: none
