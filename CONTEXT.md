@@ -1,6 +1,6 @@
 # Jagannatha Hora — Vedic Astrology Software (Python Port)
 
-**Status:** Complete — **v1.0.0** — all 35 planned features shipped
+**Status:** Complete — **v1.0.0** — 36/36 features shipped
 **Vision:** The most user-friendly, feature-complete, cross-platform, AI-powered Vedic astrology tool. Free and open-source.
 
 ## Origin
@@ -21,9 +21,9 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by PVR Narasimha Rao (SJVC,
 ## Current Status
 
 ### Scale
-- **12,679 lines** Python source across **57 modules** in 11 subpackages
-- **5,007 lines** of tests across **26 test files**, **646 tests** (all passing)
-- **18 CLI commands**, **17 GUI tabs**, **16 TUI panels**
+- **14,440 lines** Python source across **71 modules** in 11 subpackages
+- **5,007 lines** of tests across **28 test files**, **646 tests** (all passing)
+- **25 CLI commands**, **19 GUI tabs**, **16 TUI panels**
 
 ### Deployed — Computational
 - **Chart**: ChartBuilder + ChartData (frozen), 9 planets + lagna + 12 house cusps
@@ -73,7 +73,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by PVR Narasimha Rao (SJVC,
 
 | Interface | Count | Coverage |
 |-----------|-------|----------|
-| **GUI tabs** | 17 | All modules except ephemeris viewer |
+| **GUI tabs** | 19 | All modules |
 | **TUI panels** | 16 | All single-chart modules (keyboard-navigable) |
 | **CLI commands** | 18 | Every module has a command |
 
