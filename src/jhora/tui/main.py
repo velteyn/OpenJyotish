@@ -27,6 +27,7 @@ from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
 from jhora.calc.karaka import compute_chara_karakas
 from jhora.calc.gochara import compute_transits
 from jhora.calc.tajaka import build_tajaka_chart
+from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
 from jhora.calc.prasna import PrasnaMode, compute_prasna
 from jhora.calc.muhurta import MuhurtaTask, evaluate_time
 from jhora.types.graha import Graha
@@ -278,6 +279,8 @@ class TuiApp:
     def _tajaka_panel(self) -> Panel:
         if not self.chart:
             return Panel("[dim]No chart loaded[/dim]")
+        parts = []
+        # Tajaka
         try:
             from jhora.ephemeris.swe import SweEngine
             eng = SweEngine()
@@ -285,16 +288,61 @@ class TuiApp:
             target = self.chart.birth_date.year + 1
             tr = build_tajaka_chart(eng, cbb, self.chart, target, tropical=False)
             t = Table(box=box.SIMPLE)
-            t.add_column("Planet", style="yellow")
+            t.add_column("Pl", style="yellow")
             t.add_column("Sign", style="cyan")
             t.add_column("Deg", justify="right")
             for g in CHART_ORDER:
                 p = tr.planet(g)
                 r = Rasi.from_longitude(p.longitude)
                 t.add_row(g.short_name, r.short_name, f"{p.longitude:.2f}°")
-            return Panel(t, title=f"Tajaka ({target})")
+            parts.append(t)
         except Exception as e:
-            return Panel(f"[red]Error: {e}[/red]", title="Tajaka")
+            parts.append(f"[red]Tajaka: {e}[/red]")
+
+        # Tithi Pravesha
+        try:
+            tp = TithiPraveshaCalculator(self.chart)
+            now_y = datetime.now().year
+            entries = tp.compute_range(now_y,  now_y + 1)
+            t2 = Table(box=box.SIMPLE)
+            t2.add_column("TP", style="cyan")
+            t2.add_column("Date", style="white")
+            t2.add_column("Lg", style="yellow")
+            for e in entries:
+                if e.chart:
+                    l = Rasi.from_longitude(e.chart.ascendant).short_name
+                    t2.add_row(str(e.year), e.event_date, l)
+            parts.append(Panel(t2, title="Tithi Pravesha"))
+        except Exception as e:
+            parts.append(f"[red]TP: {e}[/red]")
+
+        cols = Columns(parts)
+        return Panel(cols, title="Tajaka + Tithi Pravesha")
+
+    def _tithi_pravesha_panel(self) -> Panel:
+        if not self.chart:
+            return Panel("[dim]No chart loaded[/dim]")
+        try:
+            from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
+            tp = TithiPraveshaCalculator(self.chart)
+            now_y = datetime.now().year
+            entries = tp.compute_range(now_y - 1, now_y + 1)
+            t = Table(box=box.SIMPLE)
+            t.add_column("Year", style="cyan")
+            t.add_column("Date (UT)", style="white")
+            t.add_column("Lg", style="yellow")
+            t.add_column("Su", style="yellow")
+            t.add_column("Mo", style="yellow")
+            for e in entries:
+                if e.chart:
+                    l = Rasi.from_longitude(e.chart.ascendant).short_name
+                    s = Rasi.from_longitude(e.chart.planet(Graha.SUN).longitude).short_name
+                    m = Rasi.from_longitude(e.chart.planet(Graha.MOON).longitude).short_name
+                    mark = " ◀" if e.year == now_y else ""
+                    t.add_row(f"{e.year}{mark}", e.event_date, l, s, m)
+            return Panel(t, title="Tithi Pravesha (annual)")
+        except Exception as e:
+            return Panel(f"[red]Error: {e}[/red]", title="Tithi Pravesha")
 
     def _kuta_panel(self) -> Panel:
         return Panel(

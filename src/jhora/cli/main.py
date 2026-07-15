@@ -21,6 +21,7 @@ from jhora.calc.bhava_bala import BhavaBalaComputer
 from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
 from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
 from jhora.calc.mundane import MundaneCalculator, MUNDANE_HOUSES
+from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
@@ -671,6 +672,62 @@ def tajaka(
     for p in md:
         md_table.add_row(p.lord_name, f"{p.duration_years*365:.2f}")
     console.print(md_table)
+
+
+@app.command()
+def tithi_pravesha(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    year: int = typer.Option(None, "--year", "-y", help="Target year (default: current year)"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Compute Tithi Pravesha chart — annual solar-tithi return for year-ahead prediction."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+
+    if year is None:
+        from datetime import datetime
+        year = datetime.now().year
+
+    from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
+    tp = TithiPraveshaCalculator(cd)
+
+    natal_t = tp.natal_tithi
+    tithi_idx = int(natal_t / 12)
+    tithi_phase = "Shukla" if tithi_idx < 15 else "Krishna"
+    tithi_num = tithi_idx % 15 + 1 if tithi_idx < 30 else 1
+    console.print(f"Natal tithi angle: {natal_t:.2f}° ({tithi_phase} {tithi_num})")
+
+    entries = tp.compute_range(year - 1, year + 1)
+    table = Table(title=f"Tithi Pravesha Charts ({year-1}-{year+1})")
+    table.add_column("Year", style="cyan")
+    table.add_column("Date/Time (UT)", style="white")
+    table.add_column("Lagna", style="yellow")
+    table.add_column("Sun", style="green")
+    table.add_column("Moon", style="green")
+    table.add_column("Tithi Angle", style="white")
+
+    from jhora.types.rasi import Rasi
+    for e in entries:
+        if e.chart is None:
+            continue
+        lagna = Rasi.from_longitude(e.chart.ascendant).short_name
+        sun_r = Rasi.from_longitude(e.chart.planet(Graha.SUN).longitude).short_name
+        moon_r = Rasi.from_longitude(e.chart.planet(Graha.MOON).longitude).short_name
+        m = e.chart.planet(Graha.MOON).longitude
+        s = e.chart.planet(Graha.SUN).longitude
+        a = (m - s) % 360
+        marker = " ◀" if e.year == year else ""
+        table.add_row(
+            f"{e.year}{marker}", e.event_date, lagna, sun_r, moon_r,
+            f"{a:.2f}°",
+        )
+    console.print(table)
 
 
 @app.command()

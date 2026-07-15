@@ -629,6 +629,7 @@ class MainWindow(QMainWindow):
             self._populate_arudha_table(self.chart_data)
             self._populate_ashtakavarga_table(self.chart_data)
             self._populate_transit_table(self.chart_data)
+            self._populate_tithi_pravesha(self.chart_data)
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -1158,7 +1159,45 @@ class MainWindow(QMainWindow):
         self.taj_mudda_table.setAlternatingRowColors(True)
         layout.addWidget(self.taj_mudda_table, stretch=1)
 
+        # Tithi Pravesha section
+        self.tp_label = QLabel("Tithi Pravesha — Annual Tithi-Solar Return")
+        self.tp_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold; margin-top: 8px;")
+        layout.addWidget(self.tp_label)
+
+        self.tp_table = QTableWidget()
+        self.tp_table.setAlternatingRowColors(True)
+        self.tp_table.setMaximumHeight(100)
+        layout.addWidget(self.tp_table)
+
         return w
+
+    def _populate_tithi_pravesha(self, cd: ChartData):
+        from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
+        from jhora.types.rasi import Rasi
+        tp = TithiPraveshaCalculator(cd)
+        now_year = datetime.now().year
+        entries = tp.compute_range(now_year - 1, now_year + 1)
+
+        headers = ["Year", "Date (UT)", "Lagna", "Sun", "Moon", "Tithi Angle"]
+        self.tp_table.setColumnCount(len(headers))
+        self.tp_table.setHorizontalHeaderLabels(headers)
+        self.tp_table.setRowCount(len(entries))
+        self.tp_table.horizontalHeader().setStretchLastSection(True)
+        for i, e in enumerate(entries):
+            if e.chart is None:
+                continue
+            lagna = Rasi.from_longitude(e.chart.ascendant).short_name
+            sun_r = Rasi.from_longitude(e.chart.planet(Graha.SUN).longitude).short_name
+            moon_r = Rasi.from_longitude(e.chart.planet(Graha.MOON).longitude).short_name
+            m = e.chart.planet(Graha.MOON).longitude
+            s = e.chart.planet(Graha.SUN).longitude
+            a = (m - s) % 360
+            row = [str(e.year), e.event_date, lagna, sun_r, moon_r, f"{a:.2f}°"]
+            for j, val in enumerate(row):
+                item = QTableWidgetItem(val)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.tp_table.setItem(i, j, item)
+        self.tp_table.resizeColumnsToContents()
 
     def _on_tajaka_find(self):
         if not self.chart_data:
