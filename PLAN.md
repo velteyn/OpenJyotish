@@ -58,7 +58,7 @@
 - [x] Matchmaking: Kuta matching — 10 Porutham (19-pt) + Ashta Koota (36-pt, original JHora binary scoring)
 - [x] Prasna (horary): 108/249/1800 modes
 - [x] Muhurta (electional) with planetary hour analysis
-- [ ] Tithi Pravesha charts (annual/monthly/daily)
+- [x] Tithi Pravesha charts (annual/monthly/daily)
 - [ ] Progressions (D-n based Sun progression)
 
 ### Tier 3: AI & UX (Our Moat)

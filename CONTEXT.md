@@ -21,7 +21,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by PVR Narasimha Rao (SJVC,
 ## Current Status
 
 ### Scale
-- **12,333 lines** Python source across **56 modules** in 11 subpackages
+- **12,679 lines** Python source across **57 modules** in 11 subpackages
 - **5,007 lines** of tests across **26 test files**, **646 tests** (all passing)
 - **18 CLI commands**, **17 GUI tabs**, **16 TUI panels**
 
@@ -39,6 +39,7 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by PVR Narasimha Rao (SJVC,
 - **Sahamas**: 36 sensitive points
 - **Transit**: Current transit vs natal with Ashtakavarga scores
 - **Tajaka**: Solar return, Muntha, Harsha Bala, Patyayini/Mudda Dasa
+- **Tithi Pravesha**: Annual tithi return charts (solar-tithi matching, sub-0.6° accuracy)
 - **Matchmaking**: 10 Porutham (19pt) + Ashta Koota (36pt)
 - **Prasna**: 108/249/Nadi horary modes
 - **Muhurta**: 11 task types, inauspicious periods, Abhijit, day scanning
