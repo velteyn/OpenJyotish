@@ -26,6 +26,7 @@ from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
 from jhora.calc.shadbala import ShadbalaComputer
 from jhora.calc.bhava_bala import BhavaBalaComputer
+from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
 from jhora.ephemeris.swe import SweEngine
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
@@ -848,6 +849,18 @@ class MainWindow(QMainWindow):
         self.bhava_bala_table.horizontalHeader().setStretchLastSection(True)
         self.bhava_bala_table.setAlternatingRowColors(True)
         layout.addWidget(self.bhava_bala_table)
+
+        lbl_vi = QLabel("Vimsopaka Bala — Varga-weighted Strength (Shadvarga)")
+        lbl_vi.setStyleSheet("font-weight: bold; color: #e0b050; margin-top: 8px;")
+        layout.addWidget(lbl_vi)
+
+        self.vimsopaka_table = QTableWidget()
+        vi_headers = ["Planet", "Total (/20)", "%", "D1", "D2", "D3", "D7", "D9"]
+        self.vimsopaka_table.setColumnCount(len(vi_headers))
+        self.vimsopaka_table.setHorizontalHeaderLabels(vi_headers)
+        self.vimsopaka_table.horizontalHeader().setStretchLastSection(True)
+        self.vimsopaka_table.setAlternatingRowColors(True)
+        layout.addWidget(self.vimsopaka_table)
         return w
 
     def _populate_shadbala_table(self, cd: ChartData):
@@ -908,6 +921,22 @@ class MainWindow(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.bhava_bala_table.setItem(h - 1, c, item)
         self.bhava_bala_table.resizeColumnsToContents()
+
+        # Vimsopaka Bala
+        from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
+        vc = VimsopakaComputer(cd)
+        import_r = sorted(vc.compute_all(VimsopakaScheme.SHADVARGA), key=lambda r: r.total, reverse=True)
+        self.vimsopaka_table.setRowCount(len(import_r))
+        varga_order = [VimsopakaScheme.SHADVARGA]
+        for i, r in enumerate(import_r):
+            row = [r.graha.full_name, f"{r.total:.1f}/20", f"{r.percentage:.0f}%"]
+            for c in r.components:
+                row.append(f"{c.score:.1f}")
+            for j, val in enumerate(row):
+                item = QTableWidgetItem(val)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.vimsopaka_table.setItem(i, j, item)
+        self.vimsopaka_table.resizeColumnsToContents()
 
     # --- Ashtakavarga ---
 

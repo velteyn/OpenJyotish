@@ -20,6 +20,7 @@ from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.charts.varga import VargaChartComputer
 from jhora.calc.shadbala import ShadbalaComputer
 from jhora.calc.bhava_bala import BhavaBalaComputer
+from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
 from jhora.calc.yogas import detect_all
 from jhora.calc.ashtakavarga import sarva_ashtakavarga
 from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
@@ -207,7 +208,19 @@ class TuiApp:
                          f"{r.drig:.1f}", f"[bold]{r.total:.1f}[/bold]")
 
         cols_layout = Columns([t_gr, t_bh])
-        return Panel(cols_layout, title="Shadbala + Bhava Bala (virupas)")
+
+        # Vimsopaka Bala
+        vc = VimsopakaComputer(self.chart)
+        vr = sorted(vc.compute_all(VimsopakaScheme.SHADVARGA), key=lambda r: r.total, reverse=True)
+        t_vi = Table(box=box.SIMPLE)
+        t_vi.add_column("Planet", style="cyan")
+        t_vi.add_column("Vimsopaka", justify="right", style="green")
+        t_vi.add_column("%", justify="right", style="yellow")
+        for r in vr:
+            t_vi.add_row(r.graha.short_name, f"{r.total:.1f}/20", f"{r.percentage:.0f}%")
+
+        cols_layout = Columns([t_gr, t_bh, t_vi])
+        return Panel(cols_layout, title="Shadbala + Bhava + Vimsopaka")
 
     def _arudha_panel(self) -> Panel:
         if not self.chart:
