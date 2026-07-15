@@ -630,6 +630,7 @@ class MainWindow(QMainWindow):
             self._populate_ashtakavarga_table(self.chart_data)
             self._populate_transit_table(self.chart_data)
             self._populate_tithi_pravesha(self.chart_data)
+            self._populate_progressions(self.chart_data)
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -1169,6 +1170,16 @@ class MainWindow(QMainWindow):
         self.tp_table.setMaximumHeight(100)
         layout.addWidget(self.tp_table)
 
+        # Progressions section
+        self.prog_label = QLabel("Secondary Progressions (1 day = 1 year)")
+        self.prog_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold; margin-top: 8px;")
+        layout.addWidget(self.prog_label)
+
+        self.prog_table = QTableWidget()
+        self.prog_table.setAlternatingRowColors(True)
+        self.prog_table.setMaximumHeight(200)
+        layout.addWidget(self.prog_table)
+
         return w
 
     def _populate_tithi_pravesha(self, cd: ChartData):
@@ -1198,6 +1209,37 @@ class MainWindow(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.tp_table.setItem(i, j, item)
         self.tp_table.resizeColumnsToContents()
+
+    def _populate_progressions(self, cd: ChartData):
+        from jhora.calc.progressions import ProgressionCalculator
+        from jhora.types.rasi import Rasi
+        pc = ProgressionCalculator(cd)
+        age = (datetime.now() - cd.birth_date).total_seconds() / (365.25 * 86400)
+        sec = pc.secondary(target_age=age)
+
+        headers = ["Planet", "Natal Sign", "Progressed Sign", "Change"]
+        self.prog_table.setColumnCount(len(headers))
+        self.prog_table.setHorizontalHeaderLabels(headers)
+        self.prog_table.setRowCount(9)
+        self.prog_table.horizontalHeader().setStretchLastSection(True)
+        for i, g in enumerate([Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                               Graha.JUPITER, Graha.VENUS, Graha.SATURN,
+                               Graha.RAHU, Graha.KETU]):
+            np = cd.planet(g)
+            nr = Rasi.from_longitude(np.longitude).short_name
+            if sec.chart:
+                pp = sec.chart.planet(g)
+                pr = Rasi.from_longitude(pp.longitude).short_name
+                moved = "✓" if nr != pr else ""
+            else:
+                pr, moved = "?", ""
+            for j, val in enumerate([g.full_name, f"{nr} {np.longitude:.1f}°",
+                                     f"{pr} {pp.longitude:.1f}°" if sec.chart else "",
+                                     moved]):
+                item = QTableWidgetItem(val)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.prog_table.setItem(i, j, item)
+        self.prog_table.resizeColumnsToContents()
 
     def _on_tajaka_find(self):
         if not self.chart_data:

@@ -675,6 +675,62 @@ def tajaka(
 
 
 @app.command()
+def progression(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    age: float = typer.Option(None, "--age", help="Age in years (default: current age)"),
+):
+    """Compute secondary progressions (1 day = 1 year) and aspects to natal."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+
+    if age is None:
+        from datetime import datetime
+        age = (datetime.now() - cd.birth_date).total_seconds() / (365.25 * 86400)
+
+    from jhora.calc.progressions import ProgressionCalculator
+    pc = ProgressionCalculator(cd)
+    sec = pc.secondary(target_age=age)
+
+    from jhora.types.rasi import Rasi
+    table = Table(title=f"Secondary Progression (age {age:.1f})")
+    table.add_column("Planet", style="cyan")
+    table.add_column("Natal", style="yellow")
+    table.add_column("Progressed", style="green")
+    table.add_column("Δ", style="white")
+    for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+              Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
+        np = cd.planet(g)
+        pp = sec.chart.planet(g) if sec.chart else None
+        nr = Rasi.from_longitude(np.longitude).short_name
+        pr = Rasi.from_longitude(pp.longitude).short_name if pp else "?"
+        moved = "→" if nr != pr else ""
+        table.add_row(g.full_name, f"{nr} {np.longitude:.1f}°",
+                     f"{pr} {pp.longitude:.1f}°" if pp else "",
+                     moved)
+    console.print(table)
+
+    aspects = pc.aspects_to_natal(sec, max_orb=3.0)
+    if aspects:
+        console.print()
+        at = Table(title=f"Progressed to Natal Aspects (orb < 3°)")
+        at.add_column("Progressed", style="cyan")
+        at.add_column("Aspect", style="yellow")
+        at.add_column("Natal", style="green")
+        at.add_column("Orb", style="white")
+        for a in aspects:
+            at.add_row(a.progressed_graha.full_name, a.aspect_type,
+                      a.natal_graha.full_name, f"{a.orb:.1f}°")
+        console.print(at)
+
+
+@app.command()
 def tithi_pravesha(
     birthdata: str = typer.Argument(..., help="Birth data"),
     year: int = typer.Option(None, "--year", "-y", help="Target year (default: current year)"),
@@ -694,7 +750,6 @@ def tithi_pravesha(
         from datetime import datetime
         year = datetime.now().year
 
-    from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
     tp = TithiPraveshaCalculator(cd)
 
     natal_t = tp.natal_tithi
