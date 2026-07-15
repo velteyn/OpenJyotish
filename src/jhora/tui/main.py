@@ -358,32 +358,6 @@ class TuiApp:
         cols = Columns(parts)
         return Panel(cols, title="Tajaka + Tithi Pravesha + Progressions")
 
-    def _tithi_pravesha_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded[/dim]")
-        try:
-from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
-from jhora.calc.progressions import ProgressionCalculator
-            tp = TithiPraveshaCalculator(self.chart)
-            now_y = datetime.now().year
-            entries = tp.compute_range(now_y - 1, now_y + 1)
-            t = Table(box=box.SIMPLE)
-            t.add_column("Year", style="cyan")
-            t.add_column("Date (UT)", style="white")
-            t.add_column("Lg", style="yellow")
-            t.add_column("Su", style="yellow")
-            t.add_column("Mo", style="yellow")
-            for e in entries:
-                if e.chart:
-                    l = Rasi.from_longitude(e.chart.ascendant).short_name
-                    s = Rasi.from_longitude(e.chart.planet(Graha.SUN).longitude).short_name
-                    m = Rasi.from_longitude(e.chart.planet(Graha.MOON).longitude).short_name
-                    mark = " ◀" if e.year == now_y else ""
-                    t.add_row(f"{e.year}{mark}", e.event_date, l, s, m)
-            return Panel(t, title="Tithi Pravesha (annual)")
-        except Exception as e:
-            return Panel(f"[red]Error: {e}[/red]", title="Tithi Pravesha")
-
     def _kuta_panel(self) -> Panel:
         return Panel(
             "[yellow]Matchmaking:[/yellow]\n"
