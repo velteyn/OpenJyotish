@@ -4,18 +4,31 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jagannatha-hora"
-version = "0.1.0"
-description = "Vedic astrology calculator — Python port of JHora 8.0"
+version = "1.0.0"
+description = "Vedic astrology calculator — free, open-source, cross-platform. AI-powered chart readings."
+readme = "README.md"
 authors = [
-    {name = "PVR Narasimha Rao", email = "pvr108@yahoo.com"},
+    {name = "Jhora Contributors"},
 ]
-license = {text = "GPL-3.0-or-later"}
+license = {text = "AGPL-3.0-or-later"}
 requires-python = ">=3.11"
+keywords = ["vedic", "astrology", "jyotish", "hora", "dasa", "yoga"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
 dependencies = [
     "PyQt6>=6.5",
     "pyswisseph>=2.10",
     "typer>=0.9",
     "rich>=13.0",
+    "requests>=2.28",
 ]
 
 [project.optional-dependencies]
@@ -26,5 +39,16 @@ test = [
 [project.scripts]
 jhora = "jhora.cli.main:app"
 
+[project.urls]
+Homepage = "https://github.com/velteyn/jhora"
+Repository = "https://github.com/velteyn/jhora.git"
+Issues = "https://github.com/velteyn/jhora/issues"
+
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["jhora*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
