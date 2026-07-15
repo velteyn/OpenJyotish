@@ -13,6 +13,10 @@ retdec_out/
 # Book PDFs (large, copyrighted)
 docs/books/
 
+# GeoNames source data (large, downloaded by build_atlas.py)
+data/cities15000.txt
+data/cities15000.zip
+
 # Python
 venv/
 __pycache__/

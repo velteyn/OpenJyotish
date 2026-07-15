@@ -793,6 +793,146 @@ def prasna(
     console.print(f"  [dim]{r.description}[/dim]")
 
 
+@app.command()
+def muhurta(
+    date: str = typer.Argument(..., help="Date: YYYY-MM-DD"),
+    time: str = typer.Argument("12:00", help="Time: HH:MM (24h)"),
+    lat: float = typer.Argument(13.08, help="Latitude"),
+    lon: float = typer.Argument(80.27, help="Longitude"),
+    tz: str = typer.Option("+0530", "--tz", "-z", help="Timezone offset"),
+    task: str = typer.Option("general", "--task", "-t",
+                             help="Task: general, wedding, new_job, housewarming, "
+                                  "naming_child, first_rice, teaching_alphabet, "
+                                  "sacred_thread, new_vehicle, placing_idols, "
+                                  "house_construction"),
+    find: bool = typer.Option(False, "--find", "-f", help="Scan entire day for best times (10-min steps)"),
+    best: int = typer.Option(5, "--best", "-b", help="Number of best times to show (with --find)"),
+):
+    """Muhurta (Electional Astrology) — evaluate or find auspicious times."""
+    from jhora.calc.muhurta import (
+        MuhurtaTask, evaluate_time, find_muhurta,
+    )
+    from datetime import datetime
+
+    task_map = {
+        "general": MuhurtaTask.GENERAL,
+        "wedding": MuhurtaTask.WEDDING,
+        "new_job": MuhurtaTask.NEW_JOB,
+        "housewarming": MuhurtaTask.HOUSEWARMING,
+        "naming_child": MuhurtaTask.NAMING_CHILD,
+        "first_rice": MuhurtaTask.FIRST_RICE,
+        "teaching_alphabet": MuhurtaTask.TEACHING_ALPHABET,
+        "sacred_thread": MuhurtaTask.SACRED_THREAD,
+        "new_vehicle": MuhurtaTask.NEW_VEHICLE,
+        "placing_idols": MuhurtaTask.PLACING_IDOLS,
+        "house_construction": MuhurtaTask.HOUSE_CONSTRUCTION,
+    }
+    t = task_map.get(task.lower().replace(" ", "_"))
+    if t is None:
+        console.print(f"[red]Unknown task: {task}[/red]")
+        raise typer.Exit(1)
+
+    # _parse_tz returns negative for positive timezones; muhurta module expects positive
+    raw_tz = ChartBuilder._parse_tz(tz)
+    tz_offset = -raw_tz if raw_tz < 0 else raw_tz
+
+    try:
+        dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        console.print("[red]Invalid date/time format. Use YYYY-MM-DD HH:MM[/red]")
+        raise typer.Exit(1)
+
+    if find:
+        results = find_muhurta(dt, lat, lon, tz_offset, t, step_minutes=10)
+        top = results[:best]
+        table = Table(title=f"Top {best} Muhurta Times — {t.label}")
+        table.add_column("Time", style="cyan")
+        table.add_column("Score", style="yellow")
+        table.add_column("Tithi", style="green")
+        table.add_column("Vara", style="green")
+        table.add_column("Nakshatra", style="green")
+        table.add_column("Abhijit", style="magenta")
+        table.add_column("Issues", style="red")
+        for r in top:
+            tithi = f"{r.panchanga.tithi.name}"
+            if r.tithi_ok:
+                tithi = f"[green]{tithi}[/green]"
+            else:
+                tithi = f"[red]{tithi}[/red]"
+            vara = r.panchanga.weekday_name
+            if r.weekday_ok:
+                vara = f"[green]{vara}[/green]"
+            else:
+                vara = f"[red]{vara}[/red]"
+            nak = r.panchanga.nakshatra.name.replace("_", " ").title()
+            if r.nakshatra_ok:
+                nak = f"[green]{nak}[/green]"
+            else:
+                nak = f"[red]{nak}[/red]"
+            abh = "✓" if r.in_abhijit else ""
+            issues = r.score_detail if not r.is_good else ""
+            table.add_row(
+                r.datetime.strftime("%H:%M"),
+                f"{r.score:.2f}", tithi, vara, nak, abh, issues,
+            )
+        console.print(table)
+        return
+
+    r = evaluate_time(dt, lat, lon, tz_offset, t)
+    status = "[green]AUSPICIOUS[/green]" if r.is_good else "[red]INAUSPICIOUS[/red]"
+    console.print(f"[bold]{t.label}[/bold] — {dt.strftime('%Y-%m-%d %H:%M')} — {status}")
+    console.print(f"  Score: [yellow]{r.score:.2f}[/yellow] / 1.00")
+
+    p = r.panchanga
+    tithi_s = "✓" if r.tithi_ok else "✗"
+    vara_s = "✓" if r.weekday_ok else "✗"
+    nak_s = "✓" if r.nakshatra_ok else "✗"
+    lagna_s = "✓" if r.lagna_ok else "✗"
+    console.print(f"  Panchanga: Tithi={p.tithi.name} {tithi_s}  "
+                  f"Vara={p.weekday_name} {vara_s}  "
+                  f"Nak={p.nakshatra.name.replace('_', ' ').title()} {nak_s}")
+    console.print(f"  Lagna: {r.lagna_rasi.short_name} {lagna_s}")
+
+    if r.in_abhijit:
+        console.print(f"  [bold magenta]✓ Abhijit Muhurta![/bold magenta]")
+
+    for ip in r.inauspicious_periods:
+        start_h = (((ip.start + 0.5) - int(ip.start + 0.5)) * 24 + tz_offset) % 24
+        end_h = (((ip.end + 0.5) - int(ip.end + 0.5)) * 24 + tz_offset) % 24
+        console.print(f"  [dim]{ip.kind}: {start_h:.1f}h-{end_h:.1f}h[/dim]")
+
+    if r.score_detail and r.score_detail != "All good":
+        console.print(f"  [red]{r.score_detail}[/red]")
+
+
+@app.command()
+def tui(
+    birthdata: str = typer.Argument(None, help="Birth data (optional; uses sample if omitted)"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Launch interactive terminal UI (Rich-based, keyboard-navigable tabs)."""
+    from jhora.tui.main import TuiApp
+
+    if birthdata:
+        bd = parse_birthdata(birthdata)
+        builder = ChartBuilder()
+        builder.swe.set_sidereal_mode(ayanamsa)
+        cd = builder.build(
+            year=bd["year"], month=bd["month"], day=bd["day"],
+            hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+            tz=bd["tz"], ayanamsa=ayanamsa,
+        )
+    else:
+        cd = None
+
+    app_tui = TuiApp(chart_data=cd)
+    try:
+        app_tui.run()
+    except Exception as e:
+        console.print(f"[yellow]TUI fallback: printing static view[/yellow]")
+        app_tui.run_no_live()
+
+
 @app.callback()
 def cli():
     """Jagannatha Hora — Vedic astrology calculator (Python port)."""
