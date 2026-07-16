@@ -350,6 +350,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_ai_teacher_tab(), "AI Teacher")
         self.tabs.addTab(self._build_mundane_tab(), "Mundane")
         self.tabs.addTab(self._build_ephemeris_tab(), "Ephemeris")
+        self.tabs.addTab(self._build_consolidated_tab(), "Consolidated")
 
         right_layout.addWidget(self.tabs)
 
@@ -673,6 +674,8 @@ class MainWindow(QMainWindow):
             self._populate_tithi_pravesha(self.chart_data)
             self._populate_progressions(self.chart_data)
             self.dasa_timeline.set_chart(self.chart_data)
+            self._populate_consolidated(self.chart_data)
+            self._update_cons_navamsa(self.chart_data)
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -2543,6 +2546,268 @@ class MainWindow(QMainWindow):
                     item.setForeground(QColor("#ff6666"))
                 self.eph_table.setItem(i, j + 1, item)
         self.eph_table.resizeColumnsToContents()
+
+    # --- Consolidated View (JHora-style three-column layout) ---
+
+    def _build_consolidated_tab(self):
+        w = QWidget()
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.addWidget(self._build_consolidated_charts())
+        splitter.addWidget(self._build_consolidated_center())
+        splitter.addWidget(self._build_consolidated_ashtakavarga())
+        splitter.setSizes([380, 420, 300])
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(splitter)
+        return w
+
+    def _build_consolidated_charts(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(4)
+
+        self.cons_chart = ChartWidget()
+        self.cons_chart.setMinimumSize(350, 350)
+        layout.addWidget(self.cons_chart, stretch=1)
+
+        self.cons_navamsa = ChartWidget()
+        self.cons_navamsa.chart_style = ChartStyle.SOUTH_INDIAN
+        self.cons_navamsa.setMinimumSize(350, 350)
+        layout.addWidget(self.cons_navamsa, stretch=1)
+        return w
+
+    def _build_consolidated_center(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(4)
+
+        # Planet table — DMS format with all bodies
+        self.cons_planet_table = QTableWidget()
+        self.cons_planet_table.setAlternatingRowColors(True)
+        self.cons_planet_table.setMinimumWidth(380)
+        layout.addWidget(self.cons_planet_table, stretch=2)
+
+        # Natal data panel
+        self.cons_natal_panel = QTextEdit()
+        self.cons_natal_panel.setReadOnly(True)
+        self.cons_natal_panel.setMaximumHeight(300)
+        self.cons_natal_panel.setStyleSheet(
+            "QTextEdit { background-color: #0d1b2a; color: #e0e0e0; "
+            "font-family: monospace; font-size: 12px; "
+            "border: 1px solid #2a3f5f; border-radius: 4px; padding: 8px; }"
+        )
+        layout.addWidget(self.cons_natal_panel, stretch=1)
+        return w
+
+    def _build_consolidated_ashtakavarga(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(4)
+
+        self.cons_sav_label = QLabel("SAV (Samudaya Ashtakavarga)")
+        self.cons_sav_label.setStyleSheet("font-weight: bold; color: #e0b050;")
+        layout.addWidget(self.cons_sav_label)
+
+        self.cons_sav = QTableWidget()
+        self.cons_sav.setMaximumHeight(180)
+        layout.addWidget(self.cons_sav)
+
+        # BAV label becomes a combo to select planet
+        bav_row = QHBoxLayout()
+        bav_row.addWidget(QLabel("BAV:"))
+        self.cons_bav_combo = QComboBox()
+        self.cons_bav_combo.addItems(["Sun", "Moon", "Mars", "Mercury",
+                                       "Jupiter", "Venus", "Saturn"])
+        self.cons_bav_combo.currentTextChanged.connect(self._on_cons_bav_changed)
+        bav_row.addWidget(self.cons_bav_combo)
+        bav_row.addStretch()
+        layout.addLayout(bav_row)
+
+        self.cons_bav = QTableWidget()
+        self.cons_bav.setMaximumHeight(180)
+        layout.addWidget(self.cons_bav)
+        return w
+
+    def _populate_consolidated(self, cd: ChartData):
+        self.cons_chart.set_chart_data(cd)
+        self._populate_cons_planet_table(cd)
+        self._populate_cons_natal_panel(cd)
+        self._populate_cons_ashtakavarga(cd)
+
+    def _populate_cons_planet_table(self, cd: ChartData):
+        from jhora.types.nakshatra import Nakshatra
+        from jhora.calc.special_lagnas import compute_special_lagnas
+        from jhora.calc.upagraha import compute_solar_upagrahas
+
+        bodies = []
+        # Lagna
+        lr = Rasi.from_longitude(cd.ascendant)
+        n_l, p_l = Nakshatra.from_longitude(cd.ascendant)
+        bodies.append(("Lagna", cd.ascendant, lr.short_name, lr.lord,
+                       n_l.name.replace("_"," ").title(), p_l, "", ""))
+
+        # Planets
+        for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                  Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
+            p = cd.planet(g)
+            r = Rasi.from_longitude(p.longitude)
+            n, pada = Nakshatra.from_longitude(p.longitude)
+            deg = int(p.longitude)
+            min_part = (p.longitude - deg) * 60
+            min_val = int(min_part)
+            sec = int((min_part - min_val) * 60)
+            dms = f"{deg}°{min_val:02d}'{sec:02d}\""
+            motion = "R" if p.is_retrograde else "D"
+            bodies.append((g.full_name, p.longitude, r.short_name, r.lord,
+                           n.name.replace("_"," ").title(), pada, dms, motion))
+
+        # Special lagnas
+        for s in compute_special_lagnas(cd):
+            r = Rasi.from_longitude(s.longitude)
+            bodies.append((s.name, s.longitude, r.short_name, r.lord, "", 0, "", ""))
+
+        # Upagrahas
+        sun_lon = cd.planet(Graha.SUN).longitude
+        for u in compute_solar_upagrahas(sun_lon):
+            r = Rasi.from_longitude(u.longitude)
+            bodies.append((u.name, u.longitude, r.short_name, r.lord, "", 0, "", ""))
+
+        headers = ["Body", "Rasi", "Lord", "Nakshatra", "Pada", "DMS", "M"]
+        self.cons_planet_table.setColumnCount(len(headers))
+        self.cons_planet_table.setHorizontalHeaderLabels(headers)
+        self.cons_planet_table.setRowCount(len(bodies))
+        for i, (name, lon, sign, lord, nak, pada, dms, motion) in enumerate(bodies):
+            for j, val in enumerate([name, sign, lord, nak, str(pada) if pada else "", dms, motion]):
+                item = QTableWidgetItem(val)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                if name == "Lagna":
+                    item.setForeground(QColor("#e94560"))
+                self.cons_planet_table.setItem(i, j, item)
+        self.cons_planet_table.resizeColumnsToContents()
+
+    def _populate_cons_natal_panel(self, cd: ChartData):
+        from jhora.types.nakshatra import Nakshatra
+        from jhora.calc.muhurta import compute_panchanga
+        import swisseph as swe
+
+        moon = cd.planet(Graha.MOON).longitude
+        sun = cd.planet(Graha.SUN).longitude
+        tithi_angle = (moon - sun) % 360
+        tithi_idx = int(tithi_angle / 12)
+        tithi_pct = (1 - (tithi_angle % 12) / 12) * 100
+        tithi_names = ["Pratipat","Dwitiya","Tritiya","Chaturthi","Panchami",
+                       "Shashthi","Saptami","Ashtami","Navami","Dasami",
+                       "Ekadasi","Dwadasi","Trayodasi","Chaturdasi",
+                       "Amavasya","Purnima"]
+        phase = "Sukla" if tithi_idx < 15 else "Krishna"
+        tithi_name = tithi_names[tithi_idx % 15]
+        if tithi_idx == 14:
+            tithi_name = "Amavasya"
+        elif tithi_idx == 29:
+            tithi_name = "Purnima"
+
+        nak, pada = Nakshatra.from_longitude(moon)
+        nak_name = nak.name.replace("_", " ").title()
+        nak_pct = (1 - (moon % (360.0/27)) / (360.0/27)) * 100
+
+        wdays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
+        wd = wdays[cd.birth_date.weekday()]
+        ay = cd.ayanamsa_value
+
+        # Sunrise/sunset
+        try:
+            eng = SweEngine()
+            jd = cd.julian_day
+            flag = swe.CALC_RISE | swe.BIT_NO_REFRACTION
+            res, tret = swe.rise_trans(jd - 1, swe.SUN, 0, 0, flag,
+                                       (cd.longitude, cd.latitude, 0))
+            sr_jd = tret[0] if tret else jd + 0.25
+            sr_h = (sr_jd - int(sr_jd)) * 24
+            res2, tret2 = swe.rise_trans(jd - 1, swe.SUN, 0, 0,
+                                         flag | swe.CALC_SET,
+                                         (cd.longitude, cd.latitude, 0))
+            ss_jd = tret2[0] if tret2 else jd + 0.75
+            ss_h = (ss_jd - int(ss_jd)) * 24
+            sunrise = f"{int(sr_h):02d}:{int((sr_h%1)*60):02d}:00"
+            sunset = f"{int(ss_h):02d}:{int((ss_h%1)*60):02d}:00"
+        except Exception:
+            sunrise = "N/A"
+            sunset = "N/A"
+
+        aya_deg = int(cd.ayanamsa_value)
+        aya_min = int((cd.ayanamsa_value - aya_deg) * 60)
+        aya_sec = int(((cd.ayanamsa_value - aya_deg) * 60 - aya_min) * 60)
+
+        lines = [
+            f"Date:         {cd.birth_date.strftime('%B %d, %Y')}",
+            f"Time:         {cd.birth_date.strftime('%H:%M:%S')}",
+            f"Time Zone:    {cd.timezone}",
+            f"Place:        {cd.latitude:.2f}°, {cd.longitude:.2f}°",
+            f"",
+            f"Tithi:        {phase} {tithi_name} ({tithi_pct:.1f}% left)",
+            f"Vedic Day:    {wd}",
+            f"Nakshatra:    {nak_name} ({nak_pct:.1f}% left)",
+            f"",
+            f"Sunrise:      {sunrise}",
+            f"Sunset:       {sunset}",
+            f"Ayanamsa:     {aya_deg}-{aya_min:02d}-{aya_sec:02d} ({cd.ayanamsa_name})",
+        ]
+        self.cons_natal_panel.setText("\n".join(lines))
+
+    def _populate_cons_ashtakavarga(self, cd: ChartData):
+        from jhora.calc.ashtakavarga import sarva_ashtakavarga, all_bhinna_ashtakavarga
+        sav = sarva_ashtakavarga(cd)
+
+        # SAV grid: 4 rows × 3 cols
+        self.cons_sav.setColumnCount(3)
+        self.cons_sav.setRowCount(4)
+        cell_h = ["", "", ""]
+        self.cons_sav.setHorizontalHeaderLabels(cell_h)
+        self.cons_sav.horizontalHeader().setDefaultSectionSize(50)
+        for h in range(12):
+            r, c = h // 3, h % 3
+            item = QTableWidgetItem(f"{Rasi(h).short_name}\n{sav[h]}")
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.cons_sav.setItem(r, c, item)
+        self.cons_sav.setMaximumHeight(160)
+
+        # BAV — default Sun
+        self._cons_bav_data = all_bhinna_ashtakavarga(cd)
+        self._on_cons_bav_changed("Sun")
+
+    def _on_cons_bav_changed(self, planet_name: str):
+        if not hasattr(self, "_cons_bav_data"):
+            return
+        from jhora.types.graha import Graha
+        name_map = {"Sun": Graha.SUN, "Moon": Graha.MOON, "Mars": Graha.MARS,
+                    "Mercury": Graha.MERCURY, "Jupiter": Graha.JUPITER,
+                    "Venus": Graha.VENUS, "Saturn": Graha.SATURN}
+        g = name_map.get(planet_name)
+        if g and g in self._cons_bav_data:
+            bav = self._cons_bav_data[g]
+            self.cons_bav.setColumnCount(3)
+            self.cons_bav.setRowCount(4)
+            for h in range(12):
+                r, c = h // 3, h % 3
+                item = QTableWidgetItem(str(bav[h]))
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.cons_bav.setItem(r, c, item)
+
+    # ── Navamsa overlay for consolidated charts ──
+
+    def _update_cons_navamsa(self, cd: ChartData):
+        from jhora.charts.varga import VargaChartComputer
+        from jhora.types.varga import VargaLevel
+        comp = VargaChartComputer()
+        vcd = comp.compute(cd, VargaLevel.D_9)
+        self.cons_navamsa.set_chart_data(cd)
+        self.cons_navamsa.set_navamsa_data(vcd.positions)
+        self.cons_navamsa.set_navamsa_overlay(True)
 
 
 class _TeacherWorker(QThread):
