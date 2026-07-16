@@ -150,8 +150,8 @@ class MainWindow(QMainWindow):
         self.city_input.textChanged.connect(self._on_city_text_changed)
         self.city_input.returnPressed.connect(self._on_city_search)
 
-        self.city_search_btn = QPushButton("🔍")
-        self.city_search_btn.setFixedWidth(36)
+        self.city_search_btn = QPushButton("Find")
+        self.city_search_btn.setFixedWidth(50)
         self.city_search_btn.setToolTip("Search city")
         self.city_search_btn.clicked.connect(self._on_city_search)
 
@@ -190,8 +190,8 @@ class MainWindow(QMainWindow):
         latlon_row.addWidget(self.lat_input)
         latlon_row.addWidget(QLabel("Lon:"))
         latlon_row.addWidget(self.lon_input)
-        self.geo_detect_btn = QPushButton("📍")
-        self.geo_detect_btn.setFixedWidth(36)
+        self.geo_detect_btn = QPushButton("Locate")
+        self.geo_detect_btn.setFixedWidth(60)
         self.geo_detect_btn.clicked.connect(self._detect_location)
         self.geo_detect_btn.setToolTip("Detect location from IP")
         latlon_row.addWidget(self.geo_detect_btn)
