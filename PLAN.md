@@ -76,6 +76,25 @@
 - [x] **World atlas** — 34K+ cities with timezone auto-resolution (GeoNames FTS5)
 - [x] **AI Teacher** — interactive Vedic astrology instructor powered by textbook embeddings
 
+## 4. Reaching Original JHora Parity (post-v1.0)
+
+| Feature | Status |
+|---------|:---:|
+| Upagrahas (Gulika, Mandi, Dhuma, Vyatipata etc) | TODO |
+| More ayanamsas (Fagan, Usha-Shashi, Deva-datta, Tropical) | TODO |
+| Outer planets (Uranus, Neptune, Pluto) | TODO |
+| Additional dasa systems (~15 more) | TODO |
+| KP system (sub-lords, 5 levels) | TODO |
+| Chakras (Sarvatobhadra, Kota, Sudarsana etc — 9 types) | TODO |
+| Special lagnas (Bhrigu Bindu, Indu, Varnada, etc.) | TODO |
+| Ishta/Kashta Phala + Vaiseshikamsas | TODO |
+| Learning aids (argala, marana karaka, relationships) | TODO |
+| Dasa pravesh charts | TODO |
+| Chart superimposition | TODO |
+| Custom divisional D-m×D-n | TODO |
+| Tithi-based dasas | TODO |
+| Monthly panchanga / monthly ephemeris | TODO |
+
 ---
 
 ## 3. Architecture
