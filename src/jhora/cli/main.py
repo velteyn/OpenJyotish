@@ -495,6 +495,52 @@ def panchanga(
 
 
 @app.command()
+def chakras(
+    nak: int = typer.Option(None, "--nakshatra", "-n", help="Target nakshatra (0-26)"),
+):
+    """Display Sarvatobhadra and Kota chakras."""
+    from jhora.calc.chakras import sarvatobhadra_text, kota_chakra, sarvatobhadra_vedha
+    console.print(sarvatobhadra_text())
+    if nak is not None:
+        console.print()
+        console.print(kota_chakra(nak))
+        console.print()
+        vedha = sarvatobhadra_vedha(nak)
+        t = Table(title=f"Vedha for nak {nak}")
+        t.add_column("Direction")
+        t.add_column("Nakshatra")
+        for v in vedha:
+            t.add_row(v["direction"], v["name"])
+        console.print(t)
+
+
+@app.command()
+def conditional_dasas(
+    birthdata: str = typer.Argument(None, help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """List which conditional dasas apply to a chart."""
+    if not birthdata:
+        console.print("[yellow]List of conditional dasa systems:[/yellow]")
+        from jhora.dasas.conditional import ALL_CONDITIONAL
+        for key, d in ALL_CONDITIONAL.items():
+            console.print(f"  [cyan]{key}[/cyan]: {d.name} ({d.total_years} years)")
+        console.print("\n[yellow]Pass birth data to check applicability:[/yellow]")
+        return
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+    from jhora.dasas.conditional import list_applicable
+    applicable = list_applicable(cd)
+    console.print(f"[green]{len(applicable)} conditional dasas apply:[/green]")
+    for d in applicable:
+        console.print(f"  [cyan]{d['name']}[/cyan]: {d['full_name']} ({d['total_years']} years)")
+
+
+@app.command()
 def ephemeris(
     start: str = typer.Argument(..., help="Start date: YYYY-MM-DD"),
     end: str = typer.Argument(None, help="End date (default: +30 days)"),
