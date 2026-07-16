@@ -331,27 +331,56 @@ class MainWindow(QMainWindow):
         self.varga_table = QTableWidget()
         vg.addWidget(self.varga_table, 1)
 
+        # 1. Dashboard
         self.tabs.addTab(self._build_dashboard_tab(), "Dashboard")
-        self.tabs.addTab(self._build_consolidated_tab(), "Chart")
-        self.tabs.addTab(self.planet_table, "Planets")
-        self.tabs.addTab(self.house_widget, "Houses")
-        self.tabs.addTab(self.dasa_widget, "Dasa Periods")
-        self.tabs.addTab(self.varga_widget, "Varga")
-        self.tabs.addTab(self._build_yoga_tab(), "Yogas")
-        self.tabs.addTab(self._build_shadbala_tab(), "Shadbala")
-        self.tabs.addTab(self._build_arudha_tab(), "Arudha & Karaka")
-        self.tabs.addTab(self._build_ashtakavarga_tab(), "Ashtakavarga")
-        self.tabs.addTab(self._build_transit_tab(), "Transit")
-        self.tabs.addTab(self._build_tajaka_tab(), "Tajaka")
-        self.tabs.addTab(self._build_kuta_tab(), "Matchmaking")
-        self.tabs.addTab(self._build_prasna_tab(), "Prasna")
-        self.tabs.addTab(self._build_muhurta_tab(), "Muhurta")
-        self.tabs.addTab(self._build_knowledge_tab(), "Knowledge")
-        self.tabs.addTab(self._build_interpreter_tab(), "Reading")
-        self.tabs.addTab(self._build_ai_chat_tab(), "AI Chat")
-        self.tabs.addTab(self._build_ai_teacher_tab(), "AI Teacher")
-        self.tabs.addTab(self._build_mundane_tab(), "Mundane")
-        self.tabs.addTab(self._build_ephemeris_tab(), "Ephemeris")
+
+        # 2. Chart & Varga
+        chart_sub = QTabWidget()
+        chart_sub.addTab(self._build_consolidated_tab(), "Chart View")
+        chart_sub.addTab(self.planet_table, "Planets")
+        chart_sub.addTab(self.house_widget, "Houses & Chalit")
+        chart_sub.addTab(self.varga_widget, "Varga Charts")
+        chart_sub.addTab(self._build_yoga_tab(), "Yogas")
+        self.tabs.addTab(chart_sub, "Chart & Varga")
+
+        # 3. Strengths
+        str_sub = QTabWidget()
+        str_sub.addTab(self._build_shadbala_tab(), "Shadbala")
+        str_sub.addTab(self._build_arudha_tab(), "Arudha & Karaka")
+        str_sub.addTab(self._build_ashtakavarga_tab(), "Ashtakavarga")
+        self.tabs.addTab(str_sub, "Strengths")
+
+        # 4. Dasas
+        dasa_sub = QTabWidget()
+        dasa_sub.addTab(self.dasa_widget, "Dasa Periods")
+        self.tabs.addTab(dasa_sub, "Dasas")
+
+        # 5. Transits & Tajaka
+        trans_sub = QTabWidget()
+        trans_sub.addTab(self._build_transit_tab(), "Transits")
+        trans_sub.addTab(self._build_tajaka_tab(), "Tajaka & TP")
+        trans_sub.addTab(self._build_mundane_tab(), "Mundane")
+        self.tabs.addTab(trans_sub, "Transits & Tajaka")
+
+        # 6. Special Topics
+        spec_sub = QTabWidget()
+        spec_sub.addTab(self._build_kuta_tab(), "Matchmaking")
+        spec_sub.addTab(self._build_prasna_tab(), "Prasna")
+        spec_sub.addTab(self._build_muhurta_tab(), "Muhurta")
+        self.tabs.addTab(spec_sub, "Special")
+
+        # 7. AI & Knowledge
+        ai_sub = QTabWidget()
+        ai_sub.addTab(self._build_ai_chat_tab(), "AI Chat")
+        ai_sub.addTab(self._build_ai_teacher_tab(), "AI Teacher")
+        ai_sub.addTab(self._build_knowledge_tab(), "Knowledge")
+        ai_sub.addTab(self._build_interpreter_tab(), "Reading")
+        self.tabs.addTab(ai_sub, "AI & Learn")
+
+        # 8. Tools
+        tool_sub = QTabWidget()
+        tool_sub.addTab(self._build_ephemeris_tab(), "Ephemeris")
+        self.tabs.addTab(tool_sub, "Tools")
 
         right_layout.addWidget(self.tabs)
 
