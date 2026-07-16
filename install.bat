@@ -10,7 +10,7 @@ python --version >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Python not found.
     echo Install Python 3.11+ from https://python.org
-    echo Make sure to check "Add Python to PATH" during install.
+    echo Make sure to check "Add to PATH" during install.
     pause
     exit /b 1
 )
@@ -23,6 +23,12 @@ if errorlevel 1 (
     exit /b 1
 )
 echo Python found.
+echo.
+
+echo Cleaning cache...
+for /d /r . %%d in (__pycache__) do @if exist "%%d" rd /s /q "%%d" 2>nul
+del /s /q *.pyc 2>nul
+echo Done.
 echo.
 
 if not exist venv\ (
@@ -59,6 +65,6 @@ echo.
 echo Commands:
 echo   run.bat        Launch GUI
 echo   jhora tui      Terminal mode
-echo   jhora --help   See all CLI commands
+echo   jhora --help   All commands
 echo.
 pause

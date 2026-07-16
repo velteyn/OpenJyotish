@@ -12,6 +12,11 @@ echo "========================================"
 echo " Jagannatha Hora — Installer"
 echo "========================================"
 echo
+echo "Cleaning cache..."
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find . -name "*.pyc" -delete 2>/dev/null || true
+echo "Done."
+echo
 
 # ── Find Python ──
 PYTHON=""
@@ -21,6 +26,12 @@ for cmd in python3 python; do
     [ "$ver" -ge 3 ] && { PYTHON="$cmd"; break; }
 done
 [ -z "$PYTHON" ] && die "Python 3 not found. Install from python.org"
+echo "Cleaning old cache..."
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find . -name "*.pyc" -delete 2>/dev/null || true
+ok "Cache cleaned"
+echo
+
 ok "Python: $($PYTHON --version)"
 
 $PYTHON -c "import sys; sys.exit(0 if sys.version_info>=(3,11) else 1)" 2>/dev/null || \
@@ -94,12 +105,27 @@ print(f'  {ct} cities in atlas')
 
 # ── Done ──
 echo
+echo "Cleaning cache..."
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find . -name "*.pyc" -delete 2>/dev/null || true
+echo "Done."
+echo
 echo "========================================"
 echo " Setup complete!"
 echo "========================================"
+echo
+echo "Cleaning cache..."
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find . -name "*.pyc" -delete 2>/dev/null || true
+echo "Done."
 echo
 echo "Quick start:"
 echo "  ./run.sh          Launch GUI"
 echo "  jhora tui         Terminal mode"
 echo "  jhora --help      All commands"
+echo
+echo "Cleaning cache..."
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find . -name "*.pyc" -delete 2>/dev/null || true
+echo "Done."
 echo
