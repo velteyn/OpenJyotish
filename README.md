@@ -53,6 +53,109 @@ jhora ephemeris 2026-07-01         # Daily planet table
 jhora tui "..."                    # Interactive terminal UI
 ```
 
+## GUI Manual
+
+Launch with `jhora gui`. The desktop app has 19 tabs:
+
+```
+┌─ File ─┬─ Left Panel ────┬─ Right Panel (Tabs) ─────────────────────────┐
+│ Import │ Planets          │ Planets  Houses  Dasa  Varga  Yogas         │
+│ Export │ Houses + Chalit  │ Shadbala  Arudha  Ashtakavarga  Transit     │
+│ Browse │ Dasa Periods     │ Tajaka  Matchmaking  Prasna  Muhurta        │
+│ Report │                  │ Knowledge  Reading  AI Chat  AI Teacher     │
+│ Exit   │                  │ Mundane  Ephemeris                          │
+└────────┴──────────────────┴─────────────────────────────────────────────┘
+```
+
+### Getting started
+1. Fill the form: Date, Time, Latitude, Longitude, Timezone
+2. Click **Search** to find a city by name (fills lat/lon/tz automatically)
+3. Click **Now** to use current date/time with auto-detected timezone
+4. Click **Calculate** or press Enter
+
+### Tab guide
+
+| Tab | What it shows | How to use |
+|-----|--------------|------------|
+| **Planets** | 9 planets + lagna positions, nakshatras, dignity | Read at a glance |
+| **Houses** | 12 house cusps + Chalit shifts (cusp vs sign) | Check which planets moved houses |
+| **Dasa** | Select system → full MD/AD text + interactive bar chart | Click bars to expand antardasas |
+| **Varga** | Select divisional chart → planet positions + navamsa toggle | Dropdown for D-1 through D-150 |
+| **Yogas** | All detected yogas with planets and descriptions | Scroll to review combinations |
+| **Shadbala** | Planet strengths + House strengths + Vimsopaka Bala | Three tables stacked |
+| **Arudha & Karaka** | Arudha padas + Chara karakas + 36 Sahamas | Tabular view |
+| **Ashtakavarga** | BAV, SAV, Sodhya Pinda, Kakshya detail | Toggle Parasara/Varahamihira |
+| **Transit** | Current transits with SAV scores + filtered by planet | Dropdown to select planet |
+| **Tajaka** | Solar return + Muntha + Harsha + Patyayini + Mudda + Tithi Pravesha + Progressions | Enter target year |
+| **Matchmaking** | 10 Porutham + Ashta Koota scores for two charts | Fill both charts, click Match |
+| **Prasna** | Horary chart from number | Enter 1-108, 1-249, or 1-1800 |
+| **Muhurta** | Task evaluation + Find Auspicious Times | Select task, set date/time/location |
+| **Knowledge** | FTS5 search across 16 textbooks | Type query, set result count |
+| **Reading** | Rule-based chart interpretation | Click Generate Reading |
+| **AI Chat** | LLM-powered interpretation (needs Ollama/LM Studio) | Select provider, click Interpret/Ask/Remedies |
+| **AI Teacher** | Interactive Vedic astrology instructor | Ask questions, auto-searches textbooks |
+| **Mundane** | Solar ingresses + eclipses + conjunctions | Set year/lat/lon, click Compute |
+| **Ephemeris** | Daily planet table for any date range | Set start/end/step, click Generate |
+
+### Keyboard shortcuts
+- `Ctrl+O` — Import .jhd file
+- `Ctrl+S` — Save chart to database
+- `Ctrl+Shift+S` — Export .jhd file
+- `Ctrl+B` — Browse saved charts (load/delete)
+- `Ctrl+Q` — Exit
+
+### File menu
+- **Import .jhd** — Load original JHora format charts
+- **Save to Database** — Stores chart in SQLite for later browsing
+- **Export .jhd** — Save in original JHora format
+- **Browse Charts** — Dialog listing all saved charts (double-click to load)
+- **Export Report (HTML)** — Save styled HTML report (printable to PDF)
+
+## TUI Manual
+
+Launch with `jhora tui "birthdata"`. The terminal interface has 16 panels:
+
+```
+╔═══════════════════════════════════════╗
+║ Jhora TUI — Planets (1/16)           ║
+║ [1-9,0,a] tabs | ← → nav | q quit   ║
+╠═══════════════════════════════════════╣
+║ Planets  Houses  Dasa  Varga  Yogas  ║
+║ Shadbala  Arudha  Ashtakavarga       ║
+║ Transit  Tajaka+TP+Prog              ║
+║ Matchmaking  Prasna  Muhurta         ║
+║ Knowledge  Reading  AI Chat          ║
+╚═══════════════════════════════════════╝
+```
+
+### Navigation
+| Key | Action |
+|-----|--------|
+| `1`-`9` | Tabs 1-9 (Planets through Transit) |
+| `0` | Tab 10 (Tajaka + Tithi Pravesha + Progressions) |
+| `a` | Tab 16 (AI Chat) |
+| `←` `→` | Previous / Next tab |
+| `q` | Quit |
+| `r` | Refresh current tab |
+
+### What each panel shows
+- **Planets (1)**: Full table with sign, degree, nakshatra, retrograde, lord
+- **Houses (2)**: 12 cusps + Chalit shifts highlighted
+- **Dasa (3)**: Vimsottari MD/AD periods in text tree
+- **Varga (4)**: 8 varga charts side by side (D-1 through D-60)
+- **Yogas (5)**: Detected yogas with descriptions
+- **Shadbala (6)**: Three tables — Shadbala + Bhava Bala + Vimsopaka
+- **Arudha (7)**: Arudha padas + Chara karakas
+- **Ashtakavarga (8)**: SAV table with total score
+- **Transit (9)**: Current transits with SAV + favorability
+- **Tajaka+ (0)**: Tajaka chart + Tithi Pravesha + Progressions combined
+- **Matchmaking (10)**: Explains CLI/GUI usage for two-chart matching
+- **Prasna (11)**: Sample horary results for 1, 50, max
+- **Muhurta (12)**: Task evaluation scores for today
+- **Knowledge (13)**: Source list + sample search result
+- **Reading (14)**: Concise rule-based interpretation
+- **AI Chat (a)**: Server health check + CLI command hints
+
 ## Prerequisites
 
 - Python 3.11+
