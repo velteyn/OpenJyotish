@@ -3074,6 +3074,7 @@ class MainWindow(QMainWindow):
                 child.widget().deleteLater()
 
         from jhora.types.graha import Graha
+        bavs = all_bhinna_ashtakavarga(cd)
         for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
                   Graha.JUPITER, Graha.VENUS, Graha.SATURN]:
             if g not in bavs:
