@@ -2638,58 +2638,95 @@ class MainWindow(QMainWindow):
 
     def _populate_cons_planet_table(self, cd: ChartData):
         from jhora.types.nakshatra import Nakshatra
-        from jhora.calc.special_lagnas import compute_special_lagnas
-        from jhora.calc.upagraha import compute_solar_upagrahas
+        from jhora.calc.karaka import compute_chara_karakas
+        from jhora.charts.varga import VargaChartComputer
+        from jhora.types.varga import VargaLevel
+
+        # Chara karakas for suffixes
+        cks = compute_chara_karakas(cd.planets)
+        karaka_map = {}
+        for ck in cks:
+            karaka_map[ck.graha] = ck.karaka_name
+
+        # Navamsa positions
+        try:
+            vcc = VargaChartComputer()
+            d9 = vcc.compute(cd, VargaLevel.D_9)
+            navamsa_map = {g: Rasi.from_longitude(d9.positions[g].longitude).short_name
+                          for g in d9.positions}
+        except Exception:
+            navamsa_map = {}
 
         bodies = []
         # Lagna
         lr = Rasi.from_longitude(cd.ascendant)
         n_l, p_l = Nakshatra.from_longitude(cd.ascendant)
-        bodies.append(("Lagna", cd.ascendant, lr.short_name, lr.lord,
-                       n_l.name.replace("_"," ").title(), p_l, "", ""))
+        deg = int(cd.ascendant)
+        min_p = (cd.ascendant - deg) * 60
+        min_v = int(min_p)
+        sec = int((min_p - min_v) * 60)
+        dms = f"{deg}°{min_v:02d}'{sec:02d}\""
+        nav_lagna = navamsa_map.get(0, Rasi.from_longitude(cd.ascendant % 30 * 9 % 360).short_name)
+        bodies.append(("Lagna", dms, n_l.name.replace("_"," ").title(), p_l,
+                       lr.short_name, nav_lagna, "", "", ""))
 
-        # Planets
-        for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
-                  Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
+        planets_order = [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                        Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]
+        for g in planets_order:
             p = cd.planet(g)
             r = Rasi.from_longitude(p.longitude)
             n, pada = Nakshatra.from_longitude(p.longitude)
             deg = int(p.longitude)
-            min_part = (p.longitude - deg) * 60
-            min_val = int(min_part)
-            sec = int((min_part - min_val) * 60)
-            dms = f"{deg}°{min_val:02d}'{sec:02d}\""
-            motion = "R" if p.is_retrograde else "D"
-            bodies.append((g.full_name, p.longitude, r.short_name, r.lord,
-                           n.name.replace("_"," ").title(), pada, dms, motion))
+            min_p = (p.longitude - deg) * 60
+            min_v = int(min_p)
+            sec = int((min_p - min_v) * 60)
+            dms = f"{deg}°{min_v:02d}'{sec:02d}\""
+            suffix = f" - {karaka_map.get(g, '')}" if g in karaka_map else ""
+            name = f"{g.full_name} (R)" if p.is_retrograde else g.full_name
+            nav = navamsa_map.get(g, "?")
+            bodies.append((name + suffix, dms, n.name.replace("_"," ").title(),
+                           pada, r.short_name, nav, "", p.is_retrograde))
 
-        # Special lagnas
-        for s in compute_special_lagnas(cd):
-            r = Rasi.from_longitude(s.longitude)
-            bodies.append((s.name, s.longitude, r.short_name, r.lord, "", 0, "", ""))
+        # Built-in lagnas (Bhava, Hora, Ghati, etc.)
+        for lagna_name, lagna_data in [
+            ("Bhava Lagna", cd.bhava_lagna),
+            ("Hora Lagna", cd.hora_lagna),
+            ("Ghati Lagna", cd.ghati_lagna),
+        ]:
+            if lagna_data:
+                lr = Rasi.from_longitude(lagna_data.longitude)
+                n, pada = Nakshatra.from_longitude(lagna_data.longitude)
+                deg = int(lagna_data.longitude)
+                min_p = (lagna_data.longitude - deg) * 60
+                min_v = int(min_p)
+                sec = int((min_p - min_v) * 60)
+                dms_f = f"{deg}°{min_v:02d}'{sec:02d}\""
+                bodies.append((lagna_name, dms_f, n.name.replace("_"," ").title(),
+                               pada, lr.short_name, "", "", ""))
 
-        # Upagrahas
+        # Maandi + Gulika
+        from jhora.calc.upagraha import compute_solar_upagrahas
         sun_lon = cd.planet(Graha.SUN).longitude
-        for u in compute_solar_upagrahas(sun_lon):
-            r = Rasi.from_longitude(u.longitude)
-            bodies.append((u.name, u.longitude, r.short_name, r.lord, "", 0, "", ""))
 
-        headers = ["Body", "Rasi", "Lord", "Nakshatra", "Pada", "DMS", "M"]
+        headers = ["Body", "DMS", "Nakshatra", "Pada", "Rasi", "Nav", "Ld", "M"]
         self.cons_planet_table.setColumnCount(len(headers))
         self.cons_planet_table.setHorizontalHeaderLabels(headers)
         self.cons_planet_table.setRowCount(len(bodies))
-        for i, (name, lon, sign, lord, nak, pada, dms, motion) in enumerate(bodies):
-            for j, val in enumerate([name, sign, lord, nak, str(pada) if pada else "", dms, motion]):
-                item = QTableWidgetItem(val)
+        for i, (name, dms_val, nak, pada, rasi, nav, lord, retro) in enumerate(bodies):
+            row_data = [name, dms_val, nak, str(pada) if pada else "",
+                       rasi, nav, lord, "R" if retro else ""]
+            for j, val in enumerate(row_data):
+                item = QTableWidgetItem(str(val) if val else "")
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                if name == "Lagna":
+                if "Lagna" in name and not any(x in name for x in ["Hora","Ghati","Bhava"]):
+                    item.setForeground(QColor("#e94560"))
+                if isinstance(retro, bool) and retro:
                     item.setForeground(QColor("#e94560"))
                 self.cons_planet_table.setItem(i, j, item)
         self.cons_planet_table.resizeColumnsToContents()
 
     def _populate_cons_natal_panel(self, cd: ChartData):
         from jhora.types.nakshatra import Nakshatra
-        from jhora.calc.muhurta import compute_panchanga
         import swisseph as swe
 
         moon = cd.planet(Graha.MOON).longitude
@@ -2700,7 +2737,7 @@ class MainWindow(QMainWindow):
         tithi_names = ["Pratipat","Dwitiya","Tritiya","Chaturthi","Panchami",
                        "Shashthi","Saptami","Ashtami","Navami","Dasami",
                        "Ekadasi","Dwadasi","Trayodasi","Chaturdasi",
-                       "Amavasya","Purnima"]
+                       "Amavasya/Purnima"]
         phase = "Sukla" if tithi_idx < 15 else "Krishna"
         tithi_name = tithi_names[tithi_idx % 15]
         if tithi_idx == 14:
@@ -2708,17 +2745,38 @@ class MainWindow(QMainWindow):
         elif tithi_idx == 29:
             tithi_name = "Purnima"
 
+        # Tithi lord (weekday mapping: Sun=Pratipat...)
+        tithi_lords = ["Su","Mo","Ma","Me","Ju","Ve","Sa"]
+        tithi_lord = tithi_lords[tithi_idx % 7]
+
         nak, pada = Nakshatra.from_longitude(moon)
         nak_name = nak.name.replace("_", " ").title()
         nak_pct = (1 - (moon % (360.0/27)) / (360.0/27)) * 100
+        # Nakshatra lord from Vimsottari mapping
+        nak_lords = ["Ke","Ve","Su","Mo","Ma","Ra","Ju","Sa","Me"]
+        nak_lord = nak_lords[nak.value % 9]
 
-        wdays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
-        wd = wdays[cd.birth_date.weekday()]
-        ay = cd.ayanamsa_value
+        # Yoga: (Sun+Moon)/13°20' → 27 yogas
+        yoga_idx = int(((sun + moon) % 360) / (360.0 / 27)) % 27
+        yoga_names = ["Vishkambha","Preeti","Aayushman","Saubhagya","Shobhana",
+                      "Atiganda","Sukarma","Dhriti","Shoola","Ganda","Vriddhi",
+                      "Dhruva","Vyaghaata","Harshana","Vajra","Siddhi",
+                      "Vyatipaata","Variyaana","Parigha","Shiva","Siddha",
+                      "Saadhya","Shubha","Shukla","Brahma","Indra","Vaidhriti"]
+        yoga_name = yoga_names[yoga_idx]
+        yoga_lords = ["Su","Mo","Ma","Me","Ju","Ve","Sa"]
+        yoga_lord = yoga_lords[yoga_idx % 7]
+
+        # Karana: tithi_index * 2 + (0 if first half, 1 if second)
+        karana_idx = (tithi_idx * 2 + (0 if tithi_pct > 50 else 1)) % 11
+        karana_names = ["Bava","Balava","Kaulava","Taitula","Garaja","Vanija",
+                        "Vishti","Shakuni","Chatushpada","Naaga","Kimstughna"]
+        karana_name = karana_names[karana_idx % 11]
+        karana_lords = ["Su","Mo","Ma","Me","Ju","Ve","Sa"]
+        karana_lord = karana_lords[karana_idx % 7]
 
         # Sunrise/sunset
         try:
-            eng = SweEngine()
             jd = cd.julian_day
             flag = swe.CALC_RISE | swe.BIT_NO_REFRACTION
             res, tret = swe.rise_trans(jd - 1, swe.SUN, 0, 0, flag,
@@ -2730,31 +2788,43 @@ class MainWindow(QMainWindow):
                                          (cd.longitude, cd.latitude, 0))
             ss_jd = tret2[0] if tret2 else jd + 0.75
             ss_h = (ss_jd - int(ss_jd)) * 24
-            sunrise = f"{int(sr_h):02d}:{int((sr_h%1)*60):02d}:00"
-            sunset = f"{int(ss_h):02d}:{int((ss_h%1)*60):02d}:00"
+            sunrise = f"{int(sr_h):02d}:{int((sr_h%1)*60):02d}:{int(((sr_h%1)*60%1)*60):02d}"
+            sunset = f"{int(ss_h):02d}:{int((ss_h%1)*60):02d}:{int(((ss_h%1)*60%1)*60):02d}"
         except Exception:
             sunrise = "N/A"
             sunset = "N/A"
 
+        # Janma ghatis (1 ghati = 24 min from sunrise)
+        birth_h = cd.birth_date.hour + cd.birth_date.minute / 60.0 + cd.birth_date.second / 3600.0
+        try:
+            jg = (birth_h - sr_h + 24) % 24 / 0.4
+        except Exception:
+            jg = 0
+
+        # Ayanamsa
         aya_deg = int(cd.ayanamsa_value)
         aya_min = int((cd.ayanamsa_value - aya_deg) * 60)
         aya_sec = int(((cd.ayanamsa_value - aya_deg) * 60 - aya_min) * 60)
 
+        wdays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
+        wd = wdays[cd.birth_date.weekday()]
+
         lines = [
             f"Date:         {cd.birth_date.strftime('%B %d, %Y')}",
             f"Time:         {cd.birth_date.strftime('%H:%M:%S')}",
-            f"Time Zone:    {cd.timezone}",
-            f"Place:        {cd.latitude:.2f}°, {cd.longitude:.2f}°",
+            f"Time Zone:    {cd.timezone} (West of GMT)" if cd.timezone.startswith("-") else f"Time Zone:    {cd.timezone} (East of GMT)",
+            f"Place:        {cd.latitude:.4f}°, {cd.longitude:.4f}°",
             f"",
-            f"Tithi:        {phase} {tithi_name} ({tithi_pct:.1f}% left)",
+            f"Tithi:        {phase} {tithi_name} ({tithi_lord}) ({tithi_pct:.1f}% left)",
             f"Vedic Day:    {wd}",
-            f"Nakshatra:    {nak_name} ({nak_pct:.1f}% left)",
+            f"Nakshatra:    {nak_name} ({nak_lord}) ({nak_pct:.1f}% left)",
+            f"Yoga:         {yoga_name} ({yoga_lord})",
+            f"Karana:       {karana_name} ({karana_lord})",
             f"",
             f"Sunrise:      {sunrise}",
             f"Sunset:       {sunset}",
+            f"Janma Ghatis: {jg:.3f}",
             f"Ayanamsa:     {aya_deg}-{aya_min:02d}-{aya_sec:02d} ({cd.ayanamsa_name})",
-            f"",
-            f"Choghadiya:   Day: {'Chala' if cd.birth_date.weekday()==3 else 'Amrita' if cd.birth_date.weekday()==0 else 'Labha' if cd.birth_date.weekday()==4 else 'Sidha' if cd.birth_date.weekday()==1 else 'Roga' if cd.birth_date.weekday()==2 else 'Udyoga'}",
         ]
         self.cons_natal_panel.setText("\n".join(lines))
 
