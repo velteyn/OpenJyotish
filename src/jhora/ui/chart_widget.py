@@ -8,6 +8,8 @@ from PyQt6.QtWidgets import QWidget
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 from jhora.charts.chart import ChartData, VargaPosition
+from jhora.calc.special_lagnas import bhrigu_bindu, indu_lagna, varnada_lagna
+from jhora.calc.upagraha import compute_solar_upagrahas
 
 
 class ChartStyle(Enum):
@@ -63,7 +65,40 @@ class ChartWidget(QWidget):
     def set_chart_data(self, cd: ChartData):
         self.chart_data = cd
         self.navamsa_data = None
+        self._compute_special_markers()
         self.update()
+
+    def _compute_special_markers(self):
+        """Compute special lagnas and upagrahas for chart labels."""
+        self._markers = {}  # {Rasi: [(label, color), ...]}
+        if not self.chart_data:
+            return
+        cd = self.chart_data
+        try:
+            # Lagna
+            lr = Rasi.from_longitude(cd.ascendant)
+            self._markers.setdefault(lr, []).append(("As", QColor("#e94560")))
+            # Bhrigu Bindu
+            bb = bhrigu_bindu(cd)
+            self._markers.setdefault(Rasi.from_longitude(bb), []).append(
+                ("BB", QColor("#00d2ff")))
+            # Indu Lagna
+            il = indu_lagna(cd)
+            self._markers.setdefault(Rasi.from_longitude(il), []).append(
+                ("IL", QColor("#00ff88")))
+            # Varnada
+            vl = varnada_lagna(cd)
+            self._markers.setdefault(Rasi.from_longitude(vl), []).append(
+                ("VL", QColor("#ffb347")))
+            # Upagrahas
+            sun_lon = cd.planet(Graha.SUN).longitude
+            for u in compute_solar_upagrahas(sun_lon):
+                if u.name == "Dhuma":
+                    self._markers.setdefault(
+                        Rasi.from_longitude(u.longitude), []).append(
+                        ("Dh", QColor("#888888")))
+        except Exception:
+            pass
 
     def set_chart_style(self, style: ChartStyle):
         self.chart_style = style
@@ -140,6 +175,11 @@ class ChartWidget(QWidget):
             planets = pb.get(rasi, [])
             if planets:
                 self._draw_planets(painter, rect, planets)
+
+            # Draw special lagna/upagraha markers
+            markers = self._markers.get(rasi, [])
+            if markers:
+                self._draw_markers(painter, rect, markers)
 
         # Center box
         cr = self._center_rect()
@@ -363,3 +403,19 @@ class ChartWidget(QWidget):
     def _draw_planet_glyph(self, painter: QPainter, graha: Graha, x: float, y: float):
         painter.setPen(PLANET_COLORS.get(graha, QColor("white")))
         painter.drawText(int(x), int(y), graha.short_name)
+
+    def _draw_markers(self, painter: QPainter, rect: QRectF,
+                      markers: list):
+        """Draw special lagna/upagraha labels at the bottom-right of a cell."""
+        font = QFont("sans-serif", 6)
+        painter.setFont(font)
+        fm = QFontMetrics(font)
+        padding = 2
+        x = rect.right() - padding
+        y = rect.bottom() - padding
+        for label, color in reversed(markers):
+            w = fm.horizontalAdvance(label)
+            x -= w
+            painter.setPen(color)
+            painter.drawText(int(x), int(y), label)
+            x -= padding
