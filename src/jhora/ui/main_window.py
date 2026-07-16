@@ -2,43 +2,39 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QDate, QTime, QTimer, QThread, pyqtSignal
-from PyQt6.QtGui import QBrush, QColor, QFont
-from PyQt6.QtWidgets import (
-    QApplication, QDialog, QListWidget, QListWidgetItem, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget,
-    QTableWidgetItem, QHeaderView, QSplitter, QTextEdit, QTabWidget,
-    QMessageBox, QGroupBox, QFormLayout,
-    QDateEdit, QTimeEdit, QFileDialog, QScrollArea,
-)
-from PyQt6.QtGui import QAction
+from PyQt6.QtCore import QDate, Qt, QThread, QTime, QTimer, pyqtSignal
+from PyQt6.QtGui import QAction, QBrush, QColor, QFont
+from PyQt6.QtWidgets import (QApplication, QComboBox, QDateEdit, QDialog,
+                             QFileDialog, QFormLayout, QGroupBox, QHBoxLayout,
+                             QHeaderView, QLabel, QLineEdit, QListWidget,
+                             QListWidgetItem, QMainWindow, QMessageBox,
+                             QPushButton, QScrollArea, QSplitter, QTableWidget,
+                             QTableWidgetItem, QTabWidget, QTextEdit,
+                             QTimeEdit, QVBoxLayout, QWidget)
 
-from jhora.io.atlas import AtlasCity, AtlasReader, StaticAtlasReader, open_default_atlas
-from jhora.io.jhd_parser import (
-    parse_jhd, save_jhd, JhdData, JhdFormat,
-    save_chart_to_db, load_chart_from_db, list_charts, delete_chart,
-    import_jhd_to_db, export_chart_to_jhd,
-)
-from jhora.core.database import get_db, set_db_path
-from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
-
-from jhora.charts.chart import ChartBuilder, ChartData
-from jhora.charts.varga import VargaChartComputer, VargaChartData, get_variants_for_level
-from jhora.calc.shadbala import ShadbalaComputer
+from jhora.ai.engine import PROVIDERS, AiConfig, AiEngine
+from jhora.calc.ashtakavarga import (_OCCUPANT_GRAHAS, all_bhinna_ashtakavarga,
+                                     kakshya_bindu_table, sarva_ashtakavarga,
+                                     sodhya_pinda)
 from jhora.calc.bhava_bala import BhavaBalaComputer
+from jhora.calc.shadbala import ShadbalaComputer
 from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
+from jhora.charts.chart import ChartBuilder, ChartData
+from jhora.charts.varga import (VargaChartComputer, VargaChartData,
+                                get_variants_for_level)
+from jhora.core.database import get_db, set_db_path
 from jhora.ephemeris.swe import SweEngine
+from jhora.io.atlas import (AtlasCity, AtlasReader, StaticAtlasReader,
+                            open_default_atlas)
+from jhora.io.jhd_parser import (JhdData, JhdFormat, delete_chart,
+                                 export_chart_to_jhd, import_jhd_to_db,
+                                 list_charts, load_chart_from_db, parse_jhd,
+                                 save_chart_to_db, save_jhd)
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 from jhora.types.varga import VargaLevel, VargaVariant
+from jhora.ui.chart_widget import ChartStyle, ChartWidget
 from jhora.ui.dasa_timeline_widget import DasaTimelineWidget
-from jhora.ui.chart_widget import ChartWidget, ChartStyle
-from jhora.calc.ashtakavarga import (
-    all_bhinna_ashtakavarga, sarva_ashtakavarga, sodhya_pinda,
-    kakshya_bindu_table,
-    _OCCUPANT_GRAHAS,
-)
-
 
 BG = "#1a1a2e"
 BG2 = "#16213e"
@@ -151,7 +147,7 @@ class MainWindow(QMainWindow):
         self.city_input.returnPressed.connect(self._on_city_search)
 
         self.city_search_btn = QPushButton("Find")
-        self.city_search_btn.setFixedWidth(50)
+        self.city_search_btn.setFixedWidth(80)
         self.city_search_btn.setToolTip("Search city")
         self.city_search_btn.clicked.connect(self._on_city_search)
 
@@ -191,7 +187,7 @@ class MainWindow(QMainWindow):
         latlon_row.addWidget(QLabel("Lon:"))
         latlon_row.addWidget(self.lon_input)
         self.geo_detect_btn = QPushButton("Locate")
-        self.geo_detect_btn.setFixedWidth(60)
+        self.geo_detect_btn.setFixedWidth(80)
         self.geo_detect_btn.clicked.connect(self._detect_location)
         self.geo_detect_btn.setToolTip("Detect location from IP")
         latlon_row.addWidget(self.geo_detect_btn)
@@ -1339,10 +1335,9 @@ class MainWindow(QMainWindow):
     def _on_tajaka_find(self):
         if not self.chart_data:
             return
-        from jhora.calc.tajaka import (
-            build_tajaka_chart, compute_harsha_bala,
-            compute_patyayini_dasa, compute_mudda_dasa,
-        )
+        from jhora.calc.tajaka import (build_tajaka_chart, compute_harsha_bala,
+                                       compute_mudda_dasa,
+                                       compute_patyayini_dasa)
         try:
             target_year = int(self.taj_year_combo.currentText().strip())
         except ValueError:
@@ -1715,8 +1710,9 @@ class MainWindow(QMainWindow):
         return w
 
     def _get_muhurta_inputs(self):
-        from jhora.charts.chart import ChartBuilder
         from datetime import datetime
+
+        from jhora.charts.chart import ChartBuilder
 
         qd = self.muhurta_date.date()
         qt = self.muhurta_time.time()
@@ -1729,7 +1725,7 @@ class MainWindow(QMainWindow):
         return dt, tz_offset, lat, lon
 
     def _on_muhurta_evaluate(self):
-        from jhora.calc.muhurta import evaluate_time, MuhurtaTask
+        from jhora.calc.muhurta import MuhurtaTask, evaluate_time
 
         try:
             dt, tz_offset, lat, lon = self._get_muhurta_inputs()
@@ -1777,7 +1773,7 @@ class MainWindow(QMainWindow):
         self.muhurta_detail.setText("\n".join(lines))
 
     def _on_muhurta_find(self):
-        from jhora.calc.muhurta import find_muhurta, MuhurtaTask
+        from jhora.calc.muhurta import MuhurtaTask, find_muhurta
 
         try:
             dt, tz_offset, lat, lon = self._get_muhurta_inputs()
@@ -1951,7 +1947,7 @@ class MainWindow(QMainWindow):
             return None
 
     def _on_kuta_match(self):
-        from jhora.calc.kuta import compute_kuta, ScoringSystem
+        from jhora.calc.kuta import ScoringSystem, compute_kuta
         qd_g = self.kuta_girl_date.date()
         qt_g = self.kuta_girl_time.time()
         qd_b = self.kuta_boy_date.date()
@@ -2085,7 +2081,7 @@ class MainWindow(QMainWindow):
         cfg.addWidget(self.ai_model)
 
         self.ai_check_btn = QPushButton("Check")
-        self.ai_check_btn.setFixedWidth(60)
+        self.ai_check_btn.setFixedWidth(100)
         self.ai_check_btn.clicked.connect(self._on_ai_health_check)
         cfg.addWidget(self.ai_check_btn)
 
@@ -2465,8 +2461,8 @@ class MainWindow(QMainWindow):
 
     def _on_mundane_compute(self):
         from jhora.calc.mundane import MundaneCalculator
-        from jhora.types.rasi import Rasi
         from jhora.types.graha import Graha
+        from jhora.types.rasi import Rasi
 
         try:
             year = int(self.mun_year.text())
@@ -2589,7 +2585,7 @@ class MainWindow(QMainWindow):
 
         self.dash_now = QTextEdit()
         self.dash_now.setReadOnly(True)
-        self.dash_now.setMaximumHeight(242)
+        self.dash_now.setMaximumHeight(300)
         self.dash_now.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:16px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
         left.addWidget(QLabel("RIGHT NOW"))
         left.addWidget(self.dash_now)
@@ -2608,7 +2604,7 @@ class MainWindow(QMainWindow):
 
         self.dash_upcoming = QTextEdit()
         self.dash_upcoming.setReadOnly(True)
-        self.dash_upcoming.setMaximumHeight(242)
+        self.dash_upcoming.setMaximumHeight(300)
         self.dash_upcoming.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:16px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
         right.addWidget(QLabel("UPCOMING"))
         right.addWidget(self.dash_upcoming)
@@ -2623,13 +2619,14 @@ class MainWindow(QMainWindow):
         return w
 
     def _populate_dashboard(self, cd: ChartData):
-        from jhora.dasas.vimsottari import VimsottariDasa
-        from jhora.calc.shadbala import ShadbalaComputer
+        from datetime import datetime, timedelta
+
         from jhora.calc.bhava_bala import BhavaBalaComputer
         from jhora.calc.gochara import compute_transits
+        from jhora.calc.shadbala import ShadbalaComputer
+        from jhora.dasas.vimsottari import VimsottariDasa
         from jhora.ephemeris.swe import SweEngine
         from jhora.types.nakshatra import Nakshatra
-        from datetime import datetime, timedelta
 
         now = datetime.now()
         # ── RIGHT NOW ──
@@ -2851,9 +2848,9 @@ class MainWindow(QMainWindow):
         self._populate_cons_ashtakavarga(cd)
 
     def _populate_cons_planet_table(self, cd: ChartData):
-        from jhora.types.nakshatra import Nakshatra
         from jhora.calc.karaka import compute_chara_karakas
         from jhora.charts.varga import VargaChartComputer
+        from jhora.types.nakshatra import Nakshatra
         from jhora.types.varga import VargaLevel
 
         # Chara karakas for suffixes
@@ -2941,8 +2938,9 @@ class MainWindow(QMainWindow):
         self.cons_planet_table.resizeColumnsToContents()
 
     def _populate_cons_natal_panel(self, cd: ChartData):
-        from jhora.types.nakshatra import Nakshatra
         import swisseph as swe
+
+        from jhora.types.nakshatra import Nakshatra
 
         moon = cd.planet(Graha.MOON).longitude
         sun = cd.planet(Graha.SUN).longitude
@@ -3044,7 +3042,8 @@ class MainWindow(QMainWindow):
         self.cons_natal_panel.setText("\n".join(lines))
 
     def _populate_cons_ashtakavarga(self, cd: ChartData):
-        from jhora.calc.ashtakavarga import sarva_ashtakavarga, all_bhinna_ashtakavarga
+        from jhora.calc.ashtakavarga import (all_bhinna_ashtakavarga,
+                                             sarva_ashtakavarga)
         sav = sarva_ashtakavarga(cd)
 
         # SAV grid: 4 rows × 3 cols
