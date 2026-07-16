@@ -626,6 +626,19 @@ class JhoraTui:
             rich.print(t)
         self._content_lines = cap.get().split("\n")
 
+    def _action_chakras(self):
+        from jhora.calc.chakras import sarvatobhadra_text
+        lines = sarvatobhadra_text().split("\n")
+        if self.chart:
+            from jhora.calc.chakras import sarvatobhadra_vedha
+            moon = self.chart.planet(Graha.MOON).longitude
+            nak = int(moon / (360.0 / 27)) % 27
+            lines.append("")
+            lines.append(f"[yellow]Moon nakshatra: {nak} — Vedha analysis:[/yellow]")
+            for v in sarvatobhadra_vedha(nak):
+                lines.append(f"  {v['direction']:>3}: {v['name']}")
+        self._content_lines = lines
+
     # ── Main Menu ─────────────────────────────────────────────────────────
 
     def _show_main_menu(self):
@@ -653,6 +666,7 @@ class JhoraTui:
             ("l", "Export HTML Report", self._action_export_html),
             ("m", "Save Chart to Database", self._action_save_db),
             ("o", "Monthly Panchanga Calendar", self._action_panchanga),
+            ("p", "Chakras (Sarvatobhadra + Kota)", self._action_chakras),
             ("n", "Birth Data (Re-enter)", self._action_input_birth),
         ]
         self._menu_loop("Jhora TUI — Main Menu", items,
