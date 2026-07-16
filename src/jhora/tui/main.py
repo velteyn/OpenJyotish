@@ -598,6 +598,34 @@ class JhoraTui:
         )
         self._content_lines = [f"\n  [green]Saved to DB (ID: {cid})[/green]"]
 
+    def _action_panchanga(self):
+        from prompt_toolkit.shortcuts import input_dialog
+        from jhora.calc.monthly_panchanga import monthly_panchanga
+        y = input_dialog("Year", "Year:", str(datetime.now().year)).run()
+        m = input_dialog("Month", "Month:", str(datetime.now().month)).run()
+        if not y or not m:
+            return
+        lat = 28.61
+        lon = 77.21
+        if self.chart:
+            lat = self.chart.latitude
+            lon = self.chart.longitude
+        with rich.capture() as cap:
+            days = monthly_panchanga(int(y), int(m), lat, lon)
+            t = Table(title=f"Panchanga — {y}-{int(m):02d}", box=rich_box.SIMPLE)
+            t.add_column("Date", style="cyan")
+            t.add_column("Day")
+            t.add_column("Tithi", style="yellow")
+            t.add_column("Nakshatra", style="magenta")
+            t.add_column("Moon", style="green")
+            t.add_column("Sunrise")
+            t.add_column("Rahu Kalam", style="red")
+            for d in days:
+                t.add_row(d.date, d.weekday, d.tithi, d.nakshatra,
+                         d.moon_sign, d.sunrise, d.rahu_kalam)
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
     # ── Main Menu ─────────────────────────────────────────────────────────
 
     def _show_main_menu(self):
@@ -624,6 +652,7 @@ class JhoraTui:
             ("k", "Knowledge Search (Textbooks)", self._action_knowledge),
             ("l", "Export HTML Report", self._action_export_html),
             ("m", "Save Chart to Database", self._action_save_db),
+            ("o", "Monthly Panchanga Calendar", self._action_panchanga),
             ("n", "Birth Data (Re-enter)", self._action_input_birth),
         ]
         self._menu_loop("Jhora TUI — Main Menu", items,
