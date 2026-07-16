@@ -28,6 +28,7 @@ from jhora.calc.ephemeris import generate_ephemeris
 from jhora.calc.comparison import compare_natal_transit
 from jhora.calc.dasa_timeline import dasa_timeline_text
 from jhora.calc.upagraha import compute_solar_upagrahas
+from jhora.ai.json_export import full_analysis
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
@@ -88,6 +89,17 @@ def chart(
     _display_chart_yogas(chart_data)
     if chalit:
         _display_chalit(chart_data)
+
+
+@app.command()
+def analyze(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """AI-friendly JSON dump — all computed data in one structured output."""
+    import json
+    data = full_analysis(birthdata, ayanamsa)
+    print(json.dumps(data, indent=2, ensure_ascii=False))
 
 
 @app.command()
