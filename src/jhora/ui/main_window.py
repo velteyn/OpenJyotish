@@ -1159,7 +1159,7 @@ class MainWindow(QMainWindow):
             ])
         self._fill_table(self.karaka_table, headers, rows)
 
-        is_day = 6.0 <= cd.time_of_day_hours < 18.0
+        is_day = 6.0 <= cd.birth_date.hour < 18.0
         sahamas = compute_sahamas(cd.ascendant, planets, day=is_day)
         headers = ["Sahama", "Meaning", "Longitude", "Sign", "House"]
         rows = []
@@ -2860,7 +2860,8 @@ class MainWindow(QMainWindow):
         from jhora.types.varga import VargaLevel
 
         # Chara karakas for suffixes
-        cks = compute_chara_karakas(cd.planets)
+        planets_dict = {g: {"longitude": p.longitude} for g, p in cd.planets.items()}
+        cks = compute_chara_karakas(planets_dict)
         karaka_map = {}
         for ck in cks:
             karaka_map[ck.graha] = ck.karaka_name
