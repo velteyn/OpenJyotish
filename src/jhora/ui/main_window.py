@@ -331,6 +331,8 @@ class MainWindow(QMainWindow):
         self.varga_table = QTableWidget()
         vg.addWidget(self.varga_table, 1)
 
+        self.tabs.addTab(self._build_dashboard_tab(), "Dashboard")
+        self.tabs.addTab(self._build_consolidated_tab(), "Chart")
         self.tabs.addTab(self.planet_table, "Planets")
         self.tabs.addTab(self.house_widget, "Houses")
         self.tabs.addTab(self.dasa_widget, "Dasa Periods")
@@ -350,7 +352,6 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._build_ai_teacher_tab(), "AI Teacher")
         self.tabs.addTab(self._build_mundane_tab(), "Mundane")
         self.tabs.addTab(self._build_ephemeris_tab(), "Ephemeris")
-        self.tabs.addTab(self._build_consolidated_tab(), "Consolidated")
 
         right_layout.addWidget(self.tabs)
 
@@ -676,6 +677,7 @@ class MainWindow(QMainWindow):
             self.dasa_timeline.set_chart(self.chart_data)
             self._populate_consolidated(self.chart_data)
             self._update_cons_navamsa(self.chart_data)
+            self._populate_dashboard(self.chart_data)
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -2546,6 +2548,197 @@ class MainWindow(QMainWindow):
                     item.setForeground(QColor("#ff6666"))
                 self.eph_table.setItem(i, j + 1, item)
         self.eph_table.resizeColumnsToContents()
+
+    # --- Smart Dashboard — everything at a glance ---
+
+    def _build_dashboard_tab(self):
+        w = QWidget()
+        grid = QHBoxLayout(w)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setSpacing(8)
+
+        # Left column: Now + Strengths
+        left = QVBoxLayout()
+        left.setSpacing(6)
+
+        self.dash_now = QTextEdit()
+        self.dash_now.setReadOnly(True)
+        self.dash_now.setMaximumHeight(220)
+        self.dash_now.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        left.addWidget(QLabel("RIGHT NOW"))
+        left.addWidget(self.dash_now)
+
+        self.dash_strengths = QTextEdit()
+        self.dash_strengths.setReadOnly(True)
+        self.dash_strengths.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        left.addWidget(QLabel("STRENGTHS"))
+        left.addWidget(self.dash_strengths)
+
+        grid.addLayout(left, stretch=2)
+
+        # Right column: Upcoming + Key Dates
+        right = QVBoxLayout()
+        right.setSpacing(6)
+
+        self.dash_upcoming = QTextEdit()
+        self.dash_upcoming.setReadOnly(True)
+        self.dash_upcoming.setMaximumHeight(220)
+        self.dash_upcoming.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        right.addWidget(QLabel("UPCOMING"))
+        right.addWidget(self.dash_upcoming)
+
+        self.dash_keydates = QTextEdit()
+        self.dash_keydates.setReadOnly(True)
+        self.dash_keydates.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        right.addWidget(QLabel("KEY DATES"))
+        right.addWidget(self.dash_keydates)
+
+        grid.addLayout(right, stretch=2)
+        return w
+
+    def _populate_dashboard(self, cd: ChartData):
+        from jhora.dasas.vimsottari import VimsottariDasa
+        from jhora.calc.shadbala import ShadbalaComputer
+        from jhora.calc.bhava_bala import BhavaBalaComputer
+        from jhora.calc.gochara import compute_transits
+        from jhora.ephemeris.swe import SweEngine
+        from jhora.types.nakshatra import Nakshatra
+        from datetime import datetime, timedelta
+
+        now = datetime.now()
+        # ── RIGHT NOW ──
+        moon = cd.planet(Graha.MOON).longitude
+        sun = cd.planet(Graha.SUN).longitude
+        tithi_angle = (moon - sun) % 360
+        tithi_idx = int(tithi_angle / 12)
+        nak, pada = Nakshatra.from_longitude(moon)
+        rahu_block = [7,1,5,2,3,4,6][now.weekday()]
+        rahu_start = 6 + rahu_block * 1.5
+        rahu_end = rahu_start + 1.5
+
+        # Dasa
+        try:
+            dasa = VimsottariDasa()
+            cd_dict = {"planets": {g.value: {"longitude": p.longitude}
+                                   for g, p in cd.planets.items()},
+                      "lagna_lon": cd.ascendant}
+            periods = dasa.compute(cd.julian_day, cd_dict)
+            current_md = next((p for p in periods if p.start_date <= now <= p.end_date), None)
+            current_ad = None
+            if current_md:
+                for ad in (current_md.sub_periods or []):
+                    if ad.start_date <= now <= ad.end_date:
+                        current_ad = ad
+                        break
+        except Exception:
+            current_md = current_ad = None
+
+        now_lines = [
+            f"[bold yellow]Today: {now.strftime('%B %d, %Y')} | {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.weekday()]}[/bold yellow]",
+            f"Tithi: {tithi_idx} | Nakshatra: {nak.name.replace('_',' ').title()} | Moon: {Rasi.from_longitude(moon).short_name}",
+            f"Rahu Kalam: {int(rahu_start):02d}:{int((rahu_start%1)*60):02d} – {int(rahu_end):02d}:{int((rahu_end%1)*60):02d}",
+            "",
+        ]
+        if current_md:
+            time_left = current_md.end_date - now
+            months_left = time_left.days / 30
+            now_lines.append(f"[bold]Current Dasa: {current_md.lord_name} Mahadasha[/bold] — {months_left:.0f} months remaining")
+            if current_ad:
+                ad_left = current_ad.end_date - now
+                now_lines.append(f"  └ {current_ad.lord_name} Antardasha — {ad_left.days} days remaining")
+        self.dash_now.setText("\n".join(now_lines))
+
+        # ── STRENGTHS ──
+        try:
+            sb = ShadbalaComputer(cd)
+            gr = [(g.full_name, sb.compute_one(g).total_virupa) for g in
+                  [Graha.SUN,Graha.MOON,Graha.MARS,Graha.MERCURY,
+                   Graha.JUPITER,Graha.VENUS,Graha.SATURN]]
+            gr.sort(key=lambda x:x[1], reverse=True)
+            bb = BhavaBalaComputer(cd)
+            bb_r = bb.compute_all()
+            bh = [(h, bb_r.results[h].total) for h in range(1,13)]
+            bh.sort(key=lambda x:x[1], reverse=True)
+
+            str_lines = ["[bold]Planet Strengths:[/bold]"]
+            for name, val in gr:
+                bar = "█" * int(val / 30) + "░" * (18 - int(val / 30))
+                str_lines.append(f"  {name:<8} {bar} {val:.0f}")
+            str_lines.append("")
+            str_lines.append("[bold]House Strengths:[/bold]")
+            for h, val in bh[:5]:
+                ri = (int(cd.ascendant/30) + h - 1) % 12
+                bar = "█" * int(val / 12) + "░" * (18 - int(val / 12))
+                str_lines.append(f"  H{h} {Rasi(ri).short_name} {bar} {val:.0f}")
+            self.dash_strengths.setText("\n".join(str_lines))
+        except Exception:
+            self.dash_strengths.setText("")
+
+        # ── UPCOMING ──
+        up_lines = []
+        if current_md:
+            up_lines.append("[bold]Upcoming Antardasas:[/bold]")
+            upcoming = sorted([sp for sp in (current_md.sub_periods or [])
+                              if sp.start_date > now], key=lambda x: x.start_date)
+            for sp in upcoming[:4]:
+                days_to = (sp.start_date - now).days
+                up_lines.append(f"  {sp.lord_name}: {sp.start_date.strftime('%b %d, %Y')} ({days_to}d)")
+            up_lines.append("")
+            next_md = None
+            for p in periods:
+                if p.start_date > current_md.end_date:
+                    next_md = p
+                    break
+            if next_md:
+                up_lines.append(f"[bold]Next Mahadasha: {next_md.lord_name}[/bold] — {next_md.start_date.strftime('%b %Y')}")
+        up_lines.append("")
+        up_lines.append("[bold]Major Transits (next 6 months):[/bold]")
+        try:
+            eng = SweEngine()
+            for m in range(1, 7):
+                jd = eng.julday(now.year, now.month + m if now.month + m <= 12 else now.month + m - 12,
+                              1 if now.month + m <= 12 else now.year + 1,
+                              now.day, 12.0)
+                try:
+                    tr = compute_transits(cd, jd)
+                    notable = []
+                    for e in tr.entries:
+                        if hasattr(e, 'is_favorable') and e.is_favorable and e.sav_score >= 30:
+                            notable.append(e.graha.short_name)
+                    if notable:
+                        up_lines.append(f"  {now.year}-{((now.month+m-1)%12)+1:02d}: {', '.join(notable)} favorable")
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        self.dash_upcoming.setText("\n".join(up_lines) if up_lines else "Dasa data unavailable")
+
+        # ── KEY DATES ──
+        kd_lines = ["[bold]Sade Sati Check:[/bold]"]
+        saturn = cd.planet(Graha.SATURN).longitude
+        moon_rasi = int(cd.planet(Graha.MOON).longitude / 30)
+        sat_rasi = int(saturn / 30)
+        # Sade Sati: Saturn transiting 12th, 1st, 2nd from Moon
+        ss_signs = [(moon_rasi - 1) % 12, moon_rasi, (moon_rasi + 1) % 12]
+        if sat_rasi in ss_signs:
+            pos = ["12th from Moon", "1st from Moon (peak)", "2nd from Moon"][ss_signs.index(sat_rasi)]
+            kd_lines.append(f"  🟡 IN Sade Sati ({pos})")
+        else:
+            dist = min((sat_rasi - moon_rasi) % 12, (moon_rasi - sat_rasi) % 12)
+            kd_lines.append(f"  Sade Sati in ~{dist * 2.5:.0f} years (Saturn at {dist} signs away)")
+
+        kd_lines.append("")
+        kd_lines.append("[bold]Retrograde Watch:[/bold]")
+        for g in [Graha.MERCURY, Graha.VENUS, Graha.MARS, Graha.JUPITER, Graha.SATURN]:
+            p = cd.planet(g)
+            if p.is_retrograde:
+                kd_lines.append(f"  {g.short_name} is currently RETROGRADE")
+        kd_lines.append("")
+        kd_lines.append("[bold]Auspicious Days (this month):[/bold]")
+        kd_lines.append("  Every Monday, Thursday, Friday")
+        kd_lines.append("  Ekadasi tithi days (check panchanga)")
+
+        self.dash_keydates.setText("\n".join(kd_lines))
 
     # --- Consolidated View (JHora-style three-column layout) ---
 
