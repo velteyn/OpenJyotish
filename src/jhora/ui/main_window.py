@@ -150,86 +150,81 @@ class MainWindow(QMainWindow):
         self.city_input.textChanged.connect(self._on_city_text_changed)
         self.city_input.returnPressed.connect(self._on_city_search)
 
-        self.city_search_btn = QPushButton("Search")
-        self.city_search_btn.setFixedWidth(80)
-        self.city_search_btn.setToolTip("Search city in bundled atlas data")
+        self.city_search_btn = QPushButton("🔍")
+        self.city_search_btn.setFixedWidth(36)
+        self.city_search_btn.setToolTip("Search city")
         self.city_search_btn.clicked.connect(self._on_city_search)
 
         city_row = QHBoxLayout()
-        city_row.setSpacing(6)
+        city_row.setSpacing(4)
         city_row.addWidget(self.city_input, 1)
         city_row.addWidget(self.city_search_btn)
 
         self.tz_input = QLineEdit()
-        self.tz_input.setPlaceholderText("-2.0 or +0530")
-        self.tz_input.setToolTip(
-            "Offset from UTC: enter signed hours.\n"
-            "  Examples:  UTC+2 → -2.0,  UTC+5:30 → +0530,  UTC-5 → +5.0"
-        )
+        self.tz_input.setPlaceholderText("e.g. +0100")
+        self.tz_input.setToolTip("Offset from UTC: +0100, +0530, -0500, -2.0")
+        self.tz_input.setMaximumWidth(80)
 
         self.lat_input = QLineEdit()
-        self.lat_input.setPlaceholderText("13.08")
+        self.lat_input.setPlaceholderText("45.41")
+        self.lat_input.setMaximumWidth(90)
         self.lon_input = QLineEdit()
-        self.lon_input.setPlaceholderText("80.27")
+        self.lon_input.setPlaceholderText("11.88")
+        self.lon_input.setMaximumWidth(90)
 
-        # Row with TZ input + detect button + helper label
+        # TZ row: input + Now button
         tz_row = QHBoxLayout()
         tz_row.setSpacing(6)
         self.tz_detect_btn = QPushButton("🕐 Now")
         self.tz_detect_btn.setFixedWidth(80)
         self.tz_detect_btn.clicked.connect(self._fill_now)
-        self.tz_detect_btn.setToolTip("Fill date/time from system clock and detect TZ")
-        tz_row.addWidget(self.tz_input, 1)
+        self.tz_detect_btn.setToolTip("Fill date/time from system clock")
+        tz_row.addWidget(self.tz_input)
         tz_row.addWidget(self.tz_detect_btn)
-        tz_label = QLabel("UTC = local + offset")
-        tz_label.setStyleSheet(f"color: {DIM}; font-size: 11px;")
-        tz_label.setToolTip(
-            "Enter the signed offset to convert local time to UTC.\n"
-            "  Europe summer (UTC+2) → -2.0\n"
-            "  Europe winter (UTC+1) → -1.0\n"
-            "  India (UTC+5:30) → +0530 or -5.5"
-        )
-        tz_row.addWidget(tz_label)
+        tz_row.addStretch()
 
-        # Lat + detect button
-        lat_row = QHBoxLayout()
-        lat_row.setSpacing(6)
-        self.geo_detect_btn = QPushButton("📍 Detect")
-        self.geo_detect_btn.setFixedWidth(90)
+        # Lat/Lon row on one line
+        latlon_row = QHBoxLayout()
+        latlon_row.setSpacing(6)
+        latlon_row.addWidget(QLabel("Lat:"))
+        latlon_row.addWidget(self.lat_input)
+        latlon_row.addWidget(QLabel("Lon:"))
+        latlon_row.addWidget(self.lon_input)
+        self.geo_detect_btn = QPushButton("📍")
+        self.geo_detect_btn.setFixedWidth(36)
         self.geo_detect_btn.clicked.connect(self._detect_location)
-        self.geo_detect_btn.setToolTip("Detect location from IP address")
-        lat_row.addWidget(self.lat_input, 1)
-        lon_row = QHBoxLayout()
-        lon_row.setSpacing(6)
-        lon_row.addWidget(self.lon_input, 1)
-        lon_row.addWidget(self.geo_detect_btn)
+        self.geo_detect_btn.setToolTip("Detect location from IP")
+        latlon_row.addWidget(self.geo_detect_btn)
+        latlon_row.addStretch()
 
-        for w in (self.date_input, self.time_input, self.city_input, self.tz_input,
-                  self.lat_input, self.lon_input):
-            w.setMinimumWidth(180)
+        for w in (self.date_input, self.time_input, self.city_input):
+            w.setMaximumWidth(200)
 
         form.addRow("Date:", self.date_input)
         form.addRow("Time:", self.time_input)
         form.addRow("City:", city_row)
-        form.addRow("TZ offset:", tz_row)
-        form.addRow("Lat:", lat_row)
-        form.addRow("Lon:", lon_row)
+        form.addRow("TZ:", tz_row)
+        form.addRow(latlon_row)
 
         # Controls row
         ctrl = QHBoxLayout()
         ctrl.setSpacing(8)
         self.style_combo = QComboBox()
         self.style_combo.addItems(["South Indian", "North Indian", "East Indian"])
+        self.style_combo.setMaximumWidth(120)
         self.style_combo.currentTextChanged.connect(self._on_style_changed)
         self.ayanamsa_combo = QComboBox()
         self.ayanamsa_combo.addItems(["lahiri", "raman", "krishnamurti", "sss"])
+        self.ayanamsa_combo.setMaximumWidth(120)
 
         self.navamsa_toggle = QPushButton("Navamsa")
         self.navamsa_toggle.setCheckable(True)
+        self.navamsa_toggle.setFixedWidth(80)
         self.navamsa_toggle.toggled.connect(self._on_navamsa_toggle)
 
         self.calc_btn = QPushButton("Calculate")
-        self.calc_btn.setMinimumWidth(120)
+        self.calc_btn.setFixedWidth(100)
+        self.calc_btn.setStyleSheet("QPushButton{font-weight:bold;font-size:14px;padding:6px;}")
         self.calc_btn.clicked.connect(self._on_calculate)
 
         ctrl.addWidget(self.style_combo)
