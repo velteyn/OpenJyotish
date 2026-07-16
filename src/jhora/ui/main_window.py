@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget,
     QTableWidgetItem, QHeaderView, QSplitter, QTextEdit, QTabWidget,
     QMessageBox, QGroupBox, QFormLayout,
-    QDateEdit, QTimeEdit, QFileDialog,
+    QDateEdit, QTimeEdit, QFileDialog, QScrollArea,
 )
 from PyQt6.QtGui import QAction
 
@@ -2614,20 +2614,15 @@ class MainWindow(QMainWindow):
         self.cons_sav.setMaximumHeight(180)
         layout.addWidget(self.cons_sav)
 
-        # BAV label becomes a combo to select planet
-        bav_row = QHBoxLayout()
-        bav_row.addWidget(QLabel("BAV:"))
-        self.cons_bav_combo = QComboBox()
-        self.cons_bav_combo.addItems(["Sun", "Moon", "Mars", "Mercury",
-                                       "Jupiter", "Venus", "Saturn"])
-        self.cons_bav_combo.currentTextChanged.connect(self._on_cons_bav_changed)
-        bav_row.addWidget(self.cons_bav_combo)
-        bav_row.addStretch()
-        layout.addLayout(bav_row)
-
-        self.cons_bav = QTableWidget()
-        self.cons_bav.setMaximumHeight(180)
-        layout.addWidget(self.cons_bav)
+        # BAV grids — all 8 planets in a scrollable area
+        bav_scroll = QScrollArea()
+        bav_scroll.setWidgetResizable(True)
+        bav_inner = QWidget()
+        self.cons_bav_layout = QVBoxLayout(bav_inner)
+        self.cons_bav_layout.setContentsMargins(0, 0, 0, 0)
+        self.cons_bav_layout.setSpacing(4)
+        bav_scroll.setWidget(bav_inner)
+        layout.addWidget(bav_scroll)
         return w
 
     def _populate_consolidated(self, cd: ChartData):
@@ -2846,28 +2841,35 @@ class MainWindow(QMainWindow):
             self.cons_sav.setItem(r, c, item)
         self.cons_sav.setMaximumHeight(160)
 
-        # BAV — default Sun
-        self._cons_bav_data = all_bhinna_ashtakavarga(cd)
-        self._on_cons_bav_changed("Sun")
+        # BAV — all 8 planets
+        # Clear old BAV widgets from the layout
+        while self.cons_bav_layout.count():
+            child = self.cons_bav_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
 
-    def _on_cons_bav_changed(self, planet_name: str):
-        if not hasattr(self, "_cons_bav_data"):
-            return
         from jhora.types.graha import Graha
-        name_map = {"Sun": Graha.SUN, "Moon": Graha.MOON, "Mars": Graha.MARS,
-                    "Mercury": Graha.MERCURY, "Jupiter": Graha.JUPITER,
-                    "Venus": Graha.VENUS, "Saturn": Graha.SATURN}
-        g = name_map.get(planet_name)
-        if g and g in self._cons_bav_data:
-            bav = self._cons_bav_data[g]
-            self.cons_bav.setColumnCount(3)
-            self.cons_bav.setRowCount(4)
+        for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                  Graha.JUPITER, Graha.VENUS, Graha.SATURN]:
+            if g not in bavs:
+                continue
+            bav = bavs[g]
+            label = QLabel(g.short_name)
+            label.setStyleSheet("font-weight: bold; color: #e0b050;")
+            self.cons_bav_layout.addWidget(label)
+            table = QTableWidget()
+            table.setColumnCount(3)
+            table.setRowCount(4)
+            table.setMaximumHeight(110)
+            table.horizontalHeader().setDefaultSectionSize(35)
+            table.verticalHeader().setDefaultSectionSize(22)
             for h in range(12):
                 r, c = h // 3, h % 3
                 item = QTableWidgetItem(str(bav[h]))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                self.cons_bav.setItem(r, c, item)
+                table.setItem(r, c, item)
+            self.cons_bav_layout.addWidget(table)
 
     # ── Navamsa overlay for consolidated charts ──
 
