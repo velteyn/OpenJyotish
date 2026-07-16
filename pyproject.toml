@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "jagannatha-hora"
-version = "1.0.0"
-description = "Vedic astrology calculator — free, open-source, cross-platform. AI-powered chart readings."
+name = "openjyotish"
+version = "1.1.0"
+description = "Free, open-source, cross-platform Vedic astrology toolkit with AI-powered chart readings."
 readme = "README.md"
 authors = [
     {name = "Jhora Contributors"},
@@ -42,9 +42,9 @@ test = [
 jhora = "jhora.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/velteyn/jhora"
-Repository = "https://github.com/velteyn/jhora.git"
-Issues = "https://github.com/velteyn/jhora/issues"
+Homepage = "https://github.com/velteyn/OpenJyotish"
+Repository = "https://github.com/velteyn/OpenJyotish.git"
+Issues = "https://github.com/velteyn/OpenJyotish/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
