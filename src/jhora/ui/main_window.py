@@ -714,7 +714,9 @@ class MainWindow(QMainWindow):
             self._on_varga_show()
             self.statusBar().showMessage("Done")
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Calculation failed:\n{e}")
+            import traceback
+            detail = traceback.format_exc()
+            QMessageBox.warning(self, "Error", f"Calculation failed:\n{e}\n\nLocation:\n{detail[-300:]}")
             self.statusBar().showMessage("Error")
 
     # --- Table builders ---
@@ -2886,7 +2888,7 @@ class MainWindow(QMainWindow):
         dms = f"{deg}°{min_v:02d}'{sec:02d}\""
         nav_lagna = navamsa_map.get(0, Rasi.from_longitude(cd.ascendant % 30 * 9 % 360).short_name)
         bodies.append(("Lagna", dms, n_l.name.replace("_"," ").title(), p_l,
-                       lr.short_name, nav_lagna, "", "", ""))
+                       lr.short_name, nav_lagna, "", ""))
 
         planets_order = [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
                         Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]
