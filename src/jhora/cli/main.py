@@ -1355,30 +1355,26 @@ def muhurta(
 
 @app.command()
 def tui(
-    birthdata: str = typer.Argument(None, help="Birth data (optional; uses sample if omitted)"),
+    birthdata: str = typer.Argument(None, help="Birth data (optional; interactive input if omitted)"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
 ):
-    """Launch interactive terminal UI (Rich-based, keyboard-navigable tabs)."""
-    from jhora.tui.main import TuiApp
-
+    """Launch interactive terminal UI (prompt_toolkit menus + Rich rendering)."""
+    from jhora.tui.main import JhoraTui
+    app = JhoraTui()
     if birthdata:
         bd = parse_birthdata(birthdata)
         builder = ChartBuilder()
         builder.swe.set_sidereal_mode(ayanamsa)
-        cd = builder.build(
+        app.chart = builder.build(
             year=bd["year"], month=bd["month"], day=bd["day"],
             hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
             tz=bd["tz"], ayanamsa=ayanamsa,
         )
-    else:
-        cd = None
-
-    app_tui = TuiApp(chart_data=cd)
-    try:
-        app_tui.run()
-    except Exception as e:
-        console.print(f"[yellow]TUI fallback: printing static view[/yellow]")
-        app_tui.run_no_live()
+        app.birthdata_str = birthdata
+        lagna = Rasi.from_longitude(app.chart.ascendant)
+        console.print(f"[green]Chart loaded: Lagna {lagna.full_name} "
+                      f"({app.chart.ascendant:.2f}°)[/green]")
+    app.run()
 
 
 @app.command()
