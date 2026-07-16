@@ -1,506 +1,630 @@
-"""Interactive terminal UI for Jhora — mirrors GUI tabs using Rich."""
+"""Interactive Terminal UI — prompt_toolkit navigation + Rich rendering.
 
-import sys
-import termios
-import tty
-from contextlib import contextmanager
+Uses prompt_toolkit for dialogs/menus/input and Rich for output rendering.
+Proper keyboard handling, scrollable lists, input forms.
+"""
+
 from datetime import datetime
-from typing import List, Optional
+from pathlib import Path
+from typing import Callable, List, Optional, Tuple
 
-from rich.layout import Layout
-from rich.panel import Panel
+from prompt_toolkit import Application
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, FormattedTextControl
+from prompt_toolkit.widgets import Frame, TextArea, Label, Box
+from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.styles import Style
+from prompt_toolkit.application.current import get_app
+
+from rich.console import Console as RichConsole
 from rich.table import Table
-from rich.text import Text
-from rich.columns import Columns
-from rich.live import Live
-from rich.align import Align
-from rich import box
+from rich.panel import Panel
+from rich import box as rich_box
+from rich.text import Text as RichText
 
 from jhora.charts.chart import ChartBuilder, ChartData
-from jhora.charts.varga import VargaChartComputer
-from jhora.calc.shadbala import ShadbalaComputer
-from jhora.calc.bhava_bala import BhavaBalaComputer
-from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
-from jhora.calc.yogas import detect_all
-from jhora.calc.ashtakavarga import sarva_ashtakavarga
-from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
-from jhora.calc.karaka import compute_chara_karakas
-from jhora.calc.gochara import compute_transits
-from jhora.calc.tajaka import build_tajaka_chart
-from jhora.calc.tithi_pravesha import TithiPraveshaCalculator
-from jhora.calc.prasna import PrasnaMode, compute_prasna
-from jhora.calc.muhurta import MuhurtaTask, evaluate_time
 from jhora.types.graha import Graha
-from jhora.types.nakshatra import Nakshatra
 from jhora.types.rasi import Rasi
-from jhora.types.varga import VargaLevel
-from jhora.interpreter.engine import ChartInterpreter
-from jhora.interpreter.knowledge_base import KnowledgeBase
-from jhora.ai.engine import AiEngine, AiConfig
+
+rich = RichConsole(color_system="truecolor")
+
+STYLE = Style.from_dict({
+    "title": "bold yellow",
+    "menu-item": "fg:ansicyan",
+    "menu-key": "fg:ansiyellow bold",
+    "status": "fg:ansigreen",
+    "error": "fg:ansired",
+    "dim": "fg:ansibrightblack",
+    "content": "fg:ansiwhite",
+    "frame.border": "fg:ansiblue",
+})
 
 
-TAB_NAMES = [
-    "Planets", "Houses", "Dasa", "Varga", "Yogas",
-    "Shadbala", "Arudha", "Ashtakavarga", "Transit", "Tajaka",
-    "Matchmaking", "Prasna", "Muhurta", "Knowledge", "Reading",
-    "AI Chat",
-]
-
-
-@contextmanager
-def raw_mode():
-    fd = sys.stdin.fileno()
-    old = termios.tcgetattr(fd)
-    try:
-        tty.setraw(fd)
-        yield
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
-
-
-def getch() -> str:
-    with raw_mode():
-        ch = sys.stdin.read(1)
-        return ch
-
-
-CHART_ORDER = [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
-               Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]
-
-VARGA_LEVELS = [VargaLevel.D_1, VargaLevel.D_3, VargaLevel.D_9,
-                VargaLevel.D_12, VargaLevel.D_20, VargaLevel.D_30,
-                VargaLevel.D_40, VargaLevel.D_60]
-
-
-class TuiApp:
-    def __init__(self, chart_data: Optional[ChartData] = None):
-        self.tab = 0
-        self.chart: Optional[ChartData] = chart_data
-        self.kb = KnowledgeBase()
-        self.interpreter = ChartInterpreter()
-
-    def _header_text(self) -> str:
-        total = len(TAB_NAMES)
-        return (f"Jhora TUI  —  {TAB_NAMES[self.tab]}  ({self.tab+1}/{total})  |  "
-                f"[1-9,0,a] tabs | ← → nav | r refresh | q quit")
-
-    def _planet_table(self) -> Table:
-        t = Table(box=box.SIMPLE)
-        t.add_column("Planet", style="yellow")
-        t.add_column("Rasi", style="cyan")
-        t.add_column("Deg", justify="right")
-        t.add_column("Nakshatra", style="magenta")
-        t.add_column("Ret", style="red")
-        t.add_column("Lord", style="green")
-        if not self.chart:
-            t.add_row("[dim]No chart[/dim]", "", "", "", "", "")
-            return t
-        for g in CHART_ORDER:
-            p = self.chart.planet(g)
-            rasi = Rasi.from_longitude(p.longitude)
-            nak, _ = Nakshatra.from_longitude(p.longitude)
-            nak_name = nak.name.replace("_", " ").title()
-            lord = rasi.lord
-            t.add_row(g.short_name, rasi.short_name, f"{p.longitude:.2f}°",
-                      nak_name, "R" if p.is_retrograde else "", lord)
-        return t
-
-    def _house_table(self) -> Table:
-        t = Table(box=box.SIMPLE)
-        t.add_column("House", style="yellow")
-        t.add_column("Cusp", justify="right", style="cyan")
-        t.add_column("Sign", style="green")
-        t.add_column("Lord", style="magenta")
-        if not self.chart:
-            t.add_row("[dim]No chart[/dim]", "", "", "")
-            return t
-        for h in range(12):
-            cusp = self.chart.house_cusps[h]
-            rasi = Rasi.from_longitude(cusp)
-            t.add_row(str(h+1), f"{cusp:.2f}°", rasi.short_name, rasi.lord)
-        return t
-
-    def _house_panel(self) -> Panel:
-        t = self._house_table()
-        # Chalit info
-        try:
-            from jhora.calc.chalit import ChalitComputer
-            cc = ChalitComputer(self.chart)
-            r = cc.compute()
-            if r.moved_planets:
-                shifts = ", ".join(
-                    f"{e.graha.short_name} H{e.sign_house}→H{e.cusp_house}"
-                    for e in r.moved_planets
-                )
-                t.caption = f"Chalit shifts: {shifts}"
-        except Exception:
-            pass
-        return Panel(t, title="Houses + Chalit")
-
-    def _dasa_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded[/dim]")
-        from jhora.dasas.vimsottari import VimsottariDasa
-        try:
-            dasa = VimsottariDasa(self.chart)
-            periods = dasa.compute(max_level=2)[:20]
-            t = Table(box=box.SIMPLE)
-            t.add_column("Lord", style="yellow")
-            t.add_column("Start", style="cyan")
-            t.add_column("End", style="cyan")
-            for p in periods:
-                t.add_row(p.lord.short_name,
-                          p.start.strftime("%Y-%m"), p.end.strftime("%Y-%m"))
-            return Panel(t, title="Vimsottari Dasa (MD/AD)")
-        except Exception as e:
-            return Panel(f"[red]Error: {e}[/red]", title="Dasa")
-
-    def _varga_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded[/dim]")
-        parts = []
-        vcc = VargaChartComputer()
-        for vl in VARGA_LEVELS:
-            try:
-                vc_data = vcc.compute(self.chart, vl)
-                rows = []
-                for g in CHART_ORDER:
-                    lon = vc_data.planet_longitudes[g]
-                    r = Rasi.from_longitude(lon)
-                    rows.append(f"{g.short_name}:{r.short_name}")
-                parts.append(Panel("\n".join(rows), title=vl.name.replace("_"," "), width=18))
-            except Exception:
-                continue
-        cols = Columns(parts)
-        return Panel(cols, title="Varga Charts")
-
-    def _yoga_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded[/dim]")
-        yogas = detect_all(self.chart)
-        if not yogas:
-            return Panel("[dim]No yogas detected[/dim]")
-        t = Table(box=box.SIMPLE)
-        t.add_column("Yoga", style="yellow")
-        t.add_column("Type", style="cyan")
-        t.add_column("Desc", style="green")
-        for y in yogas[:30]:
-            cat = y.category.value if hasattr(y.category, "value") else str(y.category)
-            t.add_row(y.name, cat, y.description[:60])
-        return Panel(t, title=f"Yogas ({len(yogas)} detected)")
-
-    def _shadbala_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded[/dim]")
-        comp = ShadbalaComputer(self.chart)
-        t_gr = Table(box=box.SIMPLE)
-        t_gr.add_column("Planet", style="yellow")
-        cols = ["Sthana", "Dig", "Kala", "Chesta", "Naisarg", "Drik", "Total"]
-        for c in cols:
-            t_gr.add_column(c, justify="right")
-        for g in CHART_ORDER:
-            try:
-                sb = comp.compute_one(g)
-                vals = [sb.sthana_total, sb.dig_total, sb.kala_total,
-                        sb.chesta_total, sb.naisargika.virupa, sb.drik.virupa]
-                total = sb.total_virupa
-                t_gr.add_row(g.short_name, *[f"{v:.1f}" for v in vals], f"[bold]{total:.1f}[/bold]")
-            except Exception:
-                continue
-
-        # Bhava Bala
-        bb = BhavaBalaComputer(self.chart)
-        report = bb.compute_all()
-        t_bh = Table(box=box.SIMPLE)
-        t_bh.add_column("H", style="yellow")
-        t_bh.add_column("Sthana", justify="right")
-        t_bh.add_column("Drishti", justify="right")
-        t_bh.add_column("Dig", justify="right")
-        t_bh.add_column("Adhip", justify="right")
-        t_bh.add_column("Drig", justify="right")
-        t_bh.add_column("Total", justify="right", style="bold")
-        for h in range(1, 13):
-            r = report.results[h]
-            t_bh.add_row(str(h), f"{r.sthana:.1f}", f"{r.drishti:.1f}",
-                         f"{r.dig:.1f}", f"{r.adhipati:.1f}",
-                         f"{r.drig:.1f}", f"[bold]{r.total:.1f}[/bold]")
-
-        cols_layout = Columns([t_gr, t_bh])
-
-        # Vimsopaka Bala
-        vc = VimsopakaComputer(self.chart)
-        vr = sorted(vc.compute_all(VimsopakaScheme.SHADVARGA), key=lambda r: r.total, reverse=True)
-        t_vi = Table(box=box.SIMPLE)
-        t_vi.add_column("Planet", style="cyan")
-        t_vi.add_column("Vimsopaka", justify="right", style="green")
-        t_vi.add_column("%", justify="right", style="yellow")
-        for r in vr:
-            t_vi.add_row(r.graha.short_name, f"{r.total:.1f}/20", f"{r.percentage:.0f}%")
-
-        cols_layout = Columns([t_gr, t_bh, t_vi])
-        return Panel(cols_layout, title="Shadbala + Bhava + Vimsopaka")
-
-    def _arudha_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded[/dim]")
-        planets_dict = {g: {"longitude": p.longitude} for g, p in self.chart.planets.items()}
-        aps = all_bhava_arudhas(self.chart.ascendant, planets_dict)
-        t = Table(box=box.SIMPLE)
-        t.add_column("House", style="yellow")
-        t.add_column("Rasi", style="cyan")
-        for h, rasi in sorted(aps.items()):
-            t.add_row(str(h), rasi.short_name)
-        try:
-            cks = compute_chara_karakas(self.chart.planets)
-            lines = ["[bold]Chara Karakas:[/bold]"]
-            for ck in cks:
-                lines.append(f"  {ck.graha.short_name} → {ck.karaka_name}")
-            karaka_panel = Panel("\n".join(lines), title="Karaka")
-        except Exception:
-            karaka_panel = Panel("[dim]No karaka data[/dim]")
-        return Panel(Columns([t, karaka_panel]), title="Arudha Padas")
-
-    def _ashtakavarga_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded[/dim]")
-        sav = sarva_ashtakavarga(self.chart)
-        t = Table(box=box.SIMPLE)
-        t.add_column("Rasi", style="yellow")
-        t.add_column("SAV", justify="right")
-        for r in range(12):
-            t.add_row(Rasi(r).short_name, str(int(sav[r])))
-        return Panel(t, title=f"Ashtakavarga (SAV: {int(sum(sav))} total)")
-
-    def _transit_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded[/dim]")
-        from jhora.ephemeris.swe import SweEngine
-        eng = SweEngine()
-        now = datetime.now()
-        now_jd = eng.julday(now.year, now.month, now.day, now.hour + now.minute / 60.0)
-        result = compute_transits(self.chart, now_jd)
-        t = Table(box=box.SIMPLE)
-        t.add_column("Planet", style="yellow")
-        t.add_column("Sign", style="cyan")
-        t.add_column("Deg", justify="right")
-        t.add_column("H(Lg)", justify="right")
-        t.add_column("SAV", justify="right")
-        t.add_column("Fav")
-        entries = result.entries if hasattr(result, 'entries') else []
-        for e in entries[:9]:
-            fav = "✓" if e.is_favorable else "✗"
-            t.add_row(e.graha.short_name, e.transit_rasi_name, f"{e.transit_degrees:.1f}",
-                      str(e.house_from_lagna), str(e.sav_score), fav)
-        return Panel(t, title=f"Transit ({datetime.now().strftime('%Y-%m-%d %H:%M')})")
-
-    def _tajaka_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded[/dim]")
-        parts = []
-        # Tajaka
-        try:
-            from jhora.ephemeris.swe import SweEngine
-            eng = SweEngine()
-            cbb = ChartBuilder()
-            target = self.chart.birth_date.year + 1
-            tr = build_tajaka_chart(eng, cbb, self.chart, target, tropical=False)
-            t = Table(box=box.SIMPLE)
-            t.add_column("Pl", style="yellow")
-            t.add_column("Sign", style="cyan")
-            t.add_column("Deg", justify="right")
-            for g in CHART_ORDER:
-                p = tr.planet(g)
-                r = Rasi.from_longitude(p.longitude)
-                t.add_row(g.short_name, r.short_name, f"{p.longitude:.2f}°")
-            parts.append(t)
-        except Exception as e:
-            parts.append(f"[red]Tajaka: {e}[/red]")
-
-        # Tithi Pravesha
-        try:
-            tp = TithiPraveshaCalculator(self.chart)
-            now_y = datetime.now().year
-            entries = tp.compute_range(now_y,  now_y + 1)
-            t2 = Table(box=box.SIMPLE)
-            t2.add_column("TP", style="cyan")
-            t2.add_column("Date", style="white")
-            t2.add_column("Lg", style="yellow")
-            for e in entries:
-                if e.chart:
-                    l = Rasi.from_longitude(e.chart.ascendant).short_name
-                    t2.add_row(str(e.year), e.event_date, l)
-            parts.append(Panel(t2, title="Tithi Pravesha"))
-        except Exception as e:
-            parts.append(f"[red]TP: {e}[/red]")
-
-        # Progressions
-        try:
-            pc = ProgressionCalculator(self.chart)
-            age = (datetime.now() - self.chart.birth_date).total_seconds() / (365.25 * 86400)
-            sec = pc.secondary(target_age=age)
-            if sec.chart:
-                n_l = Rasi.from_longitude(self.chart.ascendant).short_name
-                p_l = Rasi.from_longitude(sec.chart.ascendant).short_name
-                moved_planets = []
-                for g in CHART_ORDER:
-                    nr = Rasi.from_longitude(self.chart.planet(g).longitude).short_name
-                    pr = Rasi.from_longitude(sec.chart.planet(g).longitude).short_name
-                    if nr != pr:
-                        moved_planets.append(f"{g.short_name}: {nr}→{pr}")
-                parts.append(
-                    f"[bold]Progression (age {age:.1f})[/bold]\n"
-                    f"Lagna: {n_l} → {p_l}\n"
-                    f"Moved: {', '.join(moved_planets) if moved_planets else 'none'}"
-                )
-        except Exception as e:
-            parts.append(f"[red]Prog: {e}[/red]")
-
-        cols = Columns(parts)
-        return Panel(cols, title="Tajaka + Tithi Pravesha + Progressions")
-
-    def _kuta_panel(self) -> Panel:
-        return Panel(
-            "[yellow]Matchmaking:[/yellow]\n"
-            "  Use CLI: [bold]jhora kuta[/bold] for full compatibility\n"
-            "  (requires two charts — use the GUI for interactive mode)",
-            title="Matchmaking",
-        )
-
-    def _prasna_panel(self) -> Panel:
-        t = Table(box=box.SIMPLE)
-        t.add_column("Mode", style="yellow")
-        t.add_column("N", style="cyan")
-        t.add_column("PL (°)", justify="right")
-        t.add_column("Rasi", style="green")
-        t.add_column("Nak/Sub", style="magenta")
-        for pm in PrasnaMode:
-            for n in [1, 50, pm.max_number]:
-                r = compute_prasna(n, pm)
-                sub = r.sub_lord.short_name if r.sub_lord else ""
-                t.add_row(pm.label, str(n), f"{r.prasna_lagna:.2f}",
-                          r.rasi.short_name, sub or r.nakshatra.name[:8])
-        return Panel(t, title="Prasna Horary (samples: 1, 50, max)")
-
-    def _muhurta_panel(self) -> Panel:
-        now = datetime.now().replace(hour=12, minute=0, second=0)
-        t = Table(box=box.SIMPLE)
-        t.add_column("Task", style="yellow")
-        t.add_column("Score", justify="right")
-        t.add_column("Status")
-        for mt in MuhurtaTask:
-            r = evaluate_time(now, 13.08, 80.27, 5.5, mt)
-            c = "green" if r.is_good else "red"
-            t.add_row(mt.label[:30], f"{r.score:.2f}", f"[{c}]{'✓' if r.is_good else '✗'}[/{c}]")
-        return Panel(t, title=f"Muhurta ({now.strftime('%Y-%m-%d')} noon, Chennai)")
-
-    def _knowledge_panel(self) -> Panel:
-        t = Table(box=box.SIMPLE)
-        t.add_column("Source", style="yellow")
-        sources = self.kb.list_sources()
-        for src in sources:
-            t.add_row(src, "")
-        if self.chart and sources:
-            try:
-                results = self.kb.search("yoga", max_results=2)
-                if results:
-                    t.add_row("", "")
-                    t.add_row("[bold italic]Sample search: 'yoga'[/bold italic]", "")
-                    for r in results:
-                        t.add_row(r["source"][:30], r["excerpt"][:80])
-            except Exception:
-                pass
-        return Panel(t, title=f"Knowledge Base ({self.kb.loaded} sources)\nFull search: jhora knowledge 'query'")
-
-    def _kuta_panel(self) -> Panel:
-        return Panel(
-            "[yellow]Matchmaking requires two charts[/yellow]\n\n"
-            "CLI: [bold]jhora kuta[/bold] 'chart1' 'chart2'\n"
-            "GUI: Matchmaking tab (interactive)\n\n"
-            "Systems: 10 Porutham (19pt) | Ashta Koota (36pt)",
-            title="Matchmaking",
-        )
-
-    def _ai_panel(self) -> Panel:
-        if not self.chart:
-            return Panel("[dim]No chart loaded[/dim]")
-        try:
-            engine = AiEngine(AiConfig(provider="ollama"))
-            health = engine.health_check()
-            if health["ok"]:
-                info = f"[green]Ready ({len(health['models'])} models)[/green]"
-            else:
-                info = f"[yellow]{health['error'][:40]}[/yellow]"
-        except Exception as e:
-            info = f"[red]{e}[/red]"
-        return Panel(
-            f"Status: {info}\n\n"
-            f"[bold]Recommended: CLI or GUI for full interaction[/bold]\n\n"
-            f"CLI: [cyan]jhora ai[/cyan] --topic general 'data'\n"
-            f"CLI: [cyan]jhora ai[/cyan] --mode ask -q 'question' 'data'\n"
-            f"GUI: AI Chat tab (streaming output)\n\n"
-            f"Topics: general, relationship, career,\n"
-            f"  health, spirituality, children,\n"
-            f"  finance, mundane",
-            title="AI Chat",
-        )
-
-    def _render_tab(self):
-        renderers: List = [
-            self._planet_table,       # 0
-            self._house_panel,        # 1
-            self._dasa_panel,         # 2
-            self._varga_panel,        # 3
-            self._yoga_panel,         # 4
-            self._shadbala_panel,     # 5
-            self._arudha_panel,       # 6
-            self._ashtakavarga_panel, # 7
-            self._transit_panel,      # 8
-            self._tajaka_panel,       # 9
-            self._kuta_panel,         # 10
-            self._prasna_panel,       # 11
-            self._muhurta_panel,      # 12
-            self._knowledge_panel,    # 13
-            self._reading_panel,      # 14
-            self._ai_panel,           # 15
-        ]
-        if 0 <= self.tab < len(renderers):
-            content = renderers[self.tab]()
-            return Panel(content)
-        return Panel("[red]Unknown tab[/red]")
+class JhoraTui:
+    def __init__(self):
+        self.chart: Optional[ChartData] = None
+        self.birthdata_str: str = ""
+        self._content_lines: List[str] = []
+        self._menu_items: List[Tuple[str, str, Callable]] = []
+        self._menu_index: int = 0
+        self._status: str = "Welcome to Jhora TUI | ↑↓ navigate | Enter select | q quit"
 
     def run(self):
-        try:
-            with Live(RefreshPerSecond=4, screen=True) as live:
-                live.console.show_cursor(False)
-                live.update(self._render_tab())
-                while True:
-                    ch = getch()
-                    if ch == "q":
-                        break
-                    elif ch in "123456789":
-                        self.tab = int(ch) - 1
-                        if self.tab >= len(TAB_NAMES):
-                            self.tab = len(TAB_NAMES) - 1
-                    elif ch == "0":
-                        self.tab = 9
-                    elif ch == "a":
-                        self.tab = 15
-                    elif ch == "\x1b":
-                        seq = ""
-                        if sys.stdin.read(0):
-                            seq = sys.stdin.read(2)
-                            if seq == "[C":
-                                self.tab = (self.tab + 1) % len(TAB_NAMES)
-                            elif seq == "[D":
-                                self.tab = (self.tab - 1) % len(TAB_NAMES)
-                    elif ch == "r":
-                        pass
-                    live.update(self._render_tab())
-        except Exception:
-            self.run_no_live()
+        self._show_main_menu()
 
-    def run_no_live(self):
-        from rich.console import Console
-        console = Console()
-        console.print(Panel(self._header_text()))
-        console.print(self._render_tab())
+    # ── Rendering ─────────────────────────────────────────────────────────
+
+    def _render_screen(self):
+        """Render the current menu + content to the terminal."""
+        # Capture Rich output to string
+        with rich.capture() as capture:
+            rich.print()
+            # Menu
+            menu_lines = []
+            for i, (key, label, _) in enumerate(self._menu_items):
+                marker = "▶" if i == self._menu_index else " "
+                menu_lines.append(f"  {marker} [{key}] {label}")
+            menu_text = "\n".join(menu_lines)
+            rich.print(Panel(menu_text, title="[bold yellow]Jhora TUI[/bold yellow]",
+                            subtitle=self._status, border_style="blue"))
+
+            # Content
+            if self._content_lines:
+                for line in self._content_lines:
+                    rich.print(line)
+
+        # Build prompt_toolkit layout
+        output = capture.get()
+
+        kb = KeyBindings()
+
+        @kb.add("up")
+        def _(event):
+            if self._menu_items:
+                self._menu_index = (self._menu_index - 1) % len(self._menu_items)
+                event.app.exit(result="refresh")
+
+        @kb.add("down")
+        def _(event):
+            if self._menu_items:
+                self._menu_index = (self._menu_index + 1) % len(self._menu_items)
+                event.app.exit(result="refresh")
+
+        @kb.add("enter")
+        def _(event):
+            if self._menu_items:
+                _, _, action = self._menu_items[self._menu_index]
+                event.app.exit(result=action)
+
+        @kb.add("q")
+        @kb.add("c-c")
+        def _(event):
+            event.app.exit(result="quit")
+
+        # Number keys for quick menu selection
+        for i, (key, _, action) in enumerate(self._menu_items):
+            @kb.add(key.lower())
+            def _(event, idx=i, act=action):
+                self._menu_index = idx
+                event.app.exit(result=act)
+
+        content = FormattedTextControl(text=output, style="class:content")
+        root = HSplit([
+            Window(content=content, wrap_lines=False),
+        ])
+
+        app = Application(
+            layout=Layout(root),
+            key_bindings=kb,
+            style=STYLE,
+            full_screen=True,
+        )
+        return app.run()
+
+    # ── Menu system ───────────────────────────────────────────────────────
+
+    def _menu_loop(self, title: str, items: List[Tuple[str, str, Callable]],
+                   status: str = ""):
+        """Display a menu and handle navigation. Returns when user quits or drills down."""
+        self._menu_items = items
+        self._menu_index = 0
+        self._status = status or "↑↓ navigate | Enter select | q back/quit"
+        self._content_lines = [f"\n  [bold yellow]{title}[/bold yellow]\n"]
+
+        while True:
+            try:
+                result = self._render_screen()
+            except Exception:
+                break
+
+            if result == "quit":
+                return "quit"
+            elif result == "refresh":
+                continue
+            elif callable(result):
+                sub_result = result()
+                if sub_result == "quit":
+                    return "quit"
+                # After sub-action, refresh content
+                self._render_screen()
+                continue
+            else:
+                break
+        return None
+
+    # ── Actions ───────────────────────────────────────────────────────────
+
+    def _action_back(self):
+        return "back"
+
+    def _action_input_birth(self):
+        """Birth data input using prompt_toolkit dialogs."""
+        from prompt_toolkit.shortcuts import input_dialog, message_dialog
+
+        year = input_dialog("Year", "Enter birth year:", str(datetime.now().year)).run()
+        if not year:
+            return
+        month = input_dialog("Month", "Enter birth month:", str(datetime.now().month)).run()
+        if not month:
+            return
+        day = input_dialog("Day", "Enter birth day:", str(datetime.now().day)).run()
+        if not day:
+            return
+        hour = input_dialog("Hour", "Enter birth hour (24h, e.g. 13.916 for 13:55):", "12.0").run()
+        if not hour:
+            return
+        lat = input_dialog("Latitude", "Latitude (e.g. 45.41):", "28.61").run()
+        if not lat:
+            return
+        lon = input_dialog("Longitude", "Longitude (e.g. 11.88):", "77.21").run()
+        if not lon:
+            return
+        tz = input_dialog("Timezone", "Timezone (e.g. +0100, +0530, -0500):", "+0530").run()
+        if not tz:
+            return
+
+        try:
+            builder = ChartBuilder()
+            self.chart = builder.build(
+                year=int(year), month=int(month), day=int(day),
+                hour=float(hour), lat=float(lat), lon=float(lon), tz=tz,
+            )
+            self.birthdata_str = f"{year}-{month}-{day} {hour} {tz} {lat} {lon}"
+            lagna = Rasi.from_longitude(self.chart.ascendant)
+            self._content_lines = [
+                f"\n  [green]Chart computed successfully[/green]",
+                f"  [green]{self.birthdata_str}[/green]",
+                f"  [green]Lagna: {lagna.full_name} ({self.chart.ascendant:.2f}°)[/green]",
+            ]
+        except Exception as e:
+            self._content_lines = [f"\n  [red]Error: {e}[/red]"]
+
+    def _check_chart(self) -> bool:
+        if not self.chart:
+            self._content_lines = ["\n  [red]No chart loaded. Use 'Birth Data Input' first.[/red]"]
+            return False
+        return True
+
+    def _action_planets(self):
+        if not self._check_chart():
+            return
+        from jhora.types.nakshatra import Nakshatra
+        with rich.capture() as cap:
+            t = Table(title="Planetary Positions", box=rich_box.SIMPLE)
+            for h in ["Planet", "Longitude", "Sign", "Nakshatra", "Pada", "Motion"]:
+                t.add_column(h)
+            for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                      Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
+                p = self.chart.planet(g)
+                r = Rasi.from_longitude(p.longitude)
+                n, pada = Nakshatra.from_longitude(p.longitude)
+                t.add_row(g.full_name, f"{p.longitude:.2f}°", r.full_name,
+                          n.name.replace("_", " ").title(), str(pada),
+                          "R" if p.is_retrograde else "")
+            lr = Rasi.from_longitude(self.chart.ascendant)
+            t.add_row("Lagna", f"{self.chart.ascendant:.2f}°", lr.full_name, "", "", "")
+            if self.chart.outer_planets:
+                for name, d in self.chart.outer_planets.items():
+                    t.add_row(name, f"{d['longitude']:.2f}°", d["sign_full"], "", "",
+                              "R" if d["is_retrograde"] else "")
+            rich.print(t)
+            # Upagrahas
+            from jhora.calc.upagraha import compute_solar_upagrahas
+            from jhora.calc.special_lagnas import compute_special_lagnas
+            sun_lon = self.chart.planet(Graha.SUN).longitude
+            ut = Table(title="Upagrahas + Special Lagnas", box=rich_box.SIMPLE)
+            ut.add_column("Point")
+            ut.add_column("Longitude")
+            ut.add_column("Sign")
+            for u in compute_solar_upagrahas(sun_lon):
+                ut.add_row(u.name, f"{u.longitude:.2f}°", u.rasi)
+            for s in compute_special_lagnas(self.chart):
+                ut.add_row(s.name, f"{s.longitude:.2f}°", s.sign)
+            rich.print(ut)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_houses(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.chalit import ChalitComputer
+        with rich.capture() as cap:
+            cc = ChalitComputer(self.chart)
+            cr = cc.compute()
+            t = Table(title="House Cusps + Chalit", box=rich_box.SIMPLE)
+            for h in ["House", "Cusp", "Sign", "Lord", "Shift"]:
+                t.add_column(h)
+            for h in range(12):
+                cusp = self.chart.house_cusps[h]
+                r = Rasi.from_longitude(cusp)
+                moved = [e for e in cr.entries if e.cusp_house == h + 1 and e.moved]
+                shift = ", ".join(f"{e.graha.short_name} H{e.sign_house}→H{e.cusp_house}"
+                                  for e in moved) if moved else ""
+                t.add_row(str(h + 1), f"{cusp:.2f}°", r.full_name, r.lord, shift)
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_yogas(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.yogas import detect_all
+        with rich.capture() as cap:
+            yogas = detect_all(self.chart)
+            t = Table(title=f"Yogas ({len(yogas)} detected)", box=rich_box.SIMPLE)
+            t.add_column("Yoga")
+            t.add_column("Planets")
+            t.add_column("Description")
+            for y in yogas:
+                planets = ", ".join(p.short_name for p in y.planets) if y.planets else ""
+                t.add_row(y.name, planets, y.description[:80])
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_shadbala(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.shadbala import ShadbalaComputer
+        with rich.capture() as cap:
+            sb = ShadbalaComputer(self.chart)
+            t = Table(title="Shadbala (virupas)", box=rich_box.SIMPLE)
+            for h in ["Planet", "Sthana", "Dig", "Kala", "Chesta", "Naisarg", "Drik", "Total"]:
+                t.add_column(h)
+            for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                      Graha.JUPITER, Graha.VENUS, Graha.SATURN]:
+                r = sb.compute_one(g)
+                t.add_row(g.full_name, f"{r.sthana_total:.1f}", f"{r.dig_total:.1f}",
+                          f"{r.kala_total:.1f}", f"{r.chesta_total:.1f}",
+                          f"{r.naisargika.virupa:.1f}", f"{r.drik.virupa:.1f}",
+                          f"{r.total_virupa:.0f}")
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_bhava_bala(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.bhava_bala import BhavaBalaComputer
+        with rich.capture() as cap:
+            bb = BhavaBalaComputer(self.chart)
+            report = bb.compute_all()
+            t = Table(title="Bhava Bala", box=rich_box.SIMPLE)
+            for h in ["H", "Sign", "Sthana", "Drishti", "Dig", "Adhip", "Drig", "Total"]:
+                t.add_column(h)
+            for h in range(1, 13):
+                r = report.results[h]
+                ri = (int(self.chart.ascendant / 30) + h - 1) % 12
+                t.add_row(str(h), Rasi(ri).short_name, f"{r.sthana:.0f}",
+                          f"{r.drishti:.0f}", f"{r.dig:.0f}",
+                          f"{r.adhipati:.0f}", f"{r.drig:+.0f}", f"{r.total:.0f}")
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_vimsopaka(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
+        with rich.capture() as cap:
+            vc = VimsopakaComputer(self.chart)
+            for scheme in [VimsopakaScheme.SHADVARGA, VimsopakaScheme.SHODASAVARGA]:
+                t = Table(title=f"Vimsopaka Bala — {scheme.value}", box=rich_box.SIMPLE)
+                t.add_column("Planet")
+                t.add_column("Score")
+                t.add_column("%")
+                for r in sorted(vc.compute_all(scheme), key=lambda x: x.total, reverse=True):
+                    t.add_row(r.graha.full_name, f"{r.total:.1f}/20", f"{r.percentage:.0f}%")
+                rich.print(t)
+                rich.print()
+        self._content_lines = cap.get().split("\n")
+
+    def _action_dasa(self):
+        if not self._check_chart():
+            return
+        from jhora.dasas.vimsottari import VimsottariDasa
+        with rich.capture() as cap:
+            dasa = VimsottariDasa()
+            cd = {"planets": {g.value: {"longitude": p.longitude}
+                              for g, p in self.chart.planets.items()},
+                  "lagna_lon": self.chart.ascendant}
+            periods = dasa.compute(self.chart.julian_day, cd)
+            now = datetime.now()
+            t = Table(title="Vimsottari Mahadasha", box=rich_box.SIMPLE)
+            t.add_column("Lord")
+            t.add_column("Start")
+            t.add_column("End")
+            t.add_column("Status")
+            for md in periods:
+                status = "◀ CURRENT" if md.start_date <= now <= md.end_date else ""
+                t.add_row(md.lord_name, md.start_date.strftime("%Y-%m"),
+                          md.end_date.strftime("%Y-%m"), status)
+                if md.start_date <= now <= md.end_date:
+                    for ad in (md.sub_periods or []):
+                        if ad.start_date <= now <= ad.end_date:
+                            t.add_row(f"  └ {ad.lord_name} (AD)",
+                                      ad.start_date.strftime("%Y-%m"),
+                                      ad.end_date.strftime("%Y-%m"), "◀ now")
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_dasa_timeline(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.dasa_timeline import dasa_timeline_text
+        text = dasa_timeline_text(self.chart, width=60)
+        self._content_lines = text.split("\n")
+
+    def _action_transits(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.gochara import compute_transits
+        from jhora.ephemeris.swe import SweEngine
+        with rich.capture() as cap:
+            eng = SweEngine()
+            now = datetime.now()
+            jd = eng.julday(now.year, now.month, now.day, now.hour + now.minute / 60.0)
+            result = compute_transits(self.chart, jd)
+            t = Table(title=f"Transits ({now.strftime('%Y-%m-%d')})", box=rich_box.SIMPLE)
+            t.add_column("Planet")
+            t.add_column("Sign")
+            t.add_column("House")
+            t.add_column("SAV")
+            t.add_column("Fav")
+            for e in result.entries:
+                t.add_row(e.graha.short_name, e.transit_rasi_name,
+                          str(e.house_from_lagna), str(e.sav_score),
+                          "✓" if e.is_favorable else "✗")
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_tajaka(self):
+        if not self._check_chart():
+            return
+        from prompt_toolkit.shortcuts import input_dialog
+        y = input_dialog("Tajaka Year", "Target year:", str(datetime.now().year)).run()
+        if not y:
+            return
+        try:
+            from jhora.calc.tajaka import build_tajaka_chart
+            from jhora.ephemeris.swe import SweEngine
+            with rich.capture() as cap:
+                eng = SweEngine()
+                cbb = ChartBuilder()
+                tr = build_tajaka_chart(eng, cbb, self.chart, int(y), tropical=False)
+                t = Table(title=f"Tajaka Solar Return {y}", box=rich_box.SIMPLE)
+                t.add_column("Planet")
+                t.add_column("Sign")
+                t.add_column("Deg")
+                for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                          Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
+                    p = tr.planet(g)
+                    r = Rasi.from_longitude(p.longitude)
+                    t.add_row(g.short_name, r.short_name, f"{p.longitude:.1f}°")
+                rich.print(t)
+            self._content_lines = cap.get().split("\n")
+        except Exception as e:
+            self._content_lines = [f"[red]Error: {e}[/red]"]
+
+    def _action_matchmaking(self):
+        if not self._check_chart():
+            return
+        from prompt_toolkit.shortcuts import input_dialog
+        y = input_dialog("Year", "Partner year:").run()
+        m = input_dialog("Month", "Partner month:").run()
+        d = input_dialog("Day", "Partner day:").run()
+        h = input_dialog("Hour", "Partner hour:", "12.0").run()
+        la = input_dialog("Latitude", "Partner lat:").run()
+        lo = input_dialog("Longitude", "Partner lon:").run()
+        tz = input_dialog("Timezone", "Partner TZ:", "+0530").run()
+        if not all([y, m, d, h, la, lo, tz]):
+            return
+        try:
+            builder = ChartBuilder()
+            c2 = builder.build(year=int(y), month=int(m), day=int(d),
+                               hour=float(h), lat=float(la), lon=float(lo), tz=tz)
+            from jhora.calc.kuta import compute_kuta
+            result = compute_kuta(self.chart, c2)
+            lines = [f"\n  [bold green]Total Score: {result.total_score:.1f}[/bold green]"]
+            for item in result.items:
+                lines.append(f"  {item.name:<20} {item.score:.1f}")
+            self._content_lines = lines
+        except Exception as e:
+            self._content_lines = [f"[red]Error: {e}[/red]"]
+
+    def _action_prasna(self):
+        from prompt_toolkit.shortcuts import input_dialog
+        n = input_dialog("Prasna", "Number (1-249):", "108").run()
+        if not n:
+            return
+        from jhora.calc.prasna import PrasnaMode, compute_prasna
+        lines = []
+        for pm in PrasnaMode:
+            r = compute_prasna(int(n), pm)
+            lines.append(f"  [cyan]{pm.label}[/cyan]: {r.rasi.short_name} "
+                        f"({r.prasna_lagna:.1f}°) — {r.nakshatra.name}")
+        self._content_lines = lines
+
+    def _action_muhurta(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.muhurta import MuhurtaTask, evaluate_time
+        with rich.capture() as cap:
+            now = datetime.now()
+            t = Table(title=f"Muhurta ({now.strftime('%Y-%m-%d')})", box=rich_box.SIMPLE)
+            t.add_column("Task")
+            t.add_column("Score")
+            t.add_column("Status")
+            for mt in MuhurtaTask:
+                r = evaluate_time(now, self.chart.latitude, self.chart.longitude,
+                                 float(self.chart.timezone.replace("+", "").replace("−", "-") or 0), mt)
+                c = "green" if r.is_good else "red"
+                t.add_row(mt.label[:35], f"{r.score:.2f}",
+                          f"[{c}]{'✓' if r.is_good else '✗'}[/{c}]")
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_mundane(self):
+        from prompt_toolkit.shortcuts import input_dialog
+        y = input_dialog("Mundane", "Year:", str(datetime.now().year)).run()
+        if not y:
+            return
+        from jhora.calc.mundane import MundaneCalculator
+        mc = MundaneCalculator()
+        self._content_lines = mc.analysis_text(int(y)).split("\n")
+
+    def _action_learning(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.learning import marana_karaka_sthana
+        from jhora.calc.special_lagnas import kp_sublord_string
+        with rich.capture() as cap:
+            mk = marana_karaka_sthana(self.chart)
+            if mk:
+                t = Table(title="Marana Karaka Sthana", box=rich_box.SIMPLE)
+                t.add_column("Planet", style="red")
+                t.add_column("House")
+                t.add_column("Sign")
+                for m in mk:
+                    t.add_row(m["graha"], str(m["house"]), m["sign"])
+                rich.print(t)
+            t = Table(title="KP Sub-Lords", box=rich_box.SIMPLE)
+            t.add_column("Point")
+            t.add_column("Chain")
+            for g in Graha:
+                if g in self.chart.planets:
+                    chain = kp_sublord_string(self.chart.planet(g).longitude, 3)
+                    t.add_row(g.full_name, chain)
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_knowledge(self):
+        from prompt_toolkit.shortcuts import input_dialog
+        q = input_dialog("Knowledge", "Search textbooks:").run()
+        if not q:
+            return
+        from jhora.interpreter.knowledge_base import KnowledgeBase
+        kb = KnowledgeBase()
+        results = kb.search(q, max_results=5)
+        lines = []
+        for r in results:
+            lines.append(f"\n[yellow]{r['source']}[/yellow]")
+            lines.append(f"  {r['excerpt'][:300]}")
+        self._content_lines = lines
+
+    def _action_export_html(self):
+        if not self._check_chart():
+            return
+        from prompt_toolkit.shortcuts import input_dialog
+        path = input_dialog("Export", "Output path:", "chart_report.html").run()
+        if not path:
+            return
+        from jhora.export.report import generate_chart_report
+        generate_chart_report(self.chart, path)
+        self._content_lines = [f"\n  [green]Saved: {path}[/green]"]
+
+    def _action_varga(self):
+        if not self._check_chart():
+            return
+        from jhora.charts.varga import VargaChartComputer
+        from jhora.types.varga import VargaLevel
+        with rich.capture() as cap:
+            vcc = VargaChartComputer()
+            t = Table(title="Divisional Charts (8 Vargas)", box=rich_box.SIMPLE)
+            levels = [VargaLevel.D_1, VargaLevel.D_3, VargaLevel.D_9, VargaLevel.D_12,
+                      VargaLevel.D_20, VargaLevel.D_30, VargaLevel.D_40, VargaLevel.D_60]
+            t.add_column("Planet")
+            for vl in levels:
+                t.add_column(vl.name)
+            for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                      Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
+                row = [g.short_name]
+                for vl in levels:
+                    vcd = vcc.compute(self.chart, vl)
+                    lon = vcd.positions[g].longitude
+                    row.append(Rasi.from_longitude(lon).short_name)
+                t.add_row(*row)
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_reading(self):
+        if not self._check_chart():
+            return
+        from jhora.interpreter.engine import ChartInterpreter
+        interp = ChartInterpreter()
+        text = interp.interpret_text(self.chart, style="concise")
+        self._content_lines = text.split("\n")
+
+    def _action_ashtakavarga(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.ashtakavarga import sarva_ashtakavarga
+        with rich.capture() as cap:
+            sav = sarva_ashtakavarga(self.chart)
+            t = Table(title="Ashtakavarga SAV", box=rich_box.SIMPLE)
+            t.add_column("Rasi")
+            t.add_column("SAV")
+            for r in range(12):
+                t.add_row(Rasi(r).short_name, str(int(sav[r])))
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
+    def _action_save_db(self):
+        if not self._check_chart():
+            return
+        from jhora.io.jhd_parser import save_chart_to_db
+        bd = self.chart.birth_date
+        cid = save_chart_to_db(
+            name=f"Chart {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            day=bd.day, month=bd.month, year=bd.year,
+            time_hours=bd.hour + bd.minute / 60.0,
+            tz_offset=float(self.chart.timezone.replace("+", "").replace("−", "-") or 0),
+            latitude=self.chart.latitude, longitude=self.chart.longitude,
+        )
+        self._content_lines = [f"\n  [green]Saved to DB (ID: {cid})[/green]"]
+
+    # ── Main Menu ─────────────────────────────────────────────────────────
+
+    def _show_main_menu(self):
+        items = [
+            ("1", "Birth Data Input", self._action_input_birth),
+            ("2", "Planets + Upagrahas + Lagnas", self._action_planets),
+            ("3", "Houses + Chalit Shifts", self._action_houses),
+            ("4", "Yogas (Planetary Combinations)", self._action_yogas),
+            ("5", "Shadbala (Planetary Strengths)", self._action_shadbala),
+            ("6", "Bhava Bala (House Strengths)", self._action_bhava_bala),
+            ("7", "Vimsopaka Bala (Varga Strengths)", self._action_vimsopaka),
+            ("8", "Dasa Periods (Vimsottari)", self._action_dasa),
+            ("9", "Dasa Timeline (Bar Chart)", self._action_dasa_timeline),
+            ("a", "Transits (Current vs Natal)", self._action_transits),
+            ("b", "Tajaka (Solar Return)", self._action_tajaka),
+            ("c", "Varga Charts (D-1 to D-60)", self._action_varga),
+            ("d", "Matchmaking (Kuta Porutham)", self._action_matchmaking),
+            ("e", "Prasna (Horary)", self._action_prasna),
+            ("f", "Muhurta (Electional)", self._action_muhurta),
+            ("g", "Mundane (World Events)", self._action_mundane),
+            ("h", "Learning Aids (KP, Marana Karaka)", self._action_learning),
+            ("i", "AI: Chart Reading (Rule-based)", self._action_reading),
+            ("j", "Ashtakavarga (SAV)", self._action_ashtakavarga),
+            ("k", "Knowledge Search (Textbooks)", self._action_knowledge),
+            ("l", "Export HTML Report", self._action_export_html),
+            ("m", "Save Chart to Database", self._action_save_db),
+            ("n", "Birth Data (Re-enter)", self._action_input_birth),
+        ]
+        self._menu_loop("Jhora TUI — Main Menu", items,
+                        "↑↓ navigate | letter/Enter select | q quit")
