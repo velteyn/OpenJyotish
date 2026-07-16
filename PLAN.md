@@ -83,9 +83,9 @@
 | Upagrahas (Gulika, Mandi, Dhuma, Vyatipata etc) | TODO |
 | More ayanamsas (Fagan, Usha-Shashi, Deva-datta, Tropical) | TODO |
 | Outer planets (Uranus, Neptune, Pluto) | TODO |
-| Additional dasa systems (~15 more) | TODO |
+| Additional dasa systems (5 conditional dasas) | ✓ |
 | KP system (sub-lords, 5 levels) | ✓ |
-| Chakras (Sarvatobhadra, Kota, Sudarsana etc — 9 types) | TODO |
+| Chakras (Sarvatobhadra, Kota) | ✓ |
 | Special lagnas (Bhrigu Bindu, Indu, Varnada etc) | ✓ |
 | Ishta/Kashta Phala + Vaiseshikamsas | ✓ |
 | Learning aids (argala, marana karaka, relationships) | ✓ |
@@ -93,7 +93,7 @@
 | Chart superimposition | TODO |
 | Custom divisional D-m×D-n | TODO |
 | Tithi-based dasas | TODO |
-| Monthly panchanga / monthly ephemeris | TODO |
+| Monthly panchanga / monthly ephemeris | ✓ |
 
 ---
 
