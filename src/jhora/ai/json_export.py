@@ -198,7 +198,7 @@ def chart_to_json(cd: ChartData) -> Dict[str, Any]:
     # ── Karakas ──
     try:
         cks = compute_chara_karakas(cd.planets)
-        result["karakas"] = [{"planet": ck.graha.short_name, "karaka": ck.karaka_name} for ck in cks]
+        result["karakas"] = [{"planet": ck.graha.short_name, "karaka": ck.short_name} for ck in cks]
     except Exception:
         result["karakas"] = []
 
