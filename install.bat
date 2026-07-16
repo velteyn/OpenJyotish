@@ -25,6 +25,14 @@ if errorlevel 1 (
 echo Python found.
 echo.
 
+echo Downloading ephemeris data...
+if not exist jhcore\ephe\sepl_18.se1 (
+    echo Ephemeris data not found.
+    echo Please download from: https://www.astro.com/ftp/swisseph/ephe/
+    echo and place .se1 files in jhcore\ephe\n    echo.
+)
+echo.
+
 echo Cleaning cache...
 for /d /r . %%d in (__pycache__) do @if exist "%%d" rd /s /q "%%d" 2>nul
 del /s /q *.pyc 2>nul

@@ -24,8 +24,11 @@ install.bat
 run.bat
 ```
 
-**Requires**: Python 3.11+ and Swiss Ephemeris data in `jhcore/ephe/`  
-(Download from https://www.astro.com/ftp/swisseph/ephe/ or copy from JHora install)
+**Requires**: Python 3.11+
+
+Ephemeris data is auto-downloaded by `install.sh` (Linux/Mac).  
+On Windows, download `.se1` files manually from https://www.astro.com/ftp/swisseph/ephe/  
+and place them in `jhcore/ephe/`.
 
 ## One-Minute Examples
 
