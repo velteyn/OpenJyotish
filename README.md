@@ -3,7 +3,7 @@
 Free, open-source, cross-platform Vedic astrology toolkit. CLI + PyQt6 GUI + Terminal UI. AI-powered chart readings via local LLMs.
 
 ```
-📊 19 GUI tabs   |   🖥 25 CLI commands   |   ⌨ 16 TUI panels
+📊 19 GUI tabs   |   🖥 25 CLI commands   |   ⌨ 24 TUI menu items
 🔮 36 features   |   📝 14,500 lines Python   |   ✅ 646 tests
 ```
 
@@ -113,48 +113,64 @@ Launch with `jhora gui`. The desktop app has 19 tabs:
 
 ## TUI Manual
 
-Launch with `jhora tui "birthdata"`. The terminal interface has 16 panels:
+Launch with `jhora tui` (fully interactive, no birth data needed upfront)
+or `jhora tui "1973-03-13 13:55 +0100 45.41 11.88"` (pre-load a chart).
+
+Built on **prompt_toolkit** with **Rich** rendering. Navigate with arrow keys
+or press the letter key to jump directly. Enter selects, q quits.
+
+### Main Menu (24 items)
 
 ```
-╔═══════════════════════════════════════╗
-║ Jhora TUI — Planets (1/16)           ║
-║ [1-9,0,a] tabs | ← → nav | q quit   ║
-╠═══════════════════════════════════════╣
-║ Planets  Houses  Dasa  Varga  Yogas  ║
-║ Shadbala  Arudha  Ashtakavarga       ║
-║ Transit  Tajaka+TP+Prog              ║
-║ Matchmaking  Prasna  Muhurta         ║
-║ Knowledge  Reading  AI Chat          ║
-╚═══════════════════════════════════════╝
+ 1  Birth Data Input      → sequential dialogs for date/time/lat/lon/tz
+ 2  Planets + Upagrahas   → full position table + shadow planets + special lagnas
+ 3  Houses + Chalit       → 12 cusps with chalit shifts highlighted
+ 4  Yogas                 → all detected planetary combinations
+ 5  Shadbala              → six-fold planetary strength table
+ 6  Bhava Bala            → five-factor house strength table
+ 7  Vimsopaka Bala        → varga-weighted strength (Shadvarga + Shodasavarga)
+ 8  Dasa Periods          → Vimsottari MD/AD with current period marked
+ 9  Dasa Timeline         → text bar chart with ● now indicator
+ a  Transits              → current transits vs natal with SAV scores
+ b  Tajaka               → solar return chart for any target year
+ c  Varga Charts          → 8-level grid (D-1 through D-60)
+ d  Matchmaking           → enter second chart for Kuta Porutham score
+ e  Prasna               → horary by number (108/249/Nadi modes)
+ f  Muhurta              → electional — task scores for today
+ g  Mundane              → world events, eclipses, ingresses
+ h  Learning Aids         → KP sub-lords, Marana Karaka, Ishta/Kashta
+ i  Chart Reading         → rule-based interpretation
+ j  Ashtakavarga          → SAV table
+ k  Knowledge Search      → FTS5 search across 16 textbooks
+ l  Export HTML           → styled report to file
+ m  Save to Database      → store chart in SQLite
+ n  Birth Data (Re-enter) → change chart without restarting
 ```
 
 ### Navigation
+
 | Key | Action |
 |-----|--------|
-| `1`-`9` | Tabs 1-9 (Planets through Transit) |
-| `0` | Tab 10 (Tajaka + Tithi Pravesha + Progressions) |
-| `a` | Tab 16 (AI Chat) |
-| `←` `→` | Previous / Next tab |
-| `q` | Quit |
-| `r` | Refresh current tab |
+| `↑` `↓` | Move selection up/down |
+| Letter (`1`-`n`) | Jump directly to item |
+| `Enter` | Select / execute |
+| `q` or `Ctrl+C` | Back to menu (from action) or quit (from main menu) |
 
-### What each panel shows
-- **Planets (1)**: Full table with sign, degree, nakshatra, retrograde, lord
-- **Houses (2)**: 12 cusps + Chalit shifts highlighted
-- **Dasa (3)**: Vimsottari MD/AD periods in text tree
-- **Varga (4)**: 8 varga charts side by side (D-1 through D-60)
-- **Yogas (5)**: Detected yogas with descriptions
-- **Shadbala (6)**: Three tables — Shadbala + Bhava Bala + Vimsopaka
-- **Arudha (7)**: Arudha padas + Chara karakas
-- **Ashtakavarga (8)**: SAV table with total score
-- **Transit (9)**: Current transits with SAV + favorability
-- **Tajaka+ (0)**: Tajaka chart + Tithi Pravesha + Progressions combined
-- **Matchmaking (10)**: Explains CLI/GUI usage for two-chart matching
-- **Prasna (11)**: Sample horary results for 1, 50, max
-- **Muhurta (12)**: Task evaluation scores for today
-- **Knowledge (13)**: Source list + sample search result
-- **Reading (14)**: Concise rule-based interpretation
-- **AI Chat (a)**: Server health check + CLI command hints
+### Workflow
+
+```
+jhora tui
+  → press 1 → enter birth data → chart computed
+  → press 2 → view planets
+  → press 5 → view Shadbala
+  → press 8 → view dasa periods
+  → press d → enter partner chart → matchmaking score
+  → press l → export HTML report
+  → press q → quit
+```
+
+All output rendered with Rich tables/panels. Dialogs use prompt_toolkit for clean
+text input with validation.
 
 ## Prerequisites
 
