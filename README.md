@@ -10,6 +10,12 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ## Quick Install
 
+### Option 1: Release (Windows — no Python needed)
+Download `openjyotish-v1.1.0-windows.zip` from [Releases](https://github.com/velteyn/OpenJyotish/releases).  
+Extract, double-click `OpenJyotish.bat`. Includes ephemeris data.
+
+### Option 2: From source (Linux / Mac / Windows with Python)
+
 ```bash
 # Linux / Mac
 git clone https://github.com/velteyn/OpenJyotish.git
