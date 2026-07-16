@@ -4,7 +4,7 @@
 
 **Origin:** Reverse engineer JHora 8.0 Lite (PVR Narasimha Rao, 2015). All calculations verified against the original.
 
-**Status:** COMPLETE — v1.0.0 — 14,440 lines, 646 tests, 36/36 features shipped
+**Status:** COMPLETE — **v1.1.0** — ~15,500 lines, 646 tests. 8-category GUI/TUI, AI tool-calling JSON API.
 
 ---
 

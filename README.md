@@ -3,8 +3,8 @@
 Free, open-source, cross-platform Vedic astrology toolkit. CLI + PyQt6 GUI + Terminal UI. AI-powered chart readings via local LLMs.
 
 ```
-📊 19 GUI tabs   |   🖥 25 CLI commands   |   ⌨ 24 TUI menu items
-🔮 36 features   |   📝 14,500 lines Python   |   ✅ 646 tests
+📊 8 categories + sub-tabs  |  🖥 27 CLI commands  |  ⌨ 9 TUI categories + sub-menus
+🔮 AI tool-calling via JSON  |  ✅ 646 tests
 ```
 
 ## Quick Start
@@ -40,7 +40,9 @@ jhora muhurta "..." --task marriage  # Electional (auspicious timing)
 jhora kuta "girl" "boy"            # Matchmaking compatibility
 jhora knowledge "query"            # Search 16 Vedic textbooks
 
-# CLI — AI interpretation (requires Ollama/LM Studio)
+# CLI — AI tool-calling (JSON)
+jhora analyze "..."                 # All computed data as structured JSON
+jhora analyze "..." | jq '.dasa'    # Pipe to AI agents, jq, curl
 jhora teach "question"                # AI teacher — learn Vedic astrology
 jhora teach "question" --chart "..."     # Learn with your chart
 jhora ai "..."                     # Full chart reading via local LLM
@@ -75,27 +77,16 @@ Launch with `jhora gui`. The desktop app has 19 tabs:
 
 ### Tab guide
 
-| Tab | What it shows | How to use |
-|-----|--------------|------------|
-| **Planets** | 9 planets + lagna positions, nakshatras, dignity | Read at a glance |
-| **Houses** | 12 house cusps + Chalit shifts (cusp vs sign) | Check which planets moved houses |
-| **Dasa** | Select system → full MD/AD text + interactive bar chart | Click bars to expand antardasas |
-| **Varga** | Select divisional chart → planet positions + navamsa toggle | Dropdown for D-1 through D-150 |
-| **Yogas** | All detected yogas with planets and descriptions | Scroll to review combinations |
-| **Shadbala** | Planet strengths + House strengths + Vimsopaka Bala | Three tables stacked |
-| **Arudha & Karaka** | Arudha padas + Chara karakas + 36 Sahamas | Tabular view |
-| **Ashtakavarga** | BAV, SAV, Sodhya Pinda, Kakshya detail | Toggle Parasara/Varahamihira |
-| **Transit** | Current transits with SAV scores + filtered by planet | Dropdown to select planet |
-| **Tajaka** | Solar return + Muntha + Harsha + Patyayini + Mudda + Tithi Pravesha + Progressions | Enter target year |
-| **Matchmaking** | 10 Porutham + Ashta Koota scores for two charts | Fill both charts, click Match |
-| **Prasna** | Horary chart from number | Enter 1-108, 1-249, or 1-1800 |
-| **Muhurta** | Task evaluation + Find Auspicious Times | Select task, set date/time/location |
-| **Knowledge** | FTS5 search across 16 textbooks | Type query, set result count |
-| **Reading** | Rule-based chart interpretation | Click Generate Reading |
-| **AI Chat** | LLM-powered interpretation (needs Ollama/LM Studio) | Select provider, click Interpret/Ask/Remedies |
-| **AI Teacher** | Interactive Vedic astrology instructor | Ask questions, auto-searches textbooks |
-| **Mundane** | Solar ingresses + eclipses + conjunctions | Set year/lat/lon, click Compute |
-| **Ephemeris** | Daily planet table for any date range | Set start/end/step, click Generate |
+| Tab | Sub-tabs | Content |
+|-----|----------|---------|
+| **Dashboard** | — | Current dasa, transits, strengths, upcoming events — everything at a glance |
+| **Chart & Varga** | Chart View, Planets, Houses & Chalit, Varga Charts, Yogas | Full chart analysis |
+| **Strengths** | Shadbala, Arudha & Karaka, Ashtakavarga | All strength metrics |
+| **Dasas** | Dasa Periods | Vimsottari dasa with interactive bar chart |
+| **Transits & Tajaka** | Transits, Tajaka & TP, Mundane | Current transits + solar return + world events |
+| **Special** | Matchmaking, Prasna, Muhurta | Compatibility, horary, electional |
+| **AI & Learn** | AI Chat, AI Teacher, Knowledge, Reading | LLM interpretation + textbook search |
+| **Tools** | Ephemeris | Daily planet table |
 
 ### Keyboard shortcuts
 - `Ctrl+O` — Import .jhd file
@@ -110,6 +101,31 @@ Launch with `jhora gui`. The desktop app has 19 tabs:
 - **Export .jhd** — Save in original JHora format
 - **Browse Charts** — Dialog listing all saved charts (double-click to load)
 - **Export Report (HTML)** — Save styled HTML report (printable to PDF)
+
+## AI Tool-Calling (JSON API)
+
+Jhora can be used as a tool by AI agents. One command returns all computed data:
+
+```bash
+jhora analyze "1973-03-13 13:55 +0100 45.41 11.88"
+```
+
+Returns 10KB of structured JSON with 16 sections — planets, houses, shadbala,
+bhava bala, vimsopaka, yogas, dasa periods, transits, karakas, upagrahas,
+special lagnas, KP sub-lords, marana karaka, vaiseshikamsas, ashtakavarga.
+
+```python
+# AI agent usage (Python)
+import json, subprocess
+data = json.loads(subprocess.run(
+    ["jhora", "analyze", birthdata], capture_output=True, text=True
+).stdout)
+current_md = next(md for md in data["dasa"]["mahadashas"] if md["current"])
+
+# Shell pipeline
+jhora analyze "..." | jq '.planets.Su.house'           # -> 7
+jhora analyze "..." | jq '.dasa.mahadashas[] | select(.current)'
+```
 
 ## TUI Manual
 
@@ -252,6 +268,7 @@ cp -r /path/to/jhora/jhcore/ephe/ jhcore/ephe/
 | `teach` | AI Teacher — learn Vedic astrology |
 | `ephemeris` | Daily planet table |
 | `export` | HTML report |
+| `analyze` | AI-friendly JSON — all computed data |
 | `tui` | Interactive terminal UI |
 | `gui` | Desktop GUI |
 

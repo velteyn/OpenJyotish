@@ -73,9 +73,10 @@ Reverse-engineered from **Jagannatha Hora 8.0 Lite** by PVR Narasimha Rao (SJVC,
 
 | Interface | Count | Coverage |
 |-----------|-------|----------|
-| **GUI tabs** | 19 | All modules |
-| **TUI panels** | 16 | All single-chart modules (keyboard-navigable) |
-| **CLI commands** | 18 | Every module has a command |
+| **GUI categories** | 8 with sub-tabs | All modules, nested tab structure |
+| **TUI categories** | 9 with sub-menus | All modules, keyboard-navigable |
+| **CLI commands** | 27 | Every module has a command |
+| **AI tool-calling** | JSON API | `jhora analyze` — 16-section JSON dump |
 
 ## Remaining (Tier 2 → Tier 3)
 
