@@ -192,10 +192,15 @@ class JhoraTui:
             self.birthdata_str = f"{year}-{month}-{day} {hour} {tz} {lat} {lon}"
             lagna = Rasi.from_longitude(self.chart.ascendant)
             self._content_lines = [
-                f"\n  [green]Chart computed successfully[/green]",
-                f"  [green]{self.birthdata_str}[/green]",
-                f"  [green]Lagna: {lagna.full_name} ({self.chart.ascendant:.2f}°)[/green]",
+                f"\n  [green]✓ Chart computed successfully[/green]",
+                f"  Lagna: {lagna.full_name} ({self.chart.ascendant:.2f}°)",
+                f"  {self.birthdata_str}",
+                f"\n  [dim]Use ↑↓/letters to navigate menus[/dim]",
             ]
+            message_dialog("Success",
+                f"Chart loaded!\n\nLagna: {lagna.full_name} "
+                f"({self.chart.ascendant:.1f}°)\n\n"
+                f"Press d for Dashboard, c for Chart & Varga, etc.").run()
         except Exception as e:
             self._content_lines = [f"\n  [red]Error: {e}[/red]"]
 
