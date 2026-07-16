@@ -2864,7 +2864,7 @@ class MainWindow(QMainWindow):
         cks = compute_chara_karakas(planets_dict)
         karaka_map = {}
         for ck in cks:
-            karaka_map[ck.graha] = ck.karaka_name
+            karaka_map[ck.graha] = ck.short_name
 
         # Navamsa positions
         try:
