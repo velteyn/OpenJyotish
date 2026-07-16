@@ -10,8 +10,9 @@ echo.
 :: Check Python
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: Python not found. Install Python 3.11+ from python.org
-    echo Make sure to check "Add Python to PATH" during installation.
+    echo ERROR: Python not found.
+    echo Install Python 3.11+ from https://python.org
+    echo Make sure to check "Add Python to PATH" during install.
     pause
     exit /b 1
 )
@@ -24,48 +25,41 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Python OK: 
+echo Python: 
 python --version
 echo.
 
-:: Create virtual environment
-if exist venv\ (
-    echo Virtual environment already exists (venv/).
-    echo To recreate, delete the venv folder and run install.bat again.
-) else (
+:: Create venv
+if not exist venv\ (
     echo Creating virtual environment...
     python -m venv venv
     if errorlevel 1 (
-        echo ERROR: Could not create virtual environment.
+        echo ERROR: Could not create venv.
         pause
         exit /b 1
     )
-    echo Virtual environment created.
+) else (
+    echo Virtual environment already exists (venv\).
+    echo To recreate: rmdir /s /q venv ^&^& install.bat
+    echo.
 )
-
-echo.
 
 :: Activate and install
-call venv\Scripts\activate
+call venv\Scripts\activate.bat
 
-echo Installing dependencies (this may take a minute)...
+echo Installing dependencies...
 python -m pip install --upgrade pip -q
+pip install -r requirements.txt
 pip install -e .
-if errorlevel 1 (
-    echo.
-    echo WARNING: pip install had issues. Trying without editable mode...
-    pip install PyQt6 pyswisseph typer rich
-)
 
 echo.
 echo ========================================
 echo  Setup complete!
 echo ========================================
 echo.
-echo To run the app:
-echo     run.bat
-echo.
-echo Or manually:
-echo     venv\Scripts\activate ^&^& python -m jhora --gui
+echo Commands:
+echo   run.bat             Launch GUI
+echo   jhora tui           Terminal mode
+echo   jhora chart --help  See all CLI commands
 echo.
 pause
