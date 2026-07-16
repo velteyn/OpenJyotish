@@ -35,7 +35,7 @@ class TestSweEngine:
         """All 7 planets + nodes compute without error."""
         jd = swe.julday(1970, 4, 4, 17.8056)
         planets = swe.calc_planets(jd)
-        assert len(planets) == 9  # 7 planets + Ra + Ke
+        assert len(planets) == 12  # 7 trad + 3 outer + Ra + Ke
         for pid, data in planets.items():
             assert 0 <= data.longitude < 360
 

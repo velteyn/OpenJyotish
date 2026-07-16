@@ -48,9 +48,23 @@ SIDMODE_MAP = {
     "lahiri": swe.SIDM_LAHIRI,
     "raman": swe.SIDM_RAMAN,
     "krishnamurti": swe.SIDM_KRISHNAMURTI,
+    "fagan": swe.SIDM_FAGAN_BRADLEY,
+    "usha_shashi": swe.SIDM_USHASHASHI,
+    "deva_datta": swe.SIDM_DELUCE,
+    "de_luce": swe.SIDM_DELUCE,
+    "yukteshwar": swe.SIDM_YUKTESHWAR,
+    "jn_bhasin": swe.SIDM_JN_BHASIN,
     "sss": swe.SIDM_TRUE_CITRA,
+    "true_citra": swe.SIDM_TRUE_CITRA,
     "pushya_paksha": swe.SIDM_TRUE_PUSHYA,
+    "true_pushya": swe.SIDM_TRUE_PUSHYA,
     "rohini_paksha": swe.SIDM_ALDEBARAN_15TAU,
+    "aldebaran": swe.SIDM_ALDEBARAN_15TAU,
+    "surya_siddhanta": swe.SIDM_SURYASIDDHANTA,
+    "aryabhata": swe.SIDM_ARYABHATA,
+    "hipparchos": swe.SIDM_HIPPARCHOS,
+    "sassanian": swe.SIDM_SASSANIAN,
+    "tropical": None,  # handled specially — no sidereal offset
 }
 
 
@@ -99,15 +113,21 @@ class SweEngine:
         swe.set_sid_mode(self._sidereal_mode)
 
     def set_sidereal_mode(self, name: str) -> None:
-        """Set ayanamsa mode by name.
-        
-        Supported: lahiri, raman, krishnamurti, sss, pushya_paksha, rohini_paksha.
-        """
-        mode = SIDMODE_MAP.get(name.lower())
+        """Set ayanamsa mode by name. Use 'tropical' for no ayanamsa."""
+        name_lower = name.lower()
+        if name_lower == "tropical":
+            swe.set_sid_mode(swe.SIDM_USER, 0.0, 0.0)
+            self._sidereal_mode = swe.SIDM_USER
+            self._ayanamsa_name = "tropical"
+            self._flags = SEFLG_DEFAULT
+            self._cache.clear()
+            return
+        mode = SIDMODE_MAP.get(name_lower)
         if mode is None:
             raise ValueError(f"Unknown ayanamsa: {name}. Options: {list(SIDMODE_MAP.keys())}")
         self._sidereal_mode = mode
         self._ayanamsa_name = name
+        self._flags = SEFLG_DEFAULT
         swe.set_sid_mode(mode)
         self._cache.clear()
 
@@ -134,27 +154,23 @@ class SweEngine:
         )
 
     def calc_planets(self, jd: float) -> Dict[int, PlanetData]:
-        """Compute all 7 planets + Rahu + Ketu at once.
-        
-        Uses Mean Node for Rahu; Ketu = Rahu + 180°.
-        """
+        """Compute all 7 planets + Rahu/Ketu + 3 outer planets at once."""
         planets = {}
         for pid in range(7):  # SUN(0) through SATURN(6)
             planets[pid] = self.calc_planet(pid, jd)
+        # Outer planets
+        for pid in [7, 8, 9]:  # Uranus, Neptune, Pluto
+            planets[pid] = self.calc_planet(pid, jd)
         rahu = self.calc_planet(swe.MEAN_NODE, jd)
         planets[10] = PlanetData(
-            longitude=rahu.longitude,
-            latitude=rahu.latitude,
-            speed=rahu.speed,
-            distance_au=rahu.distance_au,
+            longitude=rahu.longitude, latitude=rahu.latitude,
+            speed=rahu.speed, distance_au=rahu.distance_au,
             is_retrograde=rahu.is_retrograde,
         )
         ketu_lon = (rahu.longitude + 180) % 360
         planets[11] = PlanetData(
-            longitude=ketu_lon,
-            latitude=-rahu.latitude,
-            speed=rahu.speed,
-            distance_au=rahu.distance_au,
+            longitude=ketu_lon, latitude=-rahu.latitude,
+            speed=rahu.speed, distance_au=rahu.distance_au,
             is_retrograde=not rahu.is_retrograde,
         )
         return planets

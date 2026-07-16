@@ -27,6 +27,7 @@ from jhora.export.report import generate_chart_report
 from jhora.calc.ephemeris import generate_ephemeris
 from jhora.calc.comparison import compare_natal_transit
 from jhora.calc.dasa_timeline import dasa_timeline_text
+from jhora.calc.upagraha import compute_solar_upagrahas
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.ephemeris.swe import SweEngine
 from jhora.interpreter.engine import ChartInterpreter
@@ -194,6 +195,31 @@ def _display_chart(cd: ChartData):
         "",
     )
     console.print(table)
+
+    # Upagrahas
+    from jhora.calc.upagraha import compute_solar_upagrahas
+    sun_lon = cd.planet(Graha.SUN).longitude
+    upas = compute_solar_upagrahas(sun_lon)
+    if upas:
+        ut = Table(title="Solar Upagrahas")
+        ut.add_column("Name", style="yellow")
+        ut.add_column("Longitude", style="cyan")
+        ut.add_column("Sign", style="green")
+        for u in upas:
+            ut.add_row(u.name, f"{u.longitude:.2f}°", u.rasi)
+        console.print(ut)
+
+    # Outer planets
+    if cd.outer_planets:
+        ot = Table(title="Outer Planets")
+        ot.add_column("Planet", style="yellow")
+        ot.add_column("Longitude", style="cyan")
+        ot.add_column("Sign", style="green")
+        ot.add_column("Motion", style="white")
+        for name, data in cd.outer_planets.items():
+            ot.add_row(name, f"{data['longitude']:.2f}°", data["sign"],
+                      "Retrograde" if data["is_retrograde"] else "")
+        console.print(ot)
 
 
 def _lord_name(idx: int) -> str:

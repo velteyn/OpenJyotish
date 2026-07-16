@@ -74,6 +74,9 @@ class ChartData:
     ascendant: float = 0.0
     mc: float = 0.0
 
+    # Outer planets (computed but not in main planets dict)
+    outer_planets: Dict[str, dict] = field(default_factory=dict)
+
     # Vargas (lazy computed)
     varga_positions: Dict[Tuple[VargaLevel, VargaVariant], Dict[Graha, VargaPosition]] = field(default_factory=dict)
 
@@ -153,6 +156,7 @@ class ChartBuilder:
             3: Graha.VENUS, 4: Graha.MARS, 5: Graha.JUPITER,
             6: Graha.SATURN, 10: Graha.RAHU, 11: Graha.KETU,
         }
+        _OUTER_PLANETS = {7: "Uranus", 8: "Neptune", 9: "Pluto"}
         raw = self.swe.calc_planets(jd)
         planet_data = {}
         for se_id, g in _SE_TO_GRAHA.items():
@@ -166,6 +170,15 @@ class ChartBuilder:
                 rasi=rasi, degrees_in_rasi=pd.degrees_in_rasi,
                 nakshatra=naks, nakshatra_pada=pada, dignity=dignity,
             )
+        outer_data = {}
+        for se_id, name in _OUTER_PLANETS.items():
+            pd = raw[se_id]
+            r = Rasi.from_longitude(pd.longitude)
+            outer_data[name] = {
+                "longitude": pd.longitude, "sign": r.short_name,
+                "sign_full": r.full_name, "is_retrograde": pd.is_retrograde,
+                "speed": pd.speed,
+            }
 
         # Houses
         hd = self.swe.houses(jd, lat, lon, house_sys)
@@ -190,6 +203,7 @@ class ChartBuilder:
             planets=planet_data, lagna=lagna,
             house_cusps=tuple(hd.cusps),
             ascendant=hd.ascendant, mc=hd.mc,
+            outer_planets=outer_data,
         )
 
     @staticmethod
