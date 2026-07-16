@@ -197,7 +197,6 @@ def _display_chart(cd: ChartData):
     console.print(table)
 
     # Upagrahas
-    from jhora.calc.upagraha import compute_solar_upagrahas
     sun_lon = cd.planet(Graha.SUN).longitude
     upas = compute_solar_upagrahas(sun_lon)
     if upas:
@@ -358,6 +357,111 @@ def yogas(
     for y in results:
         names = ", ".join(p.full_name for p in y.planets) if y.planets else ""
         table.add_row(y.name, y.category, names, y.strength, y.description)
+    console.print(table)
+
+
+@app.command()
+def lagnas(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Show all special lagnas (Bhrigu Bindu, Indu, Varnada, etc.)."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+
+    from jhora.calc.special_lagnas import compute_special_lagnas, SpecialLagna
+    lagnas = compute_special_lagnas(cd)
+
+    # Also add built-in lagnas
+    if cd.hora_lagna:
+        lr = Rasi.from_longitude(cd.hora_lagna.longitude)
+        lagnas.insert(0, SpecialLagna("Hora Lagna", cd.hora_lagna.longitude, lr.short_name, "Wealth/time"))
+    if cd.ghati_lagna:
+        lr = Rasi.from_longitude(cd.ghati_lagna.longitude)
+        lagnas.insert(0, SpecialLagna("Ghati Lagna", cd.ghati_lagna.longitude, lr.short_name, "Power"))
+    if cd.bhava_lagna:
+        lr = Rasi.from_longitude(cd.bhava_lagna.longitude)
+        lagnas.insert(0, SpecialLagna("Bhava Lagna", cd.bhava_lagna.longitude, lr.short_name, "House-based"))
+    if cd.sree_lagna:
+        lr = Rasi.from_longitude(cd.sree_lagna.longitude)
+        lagnas.insert(0, SpecialLagna("Sree Lagna", cd.sree_lagna.longitude, lr.short_name, "Prosperity"))
+    lr = Rasi.from_longitude(cd.ascendant)
+    lagnas.insert(0, SpecialLagna("Udaya Lagna", cd.ascendant, lr.short_name, "Ascendant"))
+
+    table = Table(title="Special Lagnas")
+    table.add_column("Lagna", style="cyan")
+    table.add_column("Longitude", style="green")
+    table.add_column("Sign", style="yellow")
+    table.add_column("Meaning", style="white")
+    for s in lagnas:
+        table.add_row(s.name, f"{s.longitude:.2f}°", s.sign, s.description)
+    console.print(table)
+
+
+@app.command()
+def learning(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Show learning aids: marana karaka, vaiseshikamsas, relationships."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+
+    # Marana Karaka
+    from jhora.calc.learning import marana_karaka_sthana as _mk
+    mk = _mk(cd)
+    if mk:
+        table = Table(title="Marana Karaka Sthana (death-inflicting positions)")
+        table.add_column("Planet", style="red")
+        table.add_column("House", style="white")
+        table.add_column("Sign", style="yellow")
+        for m in mk:
+            table.add_row(m["graha"], str(m["house"]), m["sign"])
+        console.print(table)
+
+    # Vaiseshikamsas
+    from jhora.calc.learning import vaiseshikamsas as _va
+    va = _va(cd)
+    table = Table(title="Vaiseshikamsas (Dignity Ranks from Vimsopaka)")
+    table.add_column("Planet", style="cyan")
+    table.add_column("Score", style="green")
+    table.add_column("Rank", style="yellow bold")
+    for v in va:
+        table.add_row(v["graha"], f"{v['score']:.1f}/20", v["rank"])
+    console.print(table)
+
+    # Ishta/Kashta
+    from jhora.calc.learning import ishta_kashta_phala as _ik
+    ik = _ik(cd)
+    table = Table(title="Ishta/Kashta Phala (Beneficence vs Difficulty)")
+    table.add_column("Planet", style="cyan")
+    table.add_column("Ishta", style="green")
+    table.add_column("Kashta", style="red")
+    for r in ik:
+        table.add_row(r["graha"], f"{r['ishta']:.0f}", f"{r['kashta']:.0f}")
+    console.print(table)
+
+    # KP sub-lords
+    from jhora.calc.special_lagnas import kp_sublord_string as _kp
+    table = Table(title="KP Sub-Lords (Krishnamoorthy Paddhati)")
+    table.add_column("Point", style="cyan")
+    table.add_column("Longitude", style="green")
+    table.add_column("Sub-Lord Chain", style="yellow")
+    for g in Graha:
+        if g in cd.planets:
+            p = cd.planets[g]
+            chain = _kp(p.longitude, 3)
+            table.add_row(g.full_name, f"{p.longitude:.2f}°", chain)
+    lagna_c = _kp(cd.ascendant, 3)
+    table.add_row("Lagna", f"{cd.ascendant:.2f}°", lagna_c)
     console.print(table)
 
 
