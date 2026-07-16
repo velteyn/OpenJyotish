@@ -2594,14 +2594,14 @@ class MainWindow(QMainWindow):
 
         self.dash_now = QTextEdit()
         self.dash_now.setReadOnly(True)
-        self.dash_now.setMaximumHeight(220)
-        self.dash_now.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_now.setMaximumHeight(242)
+        self.dash_now.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:16px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
         left.addWidget(QLabel("RIGHT NOW"))
         left.addWidget(self.dash_now)
 
         self.dash_strengths = QTextEdit()
         self.dash_strengths.setReadOnly(True)
-        self.dash_strengths.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_strengths.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:16px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
         left.addWidget(QLabel("STRENGTHS"))
         left.addWidget(self.dash_strengths)
 
@@ -2613,14 +2613,14 @@ class MainWindow(QMainWindow):
 
         self.dash_upcoming = QTextEdit()
         self.dash_upcoming.setReadOnly(True)
-        self.dash_upcoming.setMaximumHeight(220)
-        self.dash_upcoming.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_upcoming.setMaximumHeight(242)
+        self.dash_upcoming.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:16px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
         right.addWidget(QLabel("UPCOMING"))
         right.addWidget(self.dash_upcoming)
 
         self.dash_keydates = QTextEdit()
         self.dash_keydates.setReadOnly(True)
-        self.dash_keydates.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_keydates.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:16px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
         right.addWidget(QLabel("KEY DATES"))
         right.addWidget(self.dash_keydates)
 
