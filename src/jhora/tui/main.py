@@ -644,30 +644,135 @@ class JhoraTui:
     def _show_main_menu(self):
         items = [
             ("1", "Birth Data Input", self._action_input_birth),
-            ("2", "Planets + Upagrahas + Lagnas", self._action_planets),
-            ("3", "Houses + Chalit Shifts", self._action_houses),
-            ("4", "Yogas (Planetary Combinations)", self._action_yogas),
-            ("5", "Shadbala (Planetary Strengths)", self._action_shadbala),
-            ("6", "Bhava Bala (House Strengths)", self._action_bhava_bala),
-            ("7", "Vimsopaka Bala (Varga Strengths)", self._action_vimsopaka),
-            ("8", "Dasa Periods (Vimsottari)", self._action_dasa),
-            ("9", "Dasa Timeline (Bar Chart)", self._action_dasa_timeline),
-            ("a", "Transits (Current vs Natal)", self._action_transits),
-            ("b", "Tajaka (Solar Return)", self._action_tajaka),
-            ("c", "Varga Charts (D-1 to D-60)", self._action_varga),
-            ("d", "Matchmaking (Kuta Porutham)", self._action_matchmaking),
-            ("e", "Prasna (Horary)", self._action_prasna),
-            ("f", "Muhurta (Electional)", self._action_muhurta),
-            ("g", "Mundane (World Events)", self._action_mundane),
-            ("h", "Learning Aids (KP, Marana Karaka)", self._action_learning),
-            ("i", "AI: Chart Reading (Rule-based)", self._action_reading),
-            ("j", "Ashtakavarga (SAV)", self._action_ashtakavarga),
-            ("k", "Knowledge Search (Textbooks)", self._action_knowledge),
-            ("l", "Export HTML Report", self._action_export_html),
-            ("m", "Save Chart to Database", self._action_save_db),
-            ("o", "Monthly Panchanga Calendar", self._action_panchanga),
-            ("p", "Chakras (Sarvatobhadra + Kota)", self._action_chakras),
-            ("n", "Birth Data (Re-enter)", self._action_input_birth),
+            ("d", "Dashboard — Overview", self._action_dashboard),
+            ("c", "Chart & Varga", self._show_chart_menu),
+            ("s", "Strengths", self._show_strengths_menu),
+            ("a", "Dasas & Timing", self._show_dasas_menu),
+            ("t", "Transits & Tajaka", self._show_transits_menu),
+            ("x", "Special (Match/Prasna/Muhurta)", self._show_special_menu),
+            ("i", "AI & Knowledge", self._show_ai_menu),
+            ("u", "Tools (Export/Ephemeris/DB)", self._show_tools_menu),
         ]
         self._menu_loop("Jhora TUI — Main Menu", items,
                         "↑↓ navigate | letter/Enter select | q quit")
+
+    def _sub_menu(self, title: str, items: list):
+        items_with_back = items + [("b", "← Back to Main Menu", lambda: "back")]
+        self._menu_loop(title, items_with_back, "↑↓ navigate | letter/Enter | b back | q quit")
+
+    def _action_dashboard(self):
+        if not self._check_chart():
+            return
+        lines = ["[bold yellow]═══ Dashboard ═══[/bold yellow]", ""]
+        from datetime import datetime
+        now = datetime.now()
+        from jhora.types.nakshatra import Nakshatra
+        moon = self.chart.planet(Graha.MOON).longitude
+        sun = self.chart.planet(Graha.SUN).longitude
+        nak, _ = Nakshatra.from_longitude(moon)
+        tithi_idx = int(((moon - sun) % 360) / 12)
+        lines.append(f"Today: {now.strftime('%B %d, %Y')} | {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.weekday()]}")
+        lines.append(f"Tithi: {tithi_idx} | Nakshatra: {nak.name.replace('_',' ').title()}")
+        lines.append("")
+        try:
+            from jhora.dasas.vimsottari import VimsottariDasa
+            dasa = VimsottariDasa()
+            cd = {"planets": {g.value: {"longitude": p.longitude} for g, p in self.chart.planets.items()}, "lagna_lon": self.chart.ascendant}
+            periods = dasa.compute(self.chart.julian_day, cd)
+            md = next((p for p in periods if p.start_date <= now <= p.end_date), None)
+            if md:
+                left = (md.end_date - now).days
+                lines.append(f"[bold]Dasa: {md.lord_name} MD[/bold] — {left}d remaining")
+                for ad in (md.sub_periods or []):
+                    if ad.start_date <= now <= ad.end_date:
+                        lines.append(f"  └ {ad.lord_name} AD — {(ad.end_date - now).days}d left")
+                upcoming = [sp for sp in (md.sub_periods or []) if sp.start_date > now]
+                upcoming.sort(key=lambda x: x.start_date)
+                lines.append("")
+                lines.append("Next:")
+                for sp in upcoming[:3]:
+                    lines.append(f"  {sp.lord_name}: {sp.start_date.strftime('%b %d')} ({(sp.start_date-now).days}d)")
+        except Exception:
+            pass
+        try:
+            from jhora.calc.shadbala import ShadbalaComputer
+            sb = ShadbalaComputer(self.chart)
+            gr = [(g, sb.compute_one(g).total_virupa) for g in [Graha.SUN,Graha.MOON,Graha.MARS,Graha.MERCURY,Graha.JUPITER,Graha.VENUS,Graha.SATURN]]
+            gr.sort(key=lambda x: x[1], reverse=True)
+            lines.append("")
+            lines.append("[bold]Strengths:[/bold]")
+            for g, v in gr[:3]:
+                lines.append(f"  {g.short_name}: {v:.0f}v")
+        except Exception:
+            pass
+        self._content_lines = lines
+
+    def _show_chart_menu(self):
+        if not self._check_chart():
+            return
+        items = [
+            ("1", "Chart View (Planets + Upagrahas)", self._action_planets),
+            ("2", "Houses + Chalit Shifts", self._action_houses),
+            ("3", "Yogas Detection", self._action_yogas),
+            ("4", "Varga Charts (8 levels)", self._action_varga),
+            ("5", "Ashtakavarga SAV", self._action_ashtakavarga),
+        ]
+        self._sub_menu("Chart & Varga", items)
+
+    def _show_strengths_menu(self):
+        if not self._check_chart():
+            return
+        items = [
+            ("1", "Shadbala (Planetary Strength)", self._action_shadbala),
+            ("2", "Bhava Bala (House Strength)", self._action_bhava_bala),
+            ("3", "Vimsopaka Bala (Varga Strength)", self._action_vimsopaka),
+            ("4", "Learning Aids (KP, Marana Karaka)", self._action_learning),
+        ]
+        self._sub_menu("Strengths", items)
+
+    def _show_dasas_menu(self):
+        if not self._check_chart():
+            return
+        items = [
+            ("1", "Dasa Periods (Vimsottari)", self._action_dasa),
+            ("2", "Dasa Timeline (Bar Chart)", self._action_dasa_timeline),
+            ("3", "Chakras (Sarvatobhadra)", self._action_chakras),
+        ]
+        self._sub_menu("Dasas & Timing", items)
+
+    def _show_transits_menu(self):
+        if not self._check_chart():
+            return
+        items = [
+            ("1", "Current Transits", self._action_transits),
+            ("2", "Tajaka Solar Return", self._action_tajaka),
+            ("3", "Mundane (World Events)", self._action_mundane),
+        ]
+        self._sub_menu("Transits & Tajaka", items)
+
+    def _show_special_menu(self):
+        if not self._check_chart():
+            pass
+        items = [
+            ("1", "Matchmaking (Kuta Porutham)", self._action_matchmaking),
+            ("2", "Prasna (Horary)", self._action_prasna),
+            ("3", "Muhurta (Electional)", self._action_muhurta),
+        ]
+        self._sub_menu("Special Topics", items)
+
+    def _show_ai_menu(self):
+        if not self._check_chart():
+            pass
+        items = [
+            ("1", "Chart Reading (Rule-based)", self._action_reading),
+            ("2", "Knowledge Search (Textbooks)", self._action_knowledge),
+        ]
+        self._sub_menu("AI & Knowledge", items)
+
+    def _show_tools_menu(self):
+        items = [
+            ("1", "Export HTML Report", self._action_export_html),
+            ("2", "Save Chart to Database", self._action_save_db),
+            ("3", "Monthly Panchanga", self._action_panchanga),
+        ]
+        self._sub_menu("Tools & Export", items)
