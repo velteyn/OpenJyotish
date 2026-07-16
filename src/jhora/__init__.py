@@ -3,7 +3,7 @@ Jagannatha Hora — Vedic astrology calculator
 Reverse engineered from JHora 8.0 Lite (PVR Narasimha Rao / SJVC)
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi

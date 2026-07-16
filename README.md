@@ -1,4 +1,4 @@
-# Jagannatha Hora — Vedic Astrology Software
+# OpenJyotish — Vedic Astrology Software
 
 Free, open-source, cross-platform Vedic astrology toolkit. CLI + PyQt6 GUI + Terminal UI. AI-powered chart readings via local LLMs.
 
