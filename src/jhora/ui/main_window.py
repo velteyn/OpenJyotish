@@ -2572,7 +2572,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.cons_chart, stretch=1)
 
         self.cons_navamsa = ChartWidget()
-        self.cons_navamsa.chart_style = ChartStyle.SOUTH_INDIAN
         self.cons_navamsa.setMinimumSize(350, 350)
         layout.addWidget(self.cons_navamsa, stretch=1)
         return w
@@ -2754,6 +2753,8 @@ class MainWindow(QMainWindow):
             f"Sunrise:      {sunrise}",
             f"Sunset:       {sunset}",
             f"Ayanamsa:     {aya_deg}-{aya_min:02d}-{aya_sec:02d} ({cd.ayanamsa_name})",
+            f"",
+            f"Choghadiya:   Day: {'Chala' if cd.birth_date.weekday()==3 else 'Amrita' if cd.birth_date.weekday()==0 else 'Labha' if cd.birth_date.weekday()==4 else 'Sidha' if cd.birth_date.weekday()==1 else 'Roga' if cd.birth_date.weekday()==2 else 'Udyoga'}",
         ]
         self.cons_natal_panel.setText("\n".join(lines))
 
