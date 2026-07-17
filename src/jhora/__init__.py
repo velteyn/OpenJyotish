@@ -1,6 +1,5 @@
 """
-Jagannatha Hora — Vedic astrology calculator
-Reverse engineered from JHora 8.0 Lite (PVR Narasimha Rao / SJVC)
+OpenJyotish — Vedic astrology calculator
 """
 
 __version__ = "1.1.0"

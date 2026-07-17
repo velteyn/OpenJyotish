@@ -1,8 +1,8 @@
 @echo off
-title Jagannatha Hora - Setup
+title OpenJyotish - Setup
 
 echo ========================================
-echo  Jagannatha Hora - Installer
+echo  OpenJyotish - Installer
 echo ========================================
 echo.
 

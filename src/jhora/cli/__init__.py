@@ -1,3 +1,3 @@
 """
-Command-line interface for Jagannatha Hora.
+Command-line interface for OpenJyotish.
 """

@@ -17,7 +17,7 @@ def _run_gui():
     from jhora.ui.main_window import MainWindow
 
     app = QApplication(sys.argv)
-    app.setApplicationName("Jagannatha Hora")
+    app.setApplicationName("OpenJyotish")
     app.setStyle("Fusion")
     window = MainWindow()
     window.showMaximized()

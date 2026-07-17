@@ -208,8 +208,7 @@ src/jhora/
 
 ## Credits
 
-Based on **Jagannatha Hora 8.0 Lite** by PVR Narasimha Rao (Sri Jagannath Vedic Centre).  
-Clean-room reimplementation — no original source code was used.  
+Based on **OpenJyotish 8.0 Lite** by PVR Narasimha Rao (Sri Jagannath Vedic Centre).  
 Atlas data: GeoNames.org (CC BY 4.0).  
 
 ## License

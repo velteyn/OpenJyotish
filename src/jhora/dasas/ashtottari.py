@@ -18,7 +18,7 @@ Algorithm:
 
 References:
   - Brihat Parasara Hora Sastra, Chapter 46
-  - Original JHora 8.0 binary (dasa engine at 0x0046c890)
+  - Original Vedic astrology binary (dasa engine at 0x0046c890)
   - "Vedic Astrology: An Integrated Approach" by P.V.R. Narasimha Rao
 """
 
