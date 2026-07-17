@@ -19,23 +19,21 @@ CHUNK_SIZE = 500     # Characters per chunk
 CHUNK_OVERLAP = 100  # Overlap between chunks
 
 
-def _get_embeddings_batch(texts: List[str], base_url: str = "http://localhost:11434",
-                          provider: str = "ollama") -> List[Optional[List[float]]]:
+def _get_embeddings_batch(texts: List[str], base_url: str,
+                          provider: str, model: str = "") -> List[Optional[List[float]]]:
     """Get embeddings for multiple texts in one API call."""
     import requests
-    import time
     try:
         if provider == "lmstudio":
             resp = requests.post(
                 f"{base_url}/v1/embeddings",
-                json={"model": "text-embedding-nomic-embed-text-v1.5",
-                      "input": texts},
+                json={"model": model or "loaded", "input": texts},
                 timeout=60,
             )
         else:
             resp = requests.post(
                 f"{base_url}/api/embed",
-                json={"model": "nomic-embed-text", "input": texts},
+                json={"model": model or "nomic-embed-text", "input": texts},
                 timeout=60,
             )
         resp.raise_for_status()
@@ -132,7 +130,41 @@ class EmbeddingStore:
     def __init__(self, base_url: str = "", provider: str = "auto"):
         self.db = get_db()
         self.provider, self.base_url = _detect_provider(provider, base_url)
+        self._embedding_model = None  # lazy detected
         self._ensure_tables()
+
+    def _detect_embedding_model(self) -> str:
+        """Detect which model to use for embeddings."""
+        if self._embedding_model:
+            return self._embedding_model
+        import requests
+        try:
+            if self.provider == "lmstudio":
+                r = requests.get(f"{self.base_url}/v1/models", timeout=3)
+                if r.status_code == 200:
+                    models = r.json().get("data", [])
+                    if models:
+                        self._embedding_model = models[0].get("id", "loaded")
+                        return self._embedding_model
+            else:
+                r = requests.get(f"{self.base_url}/api/tags", timeout=3)
+                if r.status_code == 200:
+                    models = r.json().get("models", [])
+                    for m in models:
+                        name = m.get("name", "")
+                        if "embed" in name.lower() or "nomic" in name.lower():
+                            self._embedding_model = name
+                            return name
+                    # Fallback: use any available model
+                    if models:
+                        self._embedding_model = models[0].get("name", "llama3.2")
+                        return self._embedding_model
+        except Exception:
+            pass
+        # Defaults
+        self._embedding_model = ("text-embedding-nomic-embed-text-v1.5"
+                                 if self.provider == "lmstudio" else "nomic-embed-text")
+        return self._embedding_model
 
     def _ensure_tables(self):
         self.db.executescript("""
@@ -175,7 +207,10 @@ class EmbeddingStore:
 
             for batch_start in range(0, len(chunks), batch_size):
                 batch = chunks[batch_start:batch_start + batch_size]
-                embs = _get_embeddings_batch(batch, self.base_url, self.provider)
+                embs = _get_embeddings_batch(
+                    batch, self.base_url, self.provider,
+                    model=self._detect_embedding_model(),
+                )
 
                 for i, (chunk, emb) in enumerate(zip(batch, embs)):
                     blob = _pack_vector(emb) if emb else None
