@@ -19,19 +19,35 @@ CHUNK_SIZE = 500     # Characters per chunk
 CHUNK_OVERLAP = 100  # Overlap between chunks
 
 
-def _ollama_embed(text: str, base_url: str = "http://localhost:11434") -> Optional[List[float]]:
-    """Get embedding vector from Ollama API."""
+def _get_embedding(text: str, base_url: str = "http://localhost:11434",
+                   provider: str = "ollama") -> Optional[List[float]]:
+    """Get embedding vector from Ollama or LM Studio.
+
+    Ollama:  POST /api/embed  {"model": "nomic-embed-text", "input": text}
+    LM Studio: POST /v1/embeddings  {"model": "...", "input": text}
+    """
     import requests
     try:
-        resp = requests.post(
-            f"{base_url}/api/embed",
-            json={"model": "nomic-embed-text", "input": text},
-            timeout=30,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        embeddings = data.get("embeddings", [])
-        return embeddings[0] if embeddings else None
+        if provider == "lmstudio":
+            resp = requests.post(
+                f"{base_url}/v1/embeddings",
+                json={"model": "text-embedding-nomic-embed-text-v1.5",
+                      "input": text},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["data"][0]["embedding"]
+        else:  # ollama
+            resp = requests.post(
+                f"{base_url}/api/embed",
+                json={"model": "nomic-embed-text", "input": text},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            embeddings = data.get("embeddings", [])
+            return embeddings[0] if embeddings else None
     except Exception:
         return None
 
@@ -50,11 +66,18 @@ def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
 
 
 class EmbeddingStore:
-    """Manage chunked textbook storage with vector embeddings."""
+    """Manage chunked textbook storage with vector embeddings.
 
-    def __init__(self, base_url: str = "http://localhost:11434"):
+    Supports Ollama (default) and LM Studio.
+    """
+
+    def __init__(self, base_url: str = "http://localhost:11434",
+                 provider: str = "ollama"):
         self.db = get_db()
-        self.base_url = base_url
+        self.base_url = base_url.rstrip("/")
+        self.provider = provider
+        if provider == "lmstudio" and "11434" in base_url:
+            self.base_url = "http://localhost:1234"
         self._ensure_tables()
 
     def _ensure_tables(self):
@@ -90,7 +113,7 @@ class EmbeddingStore:
             chunks = self._chunk_text(text)
             print(f"  {name}: {len(chunks)} chunks")
             for i, chunk in enumerate(chunks):
-                emb = _ollama_embed(chunk, self.base_url)
+                emb = _get_embedding(chunk, self.base_url, self.provider)
                 blob = _pack_vector(emb) if emb else None
                 self.db.execute(
                     "INSERT INTO textbook_chunks (source_name, chunk_index, content, embedding) "
@@ -126,7 +149,7 @@ class EmbeddingStore:
     def search(self, query: str, top_k: int = 5) -> List[dict]:
         """Semantic search with cosine similarity, falling back to FTS5."""
         # Try embedding search first
-        query_emb = _ollama_embed(query, self.base_url)
+        query_emb = _get_embedding(query, self.base_url, self.provider)
         if query_emb is not None:
             return self._vector_search(query_emb, top_k)
         # Fallback to FTS5 full-text search
