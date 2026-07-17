@@ -86,8 +86,11 @@ class AiEngine:
                          ) -> str:
         """Iterate SSE stream, calling on_token for each chunk. Returns full text."""
         full = []
-        for line in response.iter_lines(decode_unicode=True):
-            if not line or not line.startswith("data: "):
+        for line in response.iter_lines(decode_unicode=False):
+            if not line:
+                continue
+            line = line.decode("utf-8")
+            if not line.startswith("data: "):
                 continue
             data = line[6:]
             if data == "[DONE]":

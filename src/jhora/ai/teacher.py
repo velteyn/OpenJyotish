@@ -134,8 +134,11 @@ class AiTeacher:
             resp = requests.post(url, json=payload, timeout=120, stream=True)
             resp.raise_for_status()
             full = []
-            for line in resp.iter_lines(decode_unicode=True):
-                if not line or not line.startswith("data: "):
+            for line in resp.iter_lines(decode_unicode=False):
+                if not line:
+                    continue
+                line = line.decode("utf-8")
+                if not line.startswith("data: "):
                     continue
                 data = line[6:]
                 if data == "[DONE]":
