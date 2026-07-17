@@ -3347,15 +3347,13 @@ class _VdbWorker(QThread):
                 self.done.emit(False)
                 return
 
-            self.progress.emit("Chunking textbooks (batch of 10, 300ms pause)...")
+            self.progress.emit("Chunking textbooks (batch of 10, 500ms pause)...")
             self.progress.emit("")
 
             def _cb(name, done_chunks, total_chunks):
-                pct = done_chunks / total_chunks * 100 if total_chunks else 0
-                bar = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                self.progress.emit(f"  {name[:30]:<30} {bar} {done_chunks}/{total_chunks}")
+                self.progress.emit(f"  {name[:35]:<35} {done_chunks}/{total_chunks}")
 
-            count = store.build(batch_size=10, throttle_ms=300, progress_cb=_cb)
+            count = store.build(batch_size=10, throttle_ms=500, progress_cb=_cb)
             self.progress.emit("")
             self.progress.emit(f"Done: {count} chunks with embeddings — vector DB ready")
             self.done.emit(True)
