@@ -2206,13 +2206,12 @@ class MainWindow(QMainWindow):
 
     def _on_ai_token(self, text: str):
         self._ai_buffer = getattr(self, '_ai_buffer', '') + text
-        self.ai_output.setHtml(_format_plain(self._ai_buffer))
+        self.ai_output.setHtml(self._format_plain(self._ai_buffer))
         self.ai_output.verticalScrollBar().setValue(
             self.ai_output.verticalScrollBar().maximum()
         )
 
-    @staticmethod
-    def _format_plain(text: str) -> str:
+    def _format_plain(self, text: str) -> str:
         """Convert plain LLM output to displayable HTML."""
         import re
         # Escape any existing HTML
@@ -2357,7 +2356,7 @@ class MainWindow(QMainWindow):
 
     def _on_teach_token(self, text: str):
         self._teach_buffer = getattr(self, '_teach_buffer', '') + text
-        self.teach_output.setHtml(MainWindow._format_plain(self._teach_buffer))
+        self.teach_output.setHtml(self._format_plain(self._teach_buffer))
         self.teach_output.verticalScrollBar().setValue(
             self.teach_output.verticalScrollBar().maximum()
         )
