@@ -29,6 +29,15 @@ git log --oneline -3
 git log public/main --oneline -3
 ```
 
+## Workflow
+
+1. **Develop & test** in the private Jhora repo (has ephemeris data, binary reference)
+2. **Consolidate** — run full test suite, fix all issues
+3. **Push to public** only when stable:
+   
+
+Never develop directly in the public repo — it lacks ephemeris data for testing.
+
 ## What Lives Where
 
 ### OpenJyotish (public) — what ships
