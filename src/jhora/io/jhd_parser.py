@@ -1,4 +1,10 @@
-"""Chart data I/O — .jhd file parser + SQLite chart storage."""
+"""Chart data I/O — .jhd file parser + SQLite chart storage.
+
+.. warning::
+   .jhd files store birth data (date, time, coordinates) in clear text.
+   Treat these files as sensitive. Use the SQLite database for storage
+   where possible, and avoid sharing .jhd files publicly.
+"""
 
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
