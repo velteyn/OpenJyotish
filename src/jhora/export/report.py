@@ -41,11 +41,12 @@ def generate_chart_report(cd: ChartData, output_path: str,
 
 def _meta(cd: ChartData) -> str:
     lagna = Rasi.from_longitude(cd.ascendant)
+    lat_hemi = "N" if cd.latitude >= 0 else "S"
+    lon_hemi = "E" if cd.longitude >= 0 else "W"
     return f"""
 <div class="meta">
   <strong>Birth:</strong> {cd.birth_date.strftime('%Y-%m-%d %H:%M')} |
-  <strong>Location:</strong> {cd.latitude:.2f}°{'N' if cd.latitude>=0 else 'S'},
-  {abs(cd.longitude):.2f}°{'E' if cd.longitude>=0 else 'W'} |
+  <strong>Location:</strong> {lat_hemi}, {lon_hemi} |
   <strong>Lagna:</strong> {lagna.full_name} {cd.ascendant:.1f}° |
   <strong>Ayanamsa:</strong> {cd.ayanamsa_name.title()}
 </div>"""
