@@ -43,7 +43,7 @@ from jhora.calc.ashtakavarga import (
     _OCCUPANT_GRAHAS,
 )
 
-app = typer.Typer(name="jhora", help="the classical tradition — Vedic astrology calculator")
+app = typer.Typer(name="jhora", help="OpenJyotish — Vedic astrology calculator")
 console = Console()
 
 DEFAULT_AYANAMSA = "lahiri"
@@ -675,7 +675,7 @@ def gui():
 
     import sys
     qapp = QApplication(sys.argv)
-    qapp.setApplicationName("the classical tradition")
+    qapp.setApplicationName("OpenJyotish")
     qapp.setStyle("Fusion")
     window = MainWindow()
     window.showMaximized()
@@ -1157,7 +1157,7 @@ def kuta(
     """Compute marriage compatibility between two charts.
 
     10 Porutham (19pt) is the default. Use --ashta-koota for the Ashta Koota
-    36-point system used by the original the tradition.
+    36-point system used by the classical Vedic binary.
     """
     from jhora.calc.kuta import compute_kuta, ScoringSystem, gunanka_level
     system = ScoringSystem.ASHTA_KOOTA if ashta_koota else ScoringSystem.PORUTHAM
@@ -1652,7 +1652,7 @@ def mundane(
 
 @app.callback()
 def cli():
-    """the classical tradition — Vedic astrology calculator (implementation)."""
+    """OpenJyotish — Vedic astrology calculator (implementation)."""
 
 
 if __name__ == "__main__":
