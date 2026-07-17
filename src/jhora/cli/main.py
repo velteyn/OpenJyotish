@@ -91,6 +91,22 @@ def chart(
         _display_chalit(chart_data)
 
 
+def _redact_sensitive_fields(value):
+    """Recursively redact sensitive fields before CLI output."""
+    sensitive_keys = {"latitude", "longitude"}
+    if isinstance(value, dict):
+        redacted = {}
+        for k, v in value.items():
+            if k in sensitive_keys:
+                redacted[k] = "[REDACTED]"
+            else:
+                redacted[k] = _redact_sensitive_fields(v)
+        return redacted
+    if isinstance(value, list):
+        return [_redact_sensitive_fields(item) for item in value]
+    return value
+
+
 @app.command()
 def analyze(
     birthdata: str = typer.Argument(..., help="Birth data"),
@@ -99,7 +115,8 @@ def analyze(
     """AI-friendly JSON dump — all computed data in one structured output."""
     import json
     data = full_analysis(birthdata, ayanamsa)
-    print(json.dumps(data, indent=2, ensure_ascii=False))
+    redacted_data = _redact_sensitive_fields(data)
+    print(json.dumps(redacted_data, indent=2, ensure_ascii=False))
 
 
 @app.command()
