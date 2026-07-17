@@ -2434,12 +2434,24 @@ class MainWindow(QMainWindow):
         provider = self.ai_settings_provider.currentText()
         model = self.ai_settings_model.text().strip()
 
-        # Run in thread to avoid UI freeze
-        self._health_worker = _HealthWorker(provider, model)
+        # Cancel any previous check
+        if hasattr(self, '_health_worker') and self._health_worker.isRunning():
+            self._health_worker.terminate()
+            self._health_worker.wait(1000)
+
+        # Increment check ID to ignore stale results
+        self._health_check_id = getattr(self, '_health_check_id', 0) + 1
+        check_id = self._health_check_id
+
+        self._health_worker = _HealthWorker(provider, model, check_id)
         self._health_worker.result.connect(self._on_health_result)
         self._health_worker.start()
 
     def _on_health_result(self, data: dict):
+        # Ignore stale results from cancelled checks
+        if data.get("check_id") != getattr(self, '_health_check_id', 0):
+            return
+
         connected = data["connected"]
         text = data["text"]
         self.ai_settings_status.setText(text)
@@ -3343,10 +3355,11 @@ class _TeacherWorker(QThread):
 class _HealthWorker(QThread):
     result = pyqtSignal(dict)
 
-    def __init__(self, provider: str, model: str):
+    def __init__(self, provider: str, model: str, check_id: int = 0):
         super().__init__()
         self.provider = provider
         self.model = model
+        self.check_id = check_id
 
     def run(self):
         import requests
@@ -3371,7 +3384,7 @@ class _HealthWorker(QThread):
                 results.append(f"  {name}: offline")
 
         text = f"Provider: {self.provider} | Model: {self.model or '(default)'}\n\n" + "\n".join(results)
-        self.result.emit({"connected": connected, "text": text, "provider": self.provider})
+        self.result.emit({"connected": connected, "text": text, "provider": self.provider, "check_id": self.check_id})
 
 
 class _VdbWorker(QThread):
