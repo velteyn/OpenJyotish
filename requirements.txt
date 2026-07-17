@@ -1,4 +1,4 @@
-PyQt6>=6.5
+PyQt6>=6.11.0
 pyswisseph>=2.10
 typer>=0.9
 rich>=13.0
