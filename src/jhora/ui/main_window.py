@@ -2067,21 +2067,39 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        # Status bar (reads from Settings tab)
-        self.ai_chat_status = QLabel("AI not connected — configure in Settings tab")
-        self.ai_chat_status.setStyleSheet("color:#ff6666;font-size:12px;padding:4px;")
-        layout.addWidget(self.ai_chat_status)
+        # Provider config row
+        cfg = QHBoxLayout()
+        cfg.addWidget(QLabel("Provider:"))
+        self.ai_provider = QComboBox()
+        self.ai_provider.addItems(list(PROVIDERS.keys()))
+        self.ai_provider.setCurrentText("ollama")
+        self.ai_provider.currentTextChanged.connect(self._on_ai_provider_changed)
+        cfg.addWidget(self.ai_provider)
+
+        cfg.addWidget(QLabel("Model:"))
+        self.ai_model = QLineEdit("llama3.2")
+        self.ai_model.setFixedWidth(140)
+        cfg.addWidget(self.ai_model)
+
+        self.ai_check_btn = QPushButton("Check")
+        self.ai_check_btn.setFixedWidth(100)
+        self.ai_check_btn.clicked.connect(self._on_ai_health_check)
+        cfg.addWidget(self.ai_check_btn)
+
+        self.ai_status = QLabel("")
+        self.ai_status.setStyleSheet("color: #888888;")
+        cfg.addWidget(self.ai_status)
+        cfg.addStretch()
+        layout.addLayout(cfg)
 
         # Action buttons
         btn_row = QHBoxLayout()
         self.ai_interpret_btn = QPushButton("Interpret Chart")
         self.ai_interpret_btn.clicked.connect(lambda: self._on_ai_action("interpret"))
-        self.ai_interpret_btn.setEnabled(False)
         btn_row.addWidget(self.ai_interpret_btn)
 
         self.ai_remedy_btn = QPushButton("Suggest Remedies")
         self.ai_remedy_btn.clicked.connect(lambda: self._on_ai_action("remedies"))
-        self.ai_remedy_btn.setEnabled(False)
         btn_row.addWidget(self.ai_remedy_btn)
 
         self.ai_style = QComboBox()
@@ -2123,11 +2141,10 @@ class MainWindow(QMainWindow):
         return w
 
     def _get_ai_engine(self) -> AiEngine:
-        provider = self.ai_settings_provider.currentText() if hasattr(self, 'ai_settings_provider') else "ollama"
-        model = self.ai_settings_model.text().strip() if hasattr(self, 'ai_settings_model') else ""
         config = AiConfig(
-            provider=provider, model=model,
-            base_url=PROVIDERS.get(provider, {}).get("base_url", ""),
+            provider=self.ai_provider.currentText(),
+            model=self.ai_model.text().strip(),
+            base_url=PROVIDERS.get(self.ai_provider.currentText(), {}).get("base_url", ""),
         )
         return AiEngine(config)
 
@@ -2146,6 +2163,92 @@ class MainWindow(QMainWindow):
             self.ai_status.setText(f"Error: {result['error'][:60]}")
         self.ai_check_btn.setEnabled(True)
 
+    # --- AI Settings (Vector DB only — reads provider from AI Chat) ---
+
+    def _build_ai_settings_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
+
+        info = QLabel("Configure provider/model in AI Chat tab.")
+        info.setStyleSheet("color:#888;font-size:12px;")
+        layout.addWidget(info)
+
+        group = QGroupBox("Vector Database")
+        group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
+        gl = QVBoxLayout(group)
+
+        self.ai_vdb_status = QLabel("Status: unknown")
+        gl.addWidget(self.ai_vdb_status)
+
+        row = QHBoxLayout()
+        self.ai_vdb_build = QPushButton("Build Vector DB")
+        self.ai_vdb_build.clicked.connect(self._on_ai_vdb_build)
+        row.addWidget(self.ai_vdb_build)
+
+        self.ai_vdb_rebuild = QPushButton("Rebuild")
+        self.ai_vdb_rebuild.clicked.connect(self._on_ai_vdb_rebuild)
+        row.addWidget(self.ai_vdb_rebuild)
+        row.addStretch()
+        gl.addLayout(row)
+
+        self.ai_vdb_progress = QTextEdit()
+        self.ai_vdb_progress.setReadOnly(True)
+        self.ai_vdb_progress.setMaximumHeight(300)
+        self.ai_vdb_progress.setStyleSheet(
+            "QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;"
+            "border:1px solid #2a3f5f;padding:6px;}"
+        )
+        gl.addWidget(self.ai_vdb_progress)
+        layout.addWidget(group)
+        layout.addStretch()
+
+        self._on_ai_vdb_status()
+        return w
+
+    def _on_ai_vdb_build(self):
+        self.ai_vdb_progress.clear()
+        self.ai_vdb_build.setEnabled(False)
+        self.ai_vdb_rebuild.setEnabled(False)
+
+        provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "ollama"
+        self.ai_vdb_progress.setPlainText(f"Provider: {provider}\nStarting...\n")
+
+        self._vdb_worker = _VdbWorker(provider)
+        self._vdb_worker.progress.connect(lambda t: self.ai_vdb_progress.append(t))
+        self._vdb_worker.done.connect(self._on_vdb_done)
+        self._vdb_worker.start()
+
+    def _on_ai_vdb_rebuild(self):
+        from jhora.core.database import get_db
+        db = get_db()
+        db.execute("DELETE FROM textbook_chunks")
+        db.commit()
+        self._on_ai_vdb_build()
+
+    def _on_vdb_done(self, ok: bool):
+        self.ai_vdb_build.setEnabled(True)
+        self.ai_vdb_rebuild.setEnabled(True)
+        self._on_ai_vdb_status()
+
+    def _on_ai_vdb_status(self):
+        try:
+            from jhora.core.database import get_db
+            db = get_db()
+            db.execute("CREATE TABLE IF NOT EXISTS textbook_chunks (id INTEGER PRIMARY KEY AUTOINCREMENT, source_name TEXT, chunk_index INTEGER, content TEXT, embedding BLOB)")
+            db.commit()
+            total = db.execute("SELECT COUNT(*) FROM textbook_chunks").fetchone()[0]
+            emb = db.execute("SELECT COUNT(*) FROM textbook_chunks WHERE embedding IS NOT NULL").fetchone()[0]
+            if emb > 0:
+                self.ai_vdb_status.setText(f"Built: {total} chunks, {emb} with embeddings — READY")
+                self.ai_vdb_status.setStyleSheet("color:#66bb6a;")
+            else:
+                self.ai_vdb_status.setText(f"Not built. Click Build Vector DB after testing connection in AI Chat.")
+                self.ai_vdb_status.setStyleSheet("color:#ff6666;")
+        except Exception as e:
+            self.ai_vdb_status.setText(f"Error: {e}")
+
     def _on_ai_action(self, mode: str):
         cd = self.chart_data
         if cd is None:
@@ -2154,7 +2257,6 @@ class MainWindow(QMainWindow):
         style = self.ai_style.currentText()
         topic = self.ai_topic.currentText()
         self.ai_output.clear()
-        self._ai_buffer = ""
         self.ai_output.append(f"[Generating {mode} with {self.ai_provider.currentText()}/{self.ai_model.text()}...]\n")
         self._set_ai_buttons_enabled(False)
 
@@ -2189,44 +2291,10 @@ class MainWindow(QMainWindow):
         self._ai_worker.start()
 
     def _on_ai_token(self, text: str):
-        self._ai_buffer = getattr(self, '_ai_buffer', '') + text
-        self.ai_output.setHtml(self._format_plain(self._ai_buffer))
-        self.ai_output.verticalScrollBar().setValue(
-            self.ai_output.verticalScrollBar().maximum()
-        )
-
-    def _format_plain(self, text: str) -> str:
-        """Convert plain LLM output to displayable HTML."""
-        import re
-        # Escape any existing HTML
-        text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        # **bold** → <b>bold</b>
-        text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
-        # Blank line → paragraph break
-        text = text.replace("\n\n", "<br><br>")
-        # Newline → <br>
-        text = text.replace("\n", "<br>")
-        # Remove broken tag fragments from LLM (like >b>)
-        text = re.sub(r'&gt;b&gt;', '', text)
-        text = re.sub(r'&gt;/b&gt;', '', text)
-        text = re.sub(r'&gt;p&gt;', '<br>', text)
-        return text
-
-    @staticmethod
-    def _clean_latex(text: str) -> str:
-        """Strip LaTeX math formatting from LLM output for QTextEdit display."""
-        import re
-        # $\text{Li}$ → Li, $\text{Su}$ → Su, etc.
-        text = re.sub(r'\$\\text\{(\w+)\}\$', r'\1', text)
-        # $...$ inline math → plain text
-        text = re.sub(r'\$(.+?)\$', r'\1', text)
-        # $$...$$ display math → plain text
-        text = re.sub(r'\$\$(.+?)\$\$', r'\1', text)
-        # \textbf{...} → <b>...</b>
-        text = re.sub(r'\\textbf\{([^}]+)\}', r'<b>\1</b>', text)
-        # \textit{...} → <i>...</i>
-        text = re.sub(r'\\textit\{([^}]+)\}', r'<i>\1</i>', text)
-        return text
+        cursor = self.ai_output.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        cursor.insertText(text)
+        self.ai_output.ensureCursorVisible()
 
     def _on_ai_done(self):
         self.ai_output.append("\n\n[done]")
@@ -2321,8 +2389,7 @@ class MainWindow(QMainWindow):
         if not question:
             return
         self.teach_output.clear()
-        self._teach_buffer = ""
-        self.teach_output.setHtml(f"[Guru, {question}]<br>")
+        self.teach_output.append(f"[Guru, {question}]\n")
         self.teach_btn.setEnabled(False)
 
         provider = self.teach_provider.currentText()
@@ -2339,225 +2406,10 @@ class MainWindow(QMainWindow):
         self._teacher_worker.start()
 
     def _on_teach_token(self, text: str):
-        self._teach_buffer = getattr(self, '_teach_buffer', '') + text
-        self.teach_output.setHtml(self._format_plain(self._teach_buffer))
-        self.teach_output.verticalScrollBar().setValue(
-            self.teach_output.verticalScrollBar().maximum()
-        )
-
-    # --- AI Settings Tab ---
-
-    def _build_ai_settings_tab(self):
-        w = QWidget()
-        layout = QVBoxLayout(w)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
-
-        # Provider config
-        cfg_group = QGroupBox("AI Provider Configuration")
-        cfg_group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
-        cl = QVBoxLayout(cfg_group)
-
-        cr = QHBoxLayout()
-        cr.addWidget(QLabel("Provider:"))
-        self.ai_settings_provider = QComboBox()
-        self.ai_settings_provider.addItems(list(PROVIDERS.keys()))
-        self.ai_settings_provider.setCurrentText("lmstudio")
-        self.ai_settings_provider.currentTextChanged.connect(self._on_ai_settings_provider_changed)
-        cr.addWidget(self.ai_settings_provider)
-
-        cr.addWidget(QLabel("Model:"))
-        self.ai_settings_model = QLineEdit("")
-        self.ai_settings_model.setMaximumWidth(200)
-        cr.addWidget(self.ai_settings_model)
-
-        self.ai_settings_check = QPushButton("Test Connection")
-        self.ai_settings_check.clicked.connect(self._on_ai_settings_check)
-        cr.addWidget(self.ai_settings_check)
-        cr.addStretch()
-        cl.addLayout(cr)
-
-        self.ai_settings_status = QLabel("Not tested")
-        self.ai_settings_status.setStyleSheet("font-size:13px;color:#888;padding:4px;")
-        cl.addWidget(self.ai_settings_status)
-        layout.addWidget(cfg_group)
-
-        # Vector DB section
-        vdb_group = QGroupBox("Vector Database")
-        vdb_group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
-        vl = QVBoxLayout(vdb_group)
-
-        self.ai_vdb_status = QLabel("Status: unknown")
-        self.ai_vdb_status.setStyleSheet("color:#e0e0e0;")
-        vl.addWidget(self.ai_vdb_status)
-
-        vbtn_row = QHBoxLayout()
-        self.ai_vdb_build = QPushButton("Build Vector DB")
-        self.ai_vdb_build.setToolTip(
-            "Chunks 16 textbooks and generates embeddings.\n"
-            "Requires AI provider connected and tested."
-        )
-        self.ai_vdb_build.clicked.connect(self._on_ai_vdb_build)
-        self.ai_vdb_build.setEnabled(False)
-        vbtn_row.addWidget(self.ai_vdb_build)
-
-        self.ai_vdb_rebuild = QPushButton("Rebuild")
-        self.ai_vdb_rebuild.clicked.connect(self._on_ai_vdb_rebuild)
-        self.ai_vdb_rebuild.setEnabled(False)
-        vbtn_row.addWidget(self.ai_vdb_rebuild)
-        vbtn_row.addStretch()
-        vl.addLayout(vbtn_row)
-
-        self.ai_vdb_progress = QTextEdit()
-        self.ai_vdb_progress.setReadOnly(True)
-        self.ai_vdb_progress.setMaximumHeight(250)
-        self.ai_vdb_progress.setStyleSheet(
-            "QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;"
-            "border:1px solid #2a3f5f;padding:6px;}"
-        )
-        vl.addWidget(self.ai_vdb_progress)
-        layout.addWidget(vdb_group)
-        layout.addStretch()
-
-        # Initialize
-        self._on_ai_settings_provider_changed("lmstudio")
-        self._on_ai_vdb_status()
-        return w
-
-    def _on_ai_settings_provider_changed(self, provider: str):
-        preset = PROVIDERS.get(provider, {})
-        self.ai_settings_model.setText(preset.get("default_model", ""))
-
-    def _on_ai_settings_check(self):
-        self.ai_settings_check.setEnabled(False)
-        self.ai_settings_status.setText("Testing connection...")
-        provider = self.ai_settings_provider.currentText()
-        model = self.ai_settings_model.text().strip()
-
-        # Cancel any previous check
-        if hasattr(self, '_health_worker') and self._health_worker.isRunning():
-            self._health_worker.terminate()
-            self._health_worker.wait(1000)
-
-        # Increment check ID to ignore stale results
-        self._health_check_id = getattr(self, '_health_check_id', 0) + 1
-        check_id = self._health_check_id
-
-        self._health_worker = _HealthWorker(provider, model, check_id)
-        self._health_worker.result.connect(self._on_health_result)
-        self._health_worker.start()
-
-    def _on_health_result(self, data: dict):
-        # Ignore stale results
-        if data.get("check_id") != getattr(self, '_health_check_id', 0):
-            return
-
-        connected = data["connected"]
-        text = data["text"]
-        provider = data.get("provider", "?")
-        self.ai_settings_status.setText(text)
-        self.ai_settings_check.setEnabled(True)
-
-        # Use QTimer to guarantee execution on GUI thread
-        from PyQt6.QtCore import QTimer
-        if connected:
-            QTimer.singleShot(0, lambda: self._enable_ai_buttons(provider))
-        else:
-            QTimer.singleShot(0, lambda: self._disable_ai_buttons())
-
-    def _enable_ai_buttons(self, provider: str = ""):
-        self.ai_settings_status.setStyleSheet("font-size:13px;color:#66bb6a;padding:4px;")
-        self.ai_vdb_build.setEnabled(True)
-        self.ai_vdb_rebuild.setEnabled(True)
-        for btn_name in ['ai_interpret_btn', 'ai_remedy_btn', 'ai_ask_btn']:
-            if hasattr(self, btn_name):
-                getattr(self, btn_name).setEnabled(True)
-        if hasattr(self, 'ai_chat_status'):
-            self.ai_chat_status.setText(f"Connected: {provider}")
-            self.ai_chat_status.setStyleSheet("color:#66bb6a;font-size:12px;padding:4px;")
-        if hasattr(self, 'teach_btn'):
-            self.teach_btn.setEnabled(True)
-
-    def _disable_ai_buttons(self):
-        self.ai_settings_status.setStyleSheet("font-size:13px;color:#ff6666;padding:4px;")
-        self.ai_vdb_build.setEnabled(False)
-        self.ai_vdb_rebuild.setEnabled(False)
-        for btn_name in ['ai_interpret_btn', 'ai_remedy_btn', 'ai_ask_btn']:
-            if hasattr(self, btn_name):
-                getattr(self, btn_name).setEnabled(False)
-        if hasattr(self, 'ai_chat_status'):
-            self.ai_chat_status.setText("Not connected — run Test Connection in Settings")
-            self.ai_chat_status.setStyleSheet("color:#ff6666;font-size:12px;padding:4px;")
-        if hasattr(self, 'teach_btn'):
-            self.teach_btn.setEnabled(False)
-
-    def _on_ai_vdb_status(self):
-        try:
-            from jhora.core.database import get_db
-            db = get_db()
-            # Ensure table exists
-            db.execute("CREATE TABLE IF NOT EXISTS textbook_chunks (id INTEGER PRIMARY KEY AUTOINCREMENT, source_name TEXT, chunk_index INTEGER, content TEXT, embedding BLOB)")
-            db.commit()
-            total = db.execute("SELECT COUNT(*) FROM textbook_chunks").fetchone()[0]
-            emb = db.execute("SELECT COUNT(*) FROM textbook_chunks WHERE embedding IS NOT NULL").fetchone()[0]
-            if emb > 0:
-                self.ai_vdb_status.setText(f"Status: {total} chunks, {emb} with embeddings — READY")
-                self.ai_vdb_status.setStyleSheet("color:#66bb6a;font-weight:bold;")
-            else:
-                self.ai_vdb_status.setText(f"Status: Not built — {total} chunks, 0 embeddings")
-                self.ai_vdb_status.setStyleSheet("color:#ff6666;")
-        except Exception as e:
-            self.ai_vdb_status.setText(f"Status: error — {e}")
-
-    def _on_ai_vdb_build(self):
-        print(f"DEBUG: _on_ai_vdb_build called, button enabled={self.ai_vdb_build.isEnabled()}")
-        self.ai_vdb_progress.clear()
-        self.ai_vdb_build.setEnabled(False)
-        self.ai_vdb_rebuild.setEnabled(False)
-
-        provider = self.ai_settings_provider.currentText() if hasattr(self, 'ai_settings_provider') else "auto"
-        self.ai_vdb_progress.setPlainText(f"Provider: {provider}\nStarting build...\n")
-        # Force immediate UI update
-        from PyQt6.QtWidgets import QApplication
-        QApplication.processEvents()
-
-        self._vdb_worker = _VdbWorker(provider, rebuild=False)
-        self._vdb_worker.progress.connect(self._on_vdb_progress)
-        self._vdb_worker.done.connect(self._on_vdb_done)
-        self._vdb_worker.error.connect(self._on_vdb_error)
-        self._vdb_worker.start()
-
-    def _on_ai_vdb_rebuild(self):
-        from jhora.core.database import get_db
-        db = get_db()
-        db.execute("DELETE FROM textbook_chunks")
-        db.commit()
-        self.ai_vdb_progress.clear()
-        self.ai_vdb_progress.append("Cleared. Rebuilding from scratch...\n")
-        self.ai_vdb_build.setEnabled(False)
-        self.ai_vdb_rebuild.setEnabled(False)
-
-        provider = self.ai_settings_provider.currentText() if hasattr(self, 'ai_settings_provider') else "auto"
-        self._vdb_worker = _VdbWorker(provider, rebuild=True)
-        self._vdb_worker.progress.connect(self._on_vdb_progress)
-        self._vdb_worker.done.connect(self._on_vdb_done)
-        self._vdb_worker.start()
-
-    def _on_vdb_progress(self, msg: str):
-        self.ai_vdb_progress.append(msg)
-
-    def _on_vdb_done(self, ok: bool):
-        self.ai_vdb_build.setEnabled(True)
-        self.ai_vdb_rebuild.setEnabled(True)
-        if ok:
-            self._on_ai_vdb_status()
-        else:
-            self.ai_vdb_progress.append("\n[FAILED] Check server logs in LM Studio.")
-
-    def _on_vdb_error(self, msg: str):
-        self.ai_vdb_progress.append(f"\n[ERROR] {msg}")
-        self.ai_vdb_build.setEnabled(True)
-        self.ai_vdb_rebuild.setEnabled(True)
+        cursor = self.teach_output.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        cursor.insertText(text)
+        self.teach_output.ensureCursorVisible()
 
     # --- Chart Browser ---
 
@@ -2892,7 +2744,7 @@ class MainWindow(QMainWindow):
             current_md = current_ad = None
 
         now_lines = [
-            f"<b style='color:#e0b050'>Today: {now.strftime('%B %d, %Y')} | {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.weekday()]}</b>",
+            f"[bold yellow]Today: {now.strftime('%B %d, %Y')} | {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.weekday()]}[/bold yellow]",
             f"Tithi: {tithi_idx} | Nakshatra: {nak.name.replace('_',' ').title()} | Moon: {Rasi.from_longitude(moon).short_name}",
             f"Rahu Kalam: {int(rahu_start):02d}:{int((rahu_start%1)*60):02d} – {int(rahu_end):02d}:{int((rahu_end%1)*60):02d}",
             "",
@@ -2900,11 +2752,11 @@ class MainWindow(QMainWindow):
         if current_md:
             time_left = current_md.end_date - now
             months_left = time_left.days / 30
-            now_lines.append(f"<b>Current Dasa: {current_md.lord_name} Mahadasha</b> — {months_left:.0f} months remaining")
+            now_lines.append(f"[bold]Current Dasa: {current_md.lord_name} Mahadasha[/bold] — {months_left:.0f} months remaining")
             if current_ad:
                 ad_left = current_ad.end_date - now
                 now_lines.append(f"  └ {current_ad.lord_name} Antardasha — {ad_left.days} days remaining")
-        self.dash_now.setHtml("<br>".join(now_lines))
+        self.dash_now.setText("\n".join(now_lines))
 
         # ── STRENGTHS ──
         try:
@@ -2918,24 +2770,24 @@ class MainWindow(QMainWindow):
             bh = [(h, bb_r.results[h].total) for h in range(1,13)]
             bh.sort(key=lambda x:x[1], reverse=True)
 
-            str_lines = ["<b>Planet Strengths:</b>"]
+            str_lines = ["[bold]Planet Strengths:[/bold]"]
             for name, val in gr:
                 bar = "█" * int(val / 30) + "░" * (18 - int(val / 30))
                 str_lines.append(f"  {name:<8} {bar} {val:.0f}")
             str_lines.append("")
-            str_lines.append("<b>House Strengths:</b>")
+            str_lines.append("[bold]House Strengths:[/bold]")
             for h, val in bh[:5]:
                 ri = (int(cd.ascendant/30) + h - 1) % 12
                 bar = "█" * int(val / 12) + "░" * (18 - int(val / 12))
                 str_lines.append(f"  H{h} {Rasi(ri).short_name} {bar} {val:.0f}")
-            self.dash_strengths.setHtml("<br>".join(str_lines))
+            self.dash_strengths.setText("\n".join(str_lines))
         except Exception:
             self.dash_strengths.setText("")
 
         # ── UPCOMING ──
         up_lines = []
         if current_md:
-            up_lines.append("<b>Upcoming Antardasas:</b>")
+            up_lines.append("[bold]Upcoming Antardasas:[/bold]")
             upcoming = sorted([sp for sp in (current_md.sub_periods or [])
                               if sp.start_date > now], key=lambda x: x.start_date)
             for sp in upcoming[:4]:
@@ -2948,9 +2800,9 @@ class MainWindow(QMainWindow):
                     next_md = p
                     break
             if next_md:
-                up_lines.append(f"<b>Next Mahadasha: {next_md.lord_name}</b> — {next_md.start_date.strftime('%b %Y')}")
+                up_lines.append(f"[bold]Next Mahadasha: {next_md.lord_name}[/bold] — {next_md.start_date.strftime('%b %Y')}")
         up_lines.append("")
-        up_lines.append("<b>Major Transits (next 6 months):</b>")
+        up_lines.append("[bold]Major Transits (next 6 months):[/bold]")
         try:
             eng = SweEngine()
             for m in range(1, 7):
@@ -2969,10 +2821,10 @@ class MainWindow(QMainWindow):
                     pass
         except Exception:
             pass
-        self.dash_upcoming.setHtml("<br>".join(up_lines) if up_lines else "Dasa data unavailable")
+        self.dash_upcoming.setText("\n".join(up_lines) if up_lines else "Dasa data unavailable")
 
         # ── KEY DATES ──
-        kd_lines = ["<b>Sade Sati Check:</b>"]
+        kd_lines = ["[bold]Sade Sati Check:[/bold]"]
         saturn = cd.planet(Graha.SATURN).longitude
         moon_rasi = int(cd.planet(Graha.MOON).longitude / 30)
         sat_rasi = int(saturn / 30)
@@ -2980,23 +2832,23 @@ class MainWindow(QMainWindow):
         ss_signs = [(moon_rasi - 1) % 12, moon_rasi, (moon_rasi + 1) % 12]
         if sat_rasi in ss_signs:
             pos = ["12th from Moon", "1st from Moon (peak)", "2nd from Moon"][ss_signs.index(sat_rasi)]
-            kd_lines.append(f"  IN Sade Sati ({pos})")
+            kd_lines.append(f"  🟡 IN Sade Sati ({pos})")
         else:
             dist = min((sat_rasi - moon_rasi) % 12, (moon_rasi - sat_rasi) % 12)
             kd_lines.append(f"  Sade Sati in ~{dist * 2.5:.0f} years (Saturn at {dist} signs away)")
 
         kd_lines.append("")
-        kd_lines.append("<b>Retrograde Watch:</b>")
+        kd_lines.append("[bold]Retrograde Watch:[/bold]")
         for g in [Graha.MERCURY, Graha.VENUS, Graha.MARS, Graha.JUPITER, Graha.SATURN]:
             p = cd.planet(g)
             if p.is_retrograde:
                 kd_lines.append(f"  {g.short_name} is currently RETROGRADE")
         kd_lines.append("")
-        kd_lines.append("<b>Auspicious Days (this month):</b>")
+        kd_lines.append("[bold]Auspicious Days (this month):[/bold]")
         kd_lines.append("  Every Monday, Thursday, Friday")
         kd_lines.append("  Ekadasi tithi days (check panchanga)")
 
-        self.dash_keydates.setHtml("<br>".join(kd_lines))
+        self.dash_keydates.setText("\n".join(kd_lines))
 
     # --- Consolidated View (JHora-style three-column layout) ---
 
@@ -3361,71 +3213,25 @@ class _TeacherWorker(QThread):
             self.done.emit()
 
 
-class _HealthWorker(QThread):
-    result = pyqtSignal(dict)
-
-    def __init__(self, provider: str, model: str, check_id: int = 0):
-        super().__init__()
-        self.provider = provider
-        self.model = model
-        self.check_id = check_id
-
-    def run(self):
-        import requests
-        results = []
-        connected = False
-        for name, url, path in [
-            ("Ollama", "http://localhost:11434", "/api/tags"),
-            ("LM Studio", "http://localhost:1234", "/v1/models"),
-        ]:
-            try:
-                r = requests.get(f"{url}{path}", timeout=3)
-                if r.status_code == 200:
-                    data = r.json()
-                    models = data if isinstance(data, list) else data.get("data", [])
-                    ids = [m.get("id", m.get("name", "?")) for m in models[:5]]
-                    results.append(f"  {name}: ONLINE ({len(models)} models)")
-                    if self.provider.lower() in name.lower():
-                        connected = True
-                else:
-                    results.append(f"  {name}: HTTP {r.status_code}")
-            except Exception:
-                results.append(f"  {name}: offline")
-
-        text = f"Provider: {self.provider} | Model: {self.model or '(default)'}\n\n" + "\n".join(results)
-        self.result.emit({"connected": connected, "text": text, "provider": self.provider, "check_id": self.check_id})
-
-
 class _VdbWorker(QThread):
     progress = pyqtSignal(str)
     done = pyqtSignal(bool)
-    error = pyqtSignal(str)
 
-    def __init__(self, provider: str, rebuild: bool = False):
+    def __init__(self, provider: str):
         super().__init__()
         self.provider = provider
-        self.rebuild = rebuild
 
     def run(self):
+        import gc, time
         try:
             from jhora.ai.embeddings import EmbeddingStore
-            self.progress.emit(f"Provider: {self.provider} — connecting...")
+            self.progress.emit(f"Connecting to {self.provider}...")
             store = EmbeddingStore(provider=self.provider)
-            self.progress.emit(f"Detected: {store.provider} at {store.base_url}")
-            if store.provider == "none":
-                self.progress.emit("ERROR: No AI server running.")
-                self.progress.emit("Start Ollama or LM Studio, then retry.")
-                self.done.emit(False)
-                return
-
-            self.progress.emit(f"  Embedding model: {store._detect_embedding_model()}")
-            self.progress.emit("")
-            self.progress.emit("Starting (batch=5, throttle=1s, gc each source)...")
-            self.progress.emit("16 textbooks → ~3500 chunks → ~700 batches")
-            self.progress.emit("Estimated: 5-10 minutes")
+            self.progress.emit(f"Server: {store.provider} at {store.base_url}")
+            self.progress.emit(f"Model: {store._detect_embedding_model()}")
+            self.progress.emit("Starting (batch=5, 1s throttle)...")
             self.progress.emit("")
 
-            import gc, time
             def _cb(name, done_chunks, total_chunks):
                 self.progress.emit(f"  {name[:40]:<40} {done_chunks}/{total_chunks}")
                 gc.collect()
@@ -3435,16 +3241,12 @@ class _VdbWorker(QThread):
             elapsed = time.time() - t0
 
             self.progress.emit("")
-            self.progress.emit(f"DONE: {count} chunks in {elapsed:.0f}s ({elapsed/60:.1f} min)")
-            self.progress.emit("Vector database ready for semantic search.")
+            self.progress.emit(f"DONE: {count} chunks in {elapsed:.0f}s")
             gc.collect()
             self.done.emit(True)
         except Exception as e:
             self.progress.emit(f"ERROR: {e}")
-            import traceback
-            self.progress.emit(traceback.format_exc()[-300:])
-            self.error.emit(str(e))
-            import gc; gc.collect()
+            self.done.emit(False)
 
 
 class _AiWorker(QThread):
