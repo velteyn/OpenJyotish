@@ -366,6 +366,7 @@ class MainWindow(QMainWindow):
         ai_sub.addTab(self._build_ai_teacher_tab(), "AI Teacher")
         ai_sub.addTab(self._build_knowledge_tab(), "Knowledge")
         ai_sub.addTab(self._build_interpreter_tab(), "Reading")
+        ai_sub.addTab(self._build_ai_settings_tab(), "Settings")
         self.tabs.addTab(ai_sub, "AI & Learn")
 
         # 8. Tools
@@ -2360,6 +2361,157 @@ class MainWindow(QMainWindow):
         self.teach_output.verticalScrollBar().setValue(
             self.teach_output.verticalScrollBar().maximum()
         )
+
+    # --- AI Settings Tab ---
+
+    def _build_ai_settings_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
+
+        # Status section
+        status_group = QGroupBox("AI Server Status")
+        status_group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
+        sl = QVBoxLayout(status_group)
+
+        self.ai_settings_status = QLabel("Checking...")
+        self.ai_settings_status.setStyleSheet("font-size:14px;color:#e0e0e0;")
+        sl.addWidget(self.ai_settings_status)
+
+        check_row = QHBoxLayout()
+        self.ai_settings_check = QPushButton("Check Connection")
+        self.ai_settings_check.clicked.connect(self._on_ai_settings_check)
+        check_row.addWidget(self.ai_settings_check)
+        check_row.addStretch()
+        sl.addLayout(check_row)
+        layout.addWidget(status_group)
+
+        # Vector DB section
+        vdb_group = QGroupBox("Vector Database (Semantic Search)")
+        vdb_group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
+        vl = QVBoxLayout(vdb_group)
+
+        self.ai_vdb_status = QLabel("Status: unknown")
+        self.ai_vdb_status.setStyleSheet("color:#e0e0e0;")
+        vl.addWidget(self.ai_vdb_status)
+
+        vbtn_row = QHBoxLayout()
+        self.ai_vdb_build = QPushButton("Build Vector DB")
+        self.ai_vdb_build.setToolTip(
+            "Chunks 16 textbooks and generates embeddings via Ollama/LM Studio.\n"
+            "Requires embedding model (nomic-embed-text) loaded in the AI server."
+        )
+        self.ai_vdb_build.clicked.connect(self._on_ai_vdb_build)
+        vbtn_row.addWidget(self.ai_vdb_build)
+
+        self.ai_vdb_rebuild = QPushButton("Rebuild (Clear + Recreate)")
+        self.ai_vdb_rebuild.clicked.connect(self._on_ai_vdb_rebuild)
+        vbtn_row.addWidget(self.ai_vdb_rebuild)
+        vbtn_row.addStretch()
+        vl.addLayout(vbtn_row)
+
+        self.ai_vdb_progress = QTextEdit()
+        self.ai_vdb_progress.setReadOnly(True)
+        self.ai_vdb_progress.setMaximumHeight(200)
+        self.ai_vdb_progress.setStyleSheet(
+            "QTextEdit{background:#0d1b2a;color:#888;font-size:11px;"
+            "border:1px solid #2a3f5f;padding:6px;}"
+        )
+        vl.addWidget(self.ai_vdb_progress)
+        layout.addWidget(vdb_group)
+
+        # Model section — reads from AI Chat tab
+        model_group = QGroupBox("Active Provider")
+        model_group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
+        ml = QVBoxLayout(model_group)
+        self.ai_settings_active = QLabel("Configure in AI Chat tab")
+        self.ai_settings_active.setStyleSheet("color:#e0e0e0;font-size:13px;")
+        ml.addWidget(self.ai_settings_active)
+        layout.addWidget(model_group)
+
+        layout.addStretch()
+
+        # Auto-check on tab open
+        self._on_ai_settings_check()
+        self._on_ai_vdb_status()
+        return w
+
+    def _on_ai_settings_check(self):
+        self.ai_settings_check.setEnabled(False)
+        self.ai_settings_status.setText("Checking...")
+
+        # Read provider from AI Chat tab
+        provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "ollama"
+        model = self.ai_model.text().strip() if hasattr(self, 'ai_model') else ""
+
+        import requests
+        results = []
+        for name, url in [("Ollama", "http://localhost:11434/api/tags"),
+                          ("LM Studio", "http://localhost:1234/v1/models")]:
+            try:
+                r = requests.get(url, timeout=3)
+                if r.status_code == 200:
+                    data = r.json()
+                    models = data if isinstance(data, list) else data.get("data", [])
+                    ids = [m.get("id", m.get("name", "?")) for m in models[:5]]
+                    results.append(f"[GREEN] {name}: ONLINE — {len(models)} models")
+                else:
+                    results.append(f"[RED] {name}: HTTP {r.status_code}")
+            except Exception:
+                results.append(f"[RED] {name}: offline")
+
+        self.ai_settings_status.setText("\n".join(results))
+        self.ai_settings_active.setText(
+            f"Provider: {provider} | Model: {model or '(default)'}"
+        )
+        self.ai_settings_check.setEnabled(True)
+
+    def _on_ai_vdb_status(self):
+        try:
+            from jhora.core.database import get_db
+            db = get_db()
+            # Ensure table exists
+            db.execute("CREATE TABLE IF NOT EXISTS textbook_chunks (id INTEGER PRIMARY KEY AUTOINCREMENT, source_name TEXT, chunk_index INTEGER, content TEXT, embedding BLOB)")
+            db.commit()
+            total = db.execute("SELECT COUNT(*) FROM textbook_chunks").fetchone()[0]
+            emb = db.execute("SELECT COUNT(*) FROM textbook_chunks WHERE embedding IS NOT NULL").fetchone()[0]
+            if emb > 0:
+                self.ai_vdb_status.setText(f"Status: {total} chunks, {emb} with embeddings — READY")
+                self.ai_vdb_status.setStyleSheet("color:#66bb6a;font-weight:bold;")
+            else:
+                self.ai_vdb_status.setText(f"Status: Not built — {total} chunks, 0 embeddings")
+                self.ai_vdb_status.setStyleSheet("color:#ff6666;")
+        except Exception as e:
+            self.ai_vdb_status.setText(f"Status: error — {e}")
+
+    def _on_ai_vdb_build(self):
+        self.ai_vdb_progress.clear()
+        self.ai_vdb_progress.append("Building vector database...\n")
+        self.ai_vdb_build.setEnabled(False)
+        self.ai_vdb_rebuild.setEnabled(False)
+
+        try:
+            from jhora.ai.embeddings import EmbeddingStore
+            provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "auto"
+            store = EmbeddingStore(provider=provider)
+            count = store.build()
+            self.ai_vdb_progress.append(f"\nDone: {count} chunks indexed")
+            self._on_ai_vdb_status()
+        except Exception as e:
+            self.ai_vdb_progress.append(f"\nError: {e}")
+
+        self.ai_vdb_build.setEnabled(True)
+        self.ai_vdb_rebuild.setEnabled(True)
+
+    def _on_ai_vdb_rebuild(self):
+        from jhora.core.database import get_db
+        db = get_db()
+        db.execute("DELETE FROM textbook_chunks")
+        db.commit()
+        self.ai_vdb_progress.clear()
+        self.ai_vdb_progress.append("Cleared existing chunks. Rebuilding...\n")
+        self._on_ai_vdb_build()
 
     # --- Chart Browser ---
 
