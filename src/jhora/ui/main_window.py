@@ -2448,50 +2448,48 @@ class MainWindow(QMainWindow):
         self._health_worker.start()
 
     def _on_health_result(self, data: dict):
-        # Ignore stale results from cancelled checks
+        # Ignore stale results
         if data.get("check_id") != getattr(self, '_health_check_id', 0):
             return
 
         connected = data["connected"]
         text = data["text"]
+        provider = data.get("provider", "?")
         self.ai_settings_status.setText(text)
-
-        # Force enable buttons if connected
-        if connected:
-            self.ai_settings_status.setStyleSheet("font-size:13px;color:#66bb6a;padding:4px;")
-            self.ai_vdb_build.setEnabled(True)
-            self.ai_vdb_build.repaint()
-            self.ai_vdb_rebuild.setEnabled(True)
-            self.ai_vdb_rebuild.repaint()
-            if hasattr(self, 'ai_interpret_btn'):
-                self.ai_interpret_btn.setEnabled(True)
-                self.ai_interpret_btn.repaint()
-                self.ai_remedy_btn.setEnabled(True)
-                self.ai_remedy_btn.repaint()
-                self.ai_ask_btn.setEnabled(True)
-                self.ai_ask_btn.repaint()
-                self.ai_chat_status.setText(f"Connected: {data['provider']}")
-                self.ai_chat_status.setStyleSheet("color:#66bb6a;font-size:12px;padding:4px;")
-            if hasattr(self, 'teach_btn'):
-                self.teach_btn.setEnabled(True)
-                self.teach_btn.repaint()
-            # Debug: verify buttons are actually enabled
-            print(f"DEBUG: vdb_build enabled={self.ai_vdb_build.isEnabled()} "
-                  f"interpret={self.ai_interpret_btn.isEnabled() if hasattr(self,'ai_interpret_btn') else 'N/A'}")
-        else:
-            self.ai_settings_status.setStyleSheet("font-size:13px;color:#ff6666;padding:4px;")
-            if hasattr(self, 'ai_interpret_btn'):
-                self.ai_interpret_btn.setEnabled(False)
-                self.ai_remedy_btn.setEnabled(False)
-                self.ai_ask_btn.setEnabled(False)
-                self.ai_chat_status.setText("Not connected — run Test Connection in Settings")
-                self.ai_chat_status.setStyleSheet("color:#ff6666;font-size:12px;padding:4px;")
-            if hasattr(self, 'teach_btn'):
-                self.teach_btn.setEnabled(False)
-            self.ai_vdb_build.setEnabled(False)
-            self.ai_vdb_rebuild.setEnabled(False)
-
         self.ai_settings_check.setEnabled(True)
+
+        # Use QTimer to guarantee execution on GUI thread
+        from PyQt6.QtCore import QTimer
+        if connected:
+            QTimer.singleShot(0, lambda: self._enable_ai_buttons(provider))
+        else:
+            QTimer.singleShot(0, lambda: self._disable_ai_buttons())
+
+    def _enable_ai_buttons(self, provider: str = ""):
+        self.ai_settings_status.setStyleSheet("font-size:13px;color:#66bb6a;padding:4px;")
+        self.ai_vdb_build.setEnabled(True)
+        self.ai_vdb_rebuild.setEnabled(True)
+        for btn_name in ['ai_interpret_btn', 'ai_remedy_btn', 'ai_ask_btn']:
+            if hasattr(self, btn_name):
+                getattr(self, btn_name).setEnabled(True)
+        if hasattr(self, 'ai_chat_status'):
+            self.ai_chat_status.setText(f"Connected: {provider}")
+            self.ai_chat_status.setStyleSheet("color:#66bb6a;font-size:12px;padding:4px;")
+        if hasattr(self, 'teach_btn'):
+            self.teach_btn.setEnabled(True)
+
+    def _disable_ai_buttons(self):
+        self.ai_settings_status.setStyleSheet("font-size:13px;color:#ff6666;padding:4px;")
+        self.ai_vdb_build.setEnabled(False)
+        self.ai_vdb_rebuild.setEnabled(False)
+        for btn_name in ['ai_interpret_btn', 'ai_remedy_btn', 'ai_ask_btn']:
+            if hasattr(self, btn_name):
+                getattr(self, btn_name).setEnabled(False)
+        if hasattr(self, 'ai_chat_status'):
+            self.ai_chat_status.setText("Not connected — run Test Connection in Settings")
+            self.ai_chat_status.setStyleSheet("color:#ff6666;font-size:12px;padding:4px;")
+        if hasattr(self, 'teach_btn'):
+            self.teach_btn.setEnabled(False)
 
     def _on_ai_vdb_status(self):
         try:
