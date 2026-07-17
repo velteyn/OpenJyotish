@@ -19,6 +19,35 @@ CHUNK_SIZE = 500     # Characters per chunk
 CHUNK_OVERLAP = 100  # Overlap between chunks
 
 
+def _get_embeddings_batch(texts: List[str], base_url: str = "http://localhost:11434",
+                          provider: str = "ollama") -> List[Optional[List[float]]]:
+    """Get embeddings for multiple texts in one API call."""
+    import requests
+    import time
+    try:
+        if provider == "lmstudio":
+            resp = requests.post(
+                f"{base_url}/v1/embeddings",
+                json={"model": "text-embedding-nomic-embed-text-v1.5",
+                      "input": texts},
+                timeout=60,
+            )
+        else:
+            resp = requests.post(
+                f"{base_url}/api/embed",
+                json={"model": "nomic-embed-text", "input": texts},
+                timeout=60,
+            )
+        resp.raise_for_status()
+        data = resp.json()
+        if provider == "lmstudio":
+            return [item["embedding"] for item in data["data"]]
+        else:
+            return data.get("embeddings", [])
+    except Exception:
+        return [None] * len(texts)
+
+
 def _get_embedding(text: str, base_url: str = "http://localhost:11434",
                    provider: str = "ollama") -> Optional[List[float]]:
     """Get embedding vector from Ollama or LM Studio.
@@ -118,12 +147,16 @@ class EmbeddingStore:
         """)
         self.db.commit()
 
-    def build(self):
-        """Chunk all books from the knowledge base, embed them, store in DB.
+    def build(self, batch_size: int = 10, throttle_ms: int = 300,
+              progress_cb=None) -> int:
+        """Chunk all books, embed in batches, store in DB.
 
-        Reads texts from the knowledge_texts SQLite table (not from disk),
-        so it works even without docs/books/extracted/.
+        Args:
+            batch_size: texts per API call (default 10, reduces HTTP calls 10x)
+            throttle_ms: delay between batches (prevents CPU/network flood)
+            progress_cb: callback(source_name, chunks_done, total_chunks)
         """
+        import time
         count = self.db.execute("SELECT COUNT(*) FROM textbook_chunks").fetchone()[0]
         if count > 0:
             print(f"Already have {count} chunks — skipping")
@@ -137,20 +170,30 @@ class EmbeddingStore:
             text = row["content"]
             chunks = self._chunk_text(text)
             print(f"  {name}: {len(chunks)} chunks")
-            for i, chunk in enumerate(chunks):
-                emb = _get_embedding(chunk, self.base_url, self.provider)
-                blob = _pack_vector(emb) if emb else None
-                self.db.execute(
-                    "INSERT INTO textbook_chunks (source_name, chunk_index, content, embedding) "
-                    "VALUES (?, ?, ?, ?)",
-                    (name, i, chunk, blob),
-                )
-                total += 1
-                if total % 10 == 0:
-                    self.db.commit()
-                    print(f"    {total} chunks embedded...", end="\r")
+            if progress_cb:
+                progress_cb(name, 0, len(chunks))
+
+            for batch_start in range(0, len(chunks), batch_size):
+                batch = chunks[batch_start:batch_start + batch_size]
+                embs = _get_embeddings_batch(batch, self.base_url, self.provider)
+
+                for i, (chunk, emb) in enumerate(zip(batch, embs)):
+                    blob = _pack_vector(emb) if emb else None
+                    self.db.execute(
+                        "INSERT INTO textbook_chunks (source_name, chunk_index, content, embedding) "
+                        "VALUES (?, ?, ?, ?)",
+                        (name, batch_start + i, chunk, blob),
+                    )
+                    total += 1
+
+                self.db.commit()
+                if progress_cb:
+                    progress_cb(name, batch_start + len(batch), len(chunks))
+                time.sleep(throttle_ms / 1000.0)
+
         self.db.commit()
         print(f"\n  Done: {total} chunks stored")
+        return total
         return total
 
     def _chunk_text(self, text: str) -> List[str]:
