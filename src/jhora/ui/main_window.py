@@ -3342,14 +3342,22 @@ class _VdbWorker(QThread):
             store = EmbeddingStore(provider=self.provider)
             self.progress.emit(f"Detected: {store.provider} at {store.base_url}")
             if store.provider == "none":
-                self.progress.emit("ERROR: No AI server detected.")
+                self.progress.emit("ERROR: No AI server running.")
                 self.progress.emit("Start Ollama or LM Studio, then retry.")
                 self.done.emit(False)
                 return
 
-            self.progress.emit("Chunking 16 textbooks...")
-            count = store.build()
-            self.progress.emit(f"\nDone: {count} chunks with embeddings")
+            self.progress.emit("Chunking textbooks (batch of 10, 300ms pause)...")
+            self.progress.emit("")
+
+            def _cb(name, done_chunks, total_chunks):
+                pct = done_chunks / total_chunks * 100 if total_chunks else 0
+                bar = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+                self.progress.emit(f"  {name[:30]:<30} {bar} {done_chunks}/{total_chunks}")
+
+            count = store.build(batch_size=10, throttle_ms=300, progress_cb=_cb)
+            self.progress.emit("")
+            self.progress.emit(f"Done: {count} chunks with embeddings — vector DB ready")
             self.done.emit(True)
         except Exception as e:
             self.progress.emit(f"ERROR: {e}")
