@@ -2495,11 +2495,15 @@ class MainWindow(QMainWindow):
         self.ai_vdb_rebuild.setEnabled(False)
 
         provider = self.ai_settings_provider.currentText() if hasattr(self, 'ai_settings_provider') else "auto"
-        self.ai_vdb_progress.append(f"Provider: {provider}")
-        self.ai_vdb_progress.append(f"Starting build (batch=5, throttle=1s)...\n")
+        self.ai_vdb_progress.setPlainText(f"Provider: {provider}\nStarting build...\n")
+        # Force immediate UI update
+        from PyQt6.QtWidgets import QApplication
+        QApplication.processEvents()
+
         self._vdb_worker = _VdbWorker(provider, rebuild=False)
         self._vdb_worker.progress.connect(self._on_vdb_progress)
         self._vdb_worker.done.connect(self._on_vdb_done)
+        self._vdb_worker.error.connect(self._on_vdb_error)
         self._vdb_worker.start()
 
     def _on_ai_vdb_rebuild(self):
@@ -2527,7 +2531,12 @@ class MainWindow(QMainWindow):
         if ok:
             self._on_ai_vdb_status()
         else:
-            self.ai_vdb_progress.append("\n[FAILED] Check that your AI server is running.")
+            self.ai_vdb_progress.append("\n[FAILED] Check server logs in LM Studio.")
+
+    def _on_vdb_error(self, msg: str):
+        self.ai_vdb_progress.append(f"\n[ERROR] {msg}")
+        self.ai_vdb_build.setEnabled(True)
+        self.ai_vdb_rebuild.setEnabled(True)
 
     # --- Chart Browser ---
 
@@ -3368,6 +3377,7 @@ class _HealthWorker(QThread):
 class _VdbWorker(QThread):
     progress = pyqtSignal(str)
     done = pyqtSignal(bool)
+    error = pyqtSignal(str)
 
     def __init__(self, provider: str, rebuild: bool = False):
         super().__init__()
@@ -3411,6 +3421,7 @@ class _VdbWorker(QThread):
             self.progress.emit(f"ERROR: {e}")
             import traceback
             self.progress.emit(traceback.format_exc()[-300:])
+            self.error.emit(str(e))
             import gc; gc.collect()
 
 
