@@ -2657,7 +2657,7 @@ class MainWindow(QMainWindow):
             current_md = current_ad = None
 
         now_lines = [
-            f"[bold yellow]Today: {now.strftime('%B %d, %Y')} | {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.weekday()]}[/bold yellow]",
+            f"<b style='color:#e0b050'>Today: {now.strftime('%B %d, %Y')} | {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.weekday()]}</b>",
             f"Tithi: {tithi_idx} | Nakshatra: {nak.name.replace('_',' ').title()} | Moon: {Rasi.from_longitude(moon).short_name}",
             f"Rahu Kalam: {int(rahu_start):02d}:{int((rahu_start%1)*60):02d} – {int(rahu_end):02d}:{int((rahu_end%1)*60):02d}",
             "",
@@ -2665,11 +2665,11 @@ class MainWindow(QMainWindow):
         if current_md:
             time_left = current_md.end_date - now
             months_left = time_left.days / 30
-            now_lines.append(f"[bold]Current Dasa: {current_md.lord_name} Mahadasha[/bold] — {months_left:.0f} months remaining")
+            now_lines.append(f"<b>Current Dasa: {current_md.lord_name} Mahadasha</b> — {months_left:.0f} months remaining")
             if current_ad:
                 ad_left = current_ad.end_date - now
                 now_lines.append(f"  └ {current_ad.lord_name} Antardasha — {ad_left.days} days remaining")
-        self.dash_now.setText("\n".join(now_lines))
+        self.dash_now.setHtml("<br>".join(now_lines))
 
         # ── STRENGTHS ──
         try:
@@ -2683,24 +2683,24 @@ class MainWindow(QMainWindow):
             bh = [(h, bb_r.results[h].total) for h in range(1,13)]
             bh.sort(key=lambda x:x[1], reverse=True)
 
-            str_lines = ["[bold]Planet Strengths:[/bold]"]
+            str_lines = ["<b>Planet Strengths:</b>"]
             for name, val in gr:
                 bar = "█" * int(val / 30) + "░" * (18 - int(val / 30))
                 str_lines.append(f"  {name:<8} {bar} {val:.0f}")
             str_lines.append("")
-            str_lines.append("[bold]House Strengths:[/bold]")
+            str_lines.append("<b>House Strengths:</b>")
             for h, val in bh[:5]:
                 ri = (int(cd.ascendant/30) + h - 1) % 12
                 bar = "█" * int(val / 12) + "░" * (18 - int(val / 12))
                 str_lines.append(f"  H{h} {Rasi(ri).short_name} {bar} {val:.0f}")
-            self.dash_strengths.setText("\n".join(str_lines))
+            self.dash_strengths.setHtml("<br>".join(str_lines))
         except Exception:
             self.dash_strengths.setText("")
 
         # ── UPCOMING ──
         up_lines = []
         if current_md:
-            up_lines.append("[bold]Upcoming Antardasas:[/bold]")
+            up_lines.append("<b>Upcoming Antardasas:</b>")
             upcoming = sorted([sp for sp in (current_md.sub_periods or [])
                               if sp.start_date > now], key=lambda x: x.start_date)
             for sp in upcoming[:4]:
@@ -2713,9 +2713,9 @@ class MainWindow(QMainWindow):
                     next_md = p
                     break
             if next_md:
-                up_lines.append(f"[bold]Next Mahadasha: {next_md.lord_name}[/bold] — {next_md.start_date.strftime('%b %Y')}")
+                up_lines.append(f"<b>Next Mahadasha: {next_md.lord_name}</b> — {next_md.start_date.strftime('%b %Y')}")
         up_lines.append("")
-        up_lines.append("[bold]Major Transits (next 6 months):[/bold]")
+        up_lines.append("<b>Major Transits (next 6 months):</b>")
         try:
             eng = SweEngine()
             for m in range(1, 7):
@@ -2734,10 +2734,10 @@ class MainWindow(QMainWindow):
                     pass
         except Exception:
             pass
-        self.dash_upcoming.setText("\n".join(up_lines) if up_lines else "Dasa data unavailable")
+        self.dash_upcoming.setHtml("<br>".join(up_lines) if up_lines else "Dasa data unavailable")
 
         # ── KEY DATES ──
-        kd_lines = ["[bold]Sade Sati Check:[/bold]"]
+        kd_lines = ["<b>Sade Sati Check:</b>"]
         saturn = cd.planet(Graha.SATURN).longitude
         moon_rasi = int(cd.planet(Graha.MOON).longitude / 30)
         sat_rasi = int(saturn / 30)
@@ -2745,23 +2745,23 @@ class MainWindow(QMainWindow):
         ss_signs = [(moon_rasi - 1) % 12, moon_rasi, (moon_rasi + 1) % 12]
         if sat_rasi in ss_signs:
             pos = ["12th from Moon", "1st from Moon (peak)", "2nd from Moon"][ss_signs.index(sat_rasi)]
-            kd_lines.append(f"  🟡 IN Sade Sati ({pos})")
+            kd_lines.append(f"  IN Sade Sati ({pos})")
         else:
             dist = min((sat_rasi - moon_rasi) % 12, (moon_rasi - sat_rasi) % 12)
             kd_lines.append(f"  Sade Sati in ~{dist * 2.5:.0f} years (Saturn at {dist} signs away)")
 
         kd_lines.append("")
-        kd_lines.append("[bold]Retrograde Watch:[/bold]")
+        kd_lines.append("<b>Retrograde Watch:</b>")
         for g in [Graha.MERCURY, Graha.VENUS, Graha.MARS, Graha.JUPITER, Graha.SATURN]:
             p = cd.planet(g)
             if p.is_retrograde:
                 kd_lines.append(f"  {g.short_name} is currently RETROGRADE")
         kd_lines.append("")
-        kd_lines.append("[bold]Auspicious Days (this month):[/bold]")
+        kd_lines.append("<b>Auspicious Days (this month):</b>")
         kd_lines.append("  Every Monday, Thursday, Friday")
         kd_lines.append("  Ekadasi tithi days (check panchanga)")
 
-        self.dash_keydates.setText("\n".join(kd_lines))
+        self.dash_keydates.setHtml("<br>".join(kd_lines))
 
     # --- Consolidated View (JHora-style three-column layout) ---
 
