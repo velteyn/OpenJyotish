@@ -70,24 +70,23 @@ class EmbeddingStore:
         """)
         self.db.commit()
 
-    def build(self, books_dir: str = None):
-        """Chunk all books, embed them, store in DB."""
-        if books_dir is None:
-            books_dir = Path(__file__).resolve().parents[3] / "docs" / "books" / "extracted"
-        books_dir = Path(books_dir)
-        if not books_dir.exists():
-            print(f"Books dir not found: {books_dir}")
-            return 0
+    def build(self):
+        """Chunk all books from the knowledge base, embed them, store in DB.
 
+        Reads texts from the knowledge_texts SQLite table (not from disk),
+        so it works even without docs/books/extracted/.
+        """
         count = self.db.execute("SELECT COUNT(*) FROM textbook_chunks").fetchone()[0]
         if count > 0:
-            print(f"Already have {count} chunks — use rebuild=True to recreate")
+            print(f"Already have {count} chunks — skipping")
             return count
 
         total = 0
-        for txt_file in sorted(books_dir.glob("*.txt")):
-            name = txt_file.stem.replace("_", " ").replace(".pdf", "").title()
-            text = txt_file.read_text(encoding="utf-8", errors="replace")
+        for row in self.db.execute(
+            "SELECT source_name, content FROM knowledge_texts ORDER BY source_name"
+        ).fetchall():
+            name = row["source_name"]
+            text = row["content"]
             chunks = self._chunk_text(text)
             print(f"  {name}: {len(chunks)} chunks")
             for i, chunk in enumerate(chunks):
