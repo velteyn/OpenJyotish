@@ -27,7 +27,13 @@ from jhora.ai.analysis import (
 from jhora.interpreter.knowledge_base import KnowledgeBase
 
 
-SYSTEM_PROMPT = """You are a Vedic astrologer (Parasara school). Be precise, cite data provided, avoid generalities. Use Sanskrit terms with brief English."""
+SYSTEM_PROMPT = """You are a Vedic astrologer (Parasara school). Be precise, cite data provided, avoid generalities. Use Sanskrit terms with brief English.
+
+FORMAT: Output in simple HTML for display. Use <b>bold</b> for planet names and important terms.
+Use <br> for line breaks between paragraphs. No LaTeX, no $ signs, no Markdown.
+
+Example: "The <b>Lagna</b> is <b>Libra</b>, ruled by <b>Venus</b>.<br><br><b>Sun</b> is in <b>Aquarius</b> with <b>Mercury</b>."
+"""
 
 
 def _fmt_planet(g: Graha, cd: ChartData) -> str:
