@@ -184,9 +184,14 @@ def build_analysis_text(cd: ChartData) -> str:
     sections = []
     for title, fn in [
         ("STRENGTHS", lambda: strengths_snapshot(cd)),
+        ("VIMSOPAKA BALA", lambda: _vimsopaka_snapshot(cd)),
         ("YOGAS", lambda: yogas_snapshot(cd)),
         ("DASA PERIODS", lambda: dasa_snapshot(cd)),
         ("TRANSITS", lambda: transit_snapshot(cd)),
+        ("ASHTAKAVARGA", lambda: _ashtakavarga_snapshot(cd)),
+        ("CHALIT SHIFTS", lambda: _chalit_snapshot(cd)),
+        ("SPECIAL POINTS", lambda: _special_points_snapshot(cd)),
+        ("LEARNING", lambda: _learning_snapshot(cd)),
     ]:
         try:
             text = fn()
@@ -196,3 +201,105 @@ def build_analysis_text(cd: ChartData) -> str:
             pass
 
     return "\n\n".join(sections) if sections else ""
+
+
+def _vimsopaka_snapshot(cd: ChartData) -> str:
+    from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
+    vc = VimsopakaComputer(cd)
+    lines = ["Vimsopaka Bala (Shadvarga, 20-point scale):"]
+    for r in sorted(vc.compute_all(VimsopakaScheme.SHADVARGA), key=lambda x: x.total, reverse=True):
+        lines.append(f"  {r.graha.full_name}: {r.total:.1f}/20 ({r.percentage:.0f}%)")
+    return "\n".join(lines)
+
+
+def _ashtakavarga_snapshot(cd: ChartData) -> str:
+    from jhora.calc.ashtakavarga import sarva_ashtakavarga
+    from jhora.types.rasi import Rasi
+    sav = sarva_ashtakavarga(cd)
+    lines = ["Ashtakavarga SAV (total bindus in each sign):"]
+    for i in range(12):
+        lines.append(f"  {Rasi(i).short_name}: {int(sav[i])}")
+    lines.append(f"  Total SAV: {int(sum(sav))}")
+    return "\n".join(lines)
+
+
+def _chalit_snapshot(cd: ChartData) -> str:
+    from jhora.calc.chalit import ChalitComputer
+    cc = ChalitComputer(cd)
+    cr = cc.compute()
+    moved = cr.moved_planets
+    if not moved:
+        return "Chalit: No planets shifted houses."
+    lines = ["Chalit (cusp-based) shifts from whole-sign houses:"]
+    for e in moved:
+        lines.append(f"  {e.graha.full_name}: House {e.sign_house} → {e.cusp_house} (sign: {e.sign})")
+    return "\n".join(lines)
+
+
+def _special_points_snapshot(cd: ChartData) -> str:
+    from jhora.calc.upagraha import compute_solar_upagrahas
+    from jhora.calc.special_lagnas import compute_special_lagnas
+    from jhora.calc.karaka import compute_chara_karakas
+    from jhora.types.graha import Graha
+
+    lines = []
+    # Upagrahas
+    sun_lon = cd.planet(Graha.SUN).longitude
+    upas = compute_solar_upagrahas(sun_lon)
+    lines.append("Upagrahas (shadow planets):")
+    for u in upas:
+        lines.append(f"  {u.name}: {u.rasi} {u.longitude:.1f}°")
+
+    # Special lagnas
+    sl = compute_special_lagnas(cd)
+    lines.append("Special Lagnas:")
+    for s in sl:
+        lines.append(f"  {s.name}: {s.sign} {s.longitude:.1f}°")
+
+    # Karakas
+    planets = {g: {"longitude": p.longitude} for g, p in cd.planets.items()}
+    cks = compute_chara_karakas(planets)
+    lines.append("Chara Karakas:")
+    for ck in cks:
+        lines.append(f"  {ck.short_name} ({ck.full_name}): {ck.graha.short_name}")
+
+    return "\n".join(lines)
+
+
+def _learning_snapshot(cd: ChartData) -> str:
+    from jhora.calc.learning import marana_karaka_sthana, vaiseshikamsas, ishta_kashta_phala
+    from jhora.calc.special_lagnas import kp_sublord_string
+    from jhora.types.graha import Graha
+
+    lines = []
+    # Marana karaka
+    mk = marana_karaka_sthana(cd)
+    if mk:
+        lines.append("Marana Karaka (weakened planets):")
+        for m in mk:
+            lines.append(f"  {m['graha']} in house {m['house']} ({m['sign']}) — weakened")
+
+    # Vaiseshikamsas
+    va = vaiseshikamsas(cd)
+    if va:
+        lines.append("Vaiseshikamsa ranks:")
+        for v in va:
+            if v["rank"] != "None":
+                lines.append(f"  {v['graha']}: {v['rank']} ({v['score']:.1f}/20)")
+
+    # Ishta/Kashta
+    ik = ishta_kashta_phala(cd)
+    if ik:
+        lines.append("Ishta/Kashta Phala (beneficence/difficulty):")
+        for r in ik:
+            lines.append(f"  {r['graha']}: Ishta={r['ishta']:.0f} Kashta={r['kashta']:.0f}")
+
+    # KP sub-lords
+    lines.append("KP Sub-Lords:")
+    for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+              Graha.JUPITER, Graha.VENUS, Graha.SATURN]:
+        if g in cd.planets:
+            chain = kp_sublord_string(cd.planet(g).longitude, 3)
+            lines.append(f"  {g.short_name}: {chain}")
+
+    return "\n".join(lines)
