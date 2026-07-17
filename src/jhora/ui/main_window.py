@@ -2067,39 +2067,21 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        # Provider config row
-        cfg = QHBoxLayout()
-        cfg.addWidget(QLabel("Provider:"))
-        self.ai_provider = QComboBox()
-        self.ai_provider.addItems(list(PROVIDERS.keys()))
-        self.ai_provider.setCurrentText("ollama")
-        self.ai_provider.currentTextChanged.connect(self._on_ai_provider_changed)
-        cfg.addWidget(self.ai_provider)
-
-        cfg.addWidget(QLabel("Model:"))
-        self.ai_model = QLineEdit("llama3.2")
-        self.ai_model.setFixedWidth(140)
-        cfg.addWidget(self.ai_model)
-
-        self.ai_check_btn = QPushButton("Check")
-        self.ai_check_btn.setFixedWidth(100)
-        self.ai_check_btn.clicked.connect(self._on_ai_health_check)
-        cfg.addWidget(self.ai_check_btn)
-
-        self.ai_status = QLabel("")
-        self.ai_status.setStyleSheet("color: #888888;")
-        cfg.addWidget(self.ai_status)
-        cfg.addStretch()
-        layout.addLayout(cfg)
+        # Status bar (reads from Settings tab)
+        self.ai_chat_status = QLabel("AI not connected — configure in Settings tab")
+        self.ai_chat_status.setStyleSheet("color:#ff6666;font-size:12px;padding:4px;")
+        layout.addWidget(self.ai_chat_status)
 
         # Action buttons
         btn_row = QHBoxLayout()
         self.ai_interpret_btn = QPushButton("Interpret Chart")
         self.ai_interpret_btn.clicked.connect(lambda: self._on_ai_action("interpret"))
+        self.ai_interpret_btn.setEnabled(False)
         btn_row.addWidget(self.ai_interpret_btn)
 
         self.ai_remedy_btn = QPushButton("Suggest Remedies")
         self.ai_remedy_btn.clicked.connect(lambda: self._on_ai_action("remedies"))
+        self.ai_remedy_btn.setEnabled(False)
         btn_row.addWidget(self.ai_remedy_btn)
 
         self.ai_style = QComboBox()
@@ -2141,10 +2123,11 @@ class MainWindow(QMainWindow):
         return w
 
     def _get_ai_engine(self) -> AiEngine:
+        provider = self.ai_settings_provider.currentText() if hasattr(self, 'ai_settings_provider') else "ollama"
+        model = self.ai_settings_model.text().strip() if hasattr(self, 'ai_settings_model') else ""
         config = AiConfig(
-            provider=self.ai_provider.currentText(),
-            model=self.ai_model.text().strip(),
-            base_url=PROVIDERS.get(self.ai_provider.currentText(), {}).get("base_url", ""),
+            provider=provider, model=model,
+            base_url=PROVIDERS.get(provider, {}).get("base_url", ""),
         )
         return AiEngine(config)
 
@@ -2370,25 +2353,37 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
-        # Status section
-        status_group = QGroupBox("AI Server Status")
-        status_group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
-        sl = QVBoxLayout(status_group)
+        # Provider config
+        cfg_group = QGroupBox("AI Provider Configuration")
+        cfg_group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
+        cl = QVBoxLayout(cfg_group)
 
-        self.ai_settings_status = QLabel("Checking...")
-        self.ai_settings_status.setStyleSheet("font-size:14px;color:#e0e0e0;")
-        sl.addWidget(self.ai_settings_status)
+        cr = QHBoxLayout()
+        cr.addWidget(QLabel("Provider:"))
+        self.ai_settings_provider = QComboBox()
+        self.ai_settings_provider.addItems(list(PROVIDERS.keys()))
+        self.ai_settings_provider.setCurrentText("lmstudio")
+        self.ai_settings_provider.currentTextChanged.connect(self._on_ai_settings_provider_changed)
+        cr.addWidget(self.ai_settings_provider)
 
-        check_row = QHBoxLayout()
-        self.ai_settings_check = QPushButton("Check Connection")
+        cr.addWidget(QLabel("Model:"))
+        self.ai_settings_model = QLineEdit("")
+        self.ai_settings_model.setMaximumWidth(200)
+        cr.addWidget(self.ai_settings_model)
+
+        self.ai_settings_check = QPushButton("Test Connection")
         self.ai_settings_check.clicked.connect(self._on_ai_settings_check)
-        check_row.addWidget(self.ai_settings_check)
-        check_row.addStretch()
-        sl.addLayout(check_row)
-        layout.addWidget(status_group)
+        cr.addWidget(self.ai_settings_check)
+        cr.addStretch()
+        cl.addLayout(cr)
+
+        self.ai_settings_status = QLabel("Not tested")
+        self.ai_settings_status.setStyleSheet("font-size:13px;color:#888;padding:4px;")
+        cl.addWidget(self.ai_settings_status)
+        layout.addWidget(cfg_group)
 
         # Vector DB section
-        vdb_group = QGroupBox("Vector Database (Semantic Search)")
+        vdb_group = QGroupBox("Vector Database")
         vdb_group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
         vl = QVBoxLayout(vdb_group)
 
@@ -2399,72 +2394,99 @@ class MainWindow(QMainWindow):
         vbtn_row = QHBoxLayout()
         self.ai_vdb_build = QPushButton("Build Vector DB")
         self.ai_vdb_build.setToolTip(
-            "Chunks 16 textbooks and generates embeddings via Ollama/LM Studio.\n"
-            "Requires embedding model (nomic-embed-text) loaded in the AI server."
+            "Chunks 16 textbooks and generates embeddings.\n"
+            "Requires AI provider connected and tested."
         )
         self.ai_vdb_build.clicked.connect(self._on_ai_vdb_build)
+        self.ai_vdb_build.setEnabled(False)
         vbtn_row.addWidget(self.ai_vdb_build)
 
-        self.ai_vdb_rebuild = QPushButton("Rebuild (Clear + Recreate)")
+        self.ai_vdb_rebuild = QPushButton("Rebuild")
         self.ai_vdb_rebuild.clicked.connect(self._on_ai_vdb_rebuild)
+        self.ai_vdb_rebuild.setEnabled(False)
         vbtn_row.addWidget(self.ai_vdb_rebuild)
         vbtn_row.addStretch()
         vl.addLayout(vbtn_row)
 
         self.ai_vdb_progress = QTextEdit()
         self.ai_vdb_progress.setReadOnly(True)
-        self.ai_vdb_progress.setMaximumHeight(200)
+        self.ai_vdb_progress.setMaximumHeight(250)
         self.ai_vdb_progress.setStyleSheet(
-            "QTextEdit{background:#0d1b2a;color:#888;font-size:11px;"
+            "QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;"
             "border:1px solid #2a3f5f;padding:6px;}"
         )
         vl.addWidget(self.ai_vdb_progress)
         layout.addWidget(vdb_group)
-
-        # Model section — reads from AI Chat tab
-        model_group = QGroupBox("Active Provider")
-        model_group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
-        ml = QVBoxLayout(model_group)
-        self.ai_settings_active = QLabel("Configure in AI Chat tab")
-        self.ai_settings_active.setStyleSheet("color:#e0e0e0;font-size:13px;")
-        ml.addWidget(self.ai_settings_active)
-        layout.addWidget(model_group)
-
         layout.addStretch()
 
-        # Auto-check on tab open
-        self._on_ai_settings_check()
+        # Initialize
+        self._on_ai_settings_provider_changed("lmstudio")
         self._on_ai_vdb_status()
         return w
 
+    def _on_ai_settings_provider_changed(self, provider: str):
+        preset = PROVIDERS.get(provider, {})
+        self.ai_settings_model.setText(preset.get("default_model", ""))
+
     def _on_ai_settings_check(self):
         self.ai_settings_check.setEnabled(False)
-        self.ai_settings_status.setText("Checking...")
-
-        # Read provider from AI Chat tab
-        provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "ollama"
-        model = self.ai_model.text().strip() if hasattr(self, 'ai_model') else ""
+        self.ai_settings_status.setText("Testing connection...")
+        provider = self.ai_settings_provider.currentText()
+        model = self.ai_settings_model.text().strip()
+        base_url = PROVIDERS.get(provider, {}).get("base_url", "http://localhost:11434/v1")
 
         import requests
         results = []
-        for name, url in [("Ollama", "http://localhost:11434/api/tags"),
-                          ("LM Studio", "http://localhost:1234/v1/models")]:
+        connected = False
+
+        for name, url, path in [
+            ("Ollama", "http://localhost:11434", "/api/tags"),
+            ("LM Studio", "http://localhost:1234", "/v1/models"),
+        ]:
             try:
-                r = requests.get(url, timeout=3)
+                r = requests.get(f"{url}{path}", timeout=3)
                 if r.status_code == 200:
                     data = r.json()
                     models = data if isinstance(data, list) else data.get("data", [])
                     ids = [m.get("id", m.get("name", "?")) for m in models[:5]]
-                    results.append(f"[GREEN] {name}: ONLINE — {len(models)} models")
+                    results.append(f"  {name}: ONLINE — {len(models)} models loaded")
+                    if provider.lower() in name.lower() or provider == "auto":
+                        connected = True
                 else:
-                    results.append(f"[RED] {name}: HTTP {r.status_code}")
+                    results.append(f"  {name}: HTTP {r.status_code}")
             except Exception:
-                results.append(f"[RED] {name}: offline")
+                results.append(f"  {name}: offline")
 
-        self.ai_settings_status.setText("\n".join(results))
-        self.ai_settings_active.setText(
-            f"Provider: {provider} | Model: {model or '(default)'}"
-        )
+        status_text = f"Provider: {provider} | Model: {model or '(default)'}\n\n" + "\n".join(results)
+        self.ai_settings_status.setText(status_text)
+
+        # Enable/disable everything based on connection
+        if connected:
+            self.ai_settings_status.setStyleSheet("font-size:13px;color:#66bb6a;padding:4px;")
+            self.ai_vdb_build.setEnabled(True)
+            self.ai_vdb_rebuild.setEnabled(True)
+            # Also enable AI Chat + AI Teacher buttons
+            if hasattr(self, 'ai_interpret_btn'):
+                self.ai_interpret_btn.setEnabled(True)
+                self.ai_remedy_btn.setEnabled(True)
+                self.ai_ask_btn.setEnabled(True)
+                self.ai_chat_status.setText(f"AI connected: {provider} / {model or '(default)'}")
+                self.ai_chat_status.setStyleSheet("color:#66bb6a;font-size:12px;padding:4px;")
+            if hasattr(self, 'teach_btn'):
+                self.teach_btn.setEnabled(True)
+        else:
+            self.ai_settings_status.setStyleSheet("font-size:13px;color:#ff6666;padding:4px;")
+            if hasattr(self, 'ai_interpret_btn'):
+                self.ai_interpret_btn.setEnabled(False)
+                self.ai_remedy_btn.setEnabled(False)
+                self.ai_ask_btn.setEnabled(False)
+                self.ai_chat_status.setText("AI not connected — run Test Connection in Settings tab")
+                self.ai_chat_status.setStyleSheet("color:#ff6666;font-size:12px;padding:4px;")
+            if hasattr(self, 'teach_btn'):
+                self.teach_btn.setEnabled(False)
+            self.ai_vdb_build.setEnabled(False)
+            self.ai_vdb_rebuild.setEnabled(False)
+
         self.ai_settings_check.setEnabled(True)
 
     def _on_ai_vdb_status(self):
@@ -2487,11 +2509,12 @@ class MainWindow(QMainWindow):
 
     def _on_ai_vdb_build(self):
         self.ai_vdb_progress.clear()
-        self.ai_vdb_progress.append("Building vector database...\n")
         self.ai_vdb_build.setEnabled(False)
         self.ai_vdb_rebuild.setEnabled(False)
 
-        provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "auto"
+        provider = self.ai_settings_provider.currentText() if hasattr(self, 'ai_settings_provider') else "auto"
+        self.ai_vdb_progress.append(f"Provider: {provider}")
+        self.ai_vdb_progress.append(f"Starting build (batch=5, throttle=1s)...\n")
         self._vdb_worker = _VdbWorker(provider, rebuild=False)
         self._vdb_worker.progress.connect(self._on_vdb_progress)
         self._vdb_worker.done.connect(self._on_vdb_done)
@@ -2503,11 +2526,11 @@ class MainWindow(QMainWindow):
         db.execute("DELETE FROM textbook_chunks")
         db.commit()
         self.ai_vdb_progress.clear()
-        self.ai_vdb_progress.append("Cleared. Building from scratch...\n")
+        self.ai_vdb_progress.append("Cleared. Rebuilding from scratch...\n")
         self.ai_vdb_build.setEnabled(False)
         self.ai_vdb_rebuild.setEnabled(False)
 
-        provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "auto"
+        provider = self.ai_settings_provider.currentText() if hasattr(self, 'ai_settings_provider') else "auto"
         self._vdb_worker = _VdbWorker(provider, rebuild=True)
         self._vdb_worker.progress.connect(self._on_vdb_progress)
         self._vdb_worker.done.connect(self._on_vdb_done)
@@ -3347,19 +3370,32 @@ class _VdbWorker(QThread):
                 self.done.emit(False)
                 return
 
-            self.progress.emit("Chunking textbooks (batch of 10, 500ms pause)...")
+            self.progress.emit(f"  Embedding model: {store._detect_embedding_model()}")
+            self.progress.emit("")
+            self.progress.emit("Starting (batch=5, throttle=1s, gc each source)...")
+            self.progress.emit("16 textbooks → ~3500 chunks → ~700 batches")
+            self.progress.emit("Estimated: 5-10 minutes")
             self.progress.emit("")
 
+            import gc, time
             def _cb(name, done_chunks, total_chunks):
-                self.progress.emit(f"  {name[:35]:<35} {done_chunks}/{total_chunks}")
+                self.progress.emit(f"  {name[:40]:<40} {done_chunks}/{total_chunks}")
+                gc.collect()
 
-            count = store.build(batch_size=10, throttle_ms=500, progress_cb=_cb)
+            t0 = time.time()
+            count = store.build(batch_size=5, throttle_ms=1000, progress_cb=_cb)
+            elapsed = time.time() - t0
+
             self.progress.emit("")
-            self.progress.emit(f"Done: {count} chunks with embeddings — vector DB ready")
+            self.progress.emit(f"DONE: {count} chunks in {elapsed:.0f}s ({elapsed/60:.1f} min)")
+            self.progress.emit("Vector database ready for semantic search.")
+            gc.collect()
             self.done.emit(True)
         except Exception as e:
             self.progress.emit(f"ERROR: {e}")
-            self.done.emit(False)
+            import traceback
+            self.progress.emit(traceback.format_exc()[-300:])
+            import gc; gc.collect()
 
 
 class _AiWorker(QThread):
