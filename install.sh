@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Jagannatha Hora — fully automatic installer
+# OpenJyotish — fully automatic installer
 # Handles: missing python3-venv, PEP 668, virtualenv fallback, DB init
 set -e
 
@@ -9,7 +9,7 @@ warn() { echo -e "${YELLOW}⚠${NC} $1"; }
 die() { echo -e "${RED}✗ $1${NC}"; exit 1; }
 
 echo "========================================"
-echo " Jagannatha Hora — Installer"
+echo " OpenJyotish — Installer"
 echo "========================================"
 echo
 echo "Cleaning cache..."

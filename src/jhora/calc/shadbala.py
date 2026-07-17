@@ -11,7 +11,7 @@ Components:
 References:
   - Brihat Parasara Hora Sastra, Chapters 9-10
   - "Graha and Bhava Balas" by Dr. B.V. Raman
-  - Original JHora 8.0 binary (function 0x0045d1e0)
+  - Original Vedic astrology binary (function 0x0045d1e0)
 """
 
 import math

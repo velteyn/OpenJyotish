@@ -60,7 +60,7 @@ def test_samples_with_planets(samples, builder):
                 f"{s['name']}: {label} expected={expected:.4f} actual={actual:.4f} "
                 f"diff={diff:.4f}°"
             )
-        # Ketu: JHD stored values don't match Mean Node + 180° (likely original JHora
+        # Ketu: JHD stored values don't match Mean Node + 180° (likely classical Vedic
         # used a different ephemeris for nodes). Skipping comparison — our computation
         # follows standard Vedic definition (Mean Node + 180°).
 

@@ -1,8 +1,4 @@
 # Binaries from original JHora distribution
-jhora.exe
-swedll32.dll
-jhora.hlp
-jhora.cnt
 jhcore/
 
 # Reverse-engineering artifacts (no longer needed)

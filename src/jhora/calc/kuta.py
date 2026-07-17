@@ -2,11 +2,11 @@
 
 Supports two scoring systems:
   1. 10 Porutham (19 points) — standard South Indian matchmaking
-  2. Ashta Koota (36 points, 8 factors) — original JHora binary system
+  2. Ashta Koota (36 points, 8 factors) — classical Vedic binary system
 
 References:
   - "Vedic Astrology: An Integrated Approach" by P.V.R. Narasimha Rao
-  - Original JHora 8.0 binary (Ashta Koota: format string at 0x591a3c,
+  - Original Vedic astrology binary (Ashta Koota: format string at 0x591a3c,
     score table lookup at function_4b3b10)
   - "The 10 Poruthams" — standard South Indian matchmaking
 """
@@ -58,7 +58,7 @@ _GUNANKA_LEVELS: List[Tuple[int, int, str]] = [
 def gunanka_level(score: float) -> str:
     """Categorize Ashta Koota Gunanka score into qualitative level.
 
-    Matches the original JHora binary format string:
+    Matches the classical Vedic binary format string:
     'Gunanka score after matching ashta koota (group of eight factors)
      = %d (out of 36).'
     """
@@ -540,7 +540,7 @@ def _check_mahendra(girl_nak: Nakshatra, boy_nak: Nakshatra) -> Porutham:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Ashta Koota (8 factors, 36 points) — used by original JHora binary
+# Ashta Koota (8 factors, 36 points) — used by classical Vedic binary
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _ak_check_varna(girl_rasi: Rasi, boy_rasi: Rasi) -> Porutham:

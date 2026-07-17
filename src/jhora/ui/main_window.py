@@ -102,7 +102,7 @@ class MainWindow(QMainWindow):
         self._create_menu_bar()
 
     def _init_ui(self):
-        self.setWindowTitle("Jagannatha Hora — Vedic Astrology")
+        self.setWindowTitle("OpenJyotish — Vedic Astrology")
         self.setMinimumSize(1100, 760)
         self.setStyleSheet(STYLE)
 
@@ -451,7 +451,7 @@ class MainWindow(QMainWindow):
         if data.city:
             self.city_input.setText(data.city)
         self.current_file = filepath
-        self.setWindowTitle(f"Jagannatha Hora — {data.name}")
+        self.setWindowTitle(f"OpenJyotish — {data.name}")
         if filepath:
             self.statusBar().showMessage(f"Opened: {filepath}")
 
@@ -473,7 +473,7 @@ class MainWindow(QMainWindow):
                 latitude=lat, longitude=-lon,
                 city=city,
             )
-            self.setWindowTitle(f"Jagannatha Hora — {name}")
+            self.setWindowTitle(f"OpenJyotish — {name}")
             self.statusBar().showMessage(f"Saved to database (ID: {chart_id})")
         except Exception as e:
             QMessageBox.warning(self, "Save Error", f"Could not save:\n{e}")
@@ -2381,7 +2381,7 @@ class MainWindow(QMainWindow):
                 self.lon_input.setText(f"{-data['longitude']:.4f}")
                 if data.get("city"):
                     self.city_input.setText(data["city"])
-                self.setWindowTitle(f"Jagannatha Hora — {data['name']}")
+                self.setWindowTitle(f"OpenJyotish — {data['name']}")
                 dialog.accept()
 
         def _delete():

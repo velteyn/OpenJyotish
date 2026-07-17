@@ -1,7 +1,7 @@
 """
 SweEngine — central Swiss Ephemeris wrapper.
 
-Wraps all 18 SE API functions used by the original JHora binary.
+Wraps all 18 SE API functions used by the classical Vedic binary.
 Caches recent calculations for performance.
 """
 
