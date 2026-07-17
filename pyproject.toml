@@ -25,8 +25,8 @@ classifiers = [
 ]
 dependencies = [
     "PyQt6>=6.5",
-    "pyswisseph>=2.10.3.2",
-    "typer>=0.9",
+    "pyswisseph>=2.10",
+    "typer>=0.27.0",
     "rich>=13.0",
     "requests>=2.28",
     "prompt_toolkit>=3.0",
