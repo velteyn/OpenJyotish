@@ -179,14 +179,15 @@ class EmbeddingStore:
         """)
         self.db.commit()
 
-    def build(self, batch_size: int = 10, throttle_ms: int = 300,
+    def build(self, batch_size: int = 10, throttle_ms: int = 500,
               progress_cb=None) -> int:
         """Chunk all books, embed in batches, store in DB.
 
         Args:
-            batch_size: texts per API call (default 10, reduces HTTP calls 10x)
-            throttle_ms: delay between batches (prevents CPU/network flood)
+            batch_size: texts per API call (default 10)
+            throttle_ms: delay between batches (default 500ms)
             progress_cb: callback(source_name, chunks_done, total_chunks)
+                         called at most once per source (not per batch)
         """
         import time
         count = self.db.execute("SELECT COUNT(*) FROM textbook_chunks").fetchone()[0]
@@ -221,12 +222,21 @@ class EmbeddingStore:
                     )
                     total += 1
 
-                self.db.commit()
-                if progress_cb:
-                    progress_cb(name, batch_start + len(batch), len(chunks))
-                time.sleep(throttle_ms / 1000.0)
+                # Commit and WAL checkpoint every 50 chunks
+                if total % 50 == 0:
+                    self.db.commit()
+                    self.db.execute("PRAGMA wal_checkpoint(PASSIVE)")
+
+                # Throttle between batches
+                if batch_start + batch_size < len(chunks):
+                    time.sleep(throttle_ms / 1000.0)
+
+            # Progress only once per source (not per batch)
+            if progress_cb:
+                progress_cb(name, len(chunks), len(chunks))
 
         self.db.commit()
+        self.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         print(f"\n  Done: {total} chunks stored")
         return total
         return total
