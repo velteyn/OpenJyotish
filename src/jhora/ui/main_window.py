@@ -2206,8 +2206,24 @@ class MainWindow(QMainWindow):
     def _on_ai_token(self, text: str):
         cursor = self.ai_output.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)
-        cursor.insertText(text)
+        cursor.insertHtml(text)
         self.ai_output.ensureCursorVisible()
+
+    @staticmethod
+    def _clean_latex(text: str) -> str:
+        """Strip LaTeX math formatting from LLM output for QTextEdit display."""
+        import re
+        # $\text{Li}$ → Li, $\text{Su}$ → Su, etc.
+        text = re.sub(r'\$\\text\{(\w+)\}\$', r'\1', text)
+        # $...$ inline math → plain text
+        text = re.sub(r'\$(.+?)\$', r'\1', text)
+        # $$...$$ display math → plain text
+        text = re.sub(r'\$\$(.+?)\$\$', r'\1', text)
+        # \textbf{...} → <b>...</b>
+        text = re.sub(r'\\textbf\{([^}]+)\}', r'<b>\1</b>', text)
+        # \textit{...} → <i>...</i>
+        text = re.sub(r'\\textit\{([^}]+)\}', r'<i>\1</i>', text)
+        return text
 
     def _on_ai_done(self):
         self.ai_output.append("\n\n[done]")
