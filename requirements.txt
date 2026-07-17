@@ -1,5 +1,5 @@
 PyQt6>=6.5
-pyswisseph>=2.10
+pyswisseph>=2.10.3.2
 typer>=0.9
 rich>=13.0
 requests>=2.28
