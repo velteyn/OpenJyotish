@@ -2206,11 +2206,28 @@ class MainWindow(QMainWindow):
 
     def _on_ai_token(self, text: str):
         self._ai_buffer = getattr(self, '_ai_buffer', '') + text
-        self.ai_output.setHtml(self._ai_buffer)
-        # Scroll to bottom
+        self.ai_output.setHtml(_format_plain(self._ai_buffer))
         self.ai_output.verticalScrollBar().setValue(
             self.ai_output.verticalScrollBar().maximum()
         )
+
+    @staticmethod
+    def _format_plain(text: str) -> str:
+        """Convert plain LLM output to displayable HTML."""
+        import re
+        # Escape any existing HTML
+        text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        # **bold** → <b>bold</b>
+        text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+        # Blank line → paragraph break
+        text = text.replace("\n\n", "<br><br>")
+        # Newline → <br>
+        text = text.replace("\n", "<br>")
+        # Remove broken tag fragments from LLM (like >b>)
+        text = re.sub(r'&gt;b&gt;', '', text)
+        text = re.sub(r'&gt;/b&gt;', '', text)
+        text = re.sub(r'&gt;p&gt;', '<br>', text)
+        return text
 
     @staticmethod
     def _clean_latex(text: str) -> str:
@@ -2340,7 +2357,7 @@ class MainWindow(QMainWindow):
 
     def _on_teach_token(self, text: str):
         self._teach_buffer = getattr(self, '_teach_buffer', '') + text
-        self.teach_output.setHtml(self._teach_buffer)
+        self.teach_output.setHtml(MainWindow._format_plain(self._teach_buffer))
         self.teach_output.verticalScrollBar().setValue(
             self.teach_output.verticalScrollBar().maximum()
         )
