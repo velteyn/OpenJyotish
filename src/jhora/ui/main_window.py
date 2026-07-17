@@ -2170,6 +2170,7 @@ class MainWindow(QMainWindow):
         style = self.ai_style.currentText()
         topic = self.ai_topic.currentText()
         self.ai_output.clear()
+        self._ai_buffer = ""
         self.ai_output.append(f"[Generating {mode} with {self.ai_provider.currentText()}/{self.ai_model.text()}...]\n")
         self._set_ai_buttons_enabled(False)
 
@@ -2204,10 +2205,12 @@ class MainWindow(QMainWindow):
         self._ai_worker.start()
 
     def _on_ai_token(self, text: str):
-        cursor = self.ai_output.textCursor()
-        cursor.movePosition(cursor.MoveOperation.End)
-        cursor.insertHtml(text)
-        self.ai_output.ensureCursorVisible()
+        self._ai_buffer = getattr(self, '_ai_buffer', '') + text
+        self.ai_output.setHtml(self._ai_buffer)
+        # Scroll to bottom
+        self.ai_output.verticalScrollBar().setValue(
+            self.ai_output.verticalScrollBar().maximum()
+        )
 
     @staticmethod
     def _clean_latex(text: str) -> str:
@@ -2318,7 +2321,8 @@ class MainWindow(QMainWindow):
         if not question:
             return
         self.teach_output.clear()
-        self.teach_output.append(f"[Guru, {question}]\n")
+        self._teach_buffer = ""
+        self.teach_output.setHtml(f"[Guru, {question}]<br>")
         self.teach_btn.setEnabled(False)
 
         provider = self.teach_provider.currentText()
@@ -2335,10 +2339,11 @@ class MainWindow(QMainWindow):
         self._teacher_worker.start()
 
     def _on_teach_token(self, text: str):
-        cursor = self.teach_output.textCursor()
-        cursor.movePosition(cursor.MoveOperation.End)
-        cursor.insertText(text)
-        self.teach_output.ensureCursorVisible()
+        self._teach_buffer = getattr(self, '_teach_buffer', '') + text
+        self.teach_output.setHtml(self._teach_buffer)
+        self.teach_output.verticalScrollBar().setValue(
+            self.teach_output.verticalScrollBar().maximum()
+        )
 
     # --- Chart Browser ---
 
