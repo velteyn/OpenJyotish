@@ -1,3 +1,3 @@
 """
-Command-line interface for the classical tradition.
+Command-line interface for OpenJyotish.
 """

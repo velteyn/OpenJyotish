@@ -1,8 +1,8 @@
 @echo off
-title the classical tradition - Setup
+title OpenJyotish - Setup
 
 echo ========================================
-echo  the classical tradition - Installer
+echo  OpenJyotish - Installer
 echo ========================================
 echo.
 

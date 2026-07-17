@@ -208,8 +208,7 @@ src/jhora/
 
 ## Credits
 
-Based on **the classical tradition ** by PVR Narasimha Rao (Sri Jagannath Vedic Centre).  
-Clean-room reimplementation — no original source code was used.  
+Based on **OpenJyotish ** by PVR Narasimha Rao (Sri Jagannath Vedic Centre).  
 Atlas data: GeoNames.org (CC BY 4.0).  
 
 ## License

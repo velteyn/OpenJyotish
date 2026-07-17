@@ -1,6 +1,5 @@
 """
-the classical tradition — Vedic astrology calculator
-Reverse engineered from standard Lite (PVR Narasimha Rao / SJVC)
+OpenJyotish — Vedic astrology calculator
 """
 
 __version__ = "1.1.0"
