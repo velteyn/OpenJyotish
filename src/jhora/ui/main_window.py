@@ -2491,18 +2491,11 @@ class MainWindow(QMainWindow):
         self.ai_vdb_build.setEnabled(False)
         self.ai_vdb_rebuild.setEnabled(False)
 
-        try:
-            from jhora.ai.embeddings import EmbeddingStore
-            provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "auto"
-            store = EmbeddingStore(provider=provider)
-            count = store.build()
-            self.ai_vdb_progress.append(f"\nDone: {count} chunks indexed")
-            self._on_ai_vdb_status()
-        except Exception as e:
-            self.ai_vdb_progress.append(f"\nError: {e}")
-
-        self.ai_vdb_build.setEnabled(True)
-        self.ai_vdb_rebuild.setEnabled(True)
+        provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "auto"
+        self._vdb_worker = _VdbWorker(provider, rebuild=False)
+        self._vdb_worker.progress.connect(self._on_vdb_progress)
+        self._vdb_worker.done.connect(self._on_vdb_done)
+        self._vdb_worker.start()
 
     def _on_ai_vdb_rebuild(self):
         from jhora.core.database import get_db
@@ -2510,8 +2503,26 @@ class MainWindow(QMainWindow):
         db.execute("DELETE FROM textbook_chunks")
         db.commit()
         self.ai_vdb_progress.clear()
-        self.ai_vdb_progress.append("Cleared existing chunks. Rebuilding...\n")
-        self._on_ai_vdb_build()
+        self.ai_vdb_progress.append("Cleared. Building from scratch...\n")
+        self.ai_vdb_build.setEnabled(False)
+        self.ai_vdb_rebuild.setEnabled(False)
+
+        provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "auto"
+        self._vdb_worker = _VdbWorker(provider, rebuild=True)
+        self._vdb_worker.progress.connect(self._on_vdb_progress)
+        self._vdb_worker.done.connect(self._on_vdb_done)
+        self._vdb_worker.start()
+
+    def _on_vdb_progress(self, msg: str):
+        self.ai_vdb_progress.append(msg)
+
+    def _on_vdb_done(self, ok: bool):
+        self.ai_vdb_build.setEnabled(True)
+        self.ai_vdb_rebuild.setEnabled(True)
+        if ok:
+            self._on_ai_vdb_status()
+        else:
+            self.ai_vdb_progress.append("\n[FAILED] Check that your AI server is running.")
 
     # --- Chart Browser ---
 
@@ -3313,6 +3324,36 @@ class _TeacherWorker(QThread):
         except Exception as e:
             self.token.emit(str(e))
             self.done.emit()
+
+
+class _VdbWorker(QThread):
+    progress = pyqtSignal(str)
+    done = pyqtSignal(bool)
+
+    def __init__(self, provider: str, rebuild: bool = False):
+        super().__init__()
+        self.provider = provider
+        self.rebuild = rebuild
+
+    def run(self):
+        try:
+            from jhora.ai.embeddings import EmbeddingStore
+            self.progress.emit(f"Provider: {self.provider} — connecting...")
+            store = EmbeddingStore(provider=self.provider)
+            self.progress.emit(f"Detected: {store.provider} at {store.base_url}")
+            if store.provider == "none":
+                self.progress.emit("ERROR: No AI server detected.")
+                self.progress.emit("Start Ollama or LM Studio, then retry.")
+                self.done.emit(False)
+                return
+
+            self.progress.emit("Chunking 16 textbooks...")
+            count = store.build()
+            self.progress.emit(f"\nDone: {count} chunks with embeddings")
+            self.done.emit(True)
+        except Exception as e:
+            self.progress.emit(f"ERROR: {e}")
+            self.done.emit(False)
 
 
 class _AiWorker(QThread):
