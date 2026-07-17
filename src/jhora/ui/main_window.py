@@ -2433,44 +2433,26 @@ class MainWindow(QMainWindow):
         self.ai_settings_status.setText("Testing connection...")
         provider = self.ai_settings_provider.currentText()
         model = self.ai_settings_model.text().strip()
-        base_url = PROVIDERS.get(provider, {}).get("base_url", "http://localhost:11434/v1")
 
-        import requests
-        results = []
-        connected = False
+        # Run in thread to avoid UI freeze
+        self._health_worker = _HealthWorker(provider, model)
+        self._health_worker.result.connect(self._on_health_result)
+        self._health_worker.start()
 
-        for name, url, path in [
-            ("Ollama", "http://localhost:11434", "/api/tags"),
-            ("LM Studio", "http://localhost:1234", "/v1/models"),
-        ]:
-            try:
-                r = requests.get(f"{url}{path}", timeout=3)
-                if r.status_code == 200:
-                    data = r.json()
-                    models = data if isinstance(data, list) else data.get("data", [])
-                    ids = [m.get("id", m.get("name", "?")) for m in models[:5]]
-                    results.append(f"  {name}: ONLINE — {len(models)} models loaded")
-                    if provider.lower() in name.lower() or provider == "auto":
-                        connected = True
-                else:
-                    results.append(f"  {name}: HTTP {r.status_code}")
-            except Exception:
-                results.append(f"  {name}: offline")
+    def _on_health_result(self, data: dict):
+        connected = data["connected"]
+        text = data["text"]
+        self.ai_settings_status.setText(text)
 
-        status_text = f"Provider: {provider} | Model: {model or '(default)'}\n\n" + "\n".join(results)
-        self.ai_settings_status.setText(status_text)
-
-        # Enable/disable everything based on connection
         if connected:
             self.ai_settings_status.setStyleSheet("font-size:13px;color:#66bb6a;padding:4px;")
             self.ai_vdb_build.setEnabled(True)
             self.ai_vdb_rebuild.setEnabled(True)
-            # Also enable AI Chat + AI Teacher buttons
             if hasattr(self, 'ai_interpret_btn'):
                 self.ai_interpret_btn.setEnabled(True)
                 self.ai_remedy_btn.setEnabled(True)
                 self.ai_ask_btn.setEnabled(True)
-                self.ai_chat_status.setText(f"AI connected: {provider} / {model or '(default)'}")
+                self.ai_chat_status.setText(f"Connected: {data['provider']}")
                 self.ai_chat_status.setStyleSheet("color:#66bb6a;font-size:12px;padding:4px;")
             if hasattr(self, 'teach_btn'):
                 self.teach_btn.setEnabled(True)
@@ -2480,7 +2462,7 @@ class MainWindow(QMainWindow):
                 self.ai_interpret_btn.setEnabled(False)
                 self.ai_remedy_btn.setEnabled(False)
                 self.ai_ask_btn.setEnabled(False)
-                self.ai_chat_status.setText("AI not connected — run Test Connection in Settings tab")
+                self.ai_chat_status.setText("Not connected — run Test Connection in Settings")
                 self.ai_chat_status.setStyleSheet("color:#ff6666;font-size:12px;padding:4px;")
             if hasattr(self, 'teach_btn'):
                 self.teach_btn.setEnabled(False)
@@ -3347,6 +3329,40 @@ class _TeacherWorker(QThread):
         except Exception as e:
             self.token.emit(str(e))
             self.done.emit()
+
+
+class _HealthWorker(QThread):
+    result = pyqtSignal(dict)
+
+    def __init__(self, provider: str, model: str):
+        super().__init__()
+        self.provider = provider
+        self.model = model
+
+    def run(self):
+        import requests
+        results = []
+        connected = False
+        for name, url, path in [
+            ("Ollama", "http://localhost:11434", "/api/tags"),
+            ("LM Studio", "http://localhost:1234", "/v1/models"),
+        ]:
+            try:
+                r = requests.get(f"{url}{path}", timeout=3)
+                if r.status_code == 200:
+                    data = r.json()
+                    models = data if isinstance(data, list) else data.get("data", [])
+                    ids = [m.get("id", m.get("name", "?")) for m in models[:5]]
+                    results.append(f"  {name}: ONLINE ({len(models)} models)")
+                    if self.provider.lower() in name.lower():
+                        connected = True
+                else:
+                    results.append(f"  {name}: HTTP {r.status_code}")
+            except Exception:
+                results.append(f"  {name}: offline")
+
+        text = f"Provider: {self.provider} | Model: {self.model or '(default)'}\n\n" + "\n".join(results)
+        self.result.emit({"connected": connected, "text": text, "provider": self.provider})
 
 
 class _VdbWorker(QThread):
