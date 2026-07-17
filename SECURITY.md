@@ -9,10 +9,6 @@
 
 ## Reporting a Vulnerability
 
-**Do not open a public issue.** Instead, email:
-
-📧 **velteyn@gmail.com**
-
 Include:
 - Description of the vulnerability
 - Steps to reproduce
