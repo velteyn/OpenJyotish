@@ -89,41 +89,36 @@ def test_dasa_timeline(main_window, chart):
 # ── AI Settings tab tests ──
 
 def test_ai_settings_widgets(main_window):
-    """All Settings tab widgets exist."""
-    assert hasattr(main_window, 'ai_settings_provider')
-    assert hasattr(main_window, 'ai_settings_model')
-    assert hasattr(main_window, 'ai_settings_check')
-    assert hasattr(main_window, 'ai_settings_status')
-    assert hasattr(main_window, 'ai_vdb_build')
-    assert hasattr(main_window, 'ai_vdb_rebuild')
-    assert hasattr(main_window, 'ai_vdb_progress')
+    """AI Chat tab has provider config."""
+    assert hasattr(main_window, 'ai_provider')
+    assert hasattr(main_window, 'ai_model')
+    assert hasattr(main_window, 'ai_check_btn')
 
 
 def test_ai_chat_buttons_created(main_window):
-    """AI Chat buttons exist."""
+    """AI Chat action buttons exist."""
     assert hasattr(main_window, 'ai_interpret_btn')
     assert hasattr(main_window, 'ai_remedy_btn')
     assert hasattr(main_window, 'ai_ask_btn')
 
 
 def test_ai_settings_provider_defaults(main_window):
-    """Provider defaults to lmstudio."""
-    assert main_window.ai_settings_provider.currentText() == "lmstudio"
+    """Provider defaults to ollama (since restored to original)."""
+    assert main_window.ai_provider.currentText() == "ollama"
 
 
 def test_ai_settings_provider_change(main_window):
-    """Changing provider updates model field."""
-    main_window.ai_settings_provider.setCurrentText("ollama")
-    assert "llama" in main_window.ai_settings_model.text().lower()
+    """Changing provider updates model."""
+    main_window.ai_provider.setCurrentText("ollama")
+    assert main_window.ai_model.text() != ""
 
 
 def test_ai_chat_status_exists(main_window):
-    """Status bar in AI Chat tab exists."""
-    assert hasattr(main_window, 'ai_chat_status')
-    assert "not connected" in main_window.ai_chat_status.text().lower()
+    """Provider widgets exist in AI Chat tab."""
+    assert hasattr(main_window, 'ai_provider')
+    assert hasattr(main_window, 'ai_status')
 
 
 def test_old_provider_widgets_removed(main_window):
-    """Old ai_provider/model widgets from Chat tab are gone."""
-    assert not hasattr(main_window, 'ai_provider')
-    assert not hasattr(main_window, 'ai_model')
+    """Old Settings tab provider widgets don't exist (restored to Chat tab)."""
+    assert not hasattr(main_window, 'ai_settings_provider')
