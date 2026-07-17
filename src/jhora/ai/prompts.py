@@ -29,11 +29,9 @@ from jhora.interpreter.knowledge_base import KnowledgeBase
 
 SYSTEM_PROMPT = """You are a Vedic astrologer (Parasara school). Be precise, cite data provided, avoid generalities. Use Sanskrit terms with brief English.
 
-FORMAT: Output in simple HTML for display. Use <b>bold</b> for planet names and important terms.
-Use <br> for line breaks between paragraphs. No LaTeX, no $ signs, no Markdown.
-
-Example: "The <b>Lagna</b> is <b>Libra</b>, ruled by <b>Venus</b>.<br><br><b>Sun</b> is in <b>Aquarius</b> with <b>Mercury</b>."
-"""
+FORMAT: Plain text only. No HTML tags, no LaTeX, no $ signs, no Markdown.
+Write planet and sign names as normal words: Sun, Moon, Libra, Aquarius.
+Separate sections with blank lines. Keep it clean and readable."""
 
 
 def _fmt_planet(g: Graha, cd: ChartData) -> str:
