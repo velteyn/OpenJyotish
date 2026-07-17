@@ -213,5 +213,5 @@ Atlas data: GeoNames.org (CC BY 4.0).
 
 ## License
 
-**GNU Affero General Public License v3.0** — free forever.  
+**GNU GENERAL PUBLIC LICENSE v3.0** — free forever.  
 Modifications must remain open. Network use counts as distribution.
