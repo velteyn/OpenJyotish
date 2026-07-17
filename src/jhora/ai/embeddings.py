@@ -65,19 +65,44 @@ def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10))
 
 
+def _detect_provider(provider: str, base_url: str) -> tuple:
+    """Auto-detect which LLM server is running."""
+    import requests
+
+    if provider == "auto":
+        # Try Ollama first
+        try:
+            r = requests.get("http://localhost:11434/api/tags", timeout=2)
+            if r.status_code == 200:
+                return ("ollama", "http://localhost:11434")
+        except Exception:
+            pass
+        # Try LM Studio
+        try:
+            r = requests.get("http://localhost:1234/v1/models", timeout=2)
+            if r.status_code == 200:
+                return ("lmstudio", "http://localhost:1234")
+        except Exception:
+            pass
+        # Neither found — fall back to FTS5
+        return ("none", "")
+
+    # Explicit provider
+    urls = {"ollama": "http://localhost:11434",
+            "lmstudio": "http://localhost:1234"}
+    return (provider, base_url or urls.get(provider, "http://localhost:11434"))
+
+
 class EmbeddingStore:
     """Manage chunked textbook storage with vector embeddings.
 
-    Supports Ollama (default) and LM Studio.
+    Auto-detects Ollama or LM Studio. Falls back to FTS5 if neither
+    is running.
     """
 
-    def __init__(self, base_url: str = "http://localhost:11434",
-                 provider: str = "ollama"):
+    def __init__(self, base_url: str = "", provider: str = "auto"):
         self.db = get_db()
-        self.base_url = base_url.rstrip("/")
-        self.provider = provider
-        if provider == "lmstudio" and "11434" in base_url:
-            self.base_url = "http://localhost:1234"
+        self.provider, self.base_url = _detect_provider(provider, base_url)
         self._ensure_tables()
 
     def _ensure_tables(self):
