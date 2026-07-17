@@ -46,8 +46,8 @@ def chart_to_json(cd: ChartData) -> Dict[str, Any]:
     result["meta"] = {
         "birth_date": cd.birth_date.strftime("%Y-%m-%d %H:%M"),
         "julian_day": round(cd.julian_day, 6),
-        "latitude": cd.latitude,
-        "longitude": cd.longitude,
+        "latitude": "[REDACTED]",
+        "longitude": "[REDACTED]",
         "timezone": cd.timezone,
         "ayanamsa": cd.ayanamsa_name,
         "ayanamsa_value": round(cd.ayanamsa_value, 4),
