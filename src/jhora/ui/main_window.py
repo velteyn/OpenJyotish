@@ -2456,18 +2456,28 @@ class MainWindow(QMainWindow):
         text = data["text"]
         self.ai_settings_status.setText(text)
 
+        # Force enable buttons if connected
         if connected:
             self.ai_settings_status.setStyleSheet("font-size:13px;color:#66bb6a;padding:4px;")
             self.ai_vdb_build.setEnabled(True)
+            self.ai_vdb_build.repaint()
             self.ai_vdb_rebuild.setEnabled(True)
+            self.ai_vdb_rebuild.repaint()
             if hasattr(self, 'ai_interpret_btn'):
                 self.ai_interpret_btn.setEnabled(True)
+                self.ai_interpret_btn.repaint()
                 self.ai_remedy_btn.setEnabled(True)
+                self.ai_remedy_btn.repaint()
                 self.ai_ask_btn.setEnabled(True)
+                self.ai_ask_btn.repaint()
                 self.ai_chat_status.setText(f"Connected: {data['provider']}")
                 self.ai_chat_status.setStyleSheet("color:#66bb6a;font-size:12px;padding:4px;")
             if hasattr(self, 'teach_btn'):
                 self.teach_btn.setEnabled(True)
+                self.teach_btn.repaint()
+            # Debug: verify buttons are actually enabled
+            print(f"DEBUG: vdb_build enabled={self.ai_vdb_build.isEnabled()} "
+                  f"interpret={self.ai_interpret_btn.isEnabled() if hasattr(self,'ai_interpret_btn') else 'N/A'}")
         else:
             self.ai_settings_status.setStyleSheet("font-size:13px;color:#ff6666;padding:4px;")
             if hasattr(self, 'ai_interpret_btn'):
@@ -2502,6 +2512,7 @@ class MainWindow(QMainWindow):
             self.ai_vdb_status.setText(f"Status: error — {e}")
 
     def _on_ai_vdb_build(self):
+        print(f"DEBUG: _on_ai_vdb_build called, button enabled={self.ai_vdb_build.isEnabled()}")
         self.ai_vdb_progress.clear()
         self.ai_vdb_build.setEnabled(False)
         self.ai_vdb_rebuild.setEnabled(False)
