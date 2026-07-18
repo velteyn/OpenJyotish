@@ -2067,31 +2067,6 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        # Provider config row
-        cfg = QHBoxLayout()
-        cfg.addWidget(QLabel("Provider:"))
-        self.ai_provider = QComboBox()
-        self.ai_provider.addItems(list(PROVIDERS.keys()))
-        self.ai_provider.setCurrentText("ollama")
-        self.ai_provider.currentTextChanged.connect(self._on_ai_provider_changed)
-        cfg.addWidget(self.ai_provider)
-
-        cfg.addWidget(QLabel("Model:"))
-        self.ai_model = QLineEdit("llama3.2")
-        self.ai_model.setFixedWidth(140)
-        cfg.addWidget(self.ai_model)
-
-        self.ai_check_btn = QPushButton("Check")
-        self.ai_check_btn.setFixedWidth(100)
-        self.ai_check_btn.clicked.connect(self._on_ai_health_check)
-        cfg.addWidget(self.ai_check_btn)
-
-        self.ai_status = QLabel("")
-        self.ai_status.setStyleSheet("color: #888888;")
-        cfg.addWidget(self.ai_status)
-        cfg.addStretch()
-        layout.addLayout(cfg)
-
         # Action buttons
         btn_row = QHBoxLayout()
         self.ai_interpret_btn = QPushButton("Interpret Chart")
@@ -2159,9 +2134,12 @@ class MainWindow(QMainWindow):
         result = engine.health_check()
         if result["ok"]:
             self.ai_status.setText(f"OK — {len(result['models'])} models")
+            self._provider_ok = True
         else:
             self.ai_status.setText(f"Error: {result['error'][:60]}")
+            self._provider_ok = False
         self.ai_check_btn.setEnabled(True)
+        self._on_ai_vdb_status()
 
     # --- AI Settings (Vector DB only — reads provider from AI Chat) ---
 
@@ -2171,9 +2149,30 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
-        info = QLabel("Configure provider/model in AI Chat tab.")
-        info.setStyleSheet("color:#888;font-size:12px;")
-        layout.addWidget(info)
+        # Provider config row
+        cfg = QHBoxLayout()
+        cfg.addWidget(QLabel("Provider:"))
+        self.ai_provider = QComboBox()
+        self.ai_provider.addItems(list(PROVIDERS.keys()))
+        self.ai_provider.setCurrentText("ollama")
+        self.ai_provider.currentTextChanged.connect(self._on_ai_provider_changed)
+        cfg.addWidget(self.ai_provider)
+
+        cfg.addWidget(QLabel("Model:"))
+        self.ai_model = QLineEdit("llama3.2")
+        self.ai_model.setFixedWidth(140)
+        cfg.addWidget(self.ai_model)
+
+        self.ai_check_btn = QPushButton("Check Provider")
+        self.ai_check_btn.setFixedWidth(140)
+        self.ai_check_btn.clicked.connect(self._on_ai_health_check)
+        cfg.addWidget(self.ai_check_btn)
+
+        self.ai_status = QLabel("")
+        self.ai_status.setStyleSheet("color: #888888;")
+        cfg.addWidget(self.ai_status)
+        cfg.addStretch()
+        layout.addLayout(cfg)
 
         group = QGroupBox("Vector Database")
         group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
@@ -2240,14 +2239,29 @@ class MainWindow(QMainWindow):
             db.commit()
             total = db.execute("SELECT COUNT(*) FROM textbook_chunks").fetchone()[0]
             emb = db.execute("SELECT COUNT(*) FROM textbook_chunks WHERE embedding IS NOT NULL").fetchone()[0]
+            
+            provider_ok = getattr(self, '_provider_ok', False)
+            
             if emb > 0:
                 self.ai_vdb_status.setText(f"Built: {total} chunks, {emb} with embeddings — READY")
                 self.ai_vdb_status.setStyleSheet("color:#66bb6a;")
+                self.ai_vdb_build.setEnabled(False)
+                self.ai_vdb_rebuild.setEnabled(provider_ok)
             else:
-                self.ai_vdb_status.setText(f"Not built. Click Build Vector DB after testing connection in AI Chat.")
-                self.ai_vdb_status.setStyleSheet("color:#ff6666;")
+                if not provider_ok:
+                    self.ai_vdb_status.setText("Not built. Please select and check Provider first.")
+                    self.ai_vdb_status.setStyleSheet("color:#ff6666;")
+                else:
+                    self.ai_vdb_status.setText("Not built. Ready to Build Vector DB.")
+                    self.ai_vdb_status.setStyleSheet("color:#e0b050;")
+                self.ai_vdb_build.setEnabled(provider_ok)
+                self.ai_vdb_rebuild.setEnabled(provider_ok)
         except Exception as e:
             self.ai_vdb_status.setText(f"Error: {e}")
+            if hasattr(self, 'ai_vdb_build'):
+                self.ai_vdb_build.setEnabled(False)
+            if hasattr(self, 'ai_vdb_rebuild'):
+                self.ai_vdb_rebuild.setEnabled(False)
 
     def _on_ai_action(self, mode: str):
         cd = self.chart_data
@@ -3222,7 +3236,8 @@ class _VdbWorker(QThread):
         self.provider = provider
 
     def run(self):
-        import gc, time
+        import gc
+        import time
         try:
             from jhora.ai.embeddings import EmbeddingStore
             self.progress.emit(f"Connecting to {self.provider}...")
