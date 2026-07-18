@@ -96,3 +96,50 @@ The vector database uses auto-detection:
 - FTS5 keyword search — always available without any server
 
 Textbooks are pre-loaded in `data/jhora.db` (16 sources, 1.96M chars).
+
+## Lessons Learned — GUI Development Rules
+
+These rules come from multiple failed attempts at fixing the AI Settings tab.
+Violating any of them caused regressions, disabled buttons, memory leaks, or crashes.
+
+### NEVER do these
+
+1. **Never move provider/model config between tabs** — the AI Chat tab owns `ai_provider`,
+   `ai_model`, `ai_check_btn`. Other tabs READ from them, never duplicate them.
+
+2. **Never disable AI buttons based on health check state** — buttons should always be enabled.
+   If the server is down, the action fails gracefully with a message. Disabled buttons
+   create an unsolvable UX puzzle for users.
+
+3. **Never run health checks in a QThread** — the synchronous `requests.get()` is 2-6 seconds.
+   That's acceptable for a one-time manual action. Threads introduce signal delivery
+   issues, race conditions, and stale result problems. Keep it simple.
+
+4. **Never refactor without running integration tests** — `tests/test_gui_populate.py`
+   exists for a reason. It catches widget existence, button state, and attribute errors.
+   If a test fails after refactoring, the refactoring is wrong.
+
+5. **Never add QThread helper classes without testing them** — `_VdbWorker`, `_HealthWorker`,
+   `_TeacherWorker` all use pyqtSignal. These must be tested with `QT_QPA_PLATFORM=offscreen`
+   to verify signals fire and slots execute on the GUI thread.
+
+### Vector DB Build Rules
+
+1. **Always use batches** — 5 texts per request, never one at a time. 4000 individual
+   HTTP calls flood the server and freeze the PC.
+
+2. **Always throttle** — 1000ms between batches. Without this, the network stack and
+   LM Studio become unresponsive.
+
+3. **Always call gc.collect()** after each source — the EmbeddingStore holds large
+   numpy arrays in memory. Without gc, memory grows unboundedly.
+
+4. **Never block the UI thread** — the build runs in `_VdbWorker` QThread. The button
+   starts it, progress signals update the text area, done signal re-enables the button.
+
+### Git Rules
+
+1. **Never push to public before testing** — private repo has ephemeris data for real testing.
+2. **Always clear `__pycache__`** when debugging stale behavior — Python caches old `.pyc`
+   files that persist across git pulls.
+3. **Always commit from the private repo** — the public repo is a mirror, not a workspace.
