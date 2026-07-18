@@ -17,10 +17,16 @@ def download():
     os.makedirs(DEST, exist_ok=True)
     existing = os.listdir(DEST)
     print(f"Downloading {len(FILES)} ephemeris files (planet + moon, 1900-2100)...")
+    needed_set = set(FILES)
+    extras = [f for f in existing if f.endswith(".se1") and f not in needed_set]
+    for f in extras:
+        os.remove(os.path.join(DEST, f))
+    if extras:
+        print(f"Removed {len(extras)} unneeded files (asteroids, fixed stars, etc.)")
     done, skip = 0, 0
     for f in FILES:
         path = os.path.join(DEST, f)
-        if f in existing:
+        if f in existing and f not in extras:
             skip += 1; continue
         try:
             urllib.request.urlretrieve(f"{BASE}/{f}", path)
