@@ -58,6 +58,7 @@ jhora tithi-pravesha "birthdata"
 jhora kuta "girl_birthdata" "boy_birthdata"
 
 # AI interpretation (needs Ollama)
+# Full guide: https://github.com/velteyn/OpenJyotish/wiki/AI-Complete-Guide
 jhora ai "birthdata"
 jhora teach "How do I read my 7th house?" --chart "birthdata"
 
