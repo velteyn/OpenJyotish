@@ -157,3 +157,10 @@ Violating any of them caused regressions, disabled buttons, memory leaks, or cra
 2. **Always clear `__pycache__`** when debugging stale behavior — Python caches old `.pyc`
    files that persist across git pulls.
 3. **Always commit from the private repo** — the public repo is a mirror, not a workspace.
+
+### Wiki Maintenance
+
+- [AI Complete Guide](https://github.com/velteyn/OpenJyotish/wiki/AI-Complete-Guide) —
+  comprehensive manual for AI features (CLI + GUI)
+- Screenshot placeholders exist for 7 GUI screens. Upload to wiki repo's `screenshots/` folder.
+- Update `_Sidebar.md` when adding new wiki pages
