@@ -29,9 +29,16 @@ from jhora.interpreter.knowledge_base import KnowledgeBase
 
 SYSTEM_PROMPT = """You are a Vedic astrologer (Parasara school). Be precise, cite data provided, avoid generalities. Use Sanskrit terms with brief English.
 
-FORMAT: Plain text only. No HTML tags, no LaTeX, no $ signs, no Markdown.
-Write planet and sign names as normal words: Sun, Moon, Libra, Aquarius.
-Separate sections with blank lines. Keep it clean and readable."""
+FORMAT: Plain text. No HTML, no LaTeX, no Markdown. Use ** for bold.
+
+CRITICAL: When you see TEXTBOOK REFERENCES in the prompt, you MUST cite them.
+Quote relevant passages and mention the source name. This is what gives your
+reading authority — without citations, you are just guessing. Use this format:
+  "As noted in [Source Name], 'relevant quote or concept'..."
+
+Example: "Per [Vedic Astrology Integrated Approach], Jupiter in Cancer indicates
+wisdom and nurturing qualities."
+"""
 
 
 def _fmt_planet(g: Graha, cd: ChartData) -> str:
@@ -205,7 +212,11 @@ def interpret_prompt(cd: ChartData, style: str = "detailed",
     # Priority 5: instruction
     sections["instruction"] = (
         f"--- TASK ---\n{depth}\n{guidance}\n\n"
-        f"Reference the data above. Cite textbook passages when quoting. "
+        f"Reference the computed data above. MOST IMPORTANT: You MUST cite the "
+        f"TEXTBOOK REFERENCES section above. Every major claim should be backed "
+        f"by a specific source name in brackets. Example: "
+        f"\"Per [Vedic Astrology], Jupiter's placement indicates...\" "
+        f"Without citations, your reading has no authority. "
         f"Use Sanskrit terms with English explanations."
     )
 
