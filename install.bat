@@ -27,18 +27,13 @@ echo.
 
 echo Checking ephemeris data...
 if not exist jhcore\ephe\sepl_18.se1 (
-    echo Ephemeris data not found. Auto-downloading...
-    if exist download_ephe.sh (
-        bash download_ephe.sh 2>nul
-    )
-    if not exist jhcore\ephe\sepl_18.se1 (
-        python -c "import urllib.request,os;os.makedirs('jhcore/ephe',exist_ok=True);[urllib.request.urlretrieve(f'https://www.astro.com/ftp/swisseph/ephe/{f}','jhcore/ephe/'+f.split('/')[-1]) for f in ['sepl_18.se1','sepl_24.se1','sepl_30.se1','sepl_36.se1','sepl_42.se1','sepl_48.se1','sepl_54.se1','sepl_60.se1','sepl_66.se1','sepl_72.se1','sepl_78.se1','sepl_84.se1','sepl_90.se1','sepl_96.se1','sepl_102.se1','sepl_108.se1','sepl_114.se1','sepl_120.se1','sepl_126.se1','sepl_132.se1','semo_18.se1','semo_24.se1','semo_30.se1','semo_36.se1','semo_42.se1','semo_48.se1','semo_54.se1','semo_60.se1','semo_66.se1','semo_72.se1','semo_78.se1','semo_84.se1','semo_90.se1','semo_96.se1','semo_102.se1','semo_108.se1','semo_114.se1','semo_120.se1','semo_126.se1','semo_132.se1']]" 2>nul
-    )
+    echo Downloading ephemeris data (40 files, ~10MB)...
+    python download_ephe.py
     if exist jhcore\ephe\sepl_18.se1 (
         echo Ephemeris data downloaded.
     ) else (
-        echo WARNING: Could not auto-download ephemeris data.
-        echo Download from: https://www.astro.com/ftp/swisseph/ephe/
+        echo WARNING: Could not auto-download.
+        echo Manual download: https://www.astro.com/ftp/swisseph/ephe/
         echo Place .se1 files in jhcore\ephe\
     )
 ) else (
