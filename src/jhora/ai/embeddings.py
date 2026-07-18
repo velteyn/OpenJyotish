@@ -42,8 +42,18 @@ def _get_embeddings_batch(texts: List[str], base_url: str,
             return [item["embedding"] for item in data["data"]]
         else:
             return data.get("embeddings", [])
-    except Exception:
-        return [None] * len(texts)
+    except Exception as e:
+        err_msg = ""
+        if 'resp' in locals() and hasattr(resp, 'text'):
+            err_msg = f"{resp.status_code} - {resp.text}"
+        else:
+            err_msg = str(e)
+            
+        raise RuntimeError(
+            f"Embedding failed! Make sure a dedicated TEXT EMBEDDING model "
+            f"(like nomic-embed-text) is loaded in your AI server.\n\n"
+            f"Details: {err_msg}"
+        )
 
 
 def _get_embedding(text: str, base_url: str = "http://localhost:11434",
