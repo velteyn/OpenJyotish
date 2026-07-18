@@ -104,8 +104,10 @@ Violating any of them caused regressions, disabled buttons, memory leaks, or cra
 
 ### NEVER do these
 
-1. **Never move provider/model config between tabs** — the AI Chat tab owns `ai_provider`,
-   `ai_model`, `ai_check_btn`. Other tabs READ from them, never duplicate them.
+1. **Never move provider/model config between tabs carelessly** — The AI Settings tab now owns
+   `ai_provider`, `ai_model`, `ai_check_btn`, `ai_status`. Moving these REQUIRES updating
+   ALL references in `_get_ai_engine()`, `_on_ai_health_check()`, `_on_ai_vdb_build()`,
+   `_on_ai_vdb_status()`, and the Teacher tab. Test with `tests/test_gui_populate.py`.
 
 2. **Never disable AI buttons based on health check state** — buttons should always be enabled.
    If the server is down, the action fails gracefully with a message. Disabled buttons
@@ -136,6 +138,18 @@ Violating any of them caused regressions, disabled buttons, memory leaks, or cra
 
 4. **Never block the UI thread** — the build runs in `_VdbWorker` QThread. The button
    starts it, progress signals update the text area, done signal re-enables the button.
+
+### Rich Markup Rules
+
+1. **Use `[bold]`, `[bold yellow]`, `[red]`, `#RRGGBB` in Dashboard text** — the
+   `_to_html()` function in `_populate_dashboard` converts Rich markup to HTML spans.
+   This is the ONLY place that uses this format. QTextEdit uses `setHtml()`.
+
+2. **Dashboard font**: Consolas monospace 15px. Strength bars align perfectly with
+   this font. Don't change it without verifying bar alignment.
+
+3. **AI output uses `self._format_plain()`** — converts `**bold**` to `<b>bold</b>`,
+   strips broken HTML fragments from LLM output.
 
 ### Git Rules
 
