@@ -40,13 +40,13 @@ and place them in `jhcore/ephe/`.
 
 ```bash
 # Get your chart
-jhora chart "1973-03-13 13:55 +0100 45.41 11.88"
+jhora chart "1973-03-14 14:55 +0100 45.41 11.88"
 
 # Everything at a glance (AI-friendly JSON)
-jhora analyze "1973-03-13 13:55 +0100 45.41 11.88"
+jhora analyze "1973-03-14 14:55 +0100 45.41 11.88"
 
 # Current dasa period
-jhora dasa-timeline "1973-03-13 13:55 +0100 45.41 11.88"
+jhora dasa-timeline "1973-03-14 14:55 +0100 45.41 11.88"
 
 # Strengths
 jhora shadbala --bhava --vimsopaka "birthdata"
@@ -70,7 +70,7 @@ jhora teach "How do I read my 7th house?" --chart "birthdata"
 All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 
 ```
-"1973-03-13 13:55 +0100 45.41 11.88"
+"1973-03-14 14:55 +0100 45.41 11.88"
   │         │     │     │      └─ Longitude (E positive)
   │         │     │     └─ Latitude (N positive)  
   │         │     └─ Timezone (+0100 = UTC+1, +0530 = India, -0500 = EST)
