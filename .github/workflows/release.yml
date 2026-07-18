@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PyQt6 pyswisseph typer rich requests "prompt_toolkit>=3.0" numpy
+
+      - name: Build release package
+        run: |
+          python3 -c "
+          import zipfile, os, shutil
+          VERSION = '${{ github.ref_name }}'.lstrip('v')
+
+          RELEASE = f'openjyotish-v{VERSION}-windows'
+          os.makedirs(f'/tmp/{RELEASE}', exist_ok=True)
+
+          # Copy source
+          for item in ['src', 'tests', 'data', 'requirements.txt', 'pyproject.toml',
+                       'install.bat', 'run.bat', 'download_ephe.sh', 'README.md', 'LICENSE']:
+              if os.path.exists(item):
+                  dest = f'/tmp/{RELEASE}/{item}'
+                  if os.path.isdir(item):
+                      shutil.copytree(item, dest, ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+                  else:
+                      shutil.copy2(item, dest)
+
+          # Create launcher
+          with open(f'/tmp/{RELEASE}/OpenJyotish.bat', 'w') as f:
+              f.write('@echo off\r\n')
+              f.write('title OpenJyotish\r\n')
+              f.write('if not exist venv\\ (\r\n')
+              f.write('    echo First run: setting up...\r\n')
+              f.write('    call install.bat\r\n')
+              f.write(')\r\n')
+              f.write('call venv\\Scripts\\activate.bat 2>nul\r\n')
+              f.write('python -m jhora --gui\r\n')
+              f.write('pause\r\n')
+
+          # Create zip
+          zf = zipfile.ZipFile(f'/tmp/{RELEASE}.zip', 'w', zipfile.ZIP_DEFLATED)
+          for root, dirs, files in os.walk(f'/tmp/{RELEASE}'):
+              dirs[:] = [d for d in dirs if d != '__pycache__']
+              for f in files:
+                  path = os.path.join(root, f)
+                  arcname = os.path.relpath(path, '/tmp')
+                  zf.write(path, arcname)
+          zf.close()
+          print(f'Built: /tmp/{RELEASE}.zip')
+          "
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "OpenJyotish ${{ github.ref_name }}"
+          files: /tmp/openjyotish-*.zip
+          generate_release_notes: true
