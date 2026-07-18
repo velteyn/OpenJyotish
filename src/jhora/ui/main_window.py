@@ -2343,17 +2343,10 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        cfg = QHBoxLayout()
-        cfg.addWidget(QLabel("Provider:"))
-        self.teach_provider = QComboBox()
-        self.teach_provider.addItems(["ollama", "lmstudio", "unsloth", "custom"])
-        cfg.addWidget(self.teach_provider)
-        cfg.addWidget(QLabel("Model:"))
-        self.teach_model = QLineEdit("llama3.2")
-        self.teach_model.setFixedWidth(140)
-        cfg.addWidget(self.teach_model)
-        cfg.addStretch()
-        layout.addLayout(cfg)
+        # Status — reads provider from Settings tab
+        self.teach_status = QLabel("Configure provider in AI Settings tab")
+        self.teach_status.setStyleSheet("color:#888;font-size:12px;padding:4px;")
+        layout.addWidget(self.teach_status)
 
         self.teach_input = QLineEdit()
         self.teach_input.setPlaceholderText("Ask the Guru — learn Vedic astrology step by step...")
@@ -2419,8 +2412,8 @@ class MainWindow(QMainWindow):
         self.teach_output.append(f"[Guru, {question}]\n")
         self.teach_btn.setEnabled(False)
 
-        provider = self.teach_provider.currentText()
-        model = self.teach_model.text().strip()
+        provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "ollama"
+        model = self.ai_model.text().strip() if hasattr(self, 'ai_model') else ""
         base_url = {"ollama": "http://localhost:11434/v1",
                      "lmstudio": "http://localhost:1234/v1",
                      "unsloth": "http://localhost:8000/v1"}.get(provider,
