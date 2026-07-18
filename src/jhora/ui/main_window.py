@@ -67,6 +67,7 @@ QPushButton {{ background-color: {BORDER}; color: white; border: none;
 QPushButton:hover {{ background-color: #ff6b6b; }}
 QPushButton:pressed {{ background-color: #c23152; }}
 QPushButton:checked {{ background-color: #00aa5a; }}
+QPushButton:disabled {{ background-color: #4a5a75; color: #a0aabf; }}
 QTableWidget {{ background-color: {BG2}; color: #ffffff; border: 1px solid #0f3460;
                gridline-color: #0f3460; }}
 QTableWidget::item {{ padding: 5px 8px; background-color: {BG2}; }}
@@ -367,7 +368,7 @@ class MainWindow(QMainWindow):
         ai_sub.addTab(self._build_knowledge_tab(), "Knowledge")
         ai_sub.addTab(self._build_interpreter_tab(), "Reading")
         ai_sub.addTab(self._build_ai_settings_tab(), "Settings")
-        self.tabs.addTab(ai_sub, "AI & Learn")
+        self.tabs.addTab(ai_sub, "AI and Learn")
 
         # 8. Tools
         tool_sub = QTabWidget()
@@ -2135,6 +2136,14 @@ class MainWindow(QMainWindow):
         if result["ok"]:
             self.ai_status.setText(f"OK — {len(result['models'])} models")
             self._provider_ok = True
+            
+            # If the provider gives us the actual model name, auto-fill it
+            if result.get("models"):
+                first_model = result["models"][0]
+                current = self.ai_model.text().strip()
+                # If it's just the generic default or empty, overwrite it with the real model ID
+                if current in ["", "loaded", "model", "llama3.2", "unsloth-model"]:
+                    self.ai_model.setText(first_model)
         else:
             self.ai_status.setText(f"Error: {result['error'][:60]}")
             self._provider_ok = False
@@ -2217,7 +2226,11 @@ class MainWindow(QMainWindow):
         self._vdb_worker = _VdbWorker(provider)
         self._vdb_worker.progress.connect(lambda t: self.ai_vdb_progress.append(t))
         self._vdb_worker.done.connect(self._on_vdb_done)
+        self._vdb_worker.error.connect(self._show_vdb_error)
         self._vdb_worker.start()
+
+    def _show_vdb_error(self, msg: str):
+        QMessageBox.critical(self, "Vector DB Error", msg)
 
     def _on_ai_vdb_rebuild(self):
         from jhora.core.database import get_db
@@ -2687,13 +2700,13 @@ class MainWindow(QMainWindow):
         self.dash_now = QTextEdit()
         self.dash_now.setReadOnly(True)
         self.dash_now.setMaximumHeight(300)
-        self.dash_now.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:16px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_now.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-family:Consolas,monospace;font-size:15px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
         left.addWidget(QLabel("RIGHT NOW"))
         left.addWidget(self.dash_now)
 
         self.dash_strengths = QTextEdit()
         self.dash_strengths.setReadOnly(True)
-        self.dash_strengths.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:16px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_strengths.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-family:Consolas,monospace;font-size:15px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
         left.addWidget(QLabel("STRENGTHS"))
         left.addWidget(self.dash_strengths)
 
@@ -2706,13 +2719,13 @@ class MainWindow(QMainWindow):
         self.dash_upcoming = QTextEdit()
         self.dash_upcoming.setReadOnly(True)
         self.dash_upcoming.setMaximumHeight(300)
-        self.dash_upcoming.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:16px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_upcoming.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-family:Consolas,monospace;font-size:15px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
         right.addWidget(QLabel("UPCOMING"))
         right.addWidget(self.dash_upcoming)
 
         self.dash_keydates = QTextEdit()
         self.dash_keydates.setReadOnly(True)
-        self.dash_keydates.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:16px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_keydates.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-family:Consolas,monospace;font-size:15px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
         right.addWidget(QLabel("KEY DATES"))
         right.addWidget(self.dash_keydates)
 
@@ -2728,6 +2741,36 @@ class MainWindow(QMainWindow):
         from jhora.dasas.vimsottari import VimsottariDasa
         from jhora.ephemeris.swe import SweEngine
         from jhora.types.nakshatra import Nakshatra
+
+        def _to_html(lines):
+            import re
+            text = "\n".join(lines) if isinstance(lines, list) else lines
+            
+            colors = {
+                "red": "#ff6b6b", "green": "#00aa5a", "yellow": "#f1c40f",
+                "blue": "#3498db", "magenta": "#9b59b6", "cyan": "#00ced1",
+                "white": "#ffffff", "black": "#000000", "dim": "#888888"
+            }
+            
+            # Close all tags with </span>
+            text = re.sub(r'\[/.*?\]', '</span>', text)
+            
+            # Open tags with corresponding styles
+            def replacer(match):
+                parts = match.group(1).lower().split()
+                style = ""
+                for p in parts:
+                    if p in ["bold", "b"]: style += "font-weight: bold; "
+                    elif p in ["italic", "i"]: style += "font-style: italic; "
+                    elif p in ["underline", "u"]: style += "text-decoration: underline; "
+                    elif p in colors: style += f"color: {colors[p]}; "
+                    elif p.startswith("#"): style += f"color: {p}; "
+                if style:
+                    return f"<span style='{style.strip()}'>"
+                return match.group(0) # Not a valid rich tag, leave alone
+                
+            text = re.sub(r'\[([^/\[\]]+)\]', replacer, text)
+            return f"<pre style='font-family: Consolas, monospace; font-size: 15px; margin: 0;'>{text}</pre>"
 
         now = datetime.now()
         # ── RIGHT NOW ──
@@ -2770,7 +2813,7 @@ class MainWindow(QMainWindow):
             if current_ad:
                 ad_left = current_ad.end_date - now
                 now_lines.append(f"  └ {current_ad.lord_name} Antardasha — {ad_left.days} days remaining")
-        self.dash_now.setText("\n".join(now_lines))
+        self.dash_now.setHtml(_to_html(now_lines))
 
         # ── STRENGTHS ──
         try:
@@ -2794,7 +2837,7 @@ class MainWindow(QMainWindow):
                 ri = (int(cd.ascendant/30) + h - 1) % 12
                 bar = "█" * int(val / 12) + "░" * (18 - int(val / 12))
                 str_lines.append(f"  H{h} {Rasi(ri).short_name} {bar} {val:.0f}")
-            self.dash_strengths.setText("\n".join(str_lines))
+            self.dash_strengths.setHtml(_to_html(str_lines))
         except Exception:
             self.dash_strengths.setText("")
 
@@ -2835,7 +2878,7 @@ class MainWindow(QMainWindow):
                     pass
         except Exception:
             pass
-        self.dash_upcoming.setText("\n".join(up_lines) if up_lines else "Dasa data unavailable")
+        self.dash_upcoming.setHtml(_to_html(up_lines) if up_lines else "Dasa data unavailable")
 
         # ── KEY DATES ──
         kd_lines = ["[bold]Sade Sati Check:[/bold]"]
@@ -2862,7 +2905,7 @@ class MainWindow(QMainWindow):
         kd_lines.append("  Every Monday, Thursday, Friday")
         kd_lines.append("  Ekadasi tithi days (check panchanga)")
 
-        self.dash_keydates.setText("\n".join(kd_lines))
+        self.dash_keydates.setHtml(_to_html(kd_lines))
 
     # --- Consolidated View (JHora-style three-column layout) ---
 
@@ -3230,6 +3273,7 @@ class _TeacherWorker(QThread):
 class _VdbWorker(QThread):
     progress = pyqtSignal(str)
     done = pyqtSignal(bool)
+    error = pyqtSignal(str)
 
     def __init__(self, provider: str):
         super().__init__()
@@ -3261,6 +3305,7 @@ class _VdbWorker(QThread):
             self.done.emit(True)
         except Exception as e:
             self.progress.emit(f"ERROR: {e}")
+            self.error.emit(str(e))
             self.done.emit(False)
 
 
