@@ -190,18 +190,29 @@ class EmbeddingStore:
                          called at most once per source (not per batch)
         """
         import time
-        count = self.db.execute("SELECT COUNT(*) FROM textbook_chunks").fetchone()[0]
+        count = self.db.execute("SELECT COUNT(*) FROM textbook_chunks WHERE embedding IS NOT NULL").fetchone()[0]
         if count > 0:
-            print(f"Already have {count} chunks — skipping")
+            print(f"Already have {count} chunks with embeddings — skipping")
             return count
+            
+        # Clean up any incomplete chunks (e.g., from failed runs)
+        self.db.execute("DELETE FROM textbook_chunks")
+        self.db.commit()
 
         total = 0
-        for row in self.db.execute(
-            "SELECT source_name, content FROM knowledge_texts ORDER BY source_name"
-        ).fetchall():
-            name = row["source_name"]
+        source_names = [r["source_name"] for r in self.db.execute(
+            "SELECT source_name FROM knowledge_texts ORDER BY source_name"
+        ).fetchall()]
+
+        for name in source_names:
+            row = self.db.execute(
+                "SELECT content FROM knowledge_texts WHERE source_name = ?", (name,)
+            ).fetchone()
+            if not row:
+                continue
             text = row["content"]
             chunks = self._chunk_text(text)
+            del text  # free memory for large source string
             print(f"  {name}: {len(chunks)} chunks")
             if progress_cb:
                 progress_cb(name, 0, len(chunks))
@@ -231,9 +242,9 @@ class EmbeddingStore:
                 if batch_start + batch_size < len(chunks):
                     time.sleep(throttle_ms / 1000.0)
 
-            # Progress only once per source (not per batch)
-            if progress_cb:
-                progress_cb(name, len(chunks), len(chunks))
+                # Progress per batch to prevent UI from hanging and show step-by-step progress
+                if progress_cb:
+                    progress_cb(name, min(batch_start + batch_size, len(chunks)), len(chunks))
 
         self.db.commit()
         self.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
@@ -256,6 +267,10 @@ class EmbeddingStore:
             chunk = text[start:end].strip()
             if len(chunk) > 50:
                 chunks.append(chunk)
+                
+            if end >= len(text):
+                break
+                
             start = end - CHUNK_OVERLAP
         return chunks
 
