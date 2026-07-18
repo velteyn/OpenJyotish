@@ -7,6 +7,7 @@ and guide users through the software's features.
 
 from typing import Callable, List, Optional
 
+import json
 import requests
 
 from jhora.charts.chart import ChartData
