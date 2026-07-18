@@ -3,26 +3,30 @@
 
 Source: github.com/aloistr/swisseph (GPL)
 """
-import os, sys, ssl
+import sys
 
-# Handle Windows SSL issues (missing CA certificates)
+# Print immediately so batch scripts see something even if imports crash
+print("download_ephe.py: starting...", flush=True)
+
+import os, ssl
+
 try:
     ssl._create_default_https_context = ssl._create_unverified_context
 except AttributeError:
     pass
 
 try:
-    from urllib.request import urlopen, urlretrieve
+    from urllib.request import urlopen
 except ImportError:
-    from urllib import urlopen, urlretrieve
+    from urllib import urlopen
 
 DEST = "jhcore/ephe"
 BASE = "https://raw.githubusercontent.com/aloistr/swisseph/master/ephe"
 TIMEOUT = 30
 
-MONTHS = range(0, 162, 6)
-FILES = [f"sepl_{m:02d}.se1" for m in MONTHS] + \
-        [f"semo_{m:02d}.se1" for m in MONTHS]
+# We only need the 600-year block covering 1800-2399 for birth charts 1900-2100
+# sepl_XX.se1 = planet data, semo_XX.se1 = moon data, XX = block number
+FILES = ["sepl_18.se1", "semo_18.se1"]
 
 
 def download_file(url: str, path: str) -> bool:
@@ -32,23 +36,22 @@ def download_file(url: str, path: str) -> bool:
             f.write(data)
         return True
     except Exception as e:
-        print(f"  FAILED: {os.path.basename(path)} — {e}")
+        print(f"  FAILED: {os.path.basename(path)} — {e}", flush=True)
         return False
 
 
 def download():
     os.makedirs(DEST, exist_ok=True)
     existing = os.listdir(DEST)
-    needed_set = set(FILES)
+    needed = set(FILES)
 
-    extras = [f for f in existing if f.endswith(".se1") and f not in needed_set]
+    extras = [f for f in existing if f.endswith(".se1") and f not in needed]
     for f in extras:
         os.remove(os.path.join(DEST, f))
     if extras:
-        print(f"Removed {len(extras)} unneeded files (asteroids, fixed stars, etc.)")
+        print(f"Removed {len(extras)} unneeded files", flush=True)
 
-    print(f"Downloading {len(FILES)} ephemeris files (planet + moon)...")
-    sys.stdout.flush()
+    print(f"Downloading {len(FILES)} ephemeris files...", flush=True)
 
     done, skipped, failed = 0, 0, 0
     for f in FILES:
@@ -58,16 +61,15 @@ def download():
             continue
         if download_file(f"{BASE}/{f}", path):
             done += 1
-            print(f"  [{done}/{len(FILES)}] {f}")
         else:
             failed += 1
-        sys.stdout.flush()
 
     total = len(os.listdir(DEST))
-    print(f"\nDone: {done} downloaded, {skipped} existing, {failed} failed, {total} total in {DEST}/")
+    print(f"\nDone: {done} downloaded, {skipped} existing, {failed} failed, "
+          f"{total} files in {DEST}/", flush=True)
     if failed:
-        print("Some files failed. Check your internet connection and try again.")
-        print(f"Manual download: {BASE}/")
+        print("Some files failed. Check your internet connection.", flush=True)
+        print(f"Manual: {BASE}/", flush=True)
         sys.exit(1)
 
 
