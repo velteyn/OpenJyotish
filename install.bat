@@ -26,15 +26,18 @@ echo Python found.
 echo.
 
 echo Checking ephemeris data...
-if not exist jhcore\ephe\sepl_18.se1 (
-    echo Downloading ephemeris data (40 files, ~10MB)...
+if not exist jhcore\ephe\*.se1 (
+    echo Downloading ephemeris data (54 files, ~10MB)...
     python download_ephe.py
-    if exist jhcore\ephe\sepl_18.se1 (
-        echo Ephemeris data downloaded.
-    ) else (
-        echo WARNING: Could not auto-download.
-        echo Manual download: https://www.astro.com/ftp/swisseph/ephe/
+    if errorlevel 1 (
+        echo.
+        echo WARNING: Auto-download failed.
+        echo Try running manually: python download_ephe.py
+        echo.
+        echo Manual alternative: download from https://github.com/aloistr/swisseph/tree/master/ephe
         echo Place .se1 files in jhcore\ephe\
+    ) else (
+        echo Ephemeris data ready.
     )
 ) else (
     echo Ephemeris data found.
