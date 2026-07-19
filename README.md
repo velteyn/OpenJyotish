@@ -207,6 +207,9 @@ src/jhora/
 └── ui/             PyQt6 GUI (8-category tabs, chart widget, dasa timeline)
 ```
 
+### 💬 Community & Support
+If you want to discuss the project, ask questions, or share your own astrology software tools, join our official community on Reddit: [r/AstrologySoftware](https://www.reddit.com/r/AstrologySoftware/).
+
 ## Credits
 
 Based on **OpenJyotish 8.0 Lite** by PVR Narasimha Rao (Sri Jagannath Vedic Centre).  
