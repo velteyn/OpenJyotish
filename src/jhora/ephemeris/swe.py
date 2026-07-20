@@ -176,8 +176,13 @@ class SweEngine:
         return planets
 
     def houses(self, jd: float, lat: float, lon: float, house_sys: bytes = b'P') -> HouseData:
-        """Compute house cusps for given JD and location."""
-        cusps, ascmc = swe.houses(jd, lat, lon, house_sys)
+        """Compute house cusps for given JD and location.
+
+        Uses houses_ex with the engine's flags so that cusps/ascendant/MC
+        are sidereal when a sidereal ayanamsa mode is active (matching the
+        sidereal planet positions from calc_planets).
+        """
+        cusps, ascmc = swe.houses_ex(jd, lat, lon, house_sys, self._flags)
         return HouseData(
             cusps=list(cusps),
             ascendant=ascmc[0] % 360,
