@@ -419,3 +419,29 @@ class ChartWidget(QWidget):
             painter.setPen(color)
             painter.drawText(int(x), int(y), label)
             x -= padding
+
+
+_QAPP = None
+
+
+def render_chart_image(cd: 'ChartData', style: ChartStyle = ChartStyle.SOUTH_INDIAN,
+                       size: int = 420) -> 'QImage':
+    """Render a chart to a QImage (offscreen, no visible widget needed)."""
+    global _QAPP
+    from PyQt6.QtGui import QImage
+    from PyQt6.QtWidgets import QApplication
+    import sys
+
+    _QAPP = QApplication.instance() or QApplication(sys.argv)
+
+    widget = ChartWidget()
+    widget.chart_style = style
+    widget.set_chart_data(cd)
+    widget.setGeometry(0, 0, size, size)
+
+    image = QImage(size, size, QImage.Format.Format_ARGB32)
+    image.fill(PALETTE["bg"])
+    painter = QPainter(image)
+    widget.render(painter)
+    painter.end()
+    return image
