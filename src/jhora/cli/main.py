@@ -685,6 +685,30 @@ def export(
 
 
 @app.command()
+def traditional_report(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    output: str = typer.Option("traditional_report.png", "--output", "-o",
+                               help="Output image path (.png or .jpg)"),
+    name: str = typer.Option("", "--name", "-n", help="Native's name"),
+    sex: str = typer.Option("", "--sex", "-s", help="Native's sex (M/F)"),
+    place: str = typer.Option("", "--place", "-p", help="Birth place name"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Generate a traditional one-page report (AstroSage-style) as PNG/JPG."""
+    from jhora.export.traditional import generate_traditional_report
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    path = generate_traditional_report(cd, output, name, sex, place)
+    console.print(f"[green]Traditional report saved: {path}[/green]")
+
+
+@app.command()
 def gui():
     """Launch the graphical user interface."""
     from PyQt6.QtWidgets import QApplication

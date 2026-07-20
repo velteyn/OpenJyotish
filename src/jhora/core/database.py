@@ -75,6 +75,53 @@ def _ensure_schema(conn: sqlite3.Connection):
         _create_all(conn)
         conn.execute("INSERT INTO schema_version VALUES (?)", (SCHEMA_VERSION,))
         conn.commit()
+        return
+
+    # Ensure charts/preferences tables exist — the prebuilt textbook DB has
+    # schema_version but lacks these application tables.
+    cur = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='charts'"
+    )
+    if cur.fetchone() is None:
+        _create_application_tables(conn)
+        conn.commit()
+
+
+def _create_application_tables(conn: sqlite3.Connection):
+    """Create only the charts, chart_planets, and preferences tables."""
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS charts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            notes TEXT DEFAULT '',
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            day INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            year INTEGER NOT NULL,
+            time_hours REAL NOT NULL,
+            tz_offset REAL NOT NULL,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL,
+            ayanamsa TEXT DEFAULT 'lahiri',
+            city TEXT DEFAULT '',
+            country TEXT DEFAULT ''
+        );
+        CREATE TABLE IF NOT EXISTS chart_planets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chart_id INTEGER NOT NULL REFERENCES charts(id) ON DELETE CASCADE,
+            graha INTEGER NOT NULL,
+            longitude REAL NOT NULL,
+            latitude REAL NOT NULL DEFAULT 0,
+            speed REAL DEFAULT 0,
+            is_retrograde INTEGER DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_chart_planets_chart ON chart_planets(chart_id);
+
+        CREATE TABLE IF NOT EXISTS preferences (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
+    """)
 
 
 def _create_all(conn: sqlite3.Connection):

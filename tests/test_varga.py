@@ -152,7 +152,9 @@ class TestNavamsaDefault:
         assert p.rasi.full_name == "Capricorn"
 
     def test_lagna_navamsa(self, ref_navamsa):
-        assert ref_navamsa.lagna_position.rasi.full_name == "Cancer"
+        # Sidereal asc = Sagittarius 1.26° (corrected via sidereal houses_ex);
+        # default odd/even map: even sign Sagittarius, part 0 → Sagittarius.
+        assert ref_navamsa.lagna_position.rasi.full_name == "Sagittarius"
 
 
 class TestNavamsaVariants:

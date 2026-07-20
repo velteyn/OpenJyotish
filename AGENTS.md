@@ -65,7 +65,7 @@ Never develop directly in the public repo — it lacks ephemeris data for testin
 ```bash
 cd ~/projects/Reversing/Jhora
 python3 -m pytest tests/ -q
-# Expected: 678 passed
+# Expected: 684 passed
 ```
 
 ## Release Process
