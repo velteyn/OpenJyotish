@@ -5,13 +5,13 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 27 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-16-section JSON API for AI agents  |  678 tests  |  AGPL v3.0
+16-section JSON API for AI agents  |  684 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
 
 ### Option 1: Release (Windows — no Python needed)
-Download `openjyotish-v1.1.0-windows.zip` from [Releases](https://github.com/velteyn/OpenJyotish/releases).  
+Download the latest `openjyotish-v*-windows.zip` from [Releases](https://github.com/velteyn/OpenJyotish/releases).  
 Extract, double-click `OpenJyotish.bat`. Includes ephemeris data.
 
 ### Option 2: From source (Linux / Mac / Windows with Python)
@@ -32,9 +32,7 @@ run.bat
 
 **Requires**: Python 3.11+
 
-Ephemeris data is auto-downloaded by `install.sh` (Linux/Mac).  
-On Windows, download `.se1` files manually from https://www.astro.com/ftp/swisseph/ephe/  
-and place them in `jhcore/ephe/`.
+Ephemeris data is auto-downloaded by `install.sh` / `install.bat` (2 files, ~1MB).
 
 ## One-Minute Examples
 
