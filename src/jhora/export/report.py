@@ -9,6 +9,9 @@ from jhora.calc.bhava_bala import BhavaBalaComputer
 from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
 from jhora.calc.yogas import detect_all
 from jhora.calc.gochara import compute_transits
+from jhora.dasas.vimsottari import VimsottariDasa
+from jhora.dasas.base import DasaOptions
+from jhora.types.dasa import PeriodLevel
 from jhora.ephemeris.swe import SweEngine
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
@@ -150,6 +153,49 @@ def _vimsopaka_table(cd: ChartData) -> str:
         return ""
 
 
+def _vimsottari_table(cd: ChartData) -> str:
+    try:
+        from datetime import datetime
+        opts = DasaOptions(subdivision_level=PeriodLevel.ANTARDASA)
+        chart = {
+            "planets": {g.value: {"longitude": cd.planet(g).longitude}
+                        for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                                 Graha.JUPITER, Graha.VENUS, Graha.SATURN,
+                                 Graha.RAHU, Graha.KETU]},
+            "lagna_lon": cd.ascendant,
+        }
+        dasa = VimsottariDasa(opts)
+        periods = dasa.compute(cd.julian_day, chart)
+        now_jd = SweEngine().julday(datetime.now().year, datetime.now().month,
+                                     datetime.now().day, 0)
+        rows = []
+        for p in periods:
+            start = p.start_date.strftime("%Y-%m-%d")
+            end = p.end_date.strftime("%Y-%m-%d")
+            active = "◀ NOW" if p.start_jd <= now_jd < p.end_jd else ""
+            cls = ' style="color:#66bb6a;font-weight:bold"' if active else ""
+            rows.append(
+                f"<tr{cls}><td>{p.lord_name}</td>"
+                f"<td>{p.duration_years:.1f}y</td>"
+                f"<td>{start}</td><td>{end}</td><td>{active}</td></tr>"
+            )
+            for sub in (p.sub_periods or []):
+                s_start = sub.start_date.strftime("%Y-%m-%d")
+                s_end = sub.end_date.strftime("%Y-%m-%d")
+                s_active = "◀ NOW" if sub.start_jd <= now_jd < sub.end_jd else ""
+                s_cls = ' style="color:#66bb6a"' if s_active else ""
+                rows.append(
+                    f"<tr{s_cls}><td>&nbsp;&nbsp;└ {sub.lord_name}</td>"
+                    f"<td>{sub.duration_years:.1f}y</td>"
+                    f"<td>{s_start}</td><td>{s_end}</td><td>{s_active}</td></tr>"
+                )
+        return f"""<h2>Vimsottari Dasa</h2>
+<table><tr><th>Period</th><th>Duration</th><th>Start</th><th>End</th><th></th></tr>
+{"".join(rows)}</table>"""
+    except Exception:
+        return ""
+
+
 def _transit_table(cd: ChartData) -> str:
     try:
         eng = SweEngine()
@@ -188,6 +234,7 @@ def _build_html(cd: ChartData, style: str) -> str:
     if style in ("full", "detailed"):
         sections.extend([
             _shadbala_table(cd),
+            _vimsottari_table(cd),
             _yogas_list(cd),
             _vimsopaka_table(cd),
             _transit_table(cd),
