@@ -17,6 +17,7 @@ from jhora.types.nakshatra import Nakshatra
 CSS = """body{font-family:'Segoe UI',sans-serif;background:#0d1b2a;color:#e0e0e0;margin:0;padding:20px}
 h1{color:#e0b050;border-bottom:2px solid #2a3f5f;padding-bottom:8px}
 h2{color:#c0a040;margin-top:30px}
+h3{color:#c0a040;margin-top:16px;margin-bottom:8px}
 table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
 th{background:#1a2744;color:#e0b050;padding:8px;text-align:left;border:1px solid #2a3f5f}
 td{padding:6px 8px;border:1px solid #1a2744}
@@ -27,6 +28,8 @@ tr:nth-child(even){background:#111d2e}
 .footer{color:#666;font-size:11px;text-align:center;margin-top:40px;border-top:1px solid #2a3f5f;padding-top:10px}
 .meta{color:#888;font-size:12px}
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.chart-img{text-align:center;margin:12px 0}
+.chart-img img{border:1px solid #2a3f5f;border-radius:6px}
 @media print{body{background:#fff;color:#000}th{background:#eee;color:#000}tr:nth-child(even){background:#f5f5f5}}"""
 
 
@@ -175,15 +178,47 @@ def _transit_table(cd: ChartData) -> str:
         return ""
 
 
+def _chart_images_html(cd: ChartData) -> str:
+    """Render Lagna (D-1) and Navamsa (D-9) charts to images and return HTML."""
+    import base64
+    from PyQt6.QtCore import QBuffer, QIODevice
+    from jhora.ui.chart_widget import ChartStyle, render_chart_image
+
+    pairs = [
+        ("Lagna (D-1)", ChartStyle.SOUTH_INDIAN),
+        ("Navamsa (D-9)", ChartStyle.SOUTH_INDIAN),
+    ]
+
+    imgs_html = []
+    for label, style in pairs:
+        img = render_chart_image(cd, style=style, size=420)
+        buf = QBuffer()
+        buf.open(QIODevice.OpenModeFlag.WriteOnly)
+        img.save(buf, "PNG")
+        b64 = base64.b64encode(buf.data().data()).decode("ascii")
+        buf.close()
+        imgs_html.append(
+            f'<div class="chart-img">'
+            f'<h3>{label}</h3>'
+            f'<img src="data:image/png;base64,{b64}" width="420" height="420">'
+            f'</div>'
+        )
+
+    return (
+        '<div class="chart-grid">\n'
+        + "\n".join(imgs_html)
+        + '\n</div>'
+    )
+
+
 def _build_html(cd: ChartData, style: str) -> str:
     title = f"Jhora Chart Report — {cd.birth_date.strftime('%Y-%m-%d %H:%M')}"
     sections = [
         f"<h1>{title}</h1>",
         _meta(cd),
-        '<div class="chart-grid">',
+        _chart_images_html(cd),
         _planet_table(cd),
         _house_table(cd),
-        '</div>',
     ]
     if style in ("full", "detailed"):
         sections.extend([

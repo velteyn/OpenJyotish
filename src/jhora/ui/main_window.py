@@ -6,8 +6,8 @@ from PyQt6.QtCore import QDate, Qt, QThread, QTime, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QBrush, QColor, QFont
 from PyQt6.QtWidgets import (QApplication, QComboBox, QDateEdit, QDialog,
                              QFileDialog, QFormLayout, QGroupBox, QHBoxLayout,
-                             QHeaderView, QLabel, QLineEdit, QListWidget,
-                             QListWidgetItem, QMainWindow, QMessageBox,
+                             QHeaderView, QInputDialog, QLabel, QLineEdit,
+                             QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
                              QPushButton, QScrollArea, QSplitter, QTableWidget,
                              QTableWidgetItem, QTabWidget, QTextEdit,
                              QTimeEdit, QVBoxLayout, QWidget)
@@ -421,6 +421,10 @@ class MainWindow(QMainWindow):
         export_report_act.triggered.connect(self._on_export_report)
         file_menu.addAction(export_report_act)
 
+        export_trad_act = QAction("Export Traditional Report (&PNG)...", self)
+        export_trad_act.triggered.connect(self._on_export_traditional_report)
+        file_menu.addAction(export_trad_act)
+
         file_menu.addSeparator()
 
         exit_act = QAction("E&xit", self)
@@ -494,6 +498,27 @@ class MainWindow(QMainWindow):
             from jhora.export.report import generate_chart_report
             generate_chart_report(self.chart_data, path)
             self.statusBar().showMessage(f"Report saved: {path}")
+        except Exception as e:
+            QMessageBox.warning(self, "Export Error", str(e))
+
+    def _on_export_traditional_report(self):
+        if not self.chart_data:
+            QMessageBox.warning(self, "Export", "Compute a chart first using the main form.")
+            return
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export Traditional Report", "traditional_report.png",
+            "PNG Images (*.png);;JPG Images (*.jpg);;All Files (*)",
+        )
+        if not path:
+            return
+        try:
+            from jhora.export.traditional import generate_traditional_report
+            name, ok = QInputDialog.getText(self, "Name", "Native's name (optional):")
+            if not ok:
+                name = ""
+            place = self.city_input.text().strip()
+            generate_traditional_report(self.chart_data, path, name=name, place=place)
+            self.statusBar().showMessage(f"Traditional report saved: {path}")
         except Exception as e:
             QMessageBox.warning(self, "Export Error", str(e))
 
