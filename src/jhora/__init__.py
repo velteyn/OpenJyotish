@@ -2,7 +2,7 @@
 OpenJyotish — Vedic astrology calculator
 """
 
-__version__ = "1.2.2"
+__version__ = "1.3.0"
 
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
