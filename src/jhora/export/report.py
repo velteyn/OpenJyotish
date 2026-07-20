@@ -189,7 +189,7 @@ def _vimsottari_table(cd: ChartData) -> str:
                     f"<td>{sub.duration_years:.1f}y</td>"
                     f"<td>{s_start}</td><td>{s_end}</td><td>{s_active}</td></tr>"
                 )
-        return f"""<h2>Vimsottari Dasa</h2>
+        return f"""<h2>Vimshottari Dasa</h2>
 <table><tr><th>Period</th><th>Duration</th><th>Start</th><th>End</th><th></th></tr>
 {"".join(rows)}</table>"""
     except Exception:
