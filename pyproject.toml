@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=83.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -27,7 +27,7 @@ dependencies = [
     "PyQt6>=6.11.0",
     "pyswisseph>=2.10.3.2",
     "typer>=0.27.0",
-    "rich>=13.0",
+    "rich>=15.0.0",
     "requests>=2.34.2",
     "prompt_toolkit>=3.0.52",
     "numpy>=2.4.6",
