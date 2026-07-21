@@ -80,6 +80,9 @@ class ChartData:
     # Vargas (lazy computed)
     varga_positions: Dict[Tuple[VargaLevel, VargaVariant], Dict[Graha, VargaPosition]] = field(default_factory=dict)
 
+    # Metadata
+    sex: str = ""
+
     def planet(self, graha: Graha) -> PlanetChartData:
         return self.planets[graha]
 
@@ -143,6 +146,7 @@ class ChartBuilder:
         tz: str = "UTC",
         ayanamsa: str = "lahiri",
         house_sys: bytes = b'P',
+        sex: str = "",
     ) -> ChartData:
         self.swe.set_sidereal_mode(ayanamsa)
         tz_offset = self._parse_tz(tz)
@@ -200,6 +204,7 @@ class ChartBuilder:
             julian_day=jd, latitude=lat, longitude=lon,
             timezone=tz, ayanamsa_name=ayanamsa,
             ayanamsa_value=ayanamsa_val,
+            sex=sex,
             planets=planet_data, lagna=lagna,
             house_cusps=tuple(hd.cusps),
             ascendant=hd.ascendant, mc=hd.mc,
