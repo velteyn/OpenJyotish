@@ -621,7 +621,7 @@ def _draw_table(painter, x: float, y: float, title: str,
 
 def render_traditional_report(cd: ChartData, name: str = "", sex: str = "",
                               place: str = ""):
-    """Render the full report to a QImage — A4 layout matching AstroSage."""
+    """Render the full report to a QImage."""
     _ensure_qapp()
     from PyQt6.QtCore import QRectF, Qt
     from PyQt6.QtGui import QImage, QPainter, QColor, QPen, QFont
@@ -631,45 +631,48 @@ def render_traditional_report(cd: ChartData, name: str = "", sex: str = "",
     shade = QColor("#d9d9d9")
 
     # ── Layout constants ──
-    W = 1488
-    M = 30
-    CW = W - 2 * M            # 1428
-    GAP = 14
-    SGAP = 10
+    W = 1660
+    M = 36
+    CW = W - 2 * M  # 1588
+    GAP = 16
+    SGAP = 12       # small gap between columns
 
-    title_h = 56
+    title_h = 64
     header_h = 176
     chart_label_h = 30
 
-    # Left 2/3 column: Lagna Chart + Vimshottari Dasha
-    left_w = int(CW * 0.63)   # ~900
-    # Right 1/3 column: Navamsa + Planetary Positions + Ashtakvarga + Chalit
-    right_w = CW - left_w - GAP  # ~500
-    right_x = M + left_w + GAP
-
+    # Top section: 3 columns — Lagna | Navamsa | Planetary Positions
+    lagna_w = 620
+    nav_w = 430
+    planets_x = M + lagna_w + SGAP + nav_w + SGAP
+    planets_w = CW - lagna_w - SGAP - nav_w - SGAP
     lagna_sz = 560
-    nav_sz = 440
+    nav_sz = 420
 
-    # Vimshottari boxes — stretched to fill left column
-    box_row_h = 22
-    box_h = 48 + 9 * box_row_h   # 246 per box
-    dasha_title_h = 34
+    # Bottom section: 2 columns — Vimshottari Dasha | Ashtakvarga + Chalit
+    left_w = 1070
+    right_x = M + left_w + SGAP
+    right_w = CW - left_w - SGAP
+
+    # Heights
+    box_h = 48 + 9 * 18       # dasa box: 2-line header + 9 antardasha rows
     dasha_grid_h = 3 * box_h + 2 * SGAP
+    dasha_title_h = 34
+    planet_rows_h = 22         # per data row in tables
+    planets_h = 28 + 26 + 13 * planet_rows_h
+    av_h = 28 + 26 + 8 * planet_rows_h  # 7 planets + total
+    chalit_h = 28 + 26 + 12 * planet_rows_h
+    footer_h = 44
 
-    # Right-side tables (in right column)
-    table_row_h = 20
-    planets_h = 28 + 24 + 13 * table_row_h   # 302
-    av_h = 28 + 24 + 8 * table_row_h          # 202
-    chalit_h = 28 + 24 + 12 * table_row_h     # 294
-    footer_h = 40
+    page_h = (M + title_h + header_h + GAP + chart_label_h + lagna_sz
+              + GAP + dasha_title_h + dasha_grid_h + footer_h + M)
 
-    # Right column content height: Navamsa + PP + AV + Chalit + gaps
-    right_col_h = (nav_sz + SGAP + planets_h + SGAP + av_h + SGAP + chalit_h)
-    # Left column content height: Lagna + Dasha title + Dasha grid + gap
-    left_col_h = lagna_sz + GAP + dasha_title_h + dasha_grid_h
-    # Page height: header area + max column height + footer
-    page_h = (M + title_h + header_h + GAP + chart_label_h
-              + max(left_col_h, right_col_h) + GAP + footer_h + M)
+    # Extend if right-side tables need more height
+    right_content_h = (chart_label_h + nav_sz + SGAP + planets_h
+                       + GAP + av_h + SGAP + chalit_h)
+    header_bottom = M + title_h + header_h + GAP + chart_label_h
+    needed_h = header_bottom + right_content_h + footer_h + M
+    page_h = max(page_h, needed_h)
 
     image = QImage(W, page_h, QImage.Format.Format_RGB32)
     image.fill(QColor("#ffffff"))
@@ -709,59 +712,38 @@ def render_traditional_report(cd: ChartData, name: str = "", sex: str = "",
             ry += row_h
     y += header_h + GAP
 
-    # ── Charts: Lagna (left) | Navamsa (right) ──
+    # ── Charts + Planetary Positions (3-column top section) ──
     painter.setFont(QFont("Arial", 16, QFont.Weight.Bold))
     painter.setPen(ink)
-    painter.drawText(QRectF(M, y, left_w, 24),
+    painter.drawText(QRectF(M, y, lagna_w, 24),
                      Qt.AlignmentFlag.AlignCenter, "Lagna Chart")
-    painter.drawText(QRectF(right_x, y, right_w, 24),
+    painter.drawText(QRectF(M + lagna_w + SGAP, y, nav_w, 24),
                      Qt.AlignmentFlag.AlignCenter, "Navamasa Chart")
     y += chart_label_h
     chart_y = y
 
-    # Lagna chart (left 2/3)
-    lagna_lx = M + (left_w - lagna_sz) / 2
+    # Lagna chart (left column)
+    lagna_lx = M + (lagna_w - lagna_sz) / 2
     lagna_rasi = Rasi.from_longitude(cd.ascendant)
     _draw_north_indian(painter, lagna_lx, y, lagna_sz, lagna_rasi,
                        _chart_occupants(cd), ink, dim)
 
-    # Navamsa chart (right 1/3, top)
-    nav_lx = right_x + (right_w - nav_sz) / 2
+    # Navamsa chart (middle column)
+    nav_lx = M + lagna_w + SGAP + (nav_w - nav_sz) / 2
     nav_lagna, nav_houses = _navamsa_occupants(cd)
     _draw_north_indian(painter, nav_lx, y, nav_sz, nav_lagna,
                        nav_houses, ink, dim)
 
-    # Planetary Positions (right 1/3, below Navamsa)
+    # Planetary Positions (right column)
     planet_rows = _planet_rows(cd)
-    y_pl = y + nav_sz + SGAP
-    _draw_table(painter, right_x, y_pl, "Planetary Positions",
+    _draw_table(painter, planets_x, chart_y, "Planetary Positions",
                 ["Planets", "Sign", "Latitude", "Nakshatra", "Pada"],
-                planet_rows, [55, 70, 70, 120, 40], row_h=table_row_h,
+                planet_rows, [80, 90, 90, 150, 50], row_h=planet_rows_h,
                 ink=ink, shade=shade)
 
-    # Right column Y: continues below Planetary Positions
-    y_right = y_pl + planets_h + SGAP
-
-    # Ashtakvarga (right 1/3, below Planetary Positions)
-    av_header, av_rows = _ashtakavarga_rows(cd)
-    av_label_w = 50
-    av_col_w = (right_w - av_label_w) / 12.0
-    y_av_end = y_right + _draw_table(painter, right_x, y_right,
-                "Ashtakvarga Table", av_header, av_rows,
-                [av_label_w] + [av_col_w] * 12,
-                row_h=table_row_h, ink=ink, shade=shade)
-
-    # Chalit (right 1/3, below Ashtakvarga)
-    chalit_rows = _chalit_rows(cd)
-    _draw_table(painter, right_x, y_av_end + SGAP, "Chalit Table",
-                ["Bhav", "Sign", "Bhav Begin", "Sign", "Mid Bhav"],
-                chalit_rows, [40, 80, 80, 80, 80], row_h=table_row_h,
-                ink=ink, shade=shade)
-
-    # Left column Y: below Lagna chart
     y = chart_y + lagna_sz + GAP
 
-    # ── Vimshottari Dasha (left 2/3, stretched) ──
+    # ── Vimshottari Dasha (left) + Ashtakvarga/Chalit (right) ──
     painter.setFont(QFont("Arial", 16, QFont.Weight.Bold))
     painter.setPen(ink)
     painter.drawText(QRectF(M, y, left_w, 26), Qt.AlignmentFlag.AlignCenter,
@@ -769,10 +751,10 @@ def render_traditional_report(cd: ChartData, name: str = "", sex: str = "",
     y += dasha_title_h
 
     boxes = _vimshottari_boxes(cd)
-    box_gap = SGAP
+    box_gap = 12
     box_w = (left_w - 2 * box_gap) / 3.0
-    head_font = QFont("Arial", 13, QFont.Weight.Bold)
-    cell_font = QFont("Arial", 12)
+    head_font = QFont("Arial", 12, QFont.Weight.Bold)
+    cell_font = QFont("Arial", 11)
     for bi, box in enumerate(boxes):
         brow, bcol = divmod(bi, 3)
         bx = M + bcol * (box_w + box_gap)
@@ -795,10 +777,30 @@ def render_traditional_report(cd: ChartData, name: str = "", sex: str = "",
         ay = by + 48
         for sub_lord, end_label in box["antars"]:
             painter.setPen(ink)
-            painter.drawText(int(bx + 14), int(ay + 15),
+            painter.drawText(int(bx + 10), int(ay + 13),
                              _LORD3[sub_lord.full_name])
-            painter.drawText(int(bx + box_w - 100), int(ay + 15), end_label)
-            ay += box_row_h
+            painter.drawText(int(bx + box_w - 90), int(ay + 13), end_label)
+            ay += 18
+    y_dasha_bottom = y + dasha_grid_h
+
+    # Ashtakvarga (right column, aligned with dasha title)
+    y_right = y - dasha_title_h
+    av_header, av_rows = _ashtakavarga_rows(cd)
+    av_label_w = 70
+    av_col_w = (right_w - av_label_w) / 12.0
+    y_av_end = y_right + _draw_table(painter, right_x, y_right,
+                                      "Ashtakvarga Table",
+                                      av_header, av_rows,
+                                      [av_label_w] + [av_col_w] * 12,
+                                      row_h=planet_rows_h,
+                                      ink=ink, shade=shade)
+
+    # Chalit (right column, below ashtakvarga)
+    chalit_rows = _chalit_rows(cd)
+    _draw_table(painter, right_x, y_av_end + SGAP, "Chalit Table",
+                ["Bhav", "Sign", "Bhav Begin", "Sign", "Mid Bhav"],
+                chalit_rows, [50, 110, 110, 110, 110], row_h=planet_rows_h,
+                ink=ink, shade=shade)
 
     # ── Footer ──
     painter.setFont(QFont("Arial", 10))
