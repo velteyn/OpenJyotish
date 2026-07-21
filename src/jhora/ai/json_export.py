@@ -241,6 +241,25 @@ def chart_to_json(cd: ChartData) -> Dict[str, Any]:
     except Exception:
         result["vaiseshikamsas"] = []
 
+    # ── Kuja Dosha ──
+    try:
+        from jhora.calc.kuja_dosha import compute_kuja_dosha
+        kd = compute_kuja_dosha(cd)
+        result["kuja_dosha"] = {
+            "present": kd.has_dosha,
+            "from_lagna": {"house": kd.mars_from_lagna_house, "afflicted": kd.from_lagna},
+            "from_moon": {"house": kd.mars_from_moon_house, "afflicted": kd.from_moon},
+            "from_venus": {"house": kd.mars_from_venus_house, "afflicted": kd.from_venus},
+            "mars_sign": kd.mars_sign,
+            "mars_own_sign": kd.mars_own_sign,
+            "jupiter_cancels": kd.jupiter_cancels,
+            "lagna_cancels": kd.lagna_cancels,
+            "lagna_name": kd.lagna_name,
+            "messages": kd.messages,
+        }
+    except Exception:
+        result["kuja_dosha"] = {}
+
     # ── Ashtakavarga ──
     try:
         sav = sarva_ashtakavarga(cd)
