@@ -65,7 +65,7 @@ for root, dirs, files in os.walk('/tmp/$RELEASE'):
 zf.close()
 "
 
-SIZE=$(du -sh "$RELEASE.zip" | cut -f1)
+SIZE=$(du -sh "/tmp/$RELEASE.zip" | cut -f1)
 echo
 echo "Done: /tmp/$RELEASE.zip ($SIZE)"
 echo
