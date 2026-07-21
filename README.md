@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-27 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-16-section JSON API for AI agents  |  684 tests  |  AGPL v3.0
+28 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+17-section JSON API for AI agents  |  689 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -114,7 +114,7 @@ One command, everything computed. Pipe to AI agents, `jq`, or Python:
 
 ```bash
 jhora analyze "birthdata"
-# → 10KB JSON — 16 sections, every calculation
+# → 10KB JSON — 17 sections, every calculation
 
 # Pipe it around
 jhora analyze "..." | jq '.planets.Su.house'
@@ -133,8 +133,9 @@ data = json.loads(subprocess.run(
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets + upagrahas + outer planets |
-| `analyze` | AI-friendly JSON dump (16 sections) |
+| `analyze` | AI-friendly JSON dump (17 sections) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
+| `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
 | `ashtakavarga` | BAV, SAV, Sodhya Pinda, Kakshya bindu |
 | `dasa` | Vimsottari dasa periods (MD/AD) |
