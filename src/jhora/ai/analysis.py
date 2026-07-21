@@ -185,6 +185,7 @@ def build_analysis_text(cd: ChartData) -> str:
     for title, fn in [
         ("STRENGTHS", lambda: strengths_snapshot(cd)),
         ("VIMSOPAKA BALA", lambda: _vimsopaka_snapshot(cd)),
+        ("KUJA DOSHA", lambda: _kuja_dosha_snapshot(cd)),
         ("YOGAS", lambda: yogas_snapshot(cd)),
         ("DASA PERIODS", lambda: dasa_snapshot(cd)),
         ("TRANSITS", lambda: transit_snapshot(cd)),
@@ -302,4 +303,25 @@ def _learning_snapshot(cd: ChartData) -> str:
             chain = kp_sublord_string(cd.planet(g).longitude, 3)
             lines.append(f"  {g.short_name}: {chain}")
 
+    return "\n".join(lines)
+
+
+def _kuja_dosha_snapshot(cd: ChartData) -> str:
+    from jhora.calc.kuja_dosha import compute_kuja_dosha
+    r = compute_kuja_dosha(cd)
+    lines = ["Kuja Dosha (Mangal Dosha) — Mars Affliction:"]
+    if r.has_dosha:
+        parts = []
+        if r.from_lagna:
+            parts.append(f"Lagna(H{r.mars_from_lagna_house})")
+        if r.from_moon:
+            parts.append(f"Moon(H{r.mars_from_moon_house})")
+        if r.from_venus:
+            parts.append(f"Venus(H{r.mars_from_venus_house})")
+        lines.append(f"  PRESENT from: {', '.join(parts)}")
+    else:
+        lines.append(f"  Not present")
+    lines.append(f"  Mars sign: {r.mars_sign} (own sign: {r.mars_own_sign})")
+    lines.append(f"  Jupiter cancellation: {r.jupiter_cancels}")
+    lines.append(f"  Lagna ({r.lagna_name}) cancellation: {r.lagna_cancels}")
     return "\n".join(lines)
