@@ -339,6 +339,35 @@ class JhoraTui:
                 rich.print()
         self._content_lines = cap.get().split("\n")
 
+    def _action_kuja_dosha(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.kuja_dosha import compute_kuja_dosha
+        with rich.capture() as cap:
+            r = compute_kuja_dosha(self.chart)
+            if r.has_dosha:
+                rich.print(f"[bold red]Kuja Dosha PRESENT[/bold red]")
+            else:
+                rich.print(f"[bold green]No Kuja Dosha[/bold green]")
+            t = Table(title="Kuja Dosha Analysis")
+            t.add_column("Check")
+            t.add_column("Result")
+            for label, has, house in [
+                ("From Lagna", r.from_lagna, r.mars_from_lagna_house),
+                ("From Moon", r.from_moon, r.mars_from_moon_house),
+                ("From Venus", r.from_venus, r.mars_from_venus_house),
+            ]:
+                t.add_row(label,
+                          f"[red]Mars in H{house}[/red]" if has else f"[dim]H{house} clean[/dim]")
+            t.add_row("Mars Sign", f"{r.mars_sign}{' [dim](own sign)[/dim]' if r.mars_own_sign else ''}")
+            t.add_row("Jupiter", "[green]Cancels[/green]" if r.jupiter_cancels else "[dim]No[/dim]")
+            t.add_row("Lagna", f"{r.lagna_name}{' [dim](weakens)[/dim]' if r.lagna_cancels else ''}")
+            rich.print(t)
+            for m in r.messages:
+                if m != "No Kuja Dosha":
+                    rich.print(f"  {m}")
+        self._content_lines = cap.get().split("\n")
+
     def _action_dasa(self):
         if not self._check_chart():
             return
@@ -731,7 +760,8 @@ class JhoraTui:
             ("1", "Shadbala (Planetary Strength)", self._action_shadbala),
             ("2", "Bhava Bala (House Strength)", self._action_bhava_bala),
             ("3", "Vimsopaka Bala (Varga Strength)", self._action_vimsopaka),
-            ("4", "Learning Aids (KP, Marana Karaka)", self._action_learning),
+            ("4", "Kuja Dosha (Mars Affliction)", self._action_kuja_dosha),
+            ("5", "Learning Aids (KP, Marana Karaka)", self._action_learning),
         ]
         self._sub_menu("Strengths", items)
 

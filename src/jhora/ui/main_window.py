@@ -1004,6 +1004,11 @@ class MainWindow(QMainWindow):
         self.vimsopaka_table.horizontalHeader().setStretchLastSection(True)
         self.vimsopaka_table.setAlternatingRowColors(True)
         layout.addWidget(self.vimsopaka_table)
+
+        self.kuja_dosha_label = QLabel("")
+        self.kuja_dosha_label.setStyleSheet("font-size:13px; padding:4px;")
+        layout.addWidget(self.kuja_dosha_label)
+        layout.addStretch()
         return w
 
     def _populate_shadbala_table(self, cd: ChartData):
@@ -1080,6 +1085,37 @@ class MainWindow(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.vimsopaka_table.setItem(i, j, item)
         self.vimsopaka_table.resizeColumnsToContents()
+
+        # Kuja Dosha
+        try:
+            from jhora.calc.kuja_dosha import compute_kuja_dosha
+            kd = compute_kuja_dosha(cd)
+            if kd.has_dosha:
+                parts = []
+                if kd.from_lagna:
+                    parts.append(f"Lagna(H{kd.mars_from_lagna_house})")
+                if kd.from_moon:
+                    parts.append(f"Moon(H{kd.mars_from_moon_house})")
+                if kd.from_venus:
+                    parts.append(f"Venus(H{kd.mars_from_venus_house})")
+                extra = []
+                if kd.mars_own_sign:
+                    extra.append("own sign")
+                if kd.lagna_cancels:
+                    extra.append(f"{kd.lagna_name} lagna weakens")
+                ex = f" [{', '.join(extra)}]" if extra else ""
+                self.kuja_dosha_label.setText(
+                    f"[Kuja Dosha] PRESENT — Mars in {kd.mars_sign} from {', '.join(parts)}{ex}"
+                )
+                self.kuja_dosha_label.setStyleSheet("font-size:13px; padding:4px; color:#ff6b6b; font-weight:bold;")
+            else:
+                reasons = [m for m in kd.messages if m != "No Kuja Dosha"]
+                reason = f" ({'; '.join(reasons)})" if reasons else ""
+                self.kuja_dosha_label.setText(f"[Kuja Dosha] No Kuja Dosha{reason}")
+                self.kuja_dosha_label.setStyleSheet("font-size:13px; padding:4px; color:#66bb6a; font-weight:bold;")
+        except Exception:
+            self.kuja_dosha_label.setText("")
+            self.kuja_dosha_label.setStyleSheet("")
 
     # --- Ashtakavarga ---
 

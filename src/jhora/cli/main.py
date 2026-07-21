@@ -495,6 +495,52 @@ def learning(
 
 
 @app.command()
+def kuja_dosha(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Check Kuja Dosha (Mangal Dosha) — Mars affliction analysis."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+
+    from jhora.calc.kuja_dosha import compute_kuja_dosha
+    r = compute_kuja_dosha(cd)
+
+    if r.has_dosha:
+        console.print(f"[red bold]Kuja Dosha PRESENT[/red bold]")
+    else:
+        console.print(f"[green bold]No Kuja Dosha[/green bold]")
+
+    table = Table(title="Kuja Dosha Analysis (Mars Affliction)")
+    table.add_column("Check", style="cyan")
+    table.add_column("Result", style="white")
+    table.add_column("Detail", style="yellow")
+
+    for label, has, house in [
+        ("From Lagna", r.from_lagna, r.mars_from_lagna_house),
+        ("From Moon", r.from_moon, r.mars_from_moon_house),
+        ("From Venus", r.from_venus, r.mars_from_venus_house),
+    ]:
+        if has:
+            table.add_row(label, "[red]✓ Afflicted[/red]", f"Mars in H{house}")
+        else:
+            table.add_row(label, "[dim]— Clean[/dim]", f"Mars in H{house}")
+
+    table.add_row("Mars Sign", r.mars_sign, "Own sign — weakened" if r.mars_own_sign else "")
+    table.add_row("Jupiter", "[green]Cancels[/green]" if r.jupiter_cancels else "[dim]No aspect[/dim]", "")
+    table.add_row("Lagna", "[green]Weakens[/green]" if r.lagna_cancels else "", r.lagna_name)
+    console.print(table)
+
+    for m in r.messages:
+        if m != "No Kuja Dosha":
+            console.print(f"  {m}")
+
+
+@app.command()
 def panchanga(
     year: int = typer.Argument(None, help="Year (default: current)"),
     month: int = typer.Argument(None, help="Month (default: current)"),
