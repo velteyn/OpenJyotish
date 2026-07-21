@@ -4,12 +4,12 @@ from typing import Optional
 
 from PyQt6.QtCore import QDate, Qt, QThread, QTime, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QBrush, QColor, QFont
-from PyQt6.QtWidgets import (QApplication, QComboBox, QDateEdit, QDialog,
+from PyQt6.QtWidgets import (QApplication, QButtonGroup, QComboBox, QDateEdit, QDialog,
                              QFileDialog, QFormLayout, QGroupBox, QHBoxLayout,
                              QHeaderView, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
-                             QPushButton, QScrollArea, QSplitter, QTableWidget,
-                             QTableWidgetItem, QTabWidget, QTextEdit,
+                             QPushButton, QRadioButton, QScrollArea, QSplitter,
+                             QTableWidget, QTableWidgetItem, QTabWidget, QTextEdit,
                              QTimeEdit, QVBoxLayout, QWidget)
 
 from jhora.ai.engine import PROVIDERS, AiConfig, AiEngine
@@ -136,6 +136,18 @@ class MainWindow(QMainWindow):
         self.time_input.setTime(QTime(17, 48, 20))
         self.time_input.setToolTip("Local birth time")
 
+        self.sex_group = QButtonGroup(self)
+        self.sex_male = QRadioButton("Male")
+        self.sex_female = QRadioButton("Female")
+        self.sex_group.addButton(self.sex_male, 0)
+        self.sex_group.addButton(self.sex_female, 1)
+        self.sex_male.setChecked(True)
+        sex_row = QHBoxLayout()
+        sex_row.setSpacing(12)
+        sex_row.addWidget(self.sex_male)
+        sex_row.addWidget(self.sex_female)
+        sex_row.addStretch()
+
         self._atlas: Optional[AtlasReader | StaticAtlasReader] = None
         self._city_search_timer = QTimer()
         self._city_search_timer.setSingleShot(True)
@@ -199,6 +211,7 @@ class MainWindow(QMainWindow):
 
         form.addRow("Date:", self.date_input)
         form.addRow("Time:", self.time_input)
+        form.addRow("Sex:", sex_row)
         form.addRow("City:", city_row)
         form.addRow("TZ:", tz_row)
         form.addRow(latlon_row)
@@ -705,10 +718,12 @@ class MainWindow(QMainWindow):
             hour = qt.hour() + qt.minute() / 60.0 + qt.second() / 3600.0
 
             self.statusBar().showMessage("Calculating...")
+            sex_val = "Male" if self.sex_male.isChecked() else "Female"
             self.chart_data = self.builder.build(
                 year=year, month=month, day=day,
                 hour=hour, lat=lat, lon=lon,
                 tz=tz, ayanamsa=ayanamsa,
+                sex=sex_val,
             )
             self.chart_widget.set_chart_data(self.chart_data)
             self._update_planet_table()
@@ -1964,9 +1979,11 @@ class MainWindow(QMainWindow):
             tz_raw = self.tz_input.text().strip()
             lat = float(self.lat_input.text().strip())
             lon = float(self.lon_input.text().strip())
+            sex_val = "Male" if self.sex_male.isChecked() else "Female"
             cd = builder.build(
                 year=qd.year(), month=qd.month(), day=qd.day(),
                 hour=hour, lat=lat, lon=lon, tz=tz_raw, ayanamsa=ay,
+                sex=sex_val,
             )
             return cd
         except Exception as e:
