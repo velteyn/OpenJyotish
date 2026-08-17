@@ -19,15 +19,15 @@ class ChartStyle(Enum):
 
 
 PALETTE = {
-    "bg": QColor("#1a1a2e"),
-    "cell_bg": QColor("#16213e"),
-    "border": QColor("#e94560"),
-    "accent": QColor("#00d2ff"),
-    "text": QColor("#cccccc"),
-    "text_dim": QColor("#888888"),
-    "lagna": QColor("#e94560"),
-    "navamsa": QColor("#00ff88"),
-    "retro": QColor("#e94560"),
+    "bg": QColor("#151a28"),
+    "cell_bg": QColor("#1a2135"),
+    "border": QColor("#d4af37"),
+    "accent": QColor("#2dd4bf"),
+    "text": QColor("#e8e9f2"),
+    "text_dim": QColor("#8b90a8"),
+    "lagna": QColor("#e5534b"),
+    "navamsa": QColor("#3fb96f"),
+    "retro": QColor("#e5534b"),
 }
 
 PLANET_COLORS = {

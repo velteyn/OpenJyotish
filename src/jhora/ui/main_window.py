@@ -5,11 +5,12 @@ from typing import Optional
 from PyQt6.QtCore import QDate, Qt, QThread, QTime, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QBrush, QColor, QFont
 from PyQt6.QtWidgets import (QApplication, QButtonGroup, QComboBox, QDateEdit, QDialog,
-                             QFileDialog, QFormLayout, QGroupBox, QHBoxLayout,
+                             QFileDialog, QFormLayout, QFrame, QGroupBox, QHBoxLayout,
                              QHeaderView, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
                              QPushButton, QRadioButton, QScrollArea, QSplitter,
-                             QTableWidget, QTableWidgetItem, QTabWidget, QTextEdit,
+                             QStackedWidget, QTableWidget, QTableWidgetItem,
+                             QTabWidget, QTextEdit,
                              QTimeEdit, QVBoxLayout, QWidget)
 
 from jhora.ai.engine import PROVIDERS, AiConfig, AiEngine
@@ -35,62 +36,17 @@ from jhora.types.rasi import Rasi
 from jhora.types.varga import VargaLevel, VargaVariant
 from jhora.ui.chart_widget import ChartStyle, ChartWidget
 from jhora.ui.dasa_timeline_widget import DasaTimelineWidget
+from jhora.ui import theme
 
-BG = "#1a1a2e"
-BG2 = "#16213e"
-ACCENT = "#00d2ff"
-BORDER = "#e94560"
-TEXT = "#cccccc"
-DIM = "#888888"
+# Legacy aliases — older code below references these names.
+BG = theme.BG
+BG2 = theme.BG_PANEL
+ACCENT = theme.GOLD
+BORDER = theme.BORDER
+TEXT = theme.TEXT
+DIM = theme.DIM
 
-STYLE = f"""
-QMainWindow {{ background-color: {BG}; }}
-QGroupBox {{ color: {ACCENT}; font-weight: bold; border: 1px solid {BORDER};
-            border-radius: 5px; margin-top: 10px; padding-top: 18px; }}
-QGroupBox::title {{ subcontrol-origin: margin; left: 12px; color: {ACCENT}; }}
-QLabel {{ color: {TEXT}; }}
-QLineEdit {{ background-color: {BG2}; color: #ffffff; border: 1px solid #0f3460;
-            padding: 5px 8px; border-radius: 4px; font-size: 13px; }}
-QLineEdit:focus {{ border-color: {ACCENT}; }}
-QComboBox {{ background-color: {BG2}; color: #ffffff; border: 1px solid #0f3460;
-            padding: 5px 8px; border-radius: 4px; min-width: 110px; }}
-QComboBox::drop-down {{ border: none; width: 24px; }}
-QComboBox::down-arrow {{ image: none; border-left: 5px solid transparent;
-                        border-right: 5px solid transparent;
-                        border-top: 6px solid {ACCENT}; margin-right: 6px; }}
-QComboBox QAbstractItemView {{ background-color: {BG2}; color: #ffffff;
-                               selection-background-color: {BORDER};
-                               outline: none; }}
-QPushButton {{ background-color: {BORDER}; color: white; border: none;
-              padding: 7px 20px; border-radius: 5px; font-weight: bold;
-              font-size: 13px; }}
-QPushButton:hover {{ background-color: #ff6b6b; }}
-QPushButton:pressed {{ background-color: #c23152; }}
-QPushButton:checked {{ background-color: #00aa5a; }}
-QPushButton:disabled {{ background-color: #4a5a75; color: #a0aabf; }}
-QTableWidget {{ background-color: {BG2}; color: #ffffff; border: 1px solid #0f3460;
-               gridline-color: #0f3460; }}
-QTableWidget::item {{ padding: 5px 8px; background-color: {BG2}; }}
-QTableWidget::item:alternate {{ background-color: #1a2744; }}
-QHeaderView::section {{ background-color: #0f3460; color: {ACCENT}; font-weight: bold;
-                       border: 1px solid {BG2}; padding: 5px 8px; }}
-QTabWidget::pane {{ background-color: {BG2}; border: 1px solid #0f3460;
-                   border-top: none; }}
-QTabBar::tab {{ background-color: #0f3460; color: {DIM}; padding: 8px 18px;
-               border: none; font-size: 12px; }}
-QTabBar::tab:selected {{ background-color: {BG2}; color: {ACCENT};
-                         border-bottom: 2px solid {BORDER}; }}
-QStatusBar {{ background-color: #0f3460; color: {DIM}; }}
-QTextEdit {{ background-color: {BG2}; color: {TEXT}; border: 1px solid #0f3460;
-             padding: 8px; font-size: 12px; }}
-QWidget#msgBox {{ background-color: #ffffff; color: #000000;
-                 font-size: 14px; }}
-QMessageBox {{ background-color: #ffffff; }}
-QMessageBox QLabel {{ color: #000000; font-size: 14px; }}
-QMessageBox QPushButton {{ background-color: #e94560; color: white;
-                          padding: 6px 24px; font-size: 13px; }}
-QSplitter::handle {{ background-color: #0f3460; width: 2px; }}
-"""
+STYLE = theme.STYLESHEET
 
 
 class MainWindow(QMainWindow):
@@ -233,8 +189,8 @@ class MainWindow(QMainWindow):
         self.navamsa_toggle.toggled.connect(self._on_navamsa_toggle)
 
         self.calc_btn = QPushButton("Calculate")
-        self.calc_btn.setFixedWidth(100)
-        self.calc_btn.setStyleSheet("QPushButton{font-weight:bold;font-size:14px;padding:6px;}")
+        self.calc_btn.setObjectName("primary")
+        self.calc_btn.setFixedWidth(110)
         self.calc_btn.clicked.connect(self._on_calculate)
 
         ctrl.addWidget(self.style_combo)
@@ -255,7 +211,7 @@ class MainWindow(QMainWindow):
                           border: 1px solid {BORDER}; border-radius: 4px; }}
             QListWidget::item {{ padding: 6px 8px; }}
             QListWidget::item:selected {{ background-color: {BORDER}; }}
-            QListWidget::item:hover {{ background-color: #0f3460; }}
+            QListWidget::item:hover {{ background-color: #2a3350; }}
         """)
         left_layout.addWidget(self.city_results)
 
@@ -263,14 +219,13 @@ class MainWindow(QMainWindow):
         self.chart_widget = ChartWidget()
         left_layout.addWidget(self.chart_widget, stretch=1)
 
-        # --- Right panel ---
+        # --- Right panel: stacked pages driven by sidebar nav ---
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
 
-        self.tabs = QTabWidget()
-        self.tabs.setDocumentMode(True)
+        self.page_stack = QStackedWidget()
 
         # Planet tab
         self.planet_table = QTableWidget()
@@ -284,7 +239,7 @@ class MainWindow(QMainWindow):
         hl.addWidget(self.house_table)
 
         self.chalit_label = QLabel("Chalit (Bhava) Shifts — cusp-based house positions")
-        self.chalit_label.setStyleSheet("font-weight: bold; color: #e0b050;")
+        self.chalit_label.setStyleSheet("font-weight: bold; color: #d4af37;")
         hl.addWidget(self.chalit_label)
         self.chalit_table = QTableWidget()
         self.chalit_table.setMaximumHeight(260)
@@ -336,8 +291,9 @@ class MainWindow(QMainWindow):
         self.varga_table = QTableWidget()
         vg.addWidget(self.varga_table, 1)
 
+        # ── Pages (order must match the sidebar nav) ──
         # 1. Dashboard
-        self.tabs.addTab(self._build_dashboard_tab(), "Dashboard")
+        self.page_stack.addWidget(self._build_dashboard_tab())
 
         # 2. Chart & Varga
         chart_sub = QTabWidget()
@@ -346,33 +302,33 @@ class MainWindow(QMainWindow):
         chart_sub.addTab(self.house_widget, "Houses & Chalit")
         chart_sub.addTab(self.varga_widget, "Varga Charts")
         chart_sub.addTab(self._build_yoga_tab(), "Yogas")
-        self.tabs.addTab(chart_sub, "Chart & Varga")
+        self.page_stack.addWidget(chart_sub)
 
         # 3. Strengths
         str_sub = QTabWidget()
         str_sub.addTab(self._build_shadbala_tab(), "Shadbala")
         str_sub.addTab(self._build_arudha_tab(), "Arudha & Karaka")
         str_sub.addTab(self._build_ashtakavarga_tab(), "Ashtakavarga")
-        self.tabs.addTab(str_sub, "Strengths")
+        self.page_stack.addWidget(str_sub)
 
         # 4. Dasas
         dasa_sub = QTabWidget()
         dasa_sub.addTab(self.dasa_widget, "Dasa Periods")
-        self.tabs.addTab(dasa_sub, "Dasas")
+        self.page_stack.addWidget(dasa_sub)
 
         # 5. Transits & Tajaka
         trans_sub = QTabWidget()
         trans_sub.addTab(self._build_transit_tab(), "Transits")
         trans_sub.addTab(self._build_tajaka_tab(), "Tajaka & TP")
         trans_sub.addTab(self._build_mundane_tab(), "Mundane")
-        self.tabs.addTab(trans_sub, "Transits & Tajaka")
+        self.page_stack.addWidget(trans_sub)
 
         # 6. Special Topics
         spec_sub = QTabWidget()
         spec_sub.addTab(self._build_kuta_tab(), "Matchmaking")
         spec_sub.addTab(self._build_prasna_tab(), "Prasna")
         spec_sub.addTab(self._build_muhurta_tab(), "Muhurta")
-        self.tabs.addTab(spec_sub, "Special")
+        self.page_stack.addWidget(spec_sub)
 
         # 7. AI & Knowledge
         ai_sub = QTabWidget()
@@ -381,26 +337,74 @@ class MainWindow(QMainWindow):
         ai_sub.addTab(self._build_knowledge_tab(), "Knowledge")
         ai_sub.addTab(self._build_interpreter_tab(), "Reading")
         ai_sub.addTab(self._build_ai_settings_tab(), "Settings")
-        self.tabs.addTab(ai_sub, "AI and Learn")
+        self.page_stack.addWidget(ai_sub)
 
         # 8. Tools
         tool_sub = QTabWidget()
         tool_sub.addTab(self._build_ephemeris_tab(), "Ephemeris")
-        self.tabs.addTab(tool_sub, "Tools")
+        self.page_stack.addWidget(tool_sub)
 
-        right_layout.addWidget(self.tabs)
+        right_layout.addWidget(self.page_stack)
+
+        # --- Sidebar navigation rail ---
+        sidebar = self._build_sidebar()
 
         # Splitter
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(left_panel)
         splitter.addWidget(right_panel)
-        splitter.setSizes([580, 520])
+        splitter.setSizes([560, 540])
+        main_layout.addWidget(sidebar)
         main_layout.addWidget(splitter)
 
         self.statusBar().showMessage("Ready — enter birth data and press Calculate")
 
         self._on_varga_level_changed(0)
         self._set_example_data()
+
+    def _build_sidebar(self) -> QFrame:
+        """Left navigation rail — branding + icon nav driving page_stack."""
+        rail = QFrame()
+        rail.setObjectName("sidebar")
+        rail.setFixedWidth(196)
+        lay = QVBoxLayout(rail)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+
+        brand = QLabel("☸ OpenJyotish")
+        brand.setObjectName("brand")
+        lay.addWidget(brand)
+        sub = QLabel("Vedic Astrology Toolkit")
+        sub.setObjectName("brandSub")
+        lay.addWidget(sub)
+
+        self.nav_list = QListWidget()
+        self.nav_list.setObjectName("nav")
+        self.nav_list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        for icon, label in [
+            ("◉", "Dashboard"),
+            ("▦", "Chart & Varga"),
+            ("▲", "Strengths"),
+            ("☾", "Dasas"),
+            ("⇄", "Transits"),
+            ("♥", "Special"),
+            ("✦", "AI & Learn"),
+            ("⚙", "Tools"),
+        ]:
+            item = QListWidgetItem(f"{icon}  {label}")
+            self.nav_list.addItem(item)
+        self.nav_list.currentRowChanged.connect(self.page_stack.setCurrentIndex)
+        self.nav_list.setCurrentRow(0)
+        lay.addWidget(self.nav_list, 1)
+
+        try:
+            from jhora import __version__ as _ver
+        except Exception:
+            _ver = ""
+        ver = QLabel(f"v{_ver}")
+        ver.setObjectName("versionLbl")
+        lay.addWidget(ver)
+        return rail
 
     def _create_menu_bar(self):
         menubar = self.menuBar()
@@ -759,7 +763,7 @@ class MainWindow(QMainWindow):
         table.setRowCount(len(rows))
         table.setHorizontalHeaderLabels(headers)
         white = QBrush(QColor("#ffffff"))
-        bg = QBrush(QColor("#16213e"))
+        bg = QBrush(QColor("#151a28"))
         bg_alt = QBrush(QColor("#1a2744"))
         for r, row in enumerate(rows):
             for c, val in enumerate(row):
@@ -949,7 +953,7 @@ class MainWindow(QMainWindow):
         yogas = detect_all(cd)
         self.yoga_table.setRowCount(len(yogas))
         white = QBrush(QColor("#ffffff"))
-        bg = QBrush(QColor("#16213e"))
+        bg = QBrush(QColor("#151a28"))
         bg_alt = QBrush(QColor("#1a2744"))
         for i, y in enumerate(yogas):
             names = ", ".join(p.full_name for p in y.planets) if y.planets else ""
@@ -968,7 +972,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 8)
 
         lbl_gr = QLabel("Shadbala — Planetary Strengths (rupa / virupa)")
-        lbl_gr.setStyleSheet("font-weight: bold; color: #e0b050;")
+        lbl_gr.setStyleSheet("font-weight: bold; color: #d4af37;")
         layout.addWidget(lbl_gr)
 
         self.shadbala_table = QTableWidget()
@@ -981,7 +985,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.shadbala_table)
 
         lbl_bh = QLabel("Bhava Bala — House Strengths (virupas)")
-        lbl_bh.setStyleSheet("font-weight: bold; color: #e0b050; margin-top: 8px;")
+        lbl_bh.setStyleSheet("font-weight: bold; color: #d4af37; margin-top: 8px;")
         layout.addWidget(lbl_bh)
 
         self.bhava_bala_table = QTableWidget()
@@ -994,7 +998,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.bhava_bala_table)
 
         lbl_vi = QLabel("Vimsopaka Bala — Varga-weighted Strength (Shadvarga)")
-        lbl_vi.setStyleSheet("font-weight: bold; color: #e0b050; margin-top: 8px;")
+        lbl_vi.setStyleSheet("font-weight: bold; color: #d4af37; margin-top: 8px;")
         layout.addWidget(lbl_vi)
 
         self.vimsopaka_table = QTableWidget()
@@ -1931,7 +1935,7 @@ class MainWindow(QMainWindow):
         self.kb_results.setReadOnly(True)
         self.kb_results.setStyleSheet(
             f"background-color: {BG2}; color: #ffffff;"
-            f" border: 1px solid #0f3460; border-radius: 4px; padding: 6px;"
+            f" border: 1px solid #2a3350; border-radius: 4px; padding: 6px;"
         )
         layout.addWidget(self.kb_results, stretch=1)
 
@@ -1986,7 +1990,7 @@ class MainWindow(QMainWindow):
         self.int_output.setReadOnly(True)
         self.int_output.setStyleSheet(
             f"background-color: {BG2}; color: #ffffff;"
-            f" border: 1px solid #0f3460; border-radius: 4px; padding: 6px;"
+            f" border: 1px solid #2a3350; border-radius: 4px; padding: 6px;"
             f" font-family: 'DejaVu Sans Mono'; font-size: 12px;"
         )
         layout.addWidget(self.int_output, stretch=1)
@@ -2262,7 +2266,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(cfg)
 
         group = QGroupBox("Vector Database")
-        group.setStyleSheet("QGroupBox{color:#e0b050;font-weight:bold;}")
+        group.setStyleSheet("QGroupBox{color:#d4af37;font-weight:bold;}")
         gl = QVBoxLayout(group)
 
         self.ai_vdb_status = QLabel("Status: unknown")
@@ -2344,7 +2348,7 @@ class MainWindow(QMainWindow):
                     self.ai_vdb_status.setStyleSheet("color:#ff6666;")
                 else:
                     self.ai_vdb_status.setText("Not built. Ready to Build Vector DB.")
-                    self.ai_vdb_status.setStyleSheet("color:#e0b050;")
+                    self.ai_vdb_status.setStyleSheet("color:#d4af37;")
                 self.ai_vdb_build.setEnabled(provider_ok)
                 self.ai_vdb_rebuild.setEnabled(provider_ok)
         except Exception as e:
@@ -2621,7 +2625,7 @@ class MainWindow(QMainWindow):
 
         # Ingress table
         self.mun_ingress_label = QLabel("")
-        self.mun_ingress_label.setStyleSheet("font-weight: bold; color: #e0b050;")
+        self.mun_ingress_label.setStyleSheet("font-weight: bold; color: #d4af37;")
         layout.addWidget(self.mun_ingress_label)
 
         self.mun_ingress_table = QTableWidget()
@@ -2633,7 +2637,7 @@ class MainWindow(QMainWindow):
 
         # Eclipses
         self.mun_eclipse_label = QLabel("")
-        self.mun_eclipse_label.setStyleSheet("font-weight: bold; color: #e0b050; margin-top: 8px;")
+        self.mun_eclipse_label.setStyleSheet("font-weight: bold; color: #d4af37; margin-top: 8px;")
         layout.addWidget(self.mun_eclipse_label)
         self.mun_eclipse_table = QTableWidget()
         self.mun_eclipse_table.setColumnCount(2)
@@ -3038,7 +3042,7 @@ class MainWindow(QMainWindow):
         layout.setSpacing(4)
 
         self.cons_sav_label = QLabel("SAV (Samudaya Ashtakavarga)")
-        self.cons_sav_label.setStyleSheet("font-weight: bold; color: #e0b050;")
+        self.cons_sav_label.setStyleSheet("font-weight: bold; color: #d4af37;")
         layout.addWidget(self.cons_sav_label)
 
         self.cons_sav = QTableWidget()
@@ -3146,9 +3150,9 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(str(val) if val else "")
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 if "Lagna" in name and not any(x in name for x in ["Hora","Ghati","Bhava"]):
-                    item.setForeground(QColor("#e94560"))
+                    item.setForeground(QColor("#e5534b"))
                 if isinstance(retro, bool) and retro:
-                    item.setForeground(QColor("#e94560"))
+                    item.setForeground(QColor("#e5534b"))
                 self.cons_planet_table.setItem(i, j, item)
         self.cons_planet_table.resizeColumnsToContents()
 
@@ -3290,7 +3294,7 @@ class MainWindow(QMainWindow):
                 continue
             bav = bavs[g]
             label = QLabel(g.short_name)
-            label.setStyleSheet("font-weight: bold; color: #e0b050;")
+            label.setStyleSheet("font-weight: bold; color: #d4af37;")
             self.cons_bav_layout.addWidget(label)
             table = QTableWidget()
             table.setColumnCount(3)
