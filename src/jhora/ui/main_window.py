@@ -6,7 +6,7 @@ from PyQt6.QtCore import QDate, Qt, QThread, QTime, QTimer, pyqtSignal
 from PyQt6.QtGui import QTextOption
 from PyQt6.QtGui import QAction, QBrush, QColor, QFont
 from PyQt6.QtWidgets import (QApplication, QButtonGroup, QComboBox, QDateEdit, QDialog,
-                             QFileDialog, QFormLayout, QFrame, QGroupBox, QHBoxLayout,
+                             QFileDialog, QFormLayout, QFrame, QGridLayout, QGroupBox, QHBoxLayout,
                              QHeaderView, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
                              QPushButton, QRadioButton, QScrollArea, QSplitter,
@@ -2974,7 +2974,10 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self._build_consolidated_charts())
         splitter.addWidget(self._build_consolidated_center())
         splitter.addWidget(self._build_consolidated_ashtakavarga())
-        splitter.setSizes([300, 380, 450])
+        splitter.setSizes([280, 350, 500])
+        splitter.setCollapsible(0, False)
+        splitter.setCollapsible(1, False)
+        splitter.setCollapsible(2, False)
         layout = QVBoxLayout(w)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(splitter)
@@ -2987,11 +2990,11 @@ class MainWindow(QMainWindow):
         layout.setSpacing(4)
 
         self.cons_chart = ChartWidget()
-        self.cons_chart.setMinimumSize(280, 280)
+        self.cons_chart.setMinimumSize(250, 250)
         layout.addWidget(self.cons_chart, stretch=1)
 
         self.cons_navamsa = ChartWidget()
-        self.cons_navamsa.setMinimumSize(280, 280)
+        self.cons_navamsa.setMinimumSize(250, 250)
         layout.addWidget(self.cons_navamsa, stretch=1)
         return w
 
@@ -3004,7 +3007,7 @@ class MainWindow(QMainWindow):
         # Planet table — DMS format with all bodies
         self.cons_planet_table = QTableWidget()
         self.cons_planet_table.setAlternatingRowColors(True)
-        self.cons_planet_table.setMinimumWidth(300)
+        self.cons_planet_table.setMinimumWidth(280)
         layout.addWidget(self.cons_planet_table, stretch=2)
 
         # Natal data panel
@@ -3021,22 +3024,21 @@ class MainWindow(QMainWindow):
         outer.setSpacing(4)
 
         self.cons_sav_label = QLabel("SAV (Samudaya Ashtakavarga)")
-        self.cons_sav_label.setStyleSheet("font-weight: bold; color: #d4af37;")
+        self.cons_sav_label.setStyleSheet("font-weight: bold; color: #d4af37; font-size: 11px;")
         outer.addWidget(self.cons_sav_label)
 
         self.cons_sav = QTableWidget()
-        self.cons_sav.setMaximumHeight(160)
-        self.cons_sav.setMinimumWidth(200)
+        self.cons_sav.setMaximumHeight(120)
         outer.addWidget(self.cons_sav)
 
-        # BAV grids — scrollable
+        # BAV grids — 2-column grid (compact)
         bav_scroll = QScrollArea()
         bav_scroll.setWidgetResizable(True)
-        bav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        bav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         bav_inner = QWidget()
-        self.cons_bav_layout = QVBoxLayout(bav_inner)
-        self.cons_bav_layout.setContentsMargins(0, 0, 0, 0)
-        self.cons_bav_layout.setSpacing(4)
+        self.cons_bav_grid = QGridLayout(bav_inner)
+        self.cons_bav_grid.setContentsMargins(0, 0, 0, 0)
+        self.cons_bav_grid.setSpacing(4)
         bav_scroll.setWidget(bav_inner)
         outer.addWidget(bav_scroll)
         return w
@@ -3254,42 +3256,47 @@ class MainWindow(QMainWindow):
         self.cons_sav.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         for h in range(12):
             r, c = h // 3, h % 3
-            item = QTableWidgetItem(f"{Rasi(h).short_name}\n{sav[h]}")
+            item = QTableWidgetItem(f"{Rasi(h).short_name} {sav[h]}")
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.cons_sav.setItem(r, c, item)
-        self.cons_sav.setMaximumHeight(160)
+        self.cons_sav.setMaximumHeight(120)
 
-        # BAV — all 8 planets
-        # Clear old BAV widgets from the layout
-        while self.cons_bav_layout.count():
-            child = self.cons_bav_layout.takeAt(0)
+        # BAV — 2-column grid layout
+        # Clear old BAV widgets
+        while self.cons_bav_grid.count():
+            child = self.cons_bav_grid.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
 
         from jhora.types.graha import Graha
         bavs = all_bhinna_ashtakavarga(cd)
-        for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
-                  Graha.JUPITER, Graha.VENUS, Graha.SATURN]:
+        planets = [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                   Graha.JUPITER, Graha.VENUS, Graha.SATURN]
+        for i, g in enumerate(planets):
             if g not in bavs:
                 continue
             bav = bavs[g]
+            row, col = divmod(i, 2)
+
             label = QLabel(g.short_name)
-            label.setStyleSheet("font-weight: bold; color: #d4af37;")
-            self.cons_bav_layout.addWidget(label)
+            label.setStyleSheet("font-weight: bold; color: #d4af37; font-size: 11px;")
+            self.cons_bav_grid.addWidget(label, row * 2, col)
+
             table = QTableWidget()
             table.setColumnCount(3)
             table.setRowCount(4)
-            table.setMaximumHeight(110)
+            table.setMaximumHeight(70)
             table.verticalHeader().setVisible(False)
             table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            table.verticalHeader().setDefaultSectionSize(14)
             for h in range(12):
                 r, c = h // 3, h % 3
                 item = QTableWidgetItem(str(bav[h]))
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 table.setItem(r, c, item)
-            self.cons_bav_layout.addWidget(table)
+            self.cons_bav_grid.addWidget(table, row * 2 + 1, col)
 
     # ── Navamsa overlay for consolidated charts ──
 
