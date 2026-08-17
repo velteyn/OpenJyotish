@@ -3,6 +3,9 @@
 Single source of truth for colors and the global stylesheet.
 Import `apply_theme(app)` to set the application-wide look.
 """
+import os as _os
+
+_ASSETS = _os.path.join(_os.path.dirname(__file__), "assets")
 
 # ── Palette ──────────────────────────────────────────────────────────────
 BG = "#0e111a"          # window background (deep space navy)
@@ -64,10 +67,9 @@ QComboBox {{ background-color: {BG_INPUT}; color: {TEXT};
             border-radius: 6px; min-width: 110px; }}
 QComboBox:hover {{ border-color: {GOLD_DIM}; }}
 QComboBox:focus {{ border-color: {GOLD}; }}
-QComboBox::drop-down {{ border: none; width: 24px; }}
-QComboBox::down-arrow {{ image: none; border-left: 5px solid transparent;
-                        border-right: 5px solid transparent;
-                        border-top: 6px solid {GOLD}; margin-right: 8px; }}
+QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: center right;
+                       border: none; width: 24px; }}
+QComboBox::down-arrow {{ image: url({_ASSETS}/dropdown-arrow.png); }}
 QComboBox QAbstractItemView {{ background-color: {BG_PANEL}; color: {TEXT};
                               border: 1px solid {BORDER};
                               selection-background-color: {GOLD_DIM};

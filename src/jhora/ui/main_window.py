@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtCore import QDate, Qt, QThread, QTime, QTimer, pyqtSignal
+from PyQt6.QtGui import QTextOption
 from PyQt6.QtGui import QAction, QBrush, QColor, QFont
 from PyQt6.QtWidgets import (QApplication, QButtonGroup, QComboBox, QDateEdit, QDialog,
                              QFileDialog, QFormLayout, QFrame, QGroupBox, QHBoxLayout,
@@ -1933,10 +1934,6 @@ class MainWindow(QMainWindow):
         # Results list
         self.kb_results = QTextEdit()
         self.kb_results.setReadOnly(True)
-        self.kb_results.setStyleSheet(
-            f"background-color: {BG2}; color: #ffffff;"
-            f" border: 1px solid #2a3350; border-radius: 4px; padding: 6px;"
-        )
         layout.addWidget(self.kb_results, stretch=1)
 
         return w
@@ -1988,11 +1985,6 @@ class MainWindow(QMainWindow):
 
         self.int_output = QTextEdit()
         self.int_output.setReadOnly(True)
-        self.int_output.setStyleSheet(
-            f"background-color: {BG2}; color: #ffffff;"
-            f" border: 1px solid #2a3350; border-radius: 4px; padding: 6px;"
-            f" font-family: 'DejaVu Sans Mono'; font-size: 12px;"
-        )
         layout.addWidget(self.int_output, stretch=1)
 
         return w
@@ -2150,48 +2142,49 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        # Action buttons
-        btn_row = QHBoxLayout()
-        self.ai_interpret_btn = QPushButton("Interpret Chart")
+        # Row 1: action buttons + style/topic
+        row1 = QHBoxLayout()
+        self.ai_interpret_btn = QPushButton("Interpret")
         self.ai_interpret_btn.clicked.connect(lambda: self._on_ai_action("interpret"))
-        btn_row.addWidget(self.ai_interpret_btn)
+        row1.addWidget(self.ai_interpret_btn)
 
-        self.ai_remedy_btn = QPushButton("Suggest Remedies")
+        self.ai_remedy_btn = QPushButton("Remedies")
         self.ai_remedy_btn.clicked.connect(lambda: self._on_ai_action("remedies"))
-        btn_row.addWidget(self.ai_remedy_btn)
+        row1.addWidget(self.ai_remedy_btn)
 
         self.ai_style = QComboBox()
         self.ai_style.addItems(["concise", "detailed", "professional"])
         self.ai_style.setCurrentText("detailed")
-        self.ai_style.setFixedWidth(120)
-        btn_row.addWidget(QLabel("Style:"))
-        btn_row.addWidget(self.ai_style)
+        self.ai_style.setFixedWidth(110)
+        row1.addWidget(QLabel("Style:"))
+        row1.addWidget(self.ai_style)
 
         self.ai_topic = QComboBox()
         self.ai_topic.addItems(["general", "relationship", "career", "health",
                                 "spirituality", "children", "finance"])
         self.ai_topic.setCurrentText("general")
-        btn_row.addWidget(QLabel("Topic:"))
-        btn_row.addWidget(self.ai_topic)
+        self.ai_topic.setMinimumWidth(110)
+        row1.addWidget(QLabel("Topic:"))
+        row1.addWidget(self.ai_topic)
+        row1.addStretch()
+        layout.addLayout(row1)
 
+        # Row 2: free-form ask
+        row2 = QHBoxLayout()
         self.ai_ask_input = QLineEdit()
-        self.ai_ask_input.setPlaceholderText("Or ask a specific question...")
+        self.ai_ask_input.setPlaceholderText("Ask a specific question...")
         self.ai_ask_input.returnPressed.connect(self._on_ai_ask)
-        btn_row.addWidget(self.ai_ask_input)
+        row2.addWidget(self.ai_ask_input, 1)
 
         self.ai_ask_btn = QPushButton("Ask")
+        self.ai_ask_btn.setFixedWidth(70)
         self.ai_ask_btn.clicked.connect(self._on_ai_ask)
-        btn_row.addWidget(self.ai_ask_btn)
-        layout.addLayout(btn_row)
+        row2.addWidget(self.ai_ask_btn)
+        layout.addLayout(row2)
 
         # Output area
         self.ai_output = QTextEdit()
         self.ai_output.setReadOnly(True)
-        self.ai_output.setStyleSheet(
-            "QTextEdit { background-color: #0d1b2a; color: #e0e0e0; "
-            "font-family: 'Segoe UI', sans-serif; font-size: 13px; "
-            "border: 1px solid #2a3f5f; border-radius: 4px; padding: 8px; }"
-        )
         layout.addWidget(self.ai_output)
 
         self._ai_worker: Optional[_AiWorker] = None
@@ -2286,10 +2279,6 @@ class MainWindow(QMainWindow):
         self.ai_vdb_progress = QTextEdit()
         self.ai_vdb_progress.setReadOnly(True)
         self.ai_vdb_progress.setMaximumHeight(300)
-        self.ai_vdb_progress.setStyleSheet(
-            "QTextEdit{background:#0d1b2a;color:#e0e0e0;font-size:12px;"
-            "border:1px solid #2a3f5f;padding:6px;}"
-        )
         gl.addWidget(self.ai_vdb_progress)
         layout.addWidget(group)
         layout.addStretch()
@@ -2455,11 +2444,6 @@ class MainWindow(QMainWindow):
 
         self.teach_output = QTextEdit()
         self.teach_output.setReadOnly(True)
-        self.teach_output.setStyleSheet(
-            "QTextEdit { background-color: #0d1b2a; color: #e0e0e0; "
-            "font-family: 'Segoe UI', sans-serif; font-size: 13px; "
-            "border: 1px solid #2a3f5f; border-radius: 4px; padding: 8px; }"
-        )
         layout.addWidget(self.teach_output)
 
         self._build_teacher_btn = QPushButton("Build Textbook Index")
@@ -2775,13 +2759,13 @@ class MainWindow(QMainWindow):
         self.dash_now = QTextEdit()
         self.dash_now.setReadOnly(True)
         self.dash_now.setMaximumHeight(300)
-        self.dash_now.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-family:Consolas,monospace;font-size:15px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_now.setWordWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
         left.addWidget(QLabel("RIGHT NOW"))
         left.addWidget(self.dash_now)
 
         self.dash_strengths = QTextEdit()
         self.dash_strengths.setReadOnly(True)
-        self.dash_strengths.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-family:Consolas,monospace;font-size:15px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_strengths.setWordWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
         left.addWidget(QLabel("STRENGTHS"))
         left.addWidget(self.dash_strengths)
 
@@ -2794,13 +2778,13 @@ class MainWindow(QMainWindow):
         self.dash_upcoming = QTextEdit()
         self.dash_upcoming.setReadOnly(True)
         self.dash_upcoming.setMaximumHeight(300)
-        self.dash_upcoming.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-family:Consolas,monospace;font-size:15px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_upcoming.setWordWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
         right.addWidget(QLabel("UPCOMING"))
         right.addWidget(self.dash_upcoming)
 
         self.dash_keydates = QTextEdit()
         self.dash_keydates.setReadOnly(True)
-        self.dash_keydates.setStyleSheet("QTextEdit{background:#0d1b2a;color:#e0e0e0;font-family:Consolas,monospace;font-size:15px;border:1px solid #2a3f5f;border-radius:4px;padding:8px;}")
+        self.dash_keydates.setWordWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
         right.addWidget(QLabel("KEY DATES"))
         right.addWidget(self.dash_keydates)
 
@@ -2845,7 +2829,7 @@ class MainWindow(QMainWindow):
                 return match.group(0) # Not a valid rich tag, leave alone
                 
             text = re.sub(r'\[([^/\[\]]+)\]', replacer, text)
-            return f"<pre style='font-family: Consolas, monospace; font-size: 15px; margin: 0;'>{text}</pre>"
+            return f"<div style='font-family: Consolas, monospace; font-size: 15px; white-space: pre-wrap; word-break: break-word;'>{text}</div>"
 
         now = datetime.now()
         # ── RIGHT NOW ──
@@ -2990,7 +2974,7 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self._build_consolidated_charts())
         splitter.addWidget(self._build_consolidated_center())
         splitter.addWidget(self._build_consolidated_ashtakavarga())
-        splitter.setSizes([380, 420, 300])
+        splitter.setSizes([300, 380, 450])
         layout = QVBoxLayout(w)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(splitter)
@@ -3003,11 +2987,11 @@ class MainWindow(QMainWindow):
         layout.setSpacing(4)
 
         self.cons_chart = ChartWidget()
-        self.cons_chart.setMinimumSize(350, 350)
+        self.cons_chart.setMinimumSize(280, 280)
         layout.addWidget(self.cons_chart, stretch=1)
 
         self.cons_navamsa = ChartWidget()
-        self.cons_navamsa.setMinimumSize(350, 350)
+        self.cons_navamsa.setMinimumSize(280, 280)
         layout.addWidget(self.cons_navamsa, stretch=1)
         return w
 
@@ -3020,44 +3004,41 @@ class MainWindow(QMainWindow):
         # Planet table — DMS format with all bodies
         self.cons_planet_table = QTableWidget()
         self.cons_planet_table.setAlternatingRowColors(True)
-        self.cons_planet_table.setMinimumWidth(380)
+        self.cons_planet_table.setMinimumWidth(300)
         layout.addWidget(self.cons_planet_table, stretch=2)
 
         # Natal data panel
         self.cons_natal_panel = QTextEdit()
         self.cons_natal_panel.setReadOnly(True)
         self.cons_natal_panel.setMaximumHeight(300)
-        self.cons_natal_panel.setStyleSheet(
-            "QTextEdit { background-color: #0d1b2a; color: #e0e0e0; "
-            "font-family: monospace; font-size: 12px; "
-            "border: 1px solid #2a3f5f; border-radius: 4px; padding: 8px; }"
-        )
         layout.addWidget(self.cons_natal_panel, stretch=1)
         return w
 
     def _build_consolidated_ashtakavarga(self):
         w = QWidget()
-        layout = QVBoxLayout(w)
-        layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(4)
+        outer = QVBoxLayout(w)
+        outer.setContentsMargins(4, 4, 4, 4)
+        outer.setSpacing(4)
 
         self.cons_sav_label = QLabel("SAV (Samudaya Ashtakavarga)")
         self.cons_sav_label.setStyleSheet("font-weight: bold; color: #d4af37;")
-        layout.addWidget(self.cons_sav_label)
+        outer.addWidget(self.cons_sav_label)
 
         self.cons_sav = QTableWidget()
-        self.cons_sav.setMaximumHeight(180)
-        layout.addWidget(self.cons_sav)
+        self.cons_sav.setMaximumHeight(160)
+        self.cons_sav.setMinimumWidth(200)
+        outer.addWidget(self.cons_sav)
 
-        # BAV grids — all 8 planets in a scrollable area
+        # BAV grids — scrollable
         bav_scroll = QScrollArea()
         bav_scroll.setWidgetResizable(True)
+        bav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         bav_inner = QWidget()
         self.cons_bav_layout = QVBoxLayout(bav_inner)
         self.cons_bav_layout.setContentsMargins(0, 0, 0, 0)
         self.cons_bav_layout.setSpacing(4)
         bav_scroll.setWidget(bav_inner)
-        layout.addWidget(bav_scroll)
+        outer.addWidget(bav_scroll)
         return w
 
     def _populate_consolidated(self, cd: ChartData):
@@ -3268,9 +3249,9 @@ class MainWindow(QMainWindow):
         # SAV grid: 4 rows × 3 cols
         self.cons_sav.setColumnCount(3)
         self.cons_sav.setRowCount(4)
-        cell_h = ["", "", ""]
-        self.cons_sav.setHorizontalHeaderLabels(cell_h)
-        self.cons_sav.horizontalHeader().setDefaultSectionSize(50)
+        self.cons_sav.setHorizontalHeaderLabels(["", "", ""])
+        self.cons_sav.verticalHeader().setVisible(False)
+        self.cons_sav.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         for h in range(12):
             r, c = h // 3, h % 3
             item = QTableWidgetItem(f"{Rasi(h).short_name}\n{sav[h]}")
@@ -3300,8 +3281,8 @@ class MainWindow(QMainWindow):
             table.setColumnCount(3)
             table.setRowCount(4)
             table.setMaximumHeight(110)
-            table.horizontalHeader().setDefaultSectionSize(35)
-            table.verticalHeader().setDefaultSectionSize(22)
+            table.verticalHeader().setVisible(False)
+            table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             for h in range(12):
                 r, c = h // 3, h % 3
                 item = QTableWidgetItem(str(bav[h]))
