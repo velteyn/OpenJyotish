@@ -2972,12 +2972,16 @@ class MainWindow(QMainWindow):
         w = QWidget()
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(self._build_consolidated_charts())
-        splitter.addWidget(self._build_consolidated_center())
-        splitter.addWidget(self._build_consolidated_ashtakavarga())
-        splitter.setSizes([280, 350, 500])
+
+        # Right side: two tabs so planet table and Ashtakavarga don't compete for width
+        self.cons_right_tabs = QTabWidget()
+        self.cons_right_tabs.addTab(self._build_consolidated_center(), "Planets & Data")
+        self.cons_right_tabs.addTab(self._build_consolidated_ashtakavarga(), "Ashtakavarga")
+        splitter.addWidget(self.cons_right_tabs)
+
+        splitter.setSizes([290, 750])
         splitter.setCollapsible(0, False)
         splitter.setCollapsible(1, False)
-        splitter.setCollapsible(2, False)
         layout = QVBoxLayout(w)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(splitter)
@@ -3020,28 +3024,48 @@ class MainWindow(QMainWindow):
     def _build_consolidated_ashtakavarga(self):
         w = QWidget()
         outer = QVBoxLayout(w)
-        outer.setContentsMargins(4, 4, 4, 4)
-        outer.setSpacing(4)
+        outer.setContentsMargins(6, 6, 6, 6)
+        outer.setSpacing(6)
 
-        self.cons_sav_label = QLabel("SAV (Samudaya Ashtakavarga)")
-        self.cons_sav_label.setStyleSheet("font-weight: bold; color: #d4af37; font-size: 11px;")
+        # ── SAV section ──
+        self.cons_sav_label = QLabel("SAV — Samudaya Ashtakavarga")
+        self.cons_sav_label.setStyleSheet(
+            "font-weight: bold; color: #90CAF9; font-size: 12px;")
         outer.addWidget(self.cons_sav_label)
 
+        # 4×3 grid; each cell will show "SignName\nScore" with a heatmap background
         self.cons_sav = QTableWidget()
-        self.cons_sav.setMaximumHeight(120)
+        self.cons_sav.setColumnCount(3)
+        self.cons_sav.setRowCount(4)
+        self.cons_sav.horizontalHeader().setVisible(False)
+        self.cons_sav.verticalHeader().setVisible(False)
+        self.cons_sav.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch)
+        self.cons_sav.verticalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch)
+        self.cons_sav.setMinimumHeight(130)
+        self.cons_sav.setMaximumHeight(180)
         outer.addWidget(self.cons_sav)
 
-        # BAV grids — 2-column grid (compact)
+        # ── BAV section ──
+        bav_section_label = QLabel("BAV — Bhinna Ashtakavarga (per planet)")
+        bav_section_label.setStyleSheet(
+            "font-weight: bold; color: #90CAF9; font-size: 12px;")
+        outer.addWidget(bav_section_label)
+
         bav_scroll = QScrollArea()
         bav_scroll.setWidgetResizable(True)
-        bav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        bav_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         bav_inner = QWidget()
         self.cons_bav_grid = QGridLayout(bav_inner)
         self.cons_bav_grid.setContentsMargins(0, 0, 0, 0)
-        self.cons_bav_grid.setSpacing(4)
+        self.cons_bav_grid.setSpacing(6)
         bav_scroll.setWidget(bav_inner)
-        outer.addWidget(bav_scroll)
+        outer.addWidget(bav_scroll, stretch=1)
         return w
+
+
 
     def _populate_consolidated(self, cd: ChartData):
         self.cons_chart.set_chart_data(cd)
@@ -3248,22 +3272,35 @@ class MainWindow(QMainWindow):
                                              sarva_ashtakavarga)
         sav = sarva_ashtakavarga(cd)
 
-        # SAV grid: 4 rows × 3 cols
-        self.cons_sav.setColumnCount(3)
-        self.cons_sav.setRowCount(4)
-        self.cons_sav.setHorizontalHeaderLabels(["", "", ""])
-        self.cons_sav.verticalHeader().setVisible(False)
-        self.cons_sav.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # ── Rasi abbreviations (house 0=Ar … 11=Pi) ──
+        _RASI = ["Ar", "Ta", "Ge", "Cn", "Le", "Vi",
+                 "Li", "Sc", "Sg", "Cp", "Aq", "Pi"]
+
+        # ── SAV: 4×3 grid, each cell = "SignName\nScore", heatmap background ──
+        # Score ranges for SAV (0–56): ≥30 strong, 25–29 moderate, 20–24 weak, <20 very weak
+        def _sav_bg(score: int) -> QColor:
+            if score >= 30:
+                return QColor("#1B5E20")   # deep green — strong
+            if score >= 25:
+                return QColor("#2E7D32")   # medium green — moderate
+            if score >= 20:
+                return QColor("#BF360C")   # burnt orange — weak
+            return QColor("#7B0000")       # deep red — very weak
+
         for h in range(12):
             r, c = h // 3, h % 3
-            item = QTableWidgetItem(f"{Rasi(h).short_name} {sav[h]}")
+            score = sav[h]
+            item = QTableWidgetItem(f"{_RASI[h]}\n{score}")
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            item.setBackground(_sav_bg(score))
+            item.setForeground(QColor("#E8E8E8"))   # near-white, not yellow
             self.cons_sav.setItem(r, c, item)
-        self.cons_sav.setMaximumHeight(120)
+        # Ensure rows are tall enough for two-line cells
+        for r in range(4):
+            self.cons_sav.setRowHeight(r, 36)
 
-        # BAV — 2-column grid layout
-        # Clear old BAV widgets
+        # ── BAV: clear old widgets ──
         while self.cons_bav_grid.count():
             child = self.cons_bav_grid.takeAt(0)
             if child.widget():
@@ -3273,30 +3310,52 @@ class MainWindow(QMainWindow):
         bavs = all_bhinna_ashtakavarga(cd)
         planets = [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
                    Graha.JUPITER, Graha.VENUS, Graha.SATURN]
+
+        # BAV score ranges (0–8 per house)
+        def _bav_bg(score: int) -> QColor:
+            if score >= 5:
+                return QColor("#1B5E20")   # green — benefic
+            if score == 4:
+                return QColor("#33691E")   # lime-dark — slightly benefic
+            if score == 3:
+                return QColor("#37474F")   # blue-gray — neutral
+            if score == 2:
+                return QColor("#BF360C")   # burnt orange — weak
+            return QColor("#7B0000")       # deep red — very weak
+
         for i, g in enumerate(planets):
             if g not in bavs:
                 continue
             bav = bavs[g]
-            row, col = divmod(i, 2)
+            grid_row, grid_col = divmod(i, 2)
 
+            # Planet name header (soft cyan — clearly distinct from yellow/white)
             label = QLabel(g.short_name)
-            label.setStyleSheet("font-weight: bold; color: #d4af37; font-size: 11px;")
-            self.cons_bav_grid.addWidget(label, row * 2, col)
+            label.setStyleSheet(
+                "font-weight: bold; color: #80DEEA; font-size: 11px; padding: 1px 0;")
+            self.cons_bav_grid.addWidget(label, grid_row * 2, grid_col)
 
+            # 4×3 table; each cell = "SignAbbr score" with heatmap background
             table = QTableWidget()
             table.setColumnCount(3)
             table.setRowCount(4)
-            table.setMaximumHeight(70)
+            table.setMaximumHeight(84)
             table.verticalHeader().setVisible(False)
-            table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-            table.verticalHeader().setDefaultSectionSize(14)
+            table.horizontalHeader().setVisible(False)
+            table.horizontalHeader().setSectionResizeMode(
+                QHeaderView.ResizeMode.Stretch)
+            table.verticalHeader().setDefaultSectionSize(18)
+
             for h in range(12):
-                r, c = h // 3, h % 3
-                item = QTableWidgetItem(str(bav[h]))
+                tr, tc = h // 3, h % 3
+                score = bav[h]
+                item = QTableWidgetItem(f"{_RASI[h]} {score}")
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                table.setItem(r, c, item)
-            self.cons_bav_grid.addWidget(table, row * 2 + 1, col)
+                item.setBackground(_bav_bg(score))
+                item.setForeground(QColor("#E0E0E0"))   # light gray — not yellow/white
+                table.setItem(tr, tc, item)
+            self.cons_bav_grid.addWidget(table, grid_row * 2 + 1, grid_col)
 
     # ── Navamsa overlay for consolidated charts ──
 
