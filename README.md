@@ -4,7 +4,7 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-28 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+33 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
 17-section JSON API for AI agents  |  689 tests  |  AGPL v3.0
 ```
 
@@ -84,7 +84,7 @@ All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 | Category | Contains |
 |----------|----------|
 | **Dashboard** | Current dasa, transits, strengths, upcoming |
-| **Chart & Varga** | Chart View, Planets, Houses & Chalit, Varga Charts, Yogas |
+| **Chart & Varga** | Chart View (Planets & Data, Ashtakavarga), Planets, Houses & Chalit, Varga Charts, Yogas |
 | **Strengths** | Shadbala, Arudha & Karaka, Ashtakavarga |
 | **Dasas** | Dasa Periods with interactive bar chart |
 | **Transits & Tajaka** | Transits, Tajaka & TP, Mundane |
@@ -128,7 +128,7 @@ data = json.loads(subprocess.run(
 ).stdout)
 ```
 
-## All CLI Commands (27)
+## All CLI Commands (33)
 
 | Command | What it does |
 |---------|-------------|
@@ -151,6 +151,7 @@ data = json.loads(subprocess.run(
 | `mundane` | World events, eclipses, ingresses |
 | `compare` | Natal vs transit or two-chart comparison |
 | `interpret` | Rule-based chart reading |
+| `traditional-report` | Formatted traditional-style chart report |
 | `knowledge` | Search 16 Vedic textbooks (FTS5) |
 | `ai` | LLM chart reading (Ollama/LM Studio/Unsloth) |
 | `teach` | AI Teacher — learn Vedic astrology |

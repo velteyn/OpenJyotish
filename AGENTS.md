@@ -55,7 +55,7 @@ Never develop directly in the public repo — it lacks ephemeris data for testin
 ### Jhora (private) — additional
 - All of the above, PLUS:
 - `jhora.exe`, `swedll32.dll`, `jhora.hlp` — original JHora binary
-- `jhcore/` — ephemeris data (not in public git)
+- `jhcore/ephe/` — ephemeris data (**not committed to git** in either repo — downloaded at install time by `install.bat` / `download_ephe.py`)
 - `docs/help/` — original JHora help files
 - `CONTEXT.md`, `PLAN.md`, `VISION.md`, `AGENTS.md` — dev docs
 - Reverse-engineering artifacts
@@ -63,10 +63,20 @@ Never develop directly in the public repo — it lacks ephemeris data for testin
 ## Running Tests
 
 ```bash
-cd ~/projects/Reversing/Jhora
-python3 -m pytest tests/ -q
-# Expected: 684 passed
+# Linux / Mac — activate venv first
+source venv/bin/activate
+PYTHONPATH=src QT_QPA_PLATFORM=offscreen python -m pytest tests/ -q
+# Expected: 689 passed
+
+# Windows (PowerShell) — use venv Python directly
+$env:PYTHONPATH="src"; $env:QT_QPA_PLATFORM="offscreen"
+.\venv\Scripts\python.exe -m pytest tests/ -q
+# Expected: 689 passed
 ```
+
+> **Note**: Always use the venv Python, not the system `python` / `python3`.
+> The system Python does not have `swisseph` installed — tests will fail with
+> `ModuleNotFoundError` if you use the wrong interpreter.
 
 ## Release Process
 
