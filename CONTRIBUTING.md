@@ -6,20 +6,34 @@ Vedic astrology toolkit — we welcome fixes, features, and documentation.
 ## Quick Start
 
 ```bash
+# Linux / Mac
 git clone https://github.com/velteyn/OpenJyotish.git
 cd OpenJyotish
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-pip install -e .
-./download_ephe.sh   # one-time: download Swiss Ephemeris data
+./install.sh   # creates venv, installs deps, downloads ephemeris
+
+# Windows (PowerShell)
+git clone https://github.com/velteyn/OpenJyotish.git
+cd OpenJyotish
+.\install.bat  # creates venv, installs deps, downloads ephemeris
 ```
 
 ## Running Tests
 
 ```bash
-python3 -m pytest tests/ -q
-# Expected: 678 passed
+# Linux / Mac
+source venv/bin/activate
+PYTHONPATH=src QT_QPA_PLATFORM=offscreen python -m pytest tests/ -q
+# Expected: 689 passed
+
+# Windows (PowerShell)
+$env:PYTHONPATH="src"; $env:QT_QPA_PLATFORM="offscreen"
+.\venv\Scripts\python.exe -m pytest tests/ -q
+# Expected: 689 passed
 ```
+
+> **Important**: Always use the **venv** Python (`.\venv\Scripts\python.exe` on Windows,
+> `venv/bin/python` on Linux/Mac). The system `python3` does not have `swisseph` and
+> will fail immediately.
 
 Write tests for new features. Run the full suite before submitting.
 
@@ -53,7 +67,7 @@ Write tests for new features. Run the full suite before submitting.
 1. **Fork** the repository
 2. **Create a branch**: `fix/short-description` or `feat/short-description`
 3. **Write tests** for your changes
-4. **Run the full suite**: `python3 -m pytest tests/ -q`
+4. **Run the full suite**: see [Running Tests](#running-tests) above
 5. **Submit a PR** against `main`
 6. **Wait for CI** — all tests must pass
 7. **Code review** — at least one maintainer reviews
