@@ -3163,11 +3163,12 @@ class MainWindow(QMainWindow):
             bodies.append((name + suffix, dms, n.name.replace("_"," ").title(),
                            pada, r.short_name, nav, "", p.is_retrograde))
 
-        # Built-in lagnas (Bhava, Hora, Ghati, etc.)
+        # Built-in lagnas (Bhava, Hora, Ghati, Sree)
         for lagna_name, lagna_data in [
             ("Bhava Lagna", cd.bhava_lagna),
             ("Hora Lagna", cd.hora_lagna),
             ("Ghati Lagna", cd.ghati_lagna),
+            ("Sree Lagna", cd.sree_lagna),
         ]:
             if lagna_data:
                 lr = Rasi.from_longitude(lagna_data.longitude)
