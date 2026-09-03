@@ -140,7 +140,11 @@ def test_upagrahas(chart):
     upas = compute_solar_upagrahas(chart.planet(Graha.SUN).longitude)
     assert len(upas) == 5
     sl = compute_special_lagnas(chart)
-    assert len(sl) == 5
+    names = {s.name for s in sl}
+    for expected in ("Bhava Lagna", "Hora Lagna", "Ghati Lagna",
+                     "Sree Lagna", "Upapada Lagna"):
+        assert expected in names
+    assert len(sl) == 10
 
 
 def test_chalit(chart):
