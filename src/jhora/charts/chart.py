@@ -199,7 +199,7 @@ class ChartBuilder:
             dignity="lagna",
         )
 
-        return ChartData(
+        cd = ChartData(
             birth_date=datetime(year, month, day),
             julian_day=jd, latitude=lat, longitude=lon,
             timezone=tz, ayanamsa_name=ayanamsa,
@@ -210,6 +210,39 @@ class ChartBuilder:
             ascendant=hd.ascendant, mc=hd.mc,
             outer_planets=outer_data,
         )
+
+        # Populate sunrise-based special lagnas (Bhava / Hora / Ghati / Sree).
+        sl = self._special_lagna_positions(cd)
+        if sl:
+            from dataclasses import replace as _replace
+            cd = _replace(cd, bhava_lagna=sl.get("bhava"),
+                          hora_lagna=sl.get("hora"),
+                          ghati_lagna=sl.get("ghati"),
+                          sree_lagna=sl.get("sree"))
+        return cd
+
+    def _special_lagna_positions(self, cd: ChartData) -> Dict:
+        """Return PlanetChartData for the sunrise-based special lagnas, if any.
+
+        Returns an empty dict when the ephemeris sunrise cannot be determined
+        (e.g. polar day/night), keeping the chart fields None-safe.
+        """
+        from jhora.calc import special_lagnas as _sl
+        lons = _sl.compute_time_lagnas(cd)
+        if any(lons.get(k) is None for k in ("bhava", "hora", "ghati", "sree")):
+            return {}
+
+        def _mk(lon):
+            rasi = Rasi.from_longitude(lon)
+            nak, pada = Nakshatra.from_longitude(lon)
+            return PlanetChartData(
+                graha=Graha.SUN, longitude=lon, latitude=0, speed=0,
+                is_retrograde=False, rasi=rasi,
+                degrees_in_rasi=lon % 30,
+                nakshatra=nak, nakshatra_pada=pada, dignity="lagna",
+            )
+
+        return {k: _mk(lons[k]) for k in ("bhava", "hora", "ghati", "sree")}
 
     @staticmethod
     def _calc_dignity(graha: Graha, lon: float) -> str:
