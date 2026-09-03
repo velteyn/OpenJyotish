@@ -11,9 +11,28 @@ from jhora.types.dasa import DasaPeriod, PeriodLevel
 
 @dataclass
 class DasaOptions:
-    """Configuration options for dasa computation."""
+    """Configuration options for dasa computation.
+
+    Shared across all dasa systems. Nakshatra dasas (Vimsottari, Ashtottari,
+    Yogini, etc.) interpret ``start_variation``, ``sesham_method`` and
+    ``year_definition``.
+    """
     year_definition: str = "solar"           # solar (365.2425d), savana (360d), tithi (354.367d)
-    start_variation: str = "moon"            # moon, kshema, utpanna, adhana, lagna
+
+    #: Which body/reference seeds the nakshatra dasa cycle:
+    #:   moon      - from Moon's nakshatra (standard)
+    #:   lagna     - from Lagna's nakshatra
+    #:   sun       - from Sun's nakshatra
+    #:   kshema    - from the Kshema tara (4th nakshatra) from Moon
+    #:   utpanna   - from the Utpanna tara (5th nakshatra) from Moon
+    #:   adhana    - from the Aadhaana tara (8th nakshatra) from Moon
+    start_variation: str = "moon"
+
+    #: How the first mahadasa's duration is handled:
+    #:   moon  - reduce first MD by the fraction of Moon's nakshatra remaining
+    #:   full  - every MD gets its full year count (cycle totals 120 years)
+    sesham_method: str = "moon"
+
     subdivision_level: PeriodLevel = PeriodLevel.PRATYANTARDASA
     include_subperiods: bool = True
     custom_sequence: Optional[List[int]] = None
