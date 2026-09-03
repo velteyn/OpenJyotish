@@ -258,6 +258,29 @@ class MainWindow(QMainWindow):
         ])
         self.dasa_system_combo.currentTextChanged.connect(self._update_dasa_text)
         dl.addWidget(self.dasa_system_combo)
+
+        # Nakshatra-dasa option row (seed, sesham, year definition).
+        opt = QHBoxLayout()
+        opt.setSpacing(8)
+        self.dasa_seed_combo = QComboBox()
+        self.dasa_seed_combo.addItems([
+            "Moon", "Lagna", "Sun", "Kshema Tara", "Utpanna Tara", "Adhana Tara",
+        ])
+        self.dasa_seed_combo.currentTextChanged.connect(self._update_dasa_text)
+        self.dasa_sesham_combo = QComboBox()
+        self.dasa_sesham_combo.addItems(["Moon (reduce first MD)", "Full (120yr cycle)"])
+        self.dasa_sesham_combo.currentTextChanged.connect(self._update_dasa_text)
+        self.dasa_year_combo = QComboBox()
+        self.dasa_year_combo.addItems(["Solar", "Savana", "Tithi"])
+        self.dasa_year_combo.currentTextChanged.connect(self._update_dasa_text)
+        opt.addWidget(QLabel("Seed:"))
+        opt.addWidget(self.dasa_seed_combo, 1)
+        opt.addWidget(QLabel("Sesham:"))
+        opt.addWidget(self.dasa_sesham_combo, 1)
+        opt.addWidget(QLabel("Year:"))
+        opt.addWidget(self.dasa_year_combo, 1)
+        dl.addLayout(opt)
+
         self.dasa_text = QTextEdit()
         self.dasa_text.setReadOnly(True)
         dl.addWidget(self.dasa_text)
@@ -844,9 +867,9 @@ class MainWindow(QMainWindow):
                 "lagna_lon": self.chart_data.ascendant,
             }
 
-            engine = self._get_dasa_engine(system)
+            engine = self._get_dasa_engine(system, self._dasa_options())
 
-            periods = engine.compute(self.chart_data.julian_day, chart_dict)
+            periods = engine.compute(self.chart_data.julian_day, chart_dict, self._dasa_options())
             se = SweEngine()
             lines = [f"{system} Dasa Periods", "─" * 48, ""]
             for md in periods:
@@ -854,6 +877,21 @@ class MainWindow(QMainWindow):
             self.dasa_text.setText("\n".join(lines))
         except Exception as e:
             self.dasa_text.setText(f"Dasa computation error:\n{e}")
+
+    def _dasa_options(self):
+        """Build DasaOptions from the dasa tab dropdowns (for nakshatra dasas)."""
+        from jhora.dasas.base import DasaOptions
+        seed_map = {
+            "Moon": "moon", "Lagna": "lagna", "Sun": "sun",
+            "Kshema Tara": "kshema", "Utpanna Tara": "utpanna", "Adhana Tara": "adhana",
+        }
+        sesham = "moon" if self.dasa_sesham_combo.currentText().startswith("Moon") else "full"
+        year = self.dasa_year_combo.currentText().lower()
+        return DasaOptions(
+            start_variation=seed_map[self.dasa_seed_combo.currentText()],
+            sesham_method=sesham,
+            year_definition=year,
+        )
 
     @staticmethod
     def _render_period_tree(period: "DasaPeriod", se, depth: int) -> list:
@@ -873,16 +911,16 @@ class MainWindow(QMainWindow):
                 result.extend(MainWindow._render_period_tree(sp, se, depth + 1))
         return result
 
-    def _get_dasa_engine(self, system: str):
+    def _get_dasa_engine(self, system: str, options=None):
         if system == "Vimsottari":
             from jhora.dasas.vimsottari import VimsottariDasa
-            return VimsottariDasa()
+            return VimsottariDasa(options)
         elif system == "Ashtottari":
             from jhora.dasas.ashtottari import AshtottariDasa
-            return AshtottariDasa()
+            return AshtottariDasa(options)
         elif system == "Yogini":
             from jhora.dasas.yogini import YoginiDasa
-            return YoginiDasa()
+            return YoginiDasa(options)
         elif system == "Sudasa":
             from jhora.dasas.sudasa import Sudasa
             return Sudasa()
@@ -896,7 +934,7 @@ class MainWindow(QMainWindow):
             from jhora.dasas.kalachakra import KalachakraDasa
             return KalachakraDasa()
         from jhora.dasas.vimsottari import VimsottariDasa
-        return VimsottariDasa()
+        return VimsottariDasa(options)
 
     # --- Varga ---
 
