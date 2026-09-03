@@ -13,13 +13,15 @@ from jhora.dasas.base import DasaBase, DasaOptions
 
 class VimsottariDasa(DasaBase):
     """Vimsottari dasa — the most important dasa system in Kali Yuga.
-    
+
     Algorithm:
-    1. Find Moon's nakshatra and its lord
+    1. Find the seed nakshatra (Moon's by default; Lagna/Sun/tara by option)
+       and its lord
     2. Compute fraction of nakshatra remaining (sesham)
     3. First dasa lord = nakshatra lord, duration = lord_years * fraction_remaining
-    4. Subsequent dasas follow fixed 9-planet cycle: Ketu, Venus, Sun, Moon, Mars, Rahu, Jupiter, Saturn, Mercury
-       (starting from the planet after the first dasa lord)
+    4. Subsequent dasas follow fixed 9-planet cycle: Ketu, Venus, Sun, Moon,
+       Mars, Rahu, Jupiter, Saturn, Mercury (starting from the planet after the
+       first dasa lord)
     5. Each mahadasa has antardasas in same proportion
     6. Cycle total = 120 years
     """
@@ -41,6 +43,13 @@ class VimsottariDasa(DasaBase):
 
     CYCLE_YEARS = [7, 20, 6, 10, 7, 18, 16, 19, 17]
 
+    # Tara offsets (nakshatra counts) from the Janma (Moon) nakshatra.
+    _TARA_OFFSET = {
+        "kshema": 3,    # 4th star
+        "utpanna": 4,   # 5th star
+        "adhana": 7,    # 8th star (Aadhaana tara)
+    }
+
     def __init__(self, options: Optional[DasaOptions] = None):
         super().__init__(options)
         self._cycle_years = dict(zip(self.CYCLE_LORDS, self.CYCLE_YEARS))
@@ -51,27 +60,30 @@ class VimsottariDasa(DasaBase):
     ) -> List[DasaPeriod]:
         opts = options or self.options
 
-        moon_lon = chart["planets"][Graha.MOON]["longitude"]
-        nakshatra, pada = Nakshatra.from_longitude(moon_lon)
+        seed_lon, seed_nakshatra_value = self._seed_longitude(chart, opts.start_variation)
+        nakshatra = Nakshatra(seed_nakshatra_value)
         nakshatra_start = nakshatra.value * (360.0 / 27.0)
-        degrees_progressed = (moon_lon % 360 - nakshatra_start) % (360.0 / 27.0)
-        remaining = self.compute_fraction_remaining(degrees_progressed)
+        degrees_progressed = (seed_lon % 360 - nakshatra_start) % (360.0 / 27.0)
 
-        # First dasa lord = nakshatra lord
+        # Starting lord from the seed nakshatra.
         starting_lord_idx = self._lord_order[self._nakshatra_to_graha(nakshatra)]
-        remaining_first = remaining
 
-        # Build lord sequence
+        if opts.sesham_method == "full":
+            remaining = 1.0
+        else:
+            remaining = self.compute_fraction_remaining(degrees_progressed)
+
+        # Build lord sequence.
         lords = []
         for i in range(9):
             idx = (starting_lord_idx + i) % 9
             lord = self.CYCLE_LORDS[idx]
             years = self.CYCLE_YEARS[idx]
-            if i == 0:
-                years = years * remaining_first
+            if i == 0 and opts.sesham_method != "full":
+                years = years * remaining
             lords.append((lord.value, years))
 
-        y_per_d = 365.2425 if opts.year_definition == "solar" else 360.0
+        y_per_d = self._days_per_year(opts.year_definition)
 
         sub_lord_names = {i: self.CYCLE_LORDS[i].full_name for i in range(9)}
         return self.build_period_tree(
@@ -83,6 +95,37 @@ class VimsottariDasa(DasaBase):
             max_level=opts.subdivision_level,
             sub_lord_names=sub_lord_names,
         )
+
+    def _days_per_year(self, year_definition: str) -> float:
+        if year_definition == "tithi":
+            return 354.367
+        return 365.2425 if year_definition == "solar" else 360.0
+
+    def _seed_longitude(self, chart: Dict, variation: str) -> Tuple[float, int]:
+        """Return (reference longitude, seed nakshatra value) for the dasa."""
+        if variation == "moon":
+            lon = chart["planets"][Graha.MOON]["longitude"]
+            nak, _ = Nakshatra.from_longitude(lon)
+            return lon, nak.value
+        if variation == "lagna":
+            lon = chart.get("lagna_lon", chart["planets"][Graha.MOON]["longitude"])
+            nak, _ = Nakshatra.from_longitude(lon)
+            return lon, nak.value
+        if variation == "sun":
+            lon = chart["planets"][Graha.SUN]["longitude"]
+            nak, _ = Nakshatra.from_longitude(lon)
+            return lon, nak.value
+        if variation in self._TARA_OFFSET:
+            # Tara-based seed: nakshatra offset from Moon's nakshatra.
+            moon_lon = chart["planets"][Graha.MOON]["longitude"]
+            moon_nak, _ = Nakshatra.from_longitude(moon_lon)
+            seed_nak = Nakshatra((moon_nak.value + self._TARA_OFFSET[variation]) % 27)
+            # Reference point = start of that nakshatra (sesham ≈ full).
+            return seed_nak.value * (360.0 / 27.0) + 0.001, seed_nak.value
+        # Unknown variation → fall back to Moon.
+        lon = chart["planets"][Graha.MOON]["longitude"]
+        nak, _ = Nakshatra.from_longitude(lon)
+        return lon, nak.value
 
     def _nakshatra_to_graha(self, n: Nakshatra) -> Graha:
         """Map nakshatra lord name to Graha enum."""
