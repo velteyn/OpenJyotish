@@ -48,6 +48,9 @@ class JhoraTui:
         self._menu_items: List[Tuple[str, str, Callable]] = []
         self._menu_index: int = 0
         self._status: str = "Welcome to Jhora TUI | ↑↓ navigate | Enter select | q quit"
+        self._dasa_seed: str = "moon"
+        self._dasa_sesham: str = "moon"
+        self._dasa_year: str = "solar"
 
     def run(self):
         self._show_main_menu()
@@ -372,14 +375,21 @@ class JhoraTui:
         if not self._check_chart():
             return
         from jhora.dasas.vimsottari import VimsottariDasa
+        from jhora.dasas.base import DasaOptions
         with rich.capture() as cap:
-            dasa = VimsottariDasa()
+            opts = DasaOptions(start_variation=self._dasa_seed,
+                               sesham_method=self._dasa_sesham,
+                               year_definition=self._dasa_year)
+            dasa = VimsottariDasa(opts)
             cd = {"planets": {g.value: {"longitude": p.longitude}
                               for g, p in self.chart.planets.items()},
                   "lagna_lon": self.chart.ascendant}
             periods = dasa.compute(self.chart.julian_day, cd)
             now = datetime.now()
-            t = Table(title="Vimsottari Mahadasha", box=rich_box.SIMPLE)
+            t = Table(
+                title=f"Vimsottari Mahadasha (seed={self._dasa_seed}, "
+                      f"sesham={self._dasa_sesham})",
+                box=rich_box.SIMPLE)
             t.add_column("Lord")
             t.add_column("Start")
             t.add_column("End")
@@ -396,6 +406,42 @@ class JhoraTui:
                                       ad.end_date.strftime("%Y-%m"), "◀ now")
             rich.print(t)
         self._content_lines = cap.get().split("\n")
+
+    def _action_dasa_settings(self):
+        """Configure the nakshatra dasa seed / sesham / year definition."""
+        from prompt_toolkit.shortcuts import message_dialog, input_dialog
+        seed_map = {
+            "moon": "Moon (default)", "lagna": "Lagna", "sun": "Sun",
+            "kshema": "Kshema tara", "utpanna": "Utpanna tara", "adhana": "Adhana tara",
+        }
+        seed_val = input_dialog(
+            "Dasa Seed",
+            "Seed body for the nakshatra dasa:\n"
+            "  moon, lagna, sun, kshema, utpanna, adhana\n"
+            f"(current: {seed_map.get(self._dasa_seed, self._dasa_seed)})",
+            self._dasa_seed).run()
+        if seed_val and seed_val.strip().lower() in seed_map:
+            self._dasa_seed = seed_val.strip().lower()
+        sesham_val = input_dialog(
+            "Dasa Sesham",
+            "Sesham handling:\n"
+            "  moon - reduce first MD by fraction of nakshatra remaining\n"
+            "  full - every MD gets its full year count (120yr cycle)",
+            self._dasa_sesham).run()
+        if sesham_val and sesham_val.strip().lower() in ("moon", "full"):
+            self._dasa_sesham = sesham_val.strip().lower()
+        year_val = input_dialog(
+            "Year Definition",
+            "Year definition:\n  solar, savana, tithi",
+            self._dasa_year).run()
+        if year_val and year_val.strip().lower() in ("solar", "savana", "tithi"):
+            self._dasa_year = year_val.strip().lower()
+        message_dialog(
+            "Dasa Settings Updated",
+            f"Seed: {self._dasa_seed}\nSesham: {self._dasa_sesham}\n"
+            f"Year: {self._dasa_year}").run()
+        self._content_lines = [f"Dasa settings: seed={self._dasa_seed} "
+                               f"sesham={self._dasa_sesham} year={self._dasa_year}"]
 
     def _action_dasa_timeline(self):
         if not self._check_chart():
@@ -770,6 +816,7 @@ class JhoraTui:
             return
         items = [
             ("1", "Dasa Periods (Vimsottari)", self._action_dasa),
+            ("4", "Dasa Settings (seed/sesham/year)", self._action_dasa_settings),
             ("2", "Dasa Timeline (Bar Chart)", self._action_dasa_timeline),
             ("3", "Chakras (Sarvatobhadra)", self._action_chakras),
         ]

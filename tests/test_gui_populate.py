@@ -122,3 +122,50 @@ def test_ai_chat_status_exists(main_window):
 def test_old_provider_widgets_removed(main_window):
     """Old Settings tab provider widgets don't exist (restored to Chat tab)."""
     assert not hasattr(main_window, 'ai_settings_provider')
+
+
+# ── Dasa tab option widgets ──
+
+def test_dasa_option_widgets_exist(main_window):
+    """Dasa tab has seed/sesham/year controls."""
+    assert hasattr(main_window, 'dasa_seed_combo')
+    assert hasattr(main_window, 'dasa_sesham_combo')
+    assert hasattr(main_window, 'dasa_year_combo')
+
+
+def test_dasa_seed_defaults_to_moon(main_window):
+    assert main_window.dasa_seed_combo.currentText() == "Moon"
+
+
+def test_dasa_sesham_defaults_to_moon(main_window):
+    assert main_window.dasa_sesham_combo.currentText().startswith("Moon")
+
+
+def test_dasa_year_defaults_to_solar(main_window):
+    assert main_window.dasa_year_combo.currentText() == "Solar"
+
+
+def test_dasa_options_build(main_window):
+    """_dasa_options maps dropdown text to DasaOptions correctly."""
+    opts = main_window._dasa_options()
+    assert opts.start_variation == "moon"
+    assert opts.sesham_method == "moon"
+    assert opts.year_definition == "solar"
+
+
+def test_dasa_options_respect_selection(main_window):
+    main_window.dasa_seed_combo.setCurrentText("Lagna")
+    main_window.dasa_sesham_combo.setCurrentText("Full (120yr cycle)")
+    main_window.dasa_year_combo.setCurrentText("Tithi")
+    opts = main_window._dasa_options()
+    assert opts.start_variation == "lagna"
+    assert opts.sesham_method == "full"
+    assert opts.year_definition == "tithi"
+
+
+def test_update_dasa_text_with_options(main_window, chart):
+    """Full dasa text render with custom seed does not crash."""
+    main_window.chart_data = chart
+    main_window.dasa_seed_combo.setCurrentText("Sun")
+    main_window._update_dasa_text()
+    assert main_window.dasa_text.toPlainText() != ""

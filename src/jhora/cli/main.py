@@ -124,6 +124,9 @@ def dasa(
     birthdata: str = typer.Argument(..., help="Birth data"),
     system: str = typer.Argument("vimsottari", help="Dasa system"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    start: str = typer.Option("moon", "--start", help="Nakshatra dasa seed: moon, lagna, sun, kshema, utpanna, adhana"),
+    sesham: str = typer.Option("moon", "--sesham", help="Sesham handling: moon (reduce first MD), full (no reduction)"),
+    year_def: str = typer.Option("solar", "--year-def", help="Year definition: solar, savana, tithi"),
 ):
     """Compute dasa periods for a chart."""
     bd = parse_birthdata(birthdata)
@@ -134,10 +137,13 @@ def dasa(
         tz=bd["tz"], ayanamsa=ayanamsa,
     )
     chart_dict = _chart_to_dict(chart_data)
-    if system == "vimsottari":
-        engine = VimsottariDasa()
-        periods = engine.compute(chart_data.julian_day, chart_dict)
-        _display_dasa_table(periods, "Vimsottari Dasa Periods")
+    if system.lower() == "vimsottari":
+        from jhora.dasas.base import DasaOptions
+        opts = DasaOptions(start_variation=start, sesham_method=sesham, year_definition=year_def)
+        engine = VimsottariDasa(opts)
+        periods = engine.compute(chart_data.julian_day, chart_dict, opts)
+        _display_dasa_table(periods, f"Vimsottari Dasa Periods (seed={start}, sesham={sesham})")
+        console.print(f"[dim]Seed: {start} · Sesham: {sesham} · Year: {year_def}[/dim]")
     elif system == "ashtottari":
         from jhora.dasas.ashtottari import AshtottariDasa
         engine = AshtottariDasa()
