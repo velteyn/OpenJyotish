@@ -180,3 +180,107 @@ class TestDasaBaseUtilities:
         )
         active = DasaBase.get_active_period([md], 2443000.0)
         assert active is None
+
+
+def _chart_dict(ref_chart) -> dict:
+    return {
+        "planets": {g: {"longitude": p.longitude, "speed": p.speed}
+                    for g, p in ref_chart.planets.items()},
+        "lagna_lon": ref_chart.ascendant,
+    }
+
+
+class TestVimsottariSeedVariations:
+    """The dasa seed determines which nakshatra (and thus first lord) starts."""
+
+    def test_default_is_moon(self, ref_chart):
+        engine = VimsottariDasa()
+        opts = DasaOptions(start_variation="moon")
+        periods = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts)
+        # Moon at 1.89° Pisces → nakshatra 24 (Purva Bhadrapada) → lord Jupiter
+        assert periods[0].lord_index == Graha.JUPITER.value
+
+    def test_lagna_seed(self, ref_chart):
+        engine = VimsottariDasa()
+        opts = DasaOptions(start_variation="lagna")
+        periods = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts)
+        # Lagna at 241.26° → nakshatra 18 (Mula) → lord Ketu
+        assert periods[0].lord_index == Graha.KETU.value
+
+    def test_sun_seed(self, ref_chart):
+        engine = VimsottariDasa()
+        opts = DasaOptions(start_variation="sun")
+        periods = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts)
+        # Sun at 351.1° → nakshatra 26 (Revati) → lord Mercury
+        assert periods[0].lord_index == Graha.MERCURY.value
+
+    def test_different_seeds_give_different_first_lord(self, ref_chart):
+        engine = VimsottariDasa()
+        opts_moon = DasaOptions(start_variation="moon")
+        opts_lagna = DasaOptions(start_variation="lagna")
+        p_moon = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts_moon)
+        p_lagna = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts_lagna)
+        assert p_moon[0].lord_index != p_lagna[0].lord_index
+
+    def test_tara_seeds_are_offsets_of_moon(self, ref_chart):
+        from jhora.types.nakshatra import Nakshatra
+        engine = VimsottariDasa()
+        moon_lon = ref_chart.planet(Graha.MOON).longitude
+        moon_nak, _ = Nakshatra.from_longitude(moon_lon)
+        for variation, offset in [("kshema", 3), ("utpanna", 4), ("adhana", 7)]:
+            opts = DasaOptions(start_variation=variation)
+            periods = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts)
+            seed_lord = periods[0].lord_index
+            expected_lord = engine._nakshatra_to_graha(
+                Nakshatra((moon_nak + offset) % 27)
+            ).value
+            assert seed_lord == expected_lord
+
+    def test_invalid_variation_falls_back_to_moon(self, ref_chart):
+        engine = VimsottariDasa()
+        opts = DasaOptions(start_variation="not_a_seed")
+        periods = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts)
+        assert periods[0].lord_index == Graha.JUPITER.value
+
+
+class TestVimsottariSesham:
+    def test_full_sesham_gives_120_total(self, ref_chart):
+        engine = VimsottariDasa()
+        opts = DasaOptions(sesham_method="full")
+        periods = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts)
+        total = sum(p.duration_years for p in periods)
+        assert abs(total - 120.0) < 0.01
+
+    def test_moon_sesham_less_than_full(self, ref_chart):
+        engine = VimsottariDasa()
+        opts = DasaOptions(sesham_method="moon")
+        periods = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts)
+        total = sum(p.duration_years for p in periods)
+        assert total < 120.0
+
+    def test_full_first_md_not_reduced(self, ref_chart):
+        engine = VimsottariDasa()
+        opts = DasaOptions(sesham_method="full")
+        periods = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts)
+        first_lord = periods[0].lord_index
+        openly = engine._cycle_years[Graha(first_lord)]
+        assert abs(periods[0].duration_years - openly) < 0.01
+
+
+class TestVimsottariYearDefinitions:
+    def test_solar_vs_savana_durations(self, ref_chart):
+        engine = VimsottariDasa()
+        p_solar = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart),
+                                 DasaOptions(year_definition="solar"))
+        p_tithi = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart),
+                                 DasaOptions(year_definition="tithi"))
+        # Tithi year is shorter → same nominal years span fewer days → shorter
+        assert p_solar[0].end_jd > p_tithi[0].end_jd
+
+    def test_tithi_year_definition(self, ref_chart):
+        engine = VimsottariDasa()
+        opts = DasaOptions(year_definition="tithi", sesham_method="full")
+        periods = engine.compute(ref_chart.julian_day, _chart_dict(ref_chart), opts)
+        total = sum(p.duration_years for p in periods)
+        assert abs(total - 120.0) < 0.01
+
