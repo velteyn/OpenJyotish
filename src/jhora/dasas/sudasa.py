@@ -72,7 +72,15 @@ class Sudasa(DasaBase):
 
     @staticmethod
     def _compute_sree_lagna(lagna_lon: float, moon_lon: float) -> float:
-        sl_lon = lagna_lon + moon_lon
-        if sl_lon < 0:
-            sl_lon += 360.0
-        return sl_lon % 360.0
+        """Sree Lagna = lagna + the Moon's traversed nakshatra fraction of 360°.
+
+        Matches P.V.R. Narasimha Rao's definition: find the Moon's advancement
+        within its nakshatra, express it as a fraction of the zodiac, and add it
+        to the lagna.
+        """
+        from jhora.types.nakshatra import Nakshatra
+        nakshatra, _pada = Nakshatra.from_longitude(moon_lon % 360.0)
+        start = nakshatra.start_longitude
+        span = nakshatra.span
+        fraction = ((moon_lon - start) % span) / span
+        return (lagna_lon + fraction * 360.0) % 360.0
