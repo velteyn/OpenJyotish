@@ -19,7 +19,11 @@ from jhora.types.rasi import Rasi
 
 
 def dasa_snapshot(cd: ChartData) -> str:
-    """Current dasa period and upcoming transitions."""
+    """Current dasa period and upcoming transitions.
+
+    Uses the standard Vimsottari defaults (Moon seed, Moon sesham, solar year),
+    which match the default state of the GUI/CLI/TUI controls.
+    """
     try:
         from datetime import datetime
         from jhora.dasas.vimsottari import VimsottariDasa
