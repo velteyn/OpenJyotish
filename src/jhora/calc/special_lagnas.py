@@ -1,11 +1,15 @@
-"""Special lagnas: Bhrigu Bindu, Indu Lagna, Varnada, Pranapada, Vighati.
+"""Special lagnas: Bhrigu Bindu, Indu, Varnada, Pranapada, Vighati, Bhava,
+Hora, Ghati, Sree, and Upapada Lagna.
 
 These are mathematical points used in various Vedic predictive techniques.
+The Bhava/Hora/Ghati lagnas are seeded by the Sun's longitude at sunrise and
+advance since sunrise; Sree Lagna combines lagna with the Moon's nakshatra
+fraction; Upapada is the arudha pada of the 12th house.
 """
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional
 
 from jhora.charts.chart import ChartData
 from jhora.types.graha import Graha
@@ -99,6 +103,132 @@ def vighati_lagna(cd: ChartData) -> float:
     return (cd.planet(Graha.SUN).longitude + vighatis * 0.1) % 360
 
 
+# ── Sunrise-based special lagnas (Bhava / Hora / Ghati) ─────────────────────
+
+# Seeded by Sun's longitude at sunrise, advancing since sunrise.
+# Rates (per P.V.R. Narasimha Rao, "Vedic Astrology: An Integrated Approach"):
+#   Bhava Lagna (BL): 1°  per 4 min  (1 rasi / 2 hr = 15°/hr)
+#   Hora  Lagna (HL): 1°  per 2 min  (1 rasi / 1 hr = 30°/hr)
+#   Ghati Lagna (GL): 1°15' per min  (1 rasi / 24 min)
+_DEG_PER_MIN = {
+    "bhava": 1.0 / 4.0,
+    "hora":  1.0 / 2.0,
+    "ghati": 5.0 / 4.0,
+}
+
+
+def _chart_swe(cd: ChartData):
+    from jhora.ephemeris.swe import SweEngine
+    engine = SweEngine()
+    engine.set_sidereal_mode(cd.ayanamsa_name)
+    return engine
+
+
+def _local_date(cd: ChartData):
+    """Return (year, month, day) of the birth's LOCAL calendar date."""
+    from datetime import datetime as _dt, timedelta as _td
+    from jhora.charts.chart import ChartBuilder
+    tz = ChartBuilder._parse_tz(cd.timezone)
+    y, m, d, ut_hour = _chart_swe(cd).revjul(cd.julian_day)
+    # local time = UT - tz_offset hours
+    ut = _dt(int(y), int(m), int(d)) + _td(hours=ut_hour)
+    local = ut - _td(hours=tz)
+    return local.year, local.month, local.day
+
+
+def _sunrise_jd(cd: ChartData) -> Optional[float]:
+    """JD (UT) of sunrise on the birth's local calendar date."""
+    from jhora.ephemeris.swe import SE_SUN
+    from jhora.charts.chart import ChartBuilder
+    tz = ChartBuilder._parse_tz(cd.timezone)
+    swe = _chart_swe(cd)
+    y, m, d = _local_date(cd)
+    jd_start = swe.julday(y, m, d, 0.1667 + tz)  # local ~00:10 onwards
+    return swe.rise_trans(jd_start, SE_SUN, cd.latitude, cd.longitude, rise=True)
+
+
+def _sun_at_sunrise(cd: ChartData) -> Optional[float]:
+    """Sun's sidereal longitude at the sunrise of the birth's local date."""
+    from jhora.ephemeris.swe import SE_SUN
+    sr = _sunrise_jd(cd)
+    if sr is None:
+        return None
+    return _chart_swe(cd).calc_planet(SE_SUN, sr).longitude % 360.0
+
+
+def _minutes_since_sunrise(cd: ChartData) -> Optional[float]:
+    sr = _sunrise_jd(cd)
+    if sr is None:
+        return None
+    return (cd.julian_day - sr) * 1440.0
+
+
+def bhava_lagna(cd: ChartData) -> Optional[float]:
+    """Bhava Lagna (BL): Sun at sunrise advanced 1° per 4 minutes."""
+    base = _sun_at_sunrise(cd)
+    minutes = _minutes_since_sunrise(cd)
+    if base is None or minutes is None:
+        return None
+    return (base + minutes * _DEG_PER_MIN["bhava"]) % 360.0
+
+
+def hora_lagna(cd: ChartData) -> Optional[float]:
+    """Hora Lagna (HL): Sun at sunrise advanced 1° per 2 minutes."""
+    base = _sun_at_sunrise(cd)
+    minutes = _minutes_since_sunrise(cd)
+    if base is None or minutes is None:
+        return None
+    return (base + minutes * _DEG_PER_MIN["hora"]) % 360.0
+
+
+def ghati_lagna(cd: ChartData) -> Optional[float]:
+    """Ghati/Ghatika Lagna (GL): Sun at sunrise advanced 1°15' per minute."""
+    base = _sun_at_sunrise(cd)
+    minutes = _minutes_since_sunrise(cd)
+    if base is None or minutes is None:
+        return None
+    return (base + minutes * _DEG_PER_MIN["ghati"]) % 360.0
+
+
+def sree_lagna(cd: ChartData) -> float:
+    """Sree Lagna (SL): lagna + Moon's traversed fraction of its nakshatra × 360°.
+
+    Moon's advancement within its nakshatra, expressed as a fraction of the
+    whole zodiac, added to the lagna. (Verified against the SN Rao worked
+    example: Moon 15°29' Leo, lagna 14°19' Scorpio -> SL 12°23' Capricorn.)
+    """
+    from jhora.types.nakshatra import Nakshatra
+    moon_lon = cd.planet(Graha.MOON).longitude
+    lagna_lon = cd.ascendant
+    nakshatra, _pada = Nakshatra.from_longitude(moon_lon)
+    start = nakshatra.start_longitude
+    span = nakshatra.span
+    fraction_in_nakshatra = ((moon_lon - start) % span) / span
+    return (lagna_lon + fraction_in_nakshatra * 360.0) % 360.0
+
+
+def upapada_lagna(cd: ChartData) -> int:
+    """Upapada Lagna/sign: Arudha Pada of the 12th house from lagna."""
+    from jhora.calc.arudha import bhava_arudha
+    planets = {g: {"longitude": cd.planet(g).longitude} for g in cd.planets}
+    return int(bhava_arudha(12, cd.ascendant, planets))
+
+
+def compute_time_lagnas(cd: ChartData) -> Dict:
+    """Return dict of the sunrise-based + derived special lagnas.
+
+    Keys: 'bhava', 'hora', 'ghati', 'sree', 'upapada'.
+    Positions may be None when ephemeris sunrise cannot be determined.
+    """
+    return {
+        "bhava": bhava_lagna(cd),
+        "hora": hora_lagna(cd),
+        "ghati": ghati_lagna(cd),
+        "sree": sree_lagna(cd),
+        "upapada": upapada_lagna(cd),
+    }
+
+
 def _sunrise_approx(cd: ChartData) -> float:
     """Approximate sunrise hour (6 AM for simplicity)."""
     try:
@@ -128,6 +258,33 @@ def compute_special_lagnas(cd: ChartData) -> list:
         results.append(SpecialLagna(
             name=name, longitude=lon, sign=r.short_name, description=desc,
         ))
+
+    # Sunrise-based lagnas (Bhava / Hora / Ghati)
+    for name, lon, desc in [
+        ("Bhava Lagna", bhava_lagna(cd), "House-based lagna (self, 15°/hr from sunrise)"),
+        ("Hora Lagna", hora_lagna(cd), "Wealth/time lagna (30°/hr from sunrise)"),
+        ("Ghati Lagna", ghati_lagna(cd), "Power/fame lagna (30°/24min from sunrise)"),
+    ]:
+        if lon is not None:
+            r = Rasi.from_longitude(lon)
+            results.append(SpecialLagna(
+                name=name, longitude=lon, sign=r.short_name, description=desc,
+            ))
+
+    # Sree Lagna (longitude)
+    sl = sree_lagna(cd)
+    results.append(SpecialLagna(
+        "Sree Lagna", sl, Rasi.from_longitude(sl).short_name,
+        "Prosperity lagna (lagna + Moon's nakshatra fraction)",
+    ))
+
+    # Upapada Lagna (rasi-based — a sign, not a point)
+    ul = upapada_lagna(cd)
+    ul_rasi = Rasi(ul)
+    results.append(SpecialLagna(
+        "Upapada Lagna", ul * 30.0, ul_rasi.short_name,
+        "Arudha pada of the 12th house (marriage/success)",
+    ))
     return results
 
 

@@ -411,19 +411,6 @@ def lagnas(
     from jhora.calc.special_lagnas import compute_special_lagnas, SpecialLagna
     lagnas = compute_special_lagnas(cd)
 
-    # Also add built-in lagnas
-    if cd.hora_lagna:
-        lr = Rasi.from_longitude(cd.hora_lagna.longitude)
-        lagnas.insert(0, SpecialLagna("Hora Lagna", cd.hora_lagna.longitude, lr.short_name, "Wealth/time"))
-    if cd.ghati_lagna:
-        lr = Rasi.from_longitude(cd.ghati_lagna.longitude)
-        lagnas.insert(0, SpecialLagna("Ghati Lagna", cd.ghati_lagna.longitude, lr.short_name, "Power"))
-    if cd.bhava_lagna:
-        lr = Rasi.from_longitude(cd.bhava_lagna.longitude)
-        lagnas.insert(0, SpecialLagna("Bhava Lagna", cd.bhava_lagna.longitude, lr.short_name, "House-based"))
-    if cd.sree_lagna:
-        lr = Rasi.from_longitude(cd.sree_lagna.longitude)
-        lagnas.insert(0, SpecialLagna("Sree Lagna", cd.sree_lagna.longitude, lr.short_name, "Prosperity"))
     lr = Rasi.from_longitude(cd.ascendant)
     lagnas.insert(0, SpecialLagna("Udaya Lagna", cd.ascendant, lr.short_name, "Ascendant"))
 
