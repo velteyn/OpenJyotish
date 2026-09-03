@@ -107,6 +107,67 @@ The vector database uses auto-detection:
 
 Textbooks are pre-loaded in `data/jhora.db` (16 sources, 1.96M chars).
 
+## Cross-Surface Consistency Invariants
+
+These are **hard rules** that apply to EVERY new calculation or feature. Failing them
+ships an inconsistent tool where the AI and one of the UIs silently disagree with the
+rest of the app. Treat any violation as a release-blocking bug.
+
+### 1. The AI system must always be aware of new calculations
+
+When any calculation is added, changed, or given new options, the AI pipeline **must**
+consume it too. Do **not** leave the AI reading only defaults while the GUI/CLI offer the
+full option set.
+
+Enforcement checklist:
+- Add the new/updated data to the AI context builders.
+  - `src/jhora/ai/analysis.py` — `full_analysis()`, `dasa_snapshot()`, and the section
+    builders (e.g. `("DASA PERIODS", lambda: dasa_snapshot(cd))` in `json_export.py` too).
+  - `src/jhora/ai/json_export.py` — `result["dasa"]`, `sahamas`, `lagnas`, `sphutas`, etc.
+  - `src/jhora/ai/prompts.py` — the system prompt inventory of what the model can see.
+  - `src/jhora/ai/teacher.py` — lesson generation should reference the same data.
+- Whenever a computation gets a new `DasaOptions`/config dimension (seed, sesham, year
+  definition, ayurveda, method, variant, ...), the AI context must either:
+  (a) honor an explicit choice, or
+  (b) document which default it uses **in the prompt context so the model knows**.
+  Never silently compute with a stale default while the UI offers a choice.
+- After touching `src/jhora/calc/**` or `src/jhora/dasas/**`, grep the AI modules for the
+  feature name and verify it flows through `analysis.py` / `json_export.py`.
+- Test with `tests/test_ai.py` (and any targeted AI test) so drift is caught automatically.
+
+### 2. GUI and TUI must expose the same capabilities
+
+Every option/calculation reachable in the GUI **should** be reachable in the TUI (and the
+CLI), modulo the TUI's inherent limits (no rich interactive charts, no mouse, simpler
+widgets). "TUI limitation" is a real, acceptable reason for a pared-back presentation —
+but **not** for a missing capability.
+
+Enforcement checklist:
+- When adding a GUI control (combo, checkbox, button, tab), add the equivalent:
+  - **CLI flag** in `src/jhora/cli/main.py` (e.g. the `--start`, `--sesham`, `--year-def`
+    flags added to `dasa`).
+  - **TUI menu item / settings action** in `src/jhora/tui/main.py` (e.g. the "Dasa
+    Settings (seed/sesham/year)" entry).
+- The TUI should show the currently selected option value in its output header so the
+  result is unambiguous (e.g. the dasa table title includes `seed=... sesham=...`).
+- If a capability genuinely cannot work in the TUI, document the reason in the menu label
+  or a comment — do not silently omit it.
+- Verify with the GUI populate tests (`tests/test_gui_populate.py`) and the CLI tests
+  (`tests/test_cli.py`).
+
+### Example — what "done" looks like (the Vimsottari options feature)
+
+When the Vimsottari seed/sesham/year options were added, ALL of these shipped together:
+- **Engine**: `DasaOptions(start_variation, sesham_method, year_definition)` in
+  `src/jhora/dasas/base.py`, honored in `src/jhora/dasas/vimsottari.py`.
+- **CLI**: `dasa --start --sesham --year-def` in `src/jhora/cli/main.py`.
+- **GUI**: Seed/Sesham/Year dropdowns on the Dasa tab in `src/jhora/ui/main_window.py`.
+- **TUI**: "Dasa Settings (seed/sesham/year)" in `src/jhora/tui/main.py`.
+- **Tests**: engine + GUI coverage added.
+
+This is the default scope for any future feature. If a surface is missing, the feature is
+not complete — take it back before committing.
+
 ## Lessons Learned — GUI Development Rules
 
 These rules come from multiple failed attempts at fixing the AI Settings tab.
