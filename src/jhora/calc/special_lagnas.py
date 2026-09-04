@@ -1,19 +1,46 @@
 """Special lagnas: Bhrigu Bindu, Indu, Varnada, Pranapada, Vighati, Bhava,
-Hora, Ghati, Sree, and Upapada Lagna.
+Hora, Ghati, Sree, Upapada, and User's Special Lagna.
 
 These are mathematical points used in various Vedic predictive techniques.
 The Bhava/Hora/Ghati lagnas are seeded by the Sun's longitude at sunrise and
 advance since sunrise; Sree Lagna combines lagna with the Moon's nakshatra
-fraction; Upapada is the arudha pada of the 12th house.
+fraction; Upapada is the arudha pada of the 12th house. The User's Special
+Lagna is configurable: choose a planet, a speed factor n, and optionally
+reverse direction (for Rahu/Ketu).  Displayed as e.g. "Ju9" in charts.
 """
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from jhora.charts.chart import ChartData
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
+
+# Graha → Swiss Ephemeris body ID (used by swe.rise_trans / calc_planet)
+_PLANET_BODY_MAP: Dict[Graha, int] = {
+    Graha.SUN:     0,
+    Graha.MOON:    1,
+    Graha.MARS:    2,
+    Graha.MERCURY: 3,
+    Graha.JUPITER: 4,
+    Graha.VENUS:   5,
+    Graha.SATURN:  6,
+    Graha.RAHU:    10,   # swe.TRUE_NODE
+    Graha.KETU:    11,   # swe.OSCU_APOG
+}
+
+_PLANET_ABBREV: Dict[Graha, str] = {
+    Graha.SUN:     "Su",
+    Graha.MOON:    "Mo",
+    Graha.MARS:    "Ma",
+    Graha.MERCURY: "Me",
+    Graha.JUPITER: "Ju",
+    Graha.VENUS:   "Ve",
+    Graha.SATURN:  "Sa",
+    Graha.RAHU:    "Ra",
+    Graha.KETU:    "Ke",
+}
 
 
 @dataclass
@@ -22,6 +49,13 @@ class SpecialLagna:
     longitude: float
     sign: str
     description: str
+
+
+@dataclass
+class UserSpecialLagnaConfig:
+    planet: Graha
+    speed_factor: float
+    reverse: bool = False
 
 
 # KP Vimsottari sub-lord proportions (planet: fraction of nakshatra)
@@ -161,6 +195,66 @@ def _minutes_since_sunrise(cd: ChartData) -> Optional[float]:
     if sr is None:
         return None
     return (cd.julian_day - sr) * 1440.0
+
+
+# ── User's Special Lagna ─────────────────────────────────────────────────────
+
+def _planet_rise(cd: ChartData, planet: Graha) -> Tuple[Optional[float], Optional[float]]:
+    """Return (longitude_at_rise, rise_jd) for *planet* on the birth's local date.
+
+    For Ketu, uses Rahu's rise and adds 180° to Rahu's longitude at that time.
+    """
+    from jhora.charts.chart import ChartBuilder
+    swe = _chart_swe(cd)
+    y, m, d = _local_date(cd)
+    tz_offset = ChartBuilder._parse_tz(cd.timezone)
+    jd_start = swe.julday(y, m, d, 0.1667 + tz_offset)
+
+    if planet == Graha.KETU:
+        # Ketu is opposite Rahu — use Rahu's rise, add 180°
+        body_id = _PLANET_BODY_MAP[Graha.RAHU]
+        rise_jd = swe.rise_trans(jd_start, body_id, cd.latitude, cd.longitude, rise=True)
+        if rise_jd is None:
+            return None, None
+        rahu_lon = swe.calc_planet(body_id, rise_jd).longitude
+        ketu_lon = (rahu_lon + 180.0) % 360.0
+        return ketu_lon, rise_jd
+
+    body_id = _PLANET_BODY_MAP[planet]
+    rise_jd = swe.rise_trans(jd_start, body_id, cd.latitude, cd.longitude, rise=True)
+    if rise_jd is None:
+        return None, None
+    lon = swe.calc_planet(body_id, rise_jd).longitude
+    return lon, rise_jd
+
+
+def user_special_lagna(cd: ChartData, planet: Graha, speed_factor: float,
+                       reverse: bool = False) -> Optional[float]:
+    """Compute User's Special Lagna (USL).
+
+    Base = planet's longitude at its rising on the birth date.
+    Rate = speed_factor × 15°/hr  (= speed_factor × 0.25°/min).
+    If reverse is True the rate is negated (for Rahu/Ketu).
+    """
+    base, rise_jd = _planet_rise(cd, planet)
+    if base is None or rise_jd is None:
+        return None
+    deg_per_min = speed_factor * 15.0 / 60.0
+    if reverse:
+        deg_per_min = -deg_per_min
+    minutes_since = (cd.julian_day - rise_jd) * 1440.0
+    return (base + minutes_since * deg_per_min) % 360.0
+
+
+def user_special_lagna_name(config: UserSpecialLagnaConfig) -> str:
+    """Display name for a USL config, e.g. 'Ju9' or 'Ra3R'."""
+    abbrev = _PLANET_ABBREV[config.planet]
+    if config.speed_factor == int(config.speed_factor):
+        factor_str = str(int(config.speed_factor))
+    else:
+        factor_str = f"{config.speed_factor:.1f}"
+    suffix = "R" if config.reverse else ""
+    return f"{abbrev}{factor_str}{suffix}"
 
 
 def bhava_lagna(cd: ChartData) -> Optional[float]:

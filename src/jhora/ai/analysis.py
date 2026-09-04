@@ -183,8 +183,11 @@ def panchanga_snapshot(cd: ChartData) -> str:
         return ""
 
 
-def build_analysis_text(cd: ChartData) -> str:
-    """Combine all analysis snapshots into one text block."""
+def build_analysis_text(cd: ChartData, usl_config=None) -> str:
+    """Combine all analysis snapshots into one text block.
+
+    usl_config: optional UserSpecialLagnaConfig included in SPECIAL POINTS.
+    """
     sections = []
     for title, fn in [
         ("STRENGTHS", lambda: strengths_snapshot(cd)),
@@ -195,7 +198,7 @@ def build_analysis_text(cd: ChartData) -> str:
         ("TRANSITS", lambda: transit_snapshot(cd)),
         ("ASHTAKAVARGA", lambda: _ashtakavarga_snapshot(cd)),
         ("CHALIT SHIFTS", lambda: _chalit_snapshot(cd)),
-        ("SPECIAL POINTS", lambda: _special_points_snapshot(cd)),
+        ("SPECIAL POINTS", lambda: _special_points_snapshot(cd, usl_config)),
         ("LEARNING", lambda: _learning_snapshot(cd)),
     ]:
         try:
@@ -241,7 +244,7 @@ def _chalit_snapshot(cd: ChartData) -> str:
     return "\n".join(lines)
 
 
-def _special_points_snapshot(cd: ChartData) -> str:
+def _special_points_snapshot(cd: ChartData, usl_config=None) -> str:
     from jhora.calc.upagraha import compute_solar_upagrahas
     from jhora.calc.special_lagnas import compute_special_lagnas
     from jhora.calc.karaka import compute_chara_karakas
@@ -260,6 +263,19 @@ def _special_points_snapshot(cd: ChartData) -> str:
     lines.append("Special Lagnas:")
     for s in sl:
         lines.append(f"  {s.name}: {s.sign} {s.longitude:.1f}°")
+
+    # User's Special Lagna (optional, user-provided config)
+    if usl_config is not None:
+        try:
+            from jhora.calc.special_lagnas import user_special_lagna, user_special_lagna_name
+            usl_lon = user_special_lagna(cd, usl_config.planet,
+                                         usl_config.speed_factor, usl_config.reverse)
+            if usl_lon is not None:
+                lines.append(f"  User's Special Lagna "
+                             f"({user_special_lagna_name(usl_config)}): "
+                             f"{Rasi.from_longitude(usl_lon).short_name} {usl_lon:.1f}°")
+        except Exception:
+            pass
 
     # Karakas
     planets = {g: {"longitude": p.longitude} for g, p in cd.planets.items()}
