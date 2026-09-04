@@ -271,6 +271,60 @@ class JhoraTui:
             rich.print(t)
         self._content_lines = cap.get().split("\n")
 
+    def _action_usl(self):
+        """User's Special Lagna — prompt for planet / factor / reverse."""
+        from prompt_toolkit.shortcuts import input_dialog
+        if not self._check_chart():
+            return
+        from jhora.calc.special_lagnas import (
+            _PLANET_ABBREV, user_special_lagna, user_special_lagna_name,
+            UserSpecialLagnaConfig,
+        )
+        from jhora.types.nakshatra import Nakshatra
+        rev_map = {v.lower(): g for g, v in _PLANET_ABBREV.items()}
+        planet_key = input_dialog(
+            "User's Special Lagna",
+            "Planet abbreviation (su/mo/ma/me/ju/ve/sa/ra/ke):", "ju").run()
+        if not planet_key:
+            return
+        graha = rev_map.get(planet_key.strip().lower())
+        if graha is None:
+            self._content_lines = [f"\n  [red]Unknown planet '{planet_key}'. "
+                                   f"Options: {', '.join(sorted(rev_map))}[/red]"]
+            return
+        factor_str = input_dialog(
+            "Speed Factor", "Speed factor n (advance = n × 15°/hr), e.g. 9:", "1").run()
+        if not factor_str:
+            return
+        try:
+            factor = float(factor_str.strip())
+        except ValueError:
+            self._content_lines = [f"\n  [red]Invalid factor '{factor_str}'[/red]"]
+            return
+        reverse_str = input_dialog(
+            "Reverse Direction",
+            "Reverse the USL direction? (y/n) — typically 'y' for Rahu/Ketu:", "n").run()
+        reverse = bool(reverse_str) and reverse_str.strip().lower().startswith("y")
+
+        config = UserSpecialLagnaConfig(graha, factor, reverse)
+        usl_lon = user_special_lagna(self.chart, graha, factor, reverse)
+        usl_name = user_special_lagna_name(config)
+        if usl_lon is None:
+            self._content_lines = [f"\n  [red]Could not determine rise for "
+                                   f"{graha.full_name} — USL unavailable.[/red]"]
+            return
+
+        with rich.capture() as cap:
+            r = Rasi.from_longitude(usl_lon)
+            n, pada = Nakshatra.from_longitude(usl_lon)
+            t = Table(title=f"User's Special Lagna — {usl_name}", box=rich_box.SIMPLE)
+            for h in ["Point", "Longitude", "Sign", "Nakshatra", "Pada"]:
+                t.add_column(h)
+            t.add_row(usl_name, f"{usl_lon:.2f}°", r.full_name,
+                      n.name.replace("_", " ").title(), str(pada))
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
     def _action_yogas(self):
         if not self._check_chart():
             return
@@ -796,6 +850,7 @@ class JhoraTui:
             ("3", "Yogas Detection", self._action_yogas),
             ("4", "Varga Charts (8 levels)", self._action_varga),
             ("5", "Ashtakavarga SAV", self._action_ashtakavarga),
+            ("6", "User's Special Lagna (planet/factor/reverse)", self._action_usl),
         ]
         self._sub_menu("Chart & Varga", items)
 
