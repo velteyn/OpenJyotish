@@ -119,6 +119,7 @@ jhora analyze "birthdata"
 # Pipe it around
 jhora analyze "..." | jq '.planets.Su.house'
 jhora analyze "..." | jq '.dasa.mahadashas[] | select(.current)'
+jhora analyze "..." | jq '.dasa.systems'   # current MD in every dasa system
 ```
 
 ```python
@@ -138,7 +139,7 @@ data = json.loads(subprocess.run(
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
 | `ashtakavarga` | BAV, SAV, Sodhya Pinda, Kakshya bindu |
-| `dasa` | Vimsottari dasa periods (MD/AD) |
+| `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra (MD/AD; system positional) |
 | `dasa-timeline` | Text bar chart with now-marker |
 | `conditional-dasas` | List additional dasa systems that apply |
 | `transit` | Current transits with SAV scores |
