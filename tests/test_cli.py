@@ -2,9 +2,13 @@
 
 import pytest
 from typer import Exit
+from typer.testing import CliRunner
 
-from jhora.cli.main import parse_birthdata, _chart_to_dict, _parse_varga_level, _parse_variant
+from jhora.cli.main import parse_birthdata, _chart_to_dict, _parse_varga_level, _parse_variant, app
 from jhora.types.varga import VargaLevel, VargaVariant
+
+runner = CliRunner()
+BD = "1970-04-04 17:48:20 +0530 13.08 80.27"
 
 
 class TestParseBirthdata:
@@ -122,3 +126,26 @@ class TestChartToDict:
     def test_lagna_lon_matches(self, ref_chart):
         result = _chart_to_dict(ref_chart)
         assert result["lagna_lon"] == ref_chart.ascendant
+
+
+class TestLagnasCommand:
+    def test_default_no_usl(self):
+        result = runner.invoke(app, ["lagnas", BD])
+        assert result.exit_code == 0
+        assert "Ju9" not in result.stdout.to_plain() if hasattr(result.stdout, "to_plain") else "Ju9" not in result.stdout
+
+    def test_usl_planet_factor(self):
+        result = runner.invoke(app, ["lagnas", BD, "--planet", "ju", "--factor", "9"])
+        assert result.exit_code == 0
+        out = result.stdout.to_plain() if hasattr(result.stdout, "to_plain") else result.stdout
+        assert "Ju9" in out
+
+    def test_usl_unknown_planet_exits(self):
+        result = runner.invoke(app, ["lagnas", BD, "--planet", "zz"])
+        assert result.exit_code != 0
+
+    def test_usl_reverse(self):
+        result = runner.invoke(app, ["lagnas", BD, "--planet", "ra", "--factor", "3", "--reverse"])
+        assert result.exit_code == 0
+        out = result.stdout.to_plain() if hasattr(result.stdout, "to_plain") else result.stdout
+        assert "Ra3R" in out
