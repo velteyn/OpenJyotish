@@ -201,3 +201,15 @@ def test_usl_apply_populates_table(main_window, chart):
             found = True
             break
     assert found
+
+
+def test_cons_table_has_classic_special_lagnas(main_window, chart):
+    main_window.chart_data = chart
+    main_window._populate_cons_planet_table(chart)
+    cols = [main_window.cons_planet_table.item(r, 0).text()
+            for r in range(main_window.cons_planet_table.rowCount())
+            if main_window.cons_planet_table.item(r, 0)]
+    for name in ["Bhrigu Bindu", "Indu Lagna", "Varnada Lagna",
+                 "Pranapada Lagna", "Vighati Lagna", "Upapada Lagna",
+                 "Bhava Lagna", "Hora Lagna", "Ghati Lagna", "Sree Lagna"]:
+        assert name in cols, f"missing {name} in consolidated table"
