@@ -2,7 +2,11 @@
 
 from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
 from jhora.ai.prompts import interpret_prompt, question_prompt, remedy_prompt, _chart_compact, _estimate_tokens
+from jhora.ai.json_export import chart_to_json
+from jhora.ai.analysis import build_analysis_text
 from jhora.charts.chart import ChartBuilder
+from jhora.calc.special_lagnas import UserSpecialLagnaConfig
+from jhora.types.graha import Graha
 
 
 def _sample_chart():
@@ -83,3 +87,25 @@ class TestAiEngine:
         engine = AiEngine(config)
         result = engine.remedies(cd)
         assert "Could not reach" in result
+
+
+class TestUslInAI:
+    def test_json_export_usl_included(self):
+        cd = _sample_chart()
+        cfg = UserSpecialLagnaConfig(Graha.JUPITER, 9.0)
+        result = chart_to_json(cd, usl_config=cfg)
+        names = [s["name"] for s in result["special_lagnas"]]
+        assert "Ju9" in names
+
+    def test_json_export_without_usl(self):
+        cd = _sample_chart()
+        result = chart_to_json(cd)
+        names = [s["name"] for s in result["special_lagnas"]]
+        assert "Ju9" not in names
+
+    def test_analysis_text_usl(self):
+        cd = _sample_chart()
+        cfg = UserSpecialLagnaConfig(Graha.RAHU, 3.0, reverse=True)
+        text = build_analysis_text(cd, usl_config=cfg)
+        assert "Ra3R" in text
+        assert "User's Special Lagna" in text
