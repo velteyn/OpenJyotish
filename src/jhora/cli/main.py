@@ -399,8 +399,19 @@ def yogas(
 def lagnas(
     birthdata: str = typer.Argument(..., help="Birth data"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    planet: str = typer.Option(None, "--planet", "-p",
+                               help="USL planet (su/mo/ma/me/ju/ve/sa/ra/ke)"),
+    factor: float = typer.Option(None, "--factor", "-f",
+                                 help="USL speed factor n (e.g. 9)"),
+    reverse: bool = typer.Option(False, "--reverse", "-r",
+                                 help="Reverse USL direction (for Rahu/Ketu)"),
 ):
-    """Show all special lagnas (Bhrigu Bindu, Indu, Varnada, etc.)."""
+    """Show all special lagnas (Bhrigu Bindu, Indu, Varnada, etc.).
+
+    Optionally include a User's Special Lagna: pass --planet (and optionally
+    --factor / --reverse) to add an e.g. "Ju9" row computed from that planet's
+    rising longitude advancing at factor × 15°/hr.
+    """
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()
     builder.swe.set_sidereal_mode(ayanamsa)
@@ -408,8 +419,36 @@ def lagnas(
                        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
                        tz=bd["tz"], ayanamsa=ayanamsa)
 
-    from jhora.calc.special_lagnas import compute_special_lagnas, SpecialLagna
+    from jhora.calc.special_lagnas import (
+        compute_special_lagnas, SpecialLagna, _PLANET_ABBREV,
+        user_special_lagna, user_special_lagna_name, UserSpecialLagnaConfig,
+    )
+    from jhora.types.graha import Graha
     lagnas = compute_special_lagnas(cd)
+
+    # User's Special Lagna — optional row
+    if planet:
+        rev_map = {v.lower(): g for g, v in _PLANET_ABBREV.items()}
+        graha = rev_map.get(planet.lower())
+        if graha is None:
+            console.print(f"[red]Unknown planet '{planet}'. "
+                          f"Use one of: {', '.join(sorted(rev_map))}[/red]")
+            raise typer.Exit(code=2)
+        _factor = factor if factor is not None else 1.0
+        config = UserSpecialLagnaConfig(graha, _factor, reverse)
+        usl_lon = user_special_lagna(cd, graha, _factor, reverse)
+        usl_name = user_special_lagna_name(config)
+        if usl_lon is not None:
+            usl_rasi = Rasi.from_longitude(usl_lon)
+            lagnas.append(SpecialLagna(
+                usl_name, usl_lon, usl_rasi.short_name,
+                f"User's Special Lagna ({graha.full_name} × {_factor})",
+            ))
+        else:
+            lagnas.append(SpecialLagna(usl_name, 0.0, "N/A",
+                                       "Could not determine planet rise"))
+            console.print("[yellow]Warning: could not compute USL rise "
+                          f"for {graha.full_name}[/yellow]")
 
     lr = Rasi.from_longitude(cd.ascendant)
     lagnas.insert(0, SpecialLagna("Udaya Lagna", cd.ascendant, lr.short_name, "Ascendant"))
