@@ -109,3 +109,62 @@ class TestUslInAI:
         text = build_analysis_text(cd, usl_config=cfg)
         assert "Ra3R" in text
         assert "User's Special Lagna" in text
+
+
+class TestArudhaSahamaExport:
+    def test_json_export_arudhas(self):
+        cd = _sample_chart()
+        result = chart_to_json(cd)
+        assert len(result["arudhas"]["bhava"]) == 12
+        assert len(result["arudhas"]["graha"]) > 0
+        assert result["arudhas"]["bhava"][0]["pada"] == "AL"
+
+    def test_json_export_sahamas(self):
+        cd = _sample_chart()
+        result = chart_to_json(cd)
+        assert len(result["sahamas"]) >= 10
+        assert any("sign" in s for s in result["sahamas"])
+
+    def test_json_export_karakas_fixed(self):
+        # compute_chara_karakas must receive dict-of-dicts (not ChartData planets)
+        cd = _sample_chart()
+        result = chart_to_json(cd)
+        assert len(result["karakas"]) == 8
+
+    def test_analysis_text_has_arudha_sahama(self):
+        cd = _sample_chart()
+        text = build_analysis_text(cd)
+        assert "Bhava Arudha Padas" in text
+        assert "Graha Arudhas" in text
+        assert "Sahamas" in text
+        assert "Chara Karakas" in text
+
+
+class TestDasaSystemsPropagation:
+    """Cross-surface invariant: AI must be aware of all dasa systems."""
+
+    def test_json_export_dasa_system_and_options(self):
+        cd = _sample_chart()
+        result = chart_to_json(cd)
+        assert result["dasa"]["system"] == "vimsottari"
+        assert result["dasa"]["options"] == {"seed": "moon", "sesham": "moon",
+                                             "year": "solar"}
+        assert len(result["dasa"]["mahadashas"]) > 0
+
+    def test_json_export_other_dasa_systems(self):
+        cd = _sample_chart()
+        result = chart_to_json(cd)
+        systems = result["dasa"]["systems"]
+        for sys in ("ashtottari", "yogini", "sudasa", "chara",
+                    "narayana", "kalachakra"):
+            assert sys in systems, f"{sys} missing from dasa systems"
+            assert "current_mahadasha_lord" in systems[sys], \
+                f"{sys} has no current mahadasha"
+
+    def test_analysis_text_lists_other_dasa_systems(self):
+        cd = _sample_chart()
+        text = build_analysis_text(cd)
+        assert "Other Dasa Systems" in text
+        assert "Ashtottari" in text
+        assert "Kalachakra" in text
+

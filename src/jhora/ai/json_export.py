@@ -159,7 +159,10 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
                                for g, p in cd.planets.items()},
                    "lagna_lon": cd.ascendant}
         periods = dasa.compute(cd.julian_day, cd_dict)
-        result["dasa"] = {"mahadashas": []}
+        result["dasa"] = {"system": "vimsottari",
+                          "options": {"seed": "moon", "sesham": "moon",
+                                      "year": "solar"},
+                          "mahadashas": []}
         for md in periods:
             md_data = {
                 "lord": md.lord_name,
@@ -179,6 +182,24 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
                         "current": ad_current,
                     })
             result["dasa"]["mahadashas"].append(md_data)
+
+        # Other dasa systems: current mahadasha ruler in each available system.
+        from jhora.ai.analysis import _dasa_engine
+        result["dasa"]["systems"] = {}
+        for sys in ("ashtottari", "yogini", "sudasa", "chara",
+                    "narayana", "kalachakra"):
+            try:
+                periods = _dasa_engine(sys).compute(cd.julian_day, cd_dict)
+                for p in periods:
+                    if p.start_date <= now <= p.end_date:
+                        result["dasa"]["systems"][sys] = {
+                            "current_mahadasha_lord": p.lord_name,
+                            "start": p.start_date.strftime("%Y-%m-%d"),
+                            "end": p.end_date.strftime("%Y-%m-%d"),
+                        }
+                        break
+            except Exception:
+                result["dasa"]["systems"][sys] = {}
     except Exception:
         result["dasa"] = {}
 
@@ -201,10 +222,45 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
 
     # ── Karakas ──
     try:
-        cks = compute_chara_karakas(cd.planets)
+        planets = {g: {"longitude": p.longitude, "speed": p.speed}
+                   for g, p in cd.planets.items()}
+        cks = compute_chara_karakas(planets)
         result["karakas"] = [{"planet": ck.graha.short_name, "karaka": ck.short_name} for ck in cks]
     except Exception:
         result["karakas"] = []
+
+    # ── Arudhas (bhava + graha) ──
+    try:
+        from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
+        bhava = all_bhava_arudhas(cd.ascendant, planets)
+        graha_arus = all_graha_arudhas(planets)
+        pada_names = {1: "AL", 2: "A2 (Dhana)", 3: "A3 (Vikrama)", 4: "A4 (Sukha)",
+                      5: "A5 (Mantra)", 6: "A6 (Satru)", 7: "A7 (Dara)", 8: "A8 (Mrityu)",
+                      9: "A9 (Bhagya)", 10: "A10 (Karma)", 11: "A11 (Labha)",
+                      12: "A12 (Upapada)"}
+        result["arudhas"] = {
+            "bhava": [{"house": n, "pada": pada_names[n], "sign": bhava[n].short_name}
+                      for n in range(1, 13)],
+            "graha": [{"planet": g.short_name,
+                       "sign": graha_arus[g].short_name}
+                      for g in Graha if g in graha_arus],
+        }
+    except Exception:
+        result["arudhas"] = {}
+
+    # ── Sahamas ──
+    try:
+        from jhora.calc.sahama import compute_sahamas
+        is_day = 6.0 <= cd.birth_date.hour < 18.0
+        sahamas = compute_sahamas(cd.ascendant, planets, day=is_day)
+        result["sahamas"] = [{
+            "name": s.name,
+            "meaning": s.meaning,
+            "longitude": round(s.longitude, 2),
+            "sign": Rasi(int(s.longitude / 30)).short_name,
+        } for s in sahamas]
+    except Exception:
+        result["sahamas"] = []
 
     # ── Upagrahas ──
     try:

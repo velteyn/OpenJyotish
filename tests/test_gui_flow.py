@@ -157,10 +157,12 @@ def test_chalit(chart):
 def test_json_export(chart):
     from jhora.ai.json_export import chart_to_json
     data = chart_to_json(chart)
-    assert len(data) == 17
+    assert len(data) == 19
     assert "planets" in data
     assert "dasa" in data
     assert "transits" in data
+    assert "arudhas" in data
+    assert "sahamas" in data
     # Check karaka names use correct attribute
     for k in data["karakas"]:
         assert k["karaka"]  # should be short_name like "AK", "AmK"

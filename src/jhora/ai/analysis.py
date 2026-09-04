@@ -74,9 +74,67 @@ def dasa_snapshot(cd: ChartData) -> str:
                     f"{sp.start_date.strftime('%Y-%m-%d')} to "
                     f"{sp.end_date.strftime('%Y-%m-%d')}"
                 )
+
+        # Other dasa systems: current mahadasha ruler per system.
+        # Vimsottari is the detailed snapshot above; the others give a quick
+        # cross-system current-period view so the model knows each is available.
+        systems = {
+            "Ashtottari": _dasa_engine("ashtottari"),
+            "Yogini": _dasa_engine("yogini"),
+            "Sudasa": _dasa_engine("sudasa"),
+            "Chara": _dasa_engine("chara"),
+            "Narayana": _dasa_engine("narayana"),
+            "Kalachakra": _dasa_engine("kalachakra"),
+        }
+        extra = []
+        for name, engine in systems.items():
+            try:
+                periods = engine.compute(cd.julian_day, chart_dict)
+                for p in periods:
+                    if p.start_date <= now <= p.end_date:
+                        extra.append(
+                            f"  {name}: {p.lord_name} Mahadasha "
+                            f"({p.start_date.strftime('%Y-%m-%d')} to "
+                            f"{p.end_date.strftime('%Y-%m-%d')})"
+                        )
+                        break
+            except Exception:
+                continue
+        if extra:
+            lines.append("Other Dasa Systems (current Mahadasha):")
+            lines.extend(extra)
         return "\n".join(lines) if len(lines) > 2 else ""
     except Exception:
         return ""
+
+
+def _dasa_engine(system: str):
+    """Return a dasa engine for the given system (vimsottari/ashtottari/
+    yogini/sudasa/chara/narayana/kalachakra). Uses standard defaults; the
+    nakshatra dasas (vimsottari/ashtottari/yogini) use the documented
+    defaults (Moon seed, Moon sesham, solar year) matching the GUI/CLI/TUI."""
+    from jhora.dasas.base import DasaOptions
+    opts = DasaOptions()
+    if system == "ashtottari":
+        from jhora.dasas.ashtottari import AshtottariDasa
+        return AshtottariDasa(opts)
+    if system == "yogini":
+        from jhora.dasas.yogini import YoginiDasa
+        return YoginiDasa(opts)
+    if system == "sudasa":
+        from jhora.dasas.sudasa import Sudasa
+        return Sudasa()
+    if system == "chara":
+        from jhora.dasas.chara import CharaDasa
+        return CharaDasa()
+    if system == "narayana":
+        from jhora.dasas.narayana import NarayanaDasa
+        return NarayanaDasa()
+    if system == "kalachakra":
+        from jhora.dasas.kalachakra import KalachakraDasa
+        return KalachakraDasa()
+    from jhora.dasas.vimsottari import VimsottariDasa
+    return VimsottariDasa(opts)
 
 
 def _level_name(level) -> str:
@@ -283,6 +341,29 @@ def _special_points_snapshot(cd: ChartData, usl_config=None) -> str:
     lines.append("Chara Karakas:")
     for ck in cks:
         lines.append(f"  {ck.short_name} ({ck.full_name}): {ck.graha.short_name}")
+
+    # Arudhas (bhava + graha)
+    from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
+    bhava = all_bhava_arudhas(cd.ascendant, planets)
+    lines.append("Bhava Arudha Padas:")
+    pada_names = {1: "AL", 2: "Dhana", 3: "Vikrama", 4: "Sukha", 5: "Mantra",
+                  6: "Satru", 7: "Dara", 8: "Mrityu", 9: "Bhagya", 10: "Karma",
+                  11: "Labha", 12: "Upapada"}
+    for n in range(1, 13):
+        lines.append(f"  A{n} ({pada_names[n]}): {bhava[n].full_name}")
+    graha_arus = all_graha_arudhas(planets)
+    lines.append("Graha Arudhas:")
+    for g in Graha:
+        if g in graha_arus:
+            lines.append(f"  {g.full_name}: {graha_arus[g].full_name}")
+
+    # Sahamas
+    from jhora.calc.sahama import compute_sahamas
+    is_day = 6.0 <= cd.birth_date.hour < 18.0
+    sahamas = compute_sahamas(cd.ascendant, planets, day=is_day)
+    lines.append("Sahamas (sensitive points):")
+    for s in sahamas:
+        lines.append(f"  {s.name}: {Rasi(int(s.longitude / 30)).short_name} {s.longitude:.1f}° — {s.meaning}")
 
     return "\n".join(lines)
 
