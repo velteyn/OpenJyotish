@@ -33,8 +33,53 @@ git log public/main --oneline -3
 
 1. **Develop & test** in the private Jhora repo (has ephemeris data, binary reference)
 2. **Consolidate** — run full test suite, fix all issues
-3. **Push to public** only when stable:
-   
+3. **Push to public** only when stable — follow the full pipeline below:
+
+### Feature Branch + PR + Merge Pipeline
+
+Every feature/fix follows this exact sequence. **Never commit directly to `main` on `public`.**
+
+```bash
+# 1. Create feature branch from main
+git checkout main
+git checkout -b feature/<name>
+
+# 2. Commit (only intentional source/test changes)
+git add src/ tests/
+# NEVER commit: data/jhora.db (test churn), RE artifacts (jhora.exe, *.dll, *.hlp, *.cnt)
+
+# 3. Push branch to public
+git push public feature/<name>
+
+# 4. Open PR against public/main
+gh pr create --repo velteyn/OpenJyotish \
+  --base main --head feature/<name> \
+  --title "..." --body "..."
+
+# 5. Verify PR diff is clean
+gh pr view <N> --repo velteyn/OpenJyotish --json files
+# Confirm: only intended files, no data/jhora.db, no RE artifacts
+
+# 6. Merge (squash or merge — default merge)
+gh pr merge <N> --repo velteyn/OpenJyotish --merge --delete-branch
+
+# 7. Sync back: public → local → origin
+git fetch public
+git checkout main
+git merge --ff-only public/main
+git push origin main
+
+# 8. Cleanup
+git branch -d feature/<name>
+```
+
+### After Every Merge — Update These
+
+| What | When |
+|------|------|
+| `GAP-ANALYSIS.md` | New calculation added or gap closed |
+| Wiki pages (see Wiki Maintenance) | New user-facing feature |
+| `USL_CONTEXT.md` or equivalent | Session handoff files (clean up when feature is done) |
 
 Never develop directly in the public repo — it lacks ephemeris data for testing.
 
@@ -155,6 +200,24 @@ Enforcement checklist:
 - Verify with the GUI populate tests (`tests/test_gui_populate.py`) and the CLI tests
   (`tests/test_cli.py`).
 
+#### Known TUI limitations (acceptable reasons to pare back, never to omit)
+
+These are the current, documented reasons a TUI presentation may be simpler than its GUI
+equivalent. A capability falling outside this list is **not** exempt — it must ship in the
+TUI too.
+
+- **No rich interactive charts** — the GUI renders SVG/north-indian/south-indian wheel
+  charts, divisional charts, and dashboards. The TUI renders text tables and ASCII only.
+- **No mouse** — no drag, hover, double-click, context menus. Navigation is keyboard-driven.
+- **Simpler widgets** — no full QComboBox/QSpinBox/QCheckBox; the TUI uses text prompts
+  and menu selections with typed values.
+- **No inline images/screenshots** — GUI uses images; TUI can only show text.
+- **Output is ephemeral** — no persistent window state; each command prints and returns.
+
+Anything else (a calculation, a dasa option, a special lagna, an AI output view) that the
+GUI exposes must have a TUI entry. If a genuinely GUI-only capability cannot be represented,
+state the reason in the TUI menu label or a comment.
+
 ### Example — what "done" looks like (the Vimsottari options feature)
 
 When the Vimsottari seed/sesham/year options were added, ALL of these shipped together:
@@ -231,7 +294,25 @@ Violating any of them caused regressions, disabled buttons, memory leaks, or cra
 
 ### Wiki Maintenance
 
-- [AI Complete Guide](https://github.com/velteyn/OpenJyotish/wiki/AI-Complete-Guide) —
-  comprehensive manual for AI features (CLI + GUI)
-- Screenshot placeholders exist for 7 GUI screens. Upload to wiki repo's `screenshots/` folder.
-- Update `_Sidebar.md` when adding new wiki pages
+Wiki lives at `/tmp/opencode/wiki` (remote `https://github.com/velteyn/OpenJyotish.wiki.git`).
+Push changes: `cd /tmp/opencode/wiki && git add . && git commit -m "..." && git push`.
+
+#### Per-Feature Update Checklist
+
+| What changed | Which wiki pages to update |
+|---|---|
+| New calculation (e.g. special lagna) | CLI Reference, GUI Guide, TUI Guide, AI Complete Guide |
+| New CLI command/flag | CLI Reference |
+| New GUI widget/control | GUI Guide (+ screenshot if visual) |
+| New TUI menu/command | TUI Guide |
+| New AI pipeline section | AI Complete Guide, AI & Predictions |
+| New dasa option (seed/sesham/etc.) | Vimsottari Dasa Options, CLI Reference, GUI Guide, TUI Guide |
+| Architecture change (new module) | Architecture, Development Handbook |
+| Installation change | Installation |
+
+#### Rules
+
+- **Always update `_Sidebar.md`** when adding a new wiki page.
+- **Screenshot placeholders** exist for GUI screens. Upload to `wiki/screenshots/` when available.
+- **Never leave a stale page**: if a feature's behavior changes, update all pages that reference it.
+- **AI Complete Guide** is the comprehensive manual — it must cover both CLI and GUI usage of any AI feature.
