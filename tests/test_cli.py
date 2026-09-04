@@ -149,3 +149,37 @@ class TestLagnasCommand:
         assert result.exit_code == 0
         out = result.stdout.to_plain() if hasattr(result.stdout, "to_plain") else result.stdout
         assert "Ra3R" in out
+
+
+class TestProgressionCommand:
+    """Regression: progression command must import ProgressionCalculator
+    (was a NameError at runtime)."""
+
+    def test_progression_runs(self):
+        result = runner.invoke(app, ["progression", BD, "--age", "40"])
+        assert result.exit_code == 0
+        out = result.stdout.to_plain() if hasattr(result.stdout, "to_plain") else result.stdout
+        assert "Secondary Progression" in out
+
+
+class TestDasaSystems:
+    def test_dasa_engine_all_systems(self):
+        from jhora.cli.main import _get_dasa_engine
+        from jhora.dasas.base import DasaOptions
+        opts = DasaOptions()
+        for sys in ["vimsottari", "ashtottari", "yogini", "sudasa",
+                    "chara", "narayana", "kalachakra"]:
+            engine = _get_dasa_engine(sys, opts)
+            assert engine is not None
+
+    def test_dasa_yogini_runs(self):
+        result = runner.invoke(app, ["dasa", BD, "yogini"])
+        assert result.exit_code == 0
+        out = result.stdout.to_plain() if hasattr(result.stdout, "to_plain") else result.stdout
+        assert "Yogini Dasa Periods" in out
+
+    def test_dasa_narayana_runs(self):
+        result = runner.invoke(app, ["dasa", BD, "narayana"])
+        assert result.exit_code == 0
+        out = result.stdout.to_plain() if hasattr(result.stdout, "to_plain") else result.stdout
+        assert "Narayana Dasa Periods" in out
