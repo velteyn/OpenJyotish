@@ -48,6 +48,7 @@ class JhoraTui:
         self._menu_items: List[Tuple[str, str, Callable]] = []
         self._menu_index: int = 0
         self._status: str = "Welcome to Jhora TUI | ↑↓ navigate | Enter select | q quit"
+        self._dasa_system: str = "vimsottari"
         self._dasa_seed: str = "moon"
         self._dasa_sesham: str = "moon"
         self._dasa_year: str = "solar"
@@ -428,22 +429,32 @@ class JhoraTui:
     def _action_dasa(self):
         if not self._check_chart():
             return
-        from jhora.dasas.vimsottari import VimsottariDasa
-        from jhora.dasas.base import DasaOptions
+        from prompt_toolkit.shortcuts import input_dialog
+        sys_val = input_dialog(
+            "Dasa System",
+            "System:\n  vimsottari, ashtottari, yogini, sudasa, chara,\n"
+            "  narayana, kalachakra\n"
+            f"(current: {self._dasa_system})",
+            self._dasa_system).run()
+        if sys_val and sys_val.strip().lower() in (
+                "vimsottari", "ashtottari", "yogini", "sudasa", "chara",
+                "narayana", "kalachakra"):
+            self._dasa_system = sys_val.strip().lower()
+        system = self._dasa_system
+        engine = self._get_dasa_engine(system)
+        cd = {"planets": {g.value: {"longitude": p.longitude}
+                          for g, p in self.chart.planets.items()},
+              "lagna_lon": self.chart.ascendant}
         with rich.capture() as cap:
-            opts = DasaOptions(start_variation=self._dasa_seed,
-                               sesham_method=self._dasa_sesham,
-                               year_definition=self._dasa_year)
-            dasa = VimsottariDasa(opts)
-            cd = {"planets": {g.value: {"longitude": p.longitude}
-                              for g, p in self.chart.planets.items()},
-                  "lagna_lon": self.chart.ascendant}
-            periods = dasa.compute(self.chart.julian_day, cd)
+            periods = engine.compute(self.chart.julian_day, cd)
             now = datetime.now()
-            t = Table(
-                title=f"Vimsottari Mahadasha (seed={self._dasa_seed}, "
-                      f"sesham={self._dasa_sesham})",
-                box=rich_box.SIMPLE)
+            options_suffix = ""
+            if system in ("vimsottari", "ashtottari", "yogini"):
+                options_suffix = (f"seed={self._dasa_seed}, "
+                                  f"sesham={self._dasa_sesham}, "
+                                  f"year={self._dasa_year}")
+            title = f"{system.title()} Dasa{(' (' + options_suffix + ')') if options_suffix else ''}"
+            t = Table(title=title, box=rich_box.SIMPLE)
             t.add_column("Lord")
             t.add_column("Start")
             t.add_column("End")
@@ -461,9 +472,47 @@ class JhoraTui:
             rich.print(t)
         self._content_lines = cap.get().split("\n")
 
+    def _get_dasa_engine(self, system: str):
+        from jhora.dasas.base import DasaOptions
+        opts = DasaOptions(start_variation=self._dasa_seed,
+                           sesham_method=self._dasa_sesham,
+                           year_definition=self._dasa_year)
+        from jhora.dasas.sudasa import Sudasa
+        from jhora.dasas.chara import CharaDasa
+        from jhora.dasas.narayana import NarayanaDasa
+        from jhora.dasas.kalachakra import KalachakraDasa
+        from jhora.dasas.ashtottari import AshtottariDasa
+        from jhora.dasas.yogini import YoginiDasa
+        from jhora.dasas.vimsottari import VimsottariDasa
+        if system == "vimsottari":
+            return VimsottariDasa(opts)
+        if system == "ashtottari":
+            return AshtottariDasa(opts)
+        if system == "yogini":
+            return YoginiDasa(opts)
+        if system == "sudasa":
+            return Sudasa()
+        if system == "chara":
+            return CharaDasa()
+        if system == "narayana":
+            return NarayanaDasa()
+        if system == "kalachakra":
+            return KalachakraDasa()
+        return VimsottariDasa(opts)
+
     def _action_dasa_settings(self):
-        """Configure the nakshatra dasa seed / sesham / year definition."""
+        """Configure the dasa system, seed / sesham / year definition."""
         from prompt_toolkit.shortcuts import message_dialog, input_dialog
+        sys_val = input_dialog(
+            "Dasa System",
+            "System:\n  vimsottari, ashtottari, yogini, sudasa, chara,\n"
+            "  narayana, kalachakra\n"
+            f"(current: {self._dasa_system})",
+            self._dasa_system).run()
+        if sys_val and sys_val.strip().lower() in (
+                "vimsottari", "ashtottari", "yogini", "sudasa", "chara",
+                "narayana", "kalachakra"):
+            self._dasa_system = sys_val.strip().lower()
         seed_map = {
             "moon": "Moon (default)", "lagna": "Lagna", "sun": "Sun",
             "kshema": "Kshema tara", "utpanna": "Utpanna tara", "adhana": "Adhana tara",
@@ -492,9 +541,11 @@ class JhoraTui:
             self._dasa_year = year_val.strip().lower()
         message_dialog(
             "Dasa Settings Updated",
-            f"Seed: {self._dasa_seed}\nSesham: {self._dasa_sesham}\n"
+            f"System: {self._dasa_system}\nSeed: {self._dasa_seed}\n"
+            f"Sesham: {self._dasa_sesham}\n"
             f"Year: {self._dasa_year}").run()
-        self._content_lines = [f"Dasa settings: seed={self._dasa_seed} "
+        self._content_lines = [f"Dasa settings: system={self._dasa_system} "
+                               f"seed={self._dasa_seed} "
                                f"sesham={self._dasa_sesham} year={self._dasa_year}"]
 
     def _action_dasa_timeline(self):
@@ -559,6 +610,8 @@ class JhoraTui:
         if not self._check_chart():
             return
         from prompt_toolkit.shortcuts import input_dialog
+        system = input_dialog("System", "Scoring system (1=10 Porutham, 2=Ashta Koota):", "1").run()
+        ashta = (system or "").strip() == "2"
         y = input_dialog("Year", "Partner year:").run()
         m = input_dialog("Month", "Partner month:").run()
         d = input_dialog("Day", "Partner day:").run()
@@ -572,11 +625,24 @@ class JhoraTui:
             builder = ChartBuilder()
             c2 = builder.build(year=int(y), month=int(m), day=int(d),
                                hour=float(h), lat=float(la), lon=float(lo), tz=tz)
-            from jhora.calc.kuta import compute_kuta
-            result = compute_kuta(self.chart, c2)
-            lines = [f"\n  [bold green]Total Score: {result.total_score:.1f}[/bold green]"]
-            for item in result.items:
-                lines.append(f"  {item.name:<20} {item.score:.1f}")
+            from jhora.calc.kuta import compute_kuta, ScoringSystem
+            girl_moon = self.chart.planet(Graha.MOON).longitude
+            boy_moon = c2.planet(Graha.MOON).longitude
+            result = compute_kuta(girl_moon, boy_moon,
+                                  system=(ScoringSystem.ASHTA_KOOTA if ashta
+                                          else ScoringSystem.PORUTHAM))
+            lines = [f"\n  [bold]{result.system_name} — Matchmaking[/bold]",
+                     f"  Girl: [yellow]{result.girl_nakshatra.name}[/yellow] / "
+                     f"[cyan]{result.girl_rasi.full_name}[/cyan]",
+                     f"  Boy:  [yellow]{result.boy_nakshatra.name}[/yellow] / "
+                     f"[cyan]{result.boy_rasi.full_name}[/cyan]",
+                     f"  [bold green]Total Score: {result.total_score:.1f}/{result.max_score:.0f}"
+                     f" ({result.percentage:.0f}%)[/bold green]"]
+            if result.system == ScoringSystem.ASHTA_KOOTA:
+                lines.append(f"  Gunanka level: [bold]{result.gunanka_level}[/bold]")
+            for item in result.poruthams:
+                status = "[green]Good[/green]" if item.is_good else "[red]Not Good[/red]"
+                lines.append(f"  {item.name:<20} {item.score:.1f}/{item.max_score:.0f} {status}")
             self._content_lines = lines
         except Exception as e:
             self._content_lines = [f"[red]Error: {e}[/red]"]
@@ -870,8 +936,8 @@ class JhoraTui:
         if not self._check_chart():
             return
         items = [
-            ("1", "Dasa Periods (Vimsottari)", self._action_dasa),
-            ("4", "Dasa Settings (seed/sesham/year)", self._action_dasa_settings),
+            ("1", "Dasa Periods (all systems)", self._action_dasa),
+            ("4", "Dasa Settings (system/seed/sesham/year)", self._action_dasa_settings),
             ("2", "Dasa Timeline (Bar Chart)", self._action_dasa_timeline),
             ("3", "Chakras (Sarvatobhadra)", self._action_chakras),
         ]

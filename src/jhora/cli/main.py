@@ -128,7 +128,12 @@ def dasa(
     sesham: str = typer.Option("moon", "--sesham", help="Sesham handling: moon (reduce first MD), full (no reduction)"),
     year_def: str = typer.Option("solar", "--year-def", help="Year definition: solar, savana, tithi"),
 ):
-    """Compute dasa periods for a chart."""
+    """Compute dasa periods for a chart.
+
+    system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
+    kalachakra. Seed/sesham/year options apply to the nakshatra da8sas
+    (vimsottari, ashtottari, yogini).
+    """
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()
     chart_data = builder.build(
@@ -137,18 +142,13 @@ def dasa(
         tz=bd["tz"], ayanamsa=ayanamsa,
     )
     chart_dict = _chart_to_dict(chart_data)
-    if system.lower() == "vimsottari":
-        from jhora.dasas.base import DasaOptions
-        opts = DasaOptions(start_variation=start, sesham_method=sesham, year_definition=year_def)
-        engine = VimsottariDasa(opts)
-        periods = engine.compute(chart_data.julian_day, chart_dict, opts)
-        _display_dasa_table(periods, f"Vimsottari Dasa Periods (seed={start}, sesham={sesham})")
+    from jhora.dasas.base import DasaOptions
+    opts = DasaOptions(start_variation=start, sesham_method=sesham, year_definition=year_def)
+    engine = _get_dasa_engine(system, opts)
+    periods = engine.compute(chart_data.julian_day, chart_dict, opts)
+    _display_dasa_table(periods, f"{system.title()} Dasa Periods")
+    if system.lower() in ("vimsottari", "ashtottari", "yogini"):
         console.print(f"[dim]Seed: {start} · Sesham: {sesham} · Year: {year_def}[/dim]")
-    elif system == "ashtottari":
-        from jhora.dasas.ashtottari import AshtottariDasa
-        engine = AshtottariDasa()
-        periods = engine.compute(chart_data.julian_day, chart_dict)
-        _display_dasa_table(periods, "Ashtottari Dasa Periods")
 
 
 @app.command()
@@ -314,6 +314,35 @@ def _chart_to_dict(cd: ChartData) -> dict:
     for g, p in cd.planets.items():
         planets[g] = {"longitude": p.longitude, "speed": p.speed}
     return {"planets": planets, "lagna_lon": cd.ascendant}
+
+
+def _get_dasa_engine(system: str, options=None):
+    """Return a dasa engine for the given system name (vimsottari/ashtottari/
+    yogini/sudasa/chara/narayana/kalachakra)."""
+    s = system.lower()
+    if s == "vimsottari":
+        from jhora.dasas.vimsottari import VimsottariDasa
+        return VimsottariDasa(options)
+    if s == "ashtottari":
+        from jhora.dasas.ashtottari import AshtottariDasa
+        return AshtottariDasa(options)
+    if s == "yogini":
+        from jhora.dasas.yogini import YoginiDasa
+        return YoginiDasa(options)
+    if s == "sudasa":
+        from jhora.dasas.sudasa import Sudasa
+        return Sudasa()
+    if s == "chara":
+        from jhora.dasas.chara import CharaDasa
+        return CharaDasa()
+    if s == "narayana":
+        from jhora.dasas.narayana import NarayanaDasa
+        return NarayanaDasa()
+    if s == "kalachakra":
+        from jhora.dasas.kalachakra import KalachakraDasa
+        return KalachakraDasa()
+    from jhora.dasas.vimsottari import VimsottariDasa
+    return VimsottariDasa(options)
 
 
 @app.command()
@@ -1162,6 +1191,7 @@ def progression(
     age: float = typer.Option(None, "--age", help="Age in years (default: current age)"),
 ):
     """Compute secondary progressions (1 day = 1 year) and aspects to natal."""
+    from jhora.calc.progressions import ProgressionCalculator
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()
     builder.swe.set_sidereal_mode(ayanamsa)
