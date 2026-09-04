@@ -3230,8 +3230,26 @@ class MainWindow(QMainWindow):
                 min_v = int(min_p)
                 sec = int((min_p - min_v) * 60)
                 dms_f = f"{deg}°{min_v:02d}'{sec:02d}\""
-                bodies.append((lagna_name, dms_f, n.name.replace("_"," ").title(),
-                               pada, lr.short_name, "", "", ""))
+            bodies.append((lagna_name, dms_f, n.name.replace("_"," ").title(),
+                           pada, lr.short_name, "", "", ""))
+
+        # Classic special lagnas not already shown above (Bhrigu Bindu, Indu,
+        # Varnada, Pranapada, Vighati, Upapada). Bhava/Hora/Ghati/Sree are
+        # handled via cd.*_lagna above, so skip them here.
+        from jhora.calc.special_lagnas import compute_special_lagnas
+        builtin = {"Bhava Lagna", "Hora Lagna", "Ghati Lagna", "Sree Lagna"}
+        for sl in compute_special_lagnas(cd):
+            if sl.name in builtin:
+                continue
+            lr_s = Rasi.from_longitude(sl.longitude)
+            n_s, pada_s = Nakshatra.from_longitude(sl.longitude)
+            deg_s = int(sl.longitude)
+            min_ps = (sl.longitude - deg_s) * 60
+            min_vs = int(min_ps)
+            sec_s = int((min_ps - min_vs) * 60)
+            dms_s = f"{deg_s}°{min_vs:02d}'{sec_s:02d}\""
+            bodies.append((sl.name, dms_s, n_s.name.replace("_"," ").title(),
+                           pada_s, lr_s.short_name, "", "", ""))
 
         # User's Special Lagna (optional — added via the Apply button)
         if getattr(self, "_usl_lon", None) is not None and getattr(self, "_usl_config", None) is not None:
