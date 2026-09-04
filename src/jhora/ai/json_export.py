@@ -23,8 +23,12 @@ from jhora.types.rasi import Rasi
 from jhora.types.nakshatra import Nakshatra
 
 
-def full_analysis(birthdata: str, ayanamsa: str = "lahiri") -> Dict[str, Any]:
-    """Compute everything and return as a structured JSON dict."""
+def full_analysis(birthdata: str, ayanamsa: str = "lahiri",
+                  usl_config=None) -> Dict[str, Any]:
+    """Compute everything and return as a structured JSON dict.
+
+    usl_config: optional UserSpecialLagnaConfig to include a USL entry.
+    """
     from jhora.cli.main import parse_birthdata as _parse
     bd = _parse(birthdata)
     builder = ChartBuilder()
@@ -34,10 +38,10 @@ def full_analysis(birthdata: str, ayanamsa: str = "lahiri") -> Dict[str, Any]:
         hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
         tz=bd["tz"], ayanamsa=ayanamsa,
     )
-    return chart_to_json(cd)
+    return chart_to_json(cd, usl_config=usl_config)
 
 
-def chart_to_json(cd: ChartData) -> Dict[str, Any]:
+def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     now = datetime.now()
     result: Dict[str, Any] = {}
 
@@ -217,6 +221,23 @@ def chart_to_json(cd: ChartData) -> Dict[str, Any]:
                                       "description": s.description} for s in sl]
     except Exception:
         result["special_lagnas"] = []
+
+    # User's Special Lagna (optional)
+    if usl_config is not None:
+        try:
+            from jhora.calc.special_lagnas import user_special_lagna, user_special_lagna_name
+            usl_lon = user_special_lagna(cd, usl_config.planet,
+                                         usl_config.speed_factor, usl_config.reverse)
+            if usl_lon is not None:
+                result["special_lagnas"].append({
+                    "name": user_special_lagna_name(usl_config),
+                    "sign": Rasi.from_longitude(usl_lon).short_name,
+                    "longitude": round(usl_lon, 2),
+                    "description": (f"User's Special Lagna "
+                                    f"({usl_config.planet.full_name} × {usl_config.speed_factor})"),
+                })
+        except Exception:
+            pass
 
     # ── KP ──
     result["kp_sublords"] = {}

@@ -5,8 +5,8 @@ from typing import Optional
 from PyQt6.QtCore import QDate, Qt, QThread, QTime, QTimer, pyqtSignal
 from PyQt6.QtGui import QTextOption
 from PyQt6.QtGui import QAction, QBrush, QColor, QFont
-from PyQt6.QtWidgets import (QApplication, QButtonGroup, QComboBox, QDateEdit, QDialog,
-                             QFileDialog, QFormLayout, QFrame, QGridLayout, QGroupBox, QHBoxLayout,
+from PyQt6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QDateEdit, QDialog,
+                             QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QGridLayout, QGroupBox, QHBoxLayout,
                              QHeaderView, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
                              QPushButton, QRadioButton, QScrollArea, QSplitter,
@@ -3052,6 +3052,35 @@ class MainWindow(QMainWindow):
         self.cons_planet_table.setMinimumWidth(280)
         layout.addWidget(self.cons_planet_table, stretch=2)
 
+        # ── User's Special Lagna controls ──
+        usl_group = QGroupBox("User's Special Lagna")
+        usl_row = QHBoxLayout()
+        usl_group.setLayout(usl_row)
+
+        usl_row.addWidget(QLabel("Planet:"))
+        self.usl_planet_combo = QComboBox()
+        self.usl_planet_combo.addItems(["Su", "Mo", "Ma", "Me", "Ju", "Ve", "Sa", "Ra", "Ke"])
+        self.usl_planet_combo.setCurrentText("Ju")
+        usl_row.addWidget(self.usl_planet_combo)
+
+        usl_row.addWidget(QLabel("Factor:"))
+        self.usl_factor_spin = QDoubleSpinBox()
+        self.usl_factor_spin.setRange(0.1, 100.0)
+        self.usl_factor_spin.setDecimals(1)
+        self.usl_factor_spin.setSingleStep(0.5)
+        self.usl_factor_spin.setValue(1.0)
+        usl_row.addWidget(self.usl_factor_spin)
+
+        self.usl_reverse_cb = QCheckBox("Reverse")
+        usl_row.addWidget(self.usl_reverse_cb)
+
+        self.usl_apply_btn = QPushButton("Apply")
+        self.usl_apply_btn.clicked.connect(self._apply_usl)
+        usl_row.addWidget(self.usl_apply_btn)
+
+        usl_row.addStretch(1)
+        layout.addWidget(usl_group)
+
         # Natal data panel
         self.cons_natal_panel = QTextEdit()
         self.cons_natal_panel.setReadOnly(True)
@@ -3110,6 +3139,29 @@ class MainWindow(QMainWindow):
         self._populate_cons_planet_table(cd)
         self._populate_cons_natal_panel(cd)
         self._populate_cons_ashtakavarga(cd)
+
+    def _apply_usl(self):
+        """Recompute the User's Special Lagna from the controls and redraw the table."""
+        from jhora.calc.special_lagnas import (
+            _PLANET_ABBREV, user_special_lagna, UserSpecialLagnaConfig,
+        )
+        if not getattr(self, "chart_data", None):
+            return
+        rev_map = {v.lower(): g for g, v in _PLANET_ABBREV.items()}
+        graha = rev_map.get(self.usl_planet_combo.currentText().lower())
+        if graha is None:
+            return
+        factor = float(self.usl_factor_spin.value())
+        reverse = self.usl_reverse_cb.isChecked()
+        config = UserSpecialLagnaConfig(graha, factor, reverse)
+        lon = user_special_lagna(self.chart_data, graha, factor, reverse)
+        if lon is not None:
+            self._usl_config = config
+            self._usl_lon = lon
+        else:
+            self._usl_config = None
+            self._usl_lon = None
+        self._populate_cons_planet_table(self.chart_data)
 
     def _populate_cons_planet_table(self, cd: ChartData):
         from jhora.calc.karaka import compute_chara_karakas
@@ -3180,6 +3232,21 @@ class MainWindow(QMainWindow):
                 dms_f = f"{deg}°{min_v:02d}'{sec:02d}\""
                 bodies.append((lagna_name, dms_f, n.name.replace("_"," ").title(),
                                pada, lr.short_name, "", "", ""))
+
+        # User's Special Lagna (optional — added via the Apply button)
+        if getattr(self, "_usl_lon", None) is not None and getattr(self, "_usl_config", None) is not None:
+            from jhora.calc.special_lagnas import user_special_lagna_name
+            usl_lon = self._usl_lon
+            usl_name = user_special_lagna_name(self._usl_config)
+            lr_u = Rasi.from_longitude(usl_lon)
+            n_u, pada_u = Nakshatra.from_longitude(usl_lon)
+            deg_u = int(usl_lon)
+            min_pu = (usl_lon - deg_u) * 60
+            min_vu = int(min_pu)
+            sec_u = int((min_pu - min_vu) * 60)
+            dms_u = f"{deg_u}°{min_vu:02d}'{sec_u:02d}\""
+            bodies.append((usl_name, dms_u, n_u.name.replace("_"," ").title(),
+                           pada_u, lr_u.short_name, "", "", ""))
 
         # Maandi + Gulika
         from jhora.calc.upagraha import compute_solar_upagrahas

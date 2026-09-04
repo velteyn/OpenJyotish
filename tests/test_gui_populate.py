@@ -169,3 +169,35 @@ def test_update_dasa_text_with_options(main_window, chart):
     main_window.dasa_seed_combo.setCurrentText("Sun")
     main_window._update_dasa_text()
     assert main_window.dasa_text.toPlainText() != ""
+
+
+# ── User's Special Lagna (USL) widgets ──
+
+def test_usl_widgets_exist(main_window):
+    assert hasattr(main_window, 'usl_planet_combo')
+    assert hasattr(main_window, 'usl_factor_spin')
+    assert hasattr(main_window, 'usl_reverse_cb')
+    assert hasattr(main_window, 'usl_apply_btn')
+
+
+def test_usl_planet_default_jupiter(main_window):
+    assert main_window.usl_planet_combo.currentText() == "Ju"
+
+
+def test_usl_apply_populates_table(main_window, chart):
+    main_window.chart_data = chart
+    main_window.usl_planet_combo.setCurrentText("Ju")
+    main_window.usl_factor_spin.setValue(9.0)
+    main_window._apply_usl()
+    assert main_window._usl_lon is not None
+    assert main_window._usl_config is not None
+    from jhora.calc.special_lagnas import user_special_lagna_name
+    assert user_special_lagna_name(main_window._usl_config) == "Ju9"
+    # The USL row should be visible in the table
+    found = False
+    for row in range(main_window.cons_planet_table.rowCount()):
+        item = main_window.cons_planet_table.item(row, 0)
+        if item and item.text() == "Ju9":
+            found = True
+            break
+    assert found
