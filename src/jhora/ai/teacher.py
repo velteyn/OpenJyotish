@@ -128,11 +128,15 @@ class AiTeacher:
             "model": self.model,
             "messages": messages,
             "temperature": 0.7,
-            "max_tokens": 8192,
+            "max_tokens": 16384,
             "stream": True,
         }
+        # Cap Qwen3-class reasoning thinking tokens on LM Studio so the answer
+        # always has output budget left; other providers reject unknown keys.
+        if self.provider == "lmstudio":
+            payload["max_thinking_tokens"] = 1024
         try:
-            resp = requests.post(url, json=payload, timeout=120, stream=True)
+            resp = requests.post(url, json=payload, timeout=180, stream=True)
             resp.raise_for_status()
             full = []
             reasoning = []

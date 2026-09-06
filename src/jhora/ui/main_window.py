@@ -51,6 +51,10 @@ DIM = theme.DIM
 
 STYLE = theme.STYLESHEET
 
+# Shown live while a reasoning model deliberates (its thinking is intentionally
+# hidden), so the user knows the app is working and is not frozen.
+_THINKING_LINE = "\n\n*⏳ Thinking…*"
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -61,8 +65,10 @@ class MainWindow(QMainWindow):
         # Streaming buffers for the Markdown-rendered LLM output windows.
         self._ai_buffer = ""
         self._ai_last_render = 0.0
+        self._ai_thinking = False
         self._teach_buffer = ""
         self._teach_last_render = 0.0
+        self._teach_thinking = False
         self._init_ui()
         self._create_menu_bar()
 
@@ -2424,6 +2430,7 @@ class MainWindow(QMainWindow):
             f"[Generating {mode} with {self.ai_provider.currentText()}/"
             f"{self.ai_model.text()}...]\n\n"
         )
+        self._ai_thinking = True
         self._render_ai_output()
         self._set_ai_buttons_enabled(False)
 
@@ -2448,6 +2455,7 @@ class MainWindow(QMainWindow):
             self._render_ai_output()
             return
         self._ai_buffer = f"[Asking: {q}]\n\n"
+        self._ai_thinking = True
         self._render_ai_output()
         self._set_ai_buttons_enabled(False)
 
@@ -2460,11 +2468,16 @@ class MainWindow(QMainWindow):
 
     def _render_ai_output(self):
         """Repaint the AI output window from the markdown buffer (throttled)."""
-        self.ai_output.setHtml(md_document(self._ai_buffer))
+        body = self._ai_buffer
+        if self._ai_thinking:
+            body += _THINKING_LINE
+        self.ai_output.setHtml(md_document(body))
         bar = self.ai_output.verticalScrollBar()
         bar.setValue(bar.maximum())
 
     def _on_ai_token(self, text: str):
+        if self._ai_thinking:
+            self._ai_thinking = False
         self._ai_buffer += text
         now = time.monotonic()
         if now - self._ai_last_render >= 0.3:
@@ -2472,11 +2485,13 @@ class MainWindow(QMainWindow):
             self._ai_last_render = now
 
     def _on_ai_done(self):
+        self._ai_thinking = False
         self._ai_buffer += "\n\n[done]"
         self._render_ai_output()
         self._set_ai_buttons_enabled(True)
 
     def _on_ai_error(self, msg: str):
+        self._ai_thinking = False
         self._ai_buffer += f"\n\n[Error: {msg}]"
         self._render_ai_output()
         self._set_ai_buttons_enabled(True)
@@ -2557,6 +2572,7 @@ class MainWindow(QMainWindow):
         if not question:
             return
         self._teach_buffer = f"[Guru, {question}]\n\n"
+        self._teach_thinking = True
         self._render_teach_output()
         self.teach_btn.setEnabled(False)
 
@@ -2574,16 +2590,22 @@ class MainWindow(QMainWindow):
         self._teacher_worker.start()
 
     def _on_teach_done(self):
+        self._teach_thinking = False
         self._render_teach_output()
         self.teach_btn.setEnabled(True)
 
     def _render_teach_output(self):
         """Repaint the AI Teacher output window from the markdown buffer."""
-        self.teach_output.setHtml(md_document(self._teach_buffer))
+        body = self._teach_buffer
+        if self._teach_thinking:
+            body += _THINKING_LINE
+        self.teach_output.setHtml(md_document(body))
         bar = self.teach_output.verticalScrollBar()
         bar.setValue(bar.maximum())
 
     def _on_teach_token(self, text: str):
+        if self._teach_thinking:
+            self._teach_thinking = False
         self._teach_buffer += text
         now = time.monotonic()
         if now - self._teach_last_render >= 0.3:
