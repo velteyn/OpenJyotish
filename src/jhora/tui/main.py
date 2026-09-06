@@ -433,12 +433,12 @@ class JhoraTui:
         sys_val = input_dialog(
             "Dasa System",
             "System:\n  vimsottari, ashtottari, yogini, sudasa, chara,\n"
-            "  narayana, kalachakra\n"
+            "  narayana, kalachakra, brahma\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
                 "vimsottari", "ashtottari", "yogini", "sudasa", "chara",
-                "narayana", "kalachakra"):
+                "narayana", "kalachakra", "brahma"):
             self._dasa_system = sys_val.strip().lower()
         system = self._dasa_system
         engine = self._get_dasa_engine(system)
@@ -481,6 +481,7 @@ class JhoraTui:
         from jhora.dasas.chara import CharaDasa
         from jhora.dasas.narayana import NarayanaDasa
         from jhora.dasas.kalachakra import KalachakraDasa
+        from jhora.dasas.brahma import BrahmaDasa
         from jhora.dasas.ashtottari import AshtottariDasa
         from jhora.dasas.yogini import YoginiDasa
         from jhora.dasas.vimsottari import VimsottariDasa
@@ -498,6 +499,8 @@ class JhoraTui:
             return NarayanaDasa()
         if system == "kalachakra":
             return KalachakraDasa()
+        if system == "brahma":
+            return BrahmaDasa()
         return VimsottariDasa(opts)
 
     def _action_dasa_settings(self):
@@ -506,12 +509,12 @@ class JhoraTui:
         sys_val = input_dialog(
             "Dasa System",
             "System:\n  vimsottari, ashtottari, yogini, sudasa, chara,\n"
-            "  narayana, kalachakra\n"
+            "  narayana, kalachakra, brahma\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
                 "vimsottari", "ashtottari", "yogini", "sudasa", "chara",
-                "narayana", "kalachakra"):
+                "narayana", "kalachakra", "brahma"):
             self._dasa_system = sys_val.strip().lower()
         seed_map = {
             "moon": "Moon (default)", "lagna": "Lagna", "sun": "Sun",
