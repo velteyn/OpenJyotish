@@ -178,6 +178,142 @@ class TestArudhaSahamaExport:
         assert "Chara Karakas" in text
 
 
+class TestModelResolution:
+    """Auto model resolution: pick a chat model regardless of server state."""
+
+    def _lm(self, monkeypatch, items, load_ok=True):
+        import jhora.ai.engine as eng
+        monkeypatch.setattr(eng, "_lmstudio_catalog", lambda base_url, timeout=5.0: items)
+        monkeypatch.setattr(eng, "_lmstudio_load",
+                            lambda base_url, model_id, timeout=15.0: load_ok)
+        monkeypatch.setattr(eng, "_ollama_catalog",
+                            lambda base_url, timeout=5.0: [])
+        return AiEngine(AiConfig(provider="lmstudio"))
+
+    def test_prefers_loaded_chat_over_embedding(self, monkeypatch):
+        items = [
+            {"id": "hf.co/x/text-embedding-nomic-embed-text-v1.5",
+             "loaded": True, "type": "embeddings"},
+            {"id": "hf.co/x/qwen3.5-9b", "loaded": True, "type": "vlm"},
+        ]
+        engine = self._lm(monkeypatch, items)
+        r = engine.resolve_model()
+        assert r["status"] == "ok"
+        assert r["model"] == "hf.co/x/qwen3.5-9b"
+        assert engine.config.model == "hf.co/x/qwen3.5-9b"
+
+    def test_autoloads_best_available_chat(self, monkeypatch):
+        items = [
+            {"id": "hf.co/x/text-embedding-nomic-embed-text-v1.5",
+             "loaded": True, "type": "embeddings"},
+            {"id": "hf.co/x/qwen3-8b", "loaded": False, "type": "chat"},
+        ]
+        engine = self._lm(monkeypatch, items)
+        r = engine.resolve_model()
+        assert r["status"] == "ok"
+        assert r["model"] == "hf.co/x/qwen3-8b"
+        assert "automatically" in r["message"] or "Loaded" in r["message"]
+
+    def test_no_chat_model_suggests_under_9gb(self, monkeypatch):
+        items = [{"id": "hf.co/x/text-embedding-nomic-embed-text-v1.5",
+                  "loaded": True, "type": "embeddings"}]
+        engine = self._lm(monkeypatch, items)
+        r = engine.resolve_model()
+        assert r["status"] == "no_model"
+        assert r["model"] == ""
+        assert "9GB" in r["message"]
+
+    def test_no_chat_model_load_failed_suggests(self, monkeypatch):
+        items = [{"id": "hf.co/x/qwen3-8b", "loaded": False, "type": "chat"}]
+        engine = self._lm(monkeypatch, items, load_ok=False)
+        r = engine.resolve_model()
+        assert r["status"] == "no_model"
+        assert "9GB" in r["message"]
+
+    def test_offline_server(self, monkeypatch):
+        import requests
+        import jhora.ai.engine as eng
+
+        def _boom(base_url, timeout=5.0):
+            raise requests.exceptions.ConnectionError("refused")
+        monkeypatch.setattr(eng, "_lmstudio_catalog", _boom)
+        engine = AiEngine(AiConfig(provider="lmstudio"))
+        r = engine.resolve_model()
+        assert r["status"] == "offline"
+
+    def test_keeps_concrete_user_model(self, monkeypatch):
+        import jhora.ai.engine as eng
+        monkeypatch.setattr(eng, "_generic_catalog", lambda base_url, timeout=5.0: [
+            {"id": "gpt4", "type": "chat"},
+        ])
+        cfg = AiConfig(provider="custom", base_url="http://x:9999/v1", model="gpt4")
+        engine = AiEngine(cfg)
+        r = engine.resolve_model()
+        assert r["status"] == "ok"
+        assert r["model"] == "gpt4"
+
+    def test_ollama_names_best_installed_model(self, monkeypatch):
+        import jhora.ai.engine as eng
+        monkeypatch.setattr(eng, "_ollama_catalog", lambda base_url, timeout=5.0: [
+            {"id": "deepseek-r1:7b", "loaded": False, "type": "chat"},
+            {"id": "qwen3:8b", "loaded": False, "type": "chat"},
+        ])
+        engine = AiEngine(AiConfig(provider="ollama"))  # default model llama3.2
+        r = engine.resolve_model()
+        assert r["status"] == "ok"
+        assert r["model"] == "qwen3:8b"  # qwen preferred, ≤9GB
+
+    def test_embedding_config_model_is_replaced(self, monkeypatch):
+        items = [{"id": "hf.co/x/qwen3-8b", "loaded": False, "type": "chat"}]
+        import jhora.ai.engine as eng
+        monkeypatch.setattr(eng, "_lmstudio_catalog",
+                            lambda base_url, timeout=5.0: items)
+        monkeypatch.setattr(eng, "_lmstudio_load",
+                            lambda base_url, model_id, timeout=15.0: True)
+        engine = AiEngine(AiConfig(provider="lmstudio",
+                                   model="text-embedding-nomic-embed-text-v1.5"))
+        assert engine._ensure_chat_model() is None
+        assert engine.config.model == "hf.co/x/qwen3-8b"
+
+    def test_ensure_chat_model_blocks_with_suggestion(self, monkeypatch):
+        items = [{"id": "hf.co/x/nomic-embed-text-v1.5", "loaded": True,
+                  "type": "embeddings"}]
+        engine = self._lm(monkeypatch, items)
+        out = engine._ensure_chat_model()
+        assert out is not None
+        assert "9GB" in out
+
+    def test_chat_completion_retries_once_on_model_error(self, monkeypatch):
+        import requests
+        import jhora.ai.engine as eng
+        monkeypatch.setattr(eng, "_ollama_catalog", lambda base_url, timeout=5.0: [
+            {"id": "qwen3:8b", "loaded": False, "type": "chat"},
+        ])
+        engine = AiEngine(AiConfig(provider="ollama"))  # placeholder llama3.2
+        calls = {"n": 0}
+
+        def fake_call(messages, stream=False):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise requests.exceptions.HTTPError("HTTP 404: model not found")
+            return {"dummy": True}
+
+        monkeypatch.setattr(engine, "_call", fake_call)
+        monkeypatch.setattr(engine, "_stream_response",
+                            lambda resp, on_token=None: "ok reply")
+        text = engine._chat_completion([{"role": "user", "content": "hi"}])
+        assert calls["n"] == 2
+        assert text == "ok reply"
+        assert engine.config.model == "qwen3:8b"
+
+    def test_download_suggestion_is_under_9gb(self):
+        from jhora.ai.engine import _download_suggestion
+        for prov in ("ollama", "lmstudio", "unsloth", "custom"):
+            msg = _download_suggestion(prov)
+            assert "9GB" in msg, prov
+            assert prov in msg or "chat" in msg
+
+
 class TestDasaSystemsPropagation:
     """Cross-surface invariant: AI must be aware of all dasa systems."""
 
