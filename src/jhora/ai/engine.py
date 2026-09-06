@@ -46,7 +46,7 @@ class AiConfig:
     base_url: str = ""
     model: str = ""
     temperature: float = 0.7
-    max_tokens: int = 2048
+    max_tokens: int = 8192  # reasoning models spend tokens thinking before answering
     max_context_tokens: int = 4096  # total prompt budget (truncates if exceeded)
     timeout: int = 120
     short_context: bool = False  # if True, use compact mode (<2K tokens)
@@ -84,8 +84,16 @@ class AiEngine:
     def _stream_response(self, response: requests.Response,
                          on_token: Optional[Callable[[str], None]] = None,
                          ) -> str:
-        """Iterate SSE stream, calling on_token for each chunk. Returns full text."""
+        """Iterate SSE stream, calling on_token for each chunk. Returns full text.
+
+        Reasoning models (e.g. Qwen3, DeepSeek) stream their "thinking" into
+        ``delta.reasoning_content`` and only emit the answer in ``delta.content``
+        after the reasoning phase ends. Both fields are surfaced so the caller
+        sees live progress; if the token budget is exhausted mid-reasoning the
+        accumulated thinking is returned as a fallback instead of an empty reply.
+        """
         full = []
+        reasoning = []
         for line in response.iter_lines(decode_unicode=False):
             if not line:
                 continue
@@ -98,14 +106,22 @@ class AiEngine:
             try:
                 chunk = json.loads(data)
                 delta = chunk.get("choices", [{}])[0].get("delta", {})
-                content = delta.get("content", "")
-                if content:
-                    full.append(content)
-                    if on_token:
-                        on_token(content)
             except (json.JSONDecodeError, KeyError):
                 continue
-        return "".join(full)
+            content = delta.get("content", "")
+            think = delta.get("reasoning_content", "")
+            if think:
+                reasoning.append(think)
+                if on_token:
+                    on_token(think)
+            if content:
+                full.append(content)
+                if on_token:
+                    on_token(content)
+        text = "".join(full)
+        if not text and reasoning:
+            return "".join(reasoning)
+        return text
 
     def interpret(self, cd: ChartData, style: str = "detailed",
                   topic: str = "general",
