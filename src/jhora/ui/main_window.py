@@ -2253,9 +2253,13 @@ class MainWindow(QMainWindow):
             self.ai_status.setText(f"OK — {len(result['models'])} models")
             self._provider_ok = True
             
-            # If the provider gives us the actual model name, auto-fill it
+            # If the provider gives us the actual model name, auto-fill it.
+            # Prefer a chat model: skip embedding/vision-only ids (LM Studio lists
+            # nomic-embed-text first, which has no chat completions endpoint).
             if result.get("models"):
-                first_model = result["models"][0]
+                chat = [m for m in result["models"]
+                        if not any(k in m.lower() for k in ("embed", "text-embedding"))]
+                first_model = (chat or result["models"])[0]
                 current = self.ai_model.text().strip()
                 # If it's just the generic default or empty, overwrite it with the real model ID
                 if current in ["", "loaded", "model", "llama3.2", "unsloth-model"]:
