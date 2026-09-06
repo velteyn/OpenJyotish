@@ -333,6 +333,41 @@ class TestModelResolution:
             assert prov in msg or "chat" in msg
 
 
+class TestThinkingCapGating:
+    """LM Studio must cap reasoning thinking tokens; other providers must not
+    receive the LM Studio-only key (Ollama rejects unknown request fields)."""
+
+    def _post(self, monkeypatch):
+        captured = {}
+
+        def fake_post(url, json=None, timeout=None, stream=None):
+            captured["payload"] = json
+            captured["url"] = url
+            import types
+            resp = types.SimpleNamespace()
+            resp.json = lambda: {"choices": []}
+            resp.raise_for_status = lambda: None
+            return resp
+
+        import requests as _requests
+        monkeypatch.setattr(_requests, "post", fake_post)
+        return captured
+
+    def test_lmstudio_sends_thinking_cap(self, monkeypatch):
+        captured = self._post(monkeypatch)
+        engine = AiEngine(AiConfig(provider="lmstudio",
+                                   base_url="http://x:1234/v1", model="m"))
+        engine._call([{"role": "user", "content": "hi"}], stream=False)
+        assert captured["payload"]["max_thinking_tokens"] == 1024
+
+    def test_ollama_omits_thinking_cap(self, monkeypatch):
+        captured = self._post(monkeypatch)
+        engine = AiEngine(AiConfig(provider="ollama",
+                                   base_url="http://x:11434/v1", model="m"))
+        engine._call([{"role": "user", "content": "hi"}], stream=False)
+        assert "max_thinking_tokens" not in captured["payload"]
+
+
 class TestDasaSystemsPropagation:
     """Cross-surface invariant: AI must be aware of all dasa systems."""
 

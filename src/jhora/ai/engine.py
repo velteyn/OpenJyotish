@@ -214,7 +214,8 @@ class AiConfig:
     base_url: str = ""
     model: str = ""
     temperature: float = 0.7
-    max_tokens: int = 16384  # reasoning models spend tokens thinking before answering
+    max_tokens: int = 16384  # total budget; must exceed reasoning + answer length
+    max_thinking_tokens: int = 1024  # cap Qwen3-class reasoning so the answer fits
     max_context_tokens: int = 4096  # total prompt budget (truncates if exceeded)
     timeout: int = 120
     short_context: bool = False  # if True, use compact mode (<2K tokens)
@@ -240,6 +241,12 @@ class AiEngine:
             "max_tokens": self.config.max_tokens,
             "stream": stream,
         }
+        # LM Studio exposes a thinking-token cap for Qwen3-class reasoning models
+        # (via max_thinking_tokens). Without a cap these models burn the entire
+        # output budget on reasoning and never produce a visible answer. Ollama's
+        # OpenAI-compatible endpoint rejects unknown keys, so gate it to LM Studio.
+        if self.config.provider == "lmstudio" and self.config.max_thinking_tokens:
+            payload["max_thinking_tokens"] = self.config.max_thinking_tokens
         resp = requests.post(
             url,
             json=payload,
