@@ -1667,7 +1667,13 @@ def ai(
         console.print("[yellow]Make sure your LLM server is running.[/yellow]")
         raise typer.Exit(1)
 
-    console.print(f"[dim]Using {config.provider} / {config.model}...[/dim]\n")
+    if not model and health.get("status") == "no_model":
+        console.print(f"[red]{health['message']}[/red]")
+        console.print("[yellow]Install a chat model (≤9GB) or load one, then retry.[/yellow]")
+        raise typer.Exit(1)
+
+    used = health.get("model") or engine.config.model or model
+    console.print(f"[dim]Using {provider} / {used}...[/dim]\n")
 
     def _on_token(token: str):
         console.print(token, end="", highlight=False)
@@ -1716,10 +1722,22 @@ def teach(
 
     teacher = AiTeacher(provider=provider, base_url=base_url, model=model or "")
 
+    from jhora.ai.engine import AiEngine, AiConfig
+    resolver = AiEngine(AiConfig(provider=provider, base_url=base_url, model=model))
+    health = resolver.health_check()
+    if not health["ok"]:
+        console.print(f"[red]AI server unreachable: {health['error']}[/red]")
+        raise typer.Exit(1)
+    if not model and health.get("status") == "no_model":
+        console.print(f"[red]{health['message']}[/red]")
+        raise typer.Exit(1)
+    if health.get("status") == "ok" and health.get("model"):
+        teacher.model = health["model"]
+
     def _print(token):
         console.print(token, end="", highlight=False)
 
-    console.print(f"[dim]Teacher ({provider}):[/dim]\n")
+    console.print(f"[dim]Teacher ({provider} / {teacher.model}):[/dim]\n")
     teacher.ask(question, chart=chart, on_token=_print)
     console.print()
 
