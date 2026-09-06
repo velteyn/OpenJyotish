@@ -88,6 +88,44 @@ class TestAiEngine:
         result = engine.remedies(cd)
         assert "Could not reach" in result
 
+    def test_stream_reasoning_model(self):
+        """Reasoning models stream into reasoning_content; both must be surfaced."""
+        import json
+
+        class _FakeResp:
+            def iter_lines(self, decode_unicode=False):
+                def _chunk(delta):
+                    data = json.dumps({"choices": [{"delta": delta}]})
+                    return ("data: " + data + "\n").encode("utf-8")
+
+                return [
+                    _chunk({"reasoning_content": "Let me "}),
+                    _chunk({"reasoning_content": "think"}),
+                    _chunk({"content": "The Moon "}),
+                    _chunk({"content": "in Aries"}),
+                    b"data: [DONE]\n",
+                ]
+
+        engine = AiEngine(AiConfig(provider="custom", base_url="http://localhost:1/v1", model="x"))
+        tokens = []
+        text = engine._stream_response(_FakeResp(), on_token=tokens.append)
+        assert text == "The Moon in Aries"
+        assert "Let me think" in "".join(tokens)
+        assert "The Moon in Aries" in "".join(tokens)
+
+    def test_stream_reasoning_only_fallback(self):
+        """If budget is exhausted mid-reasoning, return the thinking as a fallback."""
+        import json
+
+        class _FakeResp:
+            def iter_lines(self, decode_unicode=False):
+                data = json.dumps({"choices": [{"delta": {"reasoning_content": "deep thinking.."}}]})
+                return [(("data: " + data + "\n").encode("utf-8")),
+                        b"data: [DONE]\n"]
+
+        engine = AiEngine(AiConfig(provider="custom", base_url="http://localhost:1/v1", model="x"))
+        assert engine._stream_response(_FakeResp()) == "deep thinking.."
+
 
 class TestUslInAI:
     def test_json_export_usl_included(self):
