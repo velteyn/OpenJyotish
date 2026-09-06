@@ -85,6 +85,7 @@ def dasa_snapshot(cd: ChartData) -> str:
             "Chara": _dasa_engine("chara"),
             "Narayana": _dasa_engine("narayana"),
             "Kalachakra": _dasa_engine("kalachakra"),
+            "Brahma": _dasa_engine("brahma"),
         }
         extra = []
         for name, engine in systems.items():
@@ -110,8 +111,8 @@ def dasa_snapshot(cd: ChartData) -> str:
 
 def _dasa_engine(system: str):
     """Return a dasa engine for the given system (vimsottari/ashtottari/
-    yogini/sudasa/chara/narayana/kalachakra). Uses standard defaults; the
-    nakshatra dasas (vimsottari/ashtottari/yogini) use the documented
+    yogini/sudasa/chara/narayana/kalachakra/brahma). Uses standard defaults;
+    the nakshatra dasas (vimsottari/ashtottari/yogini) use the documented
     defaults (Moon seed, Moon sesham, solar year) matching the GUI/CLI/TUI."""
     from jhora.dasas.base import DasaOptions
     opts = DasaOptions()
@@ -133,6 +134,9 @@ def _dasa_engine(system: str):
     if system == "kalachakra":
         from jhora.dasas.kalachakra import KalachakraDasa
         return KalachakraDasa()
+    if system == "brahma":
+        from jhora.dasas.brahma import BrahmaDasa
+        return BrahmaDasa()
     from jhora.dasas.vimsottari import VimsottariDasa
     return VimsottariDasa(opts)
 
