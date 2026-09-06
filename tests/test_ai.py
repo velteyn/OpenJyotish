@@ -30,6 +30,21 @@ class TestPrompts:
         assert "TASK" in prompt
         assert _estimate_tokens(prompt) < 8000  # should fit within budget
 
+    def test_prompt_asks_for_direct_answer(self):
+        """The prompt must tell reasoning models not to spill planning as output.
+        Without this, a reasoning model burns its token budget on a monologue and
+        returns no reading (the 'ask' regression)."""
+        cd = _sample_chart()
+        for prompt in (interpret_prompt(cd, "detailed"),
+                       question_prompt(cd, "What is my career?")):
+            assert "do not plan it out loud" in prompt
+            assert "Begin the reading immediately" in prompt
+
+    def test_system_prompt_asks_for_direct_answer(self):
+        from jhora.ai.prompts import SYSTEM_PROMPT
+        assert "Answer the question directly" in SYSTEM_PROMPT
+        assert "Do NOT print your" in SYSTEM_PROMPT
+
     def test_question_prompt(self):
         cd = _sample_chart()
         prompt = question_prompt(cd, "What is my career?")

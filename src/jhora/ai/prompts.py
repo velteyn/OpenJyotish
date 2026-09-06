@@ -29,6 +29,11 @@ from jhora.interpreter.knowledge_base import KnowledgeBase
 
 SYSTEM_PROMPT = """You are a Vedic astrologer (Parasara school). Be precise, cite data provided, avoid generalities. Use Sanskrit terms with brief English.
 
+IMPORTANT: Answer the question directly and completely. Do NOT print your
+internal planning, step-by-step reasoning, or a list of what you intend to
+write. Do NOT restate the task back. Deliver the reading itself. Reasoning
+models that burn their whole budget planning leave no room for the answer.
+
 FORMAT: Plain text. No HTML, no LaTeX, no Markdown. Use ** for bold.
 
 CRITICAL: When you see TEXTBOOK REFERENCES in the prompt, you MUST cite them.
@@ -217,7 +222,10 @@ def interpret_prompt(cd: ChartData, style: str = "detailed",
         f"by a specific source name in brackets. Example: "
         f"\"Per [Vedic Astrology], Jupiter's placement indicates...\" "
         f"Without citations, your reading has no authority. "
-        f"Use Sanskrit terms with English explanations."
+        f"Use Sanskrit terms with English explanations.\n"
+        f"Write the full answer now — do not plan it out loud, do not say what "
+        f"you are going to do, do not summarize the task. Begin the reading "
+        f"immediately."
     )
 
     return _truncate_sections(sections, budget)

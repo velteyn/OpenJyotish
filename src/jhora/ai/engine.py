@@ -214,7 +214,7 @@ class AiConfig:
     base_url: str = ""
     model: str = ""
     temperature: float = 0.7
-    max_tokens: int = 8192  # reasoning models spend tokens thinking before answering
+    max_tokens: int = 16384  # reasoning models spend tokens thinking before answering
     max_context_tokens: int = 4096  # total prompt budget (truncates if exceeded)
     timeout: int = 120
     short_context: bool = False  # if True, use compact mode (<2K tokens)
