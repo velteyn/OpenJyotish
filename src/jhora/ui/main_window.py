@@ -2250,20 +2250,27 @@ class MainWindow(QMainWindow):
         engine = self._get_ai_engine()
         result = engine.health_check()
         if result["ok"]:
-            self.ai_status.setText(f"OK — {len(result['models'])} models")
             self._provider_ok = True
-            
-            # If the provider gives us the actual model name, auto-fill it.
-            # Prefer a chat model: skip embedding/vision-only ids (LM Studio lists
-            # nomic-embed-text first, which has no chat completions endpoint).
-            if result.get("models"):
-                chat = [m for m in result["models"]
-                        if not any(k in m.lower() for k in ("embed", "text-embedding"))]
-                first_model = (chat or result["models"])[0]
+            status = f"OK — {len(result['models'])} models"
+            if result.get("model"):
+                status += f" · {result['model'][:26]}"
+            self.ai_status.setText(status)
+            self.ai_status.setToolTip(result.get("message", ""))
+            self.ai_status.setWordWrap(True)
+
+            if result.get("status") == "no_model":
+                self.ai_status.setText(f"Model needed: {result['message'][:70]}")
+            elif result.get("model"):
+                # Resolved to a real chat model — overwrite placeholder values
+                # with the actual model id ("loaded"/"model" are not portable).
                 current = self.ai_model.text().strip()
-                # If it's just the generic default or empty, overwrite it with the real model ID
-                if current in ["", "loaded", "model", "llama3.2", "unsloth-model"]:
-                    self.ai_model.setText(first_model)
+                if current in ["", "loaded", "model", "auto"]:
+                    self.ai_model.setText(result["model"])
+                else:
+                    # Keep the user's concrete choice, but surface the resolved one.
+                    self.ai_status.setToolTip(
+                        f"Resolved: {result['model']}\n\n{result.get('message', '')}"
+                    )
         else:
             self.ai_status.setText(f"Error: {result['error'][:60]}")
             self._provider_ok = False
@@ -3514,8 +3521,16 @@ class _TeacherWorker(QThread):
 
     def run(self):
         try:
+            from jhora.ai.engine import AiEngine, AiConfig
+            resolver = AiEngine(AiConfig(provider=self.provider,
+                                         base_url=self.base_url, model=self.model))
+            block = resolver._ensure_chat_model(self.token.emit)
+            if block:
+                self.done.emit()
+                return
             from jhora.ai.teacher import AiTeacher
-            teacher = AiTeacher(self.provider, self.base_url, self.model)
+            teacher = AiTeacher(resolver.config.provider,
+                                resolver.config.base_url, resolver.config.model)
             teacher.ask(self.question, chart=self.chart, on_token=self.token.emit)
             self.done.emit()
         except Exception as e:
