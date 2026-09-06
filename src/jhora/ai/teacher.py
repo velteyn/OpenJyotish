@@ -128,13 +128,14 @@ class AiTeacher:
             "model": self.model,
             "messages": messages,
             "temperature": 0.7,
-            "max_tokens": 2048,
+            "max_tokens": 8192,
             "stream": True,
         }
         try:
             resp = requests.post(url, json=payload, timeout=120, stream=True)
             resp.raise_for_status()
             full = []
+            reasoning = []
             for line in resp.iter_lines(decode_unicode=False):
                 if not line:
                     continue
@@ -146,14 +147,23 @@ class AiTeacher:
                     break
                 try:
                     chunk = json.loads(data)
-                    content = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                    if content:
-                        full.append(content)
-                        if on_token:
-                            on_token(content)
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
                 except (json.JSONDecodeError, KeyError):
                     continue
-            return "".join(full)
+                content = delta.get("content", "")
+                think = delta.get("reasoning_content", "")
+                if think:
+                    reasoning.append(think)
+                    if on_token:
+                        on_token(think)
+                if content:
+                    full.append(content)
+                    if on_token:
+                        on_token(content)
+            text = "".join(full)
+            if not text and reasoning:
+                return "".join(reasoning)
+            return text
         except requests.exceptions.ConnectionError:
             msg = "AI server not running. Start Ollama: ollama serve"
             if on_token:
