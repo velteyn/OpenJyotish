@@ -154,15 +154,17 @@ class AiTeacher:
                 think = delta.get("reasoning_content", "")
                 if think:
                     reasoning.append(think)
-                    if on_token:
-                        on_token(think)
                 if content:
                     full.append(content)
                     if on_token:
                         on_token(content)
-            text = "".join(full)
+            text = "".join(full).strip()
             if not text and reasoning:
-                return "".join(reasoning)
+                from jhora.ai.engine import reasoning_only_message
+                msg = reasoning_only_message()
+                if on_token:
+                    on_token(msg)
+                return msg
             return text
         except requests.exceptions.ConnectionError:
             msg = "AI server not running. Start Ollama: ollama serve"
