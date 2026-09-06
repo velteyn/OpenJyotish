@@ -254,13 +254,15 @@ class AiEngine:
     def _stream_response(self, response: requests.Response,
                          on_token: Optional[Callable[[str], None]] = None,
                          ) -> str:
-        """Iterate SSE stream, calling on_token for each chunk. Returns full text.
+        """Iterate SSE stream, calling on_token for the visible answer.
 
         Reasoning models (e.g. Qwen3, DeepSeek) stream their "thinking" into
         ``delta.reasoning_content`` and only emit the answer in ``delta.content``
-        after the reasoning phase ends. Both fields are surfaced so the caller
-        sees live progress; if the token budget is exhausted mid-reasoning the
-        accumulated thinking is returned as a fallback instead of an empty reply.
+        after the reasoning phase ends. The thinking is accumulated internally so
+        the ``on_token`` callback (and therefore the user-facing output window)
+        only ever shows the final answer — never raw chain-of-thought. If the
+        token budget is exhausted mid-reasoning, a short notice is emitted
+        instead of an empty reply.
         """
         full = []
         reasoning = []
@@ -282,15 +284,18 @@ class AiEngine:
             think = delta.get("reasoning_content", "")
             if think:
                 reasoning.append(think)
-                if on_token:
-                    on_token(think)
             if content:
                 full.append(content)
                 if on_token:
                     on_token(content)
-        text = "".join(full)
-        if not text and reasoning:
-            return "".join(reasoning)
+        text = "".join(full).strip()
+        if not text:
+            if reasoning:
+                msg = reasoning_only_message()
+                if on_token:
+                    on_token(msg)
+                return msg
+            return text
         return text
 
     def interpret(self, cd: ChartData, style: str = "detailed",
@@ -494,6 +499,14 @@ class AiEngine:
             return {"ok": False, "error": "Connection refused — is the server running?"}
         except Exception as e:
             return {"ok": False, "error": str(e)}
+
+
+def reasoning_only_message() -> str:
+    """Notice shown when a model spent its budget thinking but gave no answer."""
+    return (
+        "\n\nThe model produced no visible answer — it only returned internal "
+        "reasoning. Try a shorter question, or generate again."
+    )
 
 
 def _offline_message(kind: str, on_token: Optional[Callable] = None) -> str:

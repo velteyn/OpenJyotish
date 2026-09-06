@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -15,6 +16,7 @@ from PyQt6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, Q
                              QTimeEdit, QVBoxLayout, QWidget)
 
 from jhora.ai.engine import PROVIDERS, AiConfig, AiEngine
+from jhora.ui.richtext import apply_output_font, md_document
 from jhora.calc.ashtakavarga import (_OCCUPANT_GRAHAS, all_bhinna_ashtakavarga,
                                      kakshya_bindu_table, sarva_ashtakavarga,
                                      sodhya_pinda)
@@ -56,6 +58,11 @@ class MainWindow(QMainWindow):
         self.chart_data: Optional[ChartData] = None
         self.current_file: Optional[str] = None
         self.builder = ChartBuilder()
+        # Streaming buffers for the Markdown-rendered LLM output windows.
+        self._ai_buffer = ""
+        self._ai_last_render = 0.0
+        self._teach_buffer = ""
+        self._teach_last_render = 0.0
         self._init_ui()
         self._create_menu_bar()
 
@@ -283,6 +290,7 @@ class MainWindow(QMainWindow):
 
         self.dasa_text = QTextEdit()
         self.dasa_text.setReadOnly(True)
+        apply_output_font(self.dasa_text)
         dl.addWidget(self.dasa_text)
 
         self.dasa_timeline = DasaTimelineWidget()
@@ -1606,6 +1614,7 @@ class MainWindow(QMainWindow):
         self.kuta_detail = QTextEdit()
         self.kuta_detail.setReadOnly(True)
         self.kuta_detail.setMaximumHeight(160)
+        apply_output_font(self.kuta_detail)
         layout.addWidget(self.kuta_detail)
 
         return w
@@ -1657,6 +1666,7 @@ class MainWindow(QMainWindow):
         self.prasna_detail = QTextEdit()
         self.prasna_detail.setReadOnly(True)
         self.prasna_detail.setMaximumHeight(150)
+        apply_output_font(self.prasna_detail)
         layout.addWidget(self.prasna_detail)
 
         # All positions table
@@ -1824,6 +1834,7 @@ class MainWindow(QMainWindow):
         self.muhurta_detail = QTextEdit()
         self.muhurta_detail.setReadOnly(True)
         self.muhurta_detail.setMaximumHeight(160)
+        apply_output_font(self.muhurta_detail)
         layout.addWidget(self.muhurta_detail)
 
         # Results table
@@ -1975,6 +1986,7 @@ class MainWindow(QMainWindow):
         # Results list
         self.kb_results = QTextEdit()
         self.kb_results.setReadOnly(True)
+        apply_output_font(self.kb_results)
         layout.addWidget(self.kb_results, stretch=1)
 
         return w
@@ -2026,6 +2038,7 @@ class MainWindow(QMainWindow):
 
         self.int_output = QTextEdit()
         self.int_output.setReadOnly(True)
+        apply_output_font(self.int_output)
         layout.addWidget(self.int_output, stretch=1)
 
         return w
@@ -2402,12 +2415,16 @@ class MainWindow(QMainWindow):
     def _on_ai_action(self, mode: str):
         cd = self.chart_data
         if cd is None:
-            self.ai_output.setText("[Compute a chart first using the main form]")
+            self._ai_buffer = "[Compute a chart first using the main form]"
+            self._render_ai_output()
             return
         style = self.ai_style.currentText()
         topic = self.ai_topic.currentText()
-        self.ai_output.clear()
-        self.ai_output.append(f"[Generating {mode} with {self.ai_provider.currentText()}/{self.ai_model.text()}...]\n")
+        self._ai_buffer = (
+            f"[Generating {mode} with {self.ai_provider.currentText()}/"
+            f"{self.ai_model.text()}...]\n\n"
+        )
+        self._render_ai_output()
         self._set_ai_buttons_enabled(False)
 
         engine = self._get_ai_engine()
@@ -2427,10 +2444,11 @@ class MainWindow(QMainWindow):
             return
         cd = self.chart_data
         if cd is None:
-            self.ai_output.setText("[Compute a chart first using the main form]")
+            self._ai_buffer = "[Compute a chart first using the main form]"
+            self._render_ai_output()
             return
-        self.ai_output.clear()
-        self.ai_output.append(f"[Asking: {q}]\n")
+        self._ai_buffer = f"[Asking: {q}]\n\n"
+        self._render_ai_output()
         self._set_ai_buttons_enabled(False)
 
         engine = self._get_ai_engine()
@@ -2440,18 +2458,27 @@ class MainWindow(QMainWindow):
         self._ai_worker.error.connect(self._on_ai_error)
         self._ai_worker.start()
 
+    def _render_ai_output(self):
+        """Repaint the AI output window from the markdown buffer (throttled)."""
+        self.ai_output.setHtml(md_document(self._ai_buffer))
+        bar = self.ai_output.verticalScrollBar()
+        bar.setValue(bar.maximum())
+
     def _on_ai_token(self, text: str):
-        cursor = self.ai_output.textCursor()
-        cursor.movePosition(cursor.MoveOperation.End)
-        cursor.insertText(text)
-        self.ai_output.ensureCursorVisible()
+        self._ai_buffer += text
+        now = time.monotonic()
+        if now - self._ai_last_render >= 0.3:
+            self._render_ai_output()
+            self._ai_last_render = now
 
     def _on_ai_done(self):
-        self.ai_output.append("\n\n[done]")
+        self._ai_buffer += "\n\n[done]"
+        self._render_ai_output()
         self._set_ai_buttons_enabled(True)
 
     def _on_ai_error(self, msg: str):
-        self.ai_output.append(f"\n\n[Error: {msg}]")
+        self._ai_buffer += f"\n\n[Error: {msg}]"
+        self._render_ai_output()
         self._set_ai_buttons_enabled(True)
 
     def _set_ai_buttons_enabled(self, enabled: bool):
@@ -2508,14 +2535,17 @@ class MainWindow(QMainWindow):
 
     def _on_build_teacher_index(self):
         from jhora.ai.embeddings import EmbeddingStore
-        self.teach_output.append("[Building textbook index...]\n")
+        self._teach_buffer += "[Building textbook index...]\n"
+        self._render_teach_output()
         self._build_teacher_btn.setEnabled(False)
         try:
             store = EmbeddingStore()
             count = store.build()
-            self.teach_output.append(f"[✓ Index built: {count} chunks]\n")
+            self._teach_buffer += f"[✓ Index built: {count} chunks]\n"
+            self._render_teach_output()
         except Exception as e:
-            self.teach_output.append(f"[✗ Error: {e}]\n")
+            self._teach_buffer += f"[✗ Error: {e}]\n"
+            self._render_teach_output()
         self._build_teacher_btn.setEnabled(True)
 
     def _on_teach_topic(self, text: str):
@@ -2526,8 +2556,8 @@ class MainWindow(QMainWindow):
         question = self.teach_input.text().strip()
         if not question:
             return
-        self.teach_output.clear()
-        self.teach_output.append(f"[Guru, {question}]\n")
+        self._teach_buffer = f"[Guru, {question}]\n\n"
+        self._render_teach_output()
         self.teach_btn.setEnabled(False)
 
         provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "ollama"
@@ -2540,14 +2570,25 @@ class MainWindow(QMainWindow):
 
         self._teacher_worker = _TeacherWorker(question, chart, provider, base_url, model)
         self._teacher_worker.token.connect(self._on_teach_token)
-        self._teacher_worker.done.connect(lambda: self.teach_btn.setEnabled(True))
+        self._teacher_worker.done.connect(self._on_teach_done)
         self._teacher_worker.start()
 
+    def _on_teach_done(self):
+        self._render_teach_output()
+        self.teach_btn.setEnabled(True)
+
+    def _render_teach_output(self):
+        """Repaint the AI Teacher output window from the markdown buffer."""
+        self.teach_output.setHtml(md_document(self._teach_buffer))
+        bar = self.teach_output.verticalScrollBar()
+        bar.setValue(bar.maximum())
+
     def _on_teach_token(self, text: str):
-        cursor = self.teach_output.textCursor()
-        cursor.movePosition(cursor.MoveOperation.End)
-        cursor.insertText(text)
-        self.teach_output.ensureCursorVisible()
+        self._teach_buffer += text
+        now = time.monotonic()
+        if now - self._teach_last_render >= 0.3:
+            self._render_teach_output()
+            self._teach_last_render = now
 
     # --- Chart Browser ---
 
