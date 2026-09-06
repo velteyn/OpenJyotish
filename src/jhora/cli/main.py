@@ -131,7 +131,7 @@ def dasa(
     """Compute dasa periods for a chart.
 
     system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
-    kalachakra. Seed/sesham/year options apply to the nakshatra da8sas
+    kalachakra, brahma. Seed/sesham/year options apply to the nakshatra da8sas
     (vimsottari, ashtottari, yogini).
     """
     bd = parse_birthdata(birthdata)
@@ -257,7 +257,14 @@ def _display_chart(cd: ChartData):
 
 
 def _lord_name(idx: int) -> str:
-    """Convert Graha ID to full name."""
+    """Convert lord index to full name.
+
+    Graha IDs (0-8) map to planets; rasi-based dasas (Narayana, Sudasa,
+    Brahma, etc.) use 100+rasi and map to sign names.
+    """
+    if idx >= 100:
+        from jhora.types.rasi import Rasi
+        return Rasi(idx - 100).full_name
     try:
         return Graha(idx).full_name
     except ValueError:
@@ -318,7 +325,7 @@ def _chart_to_dict(cd: ChartData) -> dict:
 
 def _get_dasa_engine(system: str, options=None):
     """Return a dasa engine for the given system name (vimsottari/ashtottari/
-    yogini/sudasa/chara/narayana/kalachakra)."""
+    yogini/sudasa/chara/narayana/kalachakra/brahma)."""
     s = system.lower()
     if s == "vimsottari":
         from jhora.dasas.vimsottari import VimsottariDasa
@@ -341,6 +348,9 @@ def _get_dasa_engine(system: str, options=None):
     if s == "kalachakra":
         from jhora.dasas.kalachakra import KalachakraDasa
         return KalachakraDasa()
+    if s == "brahma":
+        from jhora.dasas.brahma import BrahmaDasa
+        return BrahmaDasa()
     from jhora.dasas.vimsottari import VimsottariDasa
     return VimsottariDasa(options)
 
