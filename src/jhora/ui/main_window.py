@@ -254,7 +254,7 @@ class MainWindow(QMainWindow):
         self.dasa_system_combo = QComboBox()
         self.dasa_system_combo.addItems([
             "Vimsottari", "Ashtottari", "Yogini", "Sudasa",
-            "Chara", "Narayana", "Kalachakra",
+            "Chara", "Narayana", "Kalachakra", "Brahma",
         ])
         self.dasa_system_combo.currentTextChanged.connect(self._update_dasa_text)
         dl.addWidget(self.dasa_system_combo)
@@ -933,6 +933,9 @@ class MainWindow(QMainWindow):
         elif system == "Kalachakra":
             from jhora.dasas.kalachakra import KalachakraDasa
             return KalachakraDasa()
+        elif system == "Brahma":
+            from jhora.dasas.brahma import BrahmaDasa
+            return BrahmaDasa()
         from jhora.dasas.vimsottari import VimsottariDasa
         return VimsottariDasa(options)
 
