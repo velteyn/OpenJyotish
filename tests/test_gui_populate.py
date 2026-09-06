@@ -213,3 +213,26 @@ def test_cons_table_has_classic_special_lagnas(main_window, chart):
                  "Pranapada Lagna", "Vighati Lagna", "Upapada Lagna",
                  "Bhava Lagna", "Hora Lagna", "Ghati Lagna", "Sree Lagna"]:
         assert name in cols, f"missing {name} in consolidated table"
+
+
+def test_thinking_indicator_shows_then_clears_on_answer(main_window):
+    """The 'Thinking…' affordance appears during the hidden reasoning phase and
+    is replaced once the model streams an answer."""
+    main_window._ai_buffer = "[Asking: q]\n\n"
+    main_window._ai_thinking = True
+    main_window._render_ai_output()
+    html = main_window.ai_output.toHtml()
+    assert "Thinking" in html or "⏳" in html
+
+    main_window._on_ai_token("The Moon in Aries ")
+    assert main_window._ai_thinking is False
+    main_window._render_ai_output()
+    html = main_window.ai_output.toHtml()
+    assert "The Moon in Aries" in html
+
+
+def test_thinking_indicator_clears_on_done(main_window):
+    main_window._ai_buffer = "[Asking: q]\n\n"
+    main_window._ai_thinking = True
+    main_window._on_ai_done()
+    assert main_window._ai_thinking is False
