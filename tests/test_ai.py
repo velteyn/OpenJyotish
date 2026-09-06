@@ -89,7 +89,7 @@ class TestAiEngine:
         assert "Could not reach" in result
 
     def test_stream_reasoning_model(self):
-        """Reasoning models stream into reasoning_content; both must be surfaced."""
+        """Reasoning is never surfaced — only the visible answer is streamed."""
         import json
 
         class _FakeResp:
@@ -110,11 +110,11 @@ class TestAiEngine:
         tokens = []
         text = engine._stream_response(_FakeResp(), on_token=tokens.append)
         assert text == "The Moon in Aries"
-        assert "Let me think" in "".join(tokens)
+        assert "Let me think" not in "".join(tokens)
         assert "The Moon in Aries" in "".join(tokens)
 
     def test_stream_reasoning_only_fallback(self):
-        """If budget is exhausted mid-reasoning, return the thinking as a fallback."""
+        """If the model produced only thinking, emit a notice — not the thoughts."""
         import json
 
         class _FakeResp:
@@ -124,7 +124,11 @@ class TestAiEngine:
                         b"data: [DONE]\n"]
 
         engine = AiEngine(AiConfig(provider="custom", base_url="http://localhost:1/v1", model="x"))
-        assert engine._stream_response(_FakeResp()) == "deep thinking.."
+        tokens = []
+        text = engine._stream_response(_FakeResp(), on_token=tokens.append)
+        assert "no visible answer" in text
+        assert "deep thinking" not in text
+        assert "no visible answer" in "".join(tokens)
 
 
 class TestUslInAI:
