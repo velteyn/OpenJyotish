@@ -139,7 +139,7 @@ def _generic_catalog(base_url: str, timeout: float = 5.0) -> List[dict]:
     resp = requests.get(f"{base_url.rstrip('/')}/models", timeout=timeout)
     resp.raise_for_status()
     data = resp.json()
-    models = data if isinstance(data, list) else data.get("data", [])
+    models = data if isinstance(data, list) else (data.get("data") or [])
     out = []
     for m in models:
         if isinstance(m, str):
@@ -158,6 +158,19 @@ def _is_chat_model(info: dict) -> bool:
         if itype in CHAT_TYPES:
             return True
     return not _looks_embedding(info.get("id") or "")
+
+
+_THINKING_FAMILIES = ("qwen3", "deepseek-r1", "deepseek-v3", "gpt-oss",
+                      "kimi", "glm-4", "glm-5", "r1")
+
+
+def _is_thinking_model(model_id: str) -> bool:
+    """True for reasoning-capable chat models (they stream reasoning_content)."""
+    name = _bare_name(model_id)
+    for fam in _THINKING_FAMILIES:
+        if fam in name:
+            return True
+    return False
 
 
 def _chat_score(info: dict) -> float:
@@ -247,6 +260,12 @@ class AiEngine:
         # OpenAI-compatible endpoint rejects unknown keys, so gate it to LM Studio.
         if self.config.provider == "lmstudio" and self.config.max_thinking_tokens:
             payload["max_thinking_tokens"] = self.config.max_thinking_tokens
+        # Ollama controls reasoning via reasoning_effort instead. Bound thinking
+        # on reasoning models so the answer always has output budget left;
+        # non-thinking models (e.g. gemma3) ignore the field.
+        if self.config.provider == "ollama" and _is_thinking_model(
+                self.config.model):
+            payload["reasoning_effort"] = "low"
         resp = requests.post(
             url,
             json=payload,
@@ -489,7 +508,7 @@ class AiEngine:
             resp = requests.get(url, timeout=5)
             if resp.status_code == 200:
                 data = resp.json()
-                models = data if isinstance(data, list) else data.get("data", [])
+                models = data if isinstance(data, list) else (data.get("data") or [])
                 model_names = [m.get("id", m.get("name", str(m))) for m in models]
                 info = {"ok": True, "models": model_names[:20]}
                 try:
