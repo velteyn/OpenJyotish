@@ -116,24 +116,52 @@ class ChartBuilder:
         For India (UTC+5:30): UTC = local - 5:30, so tz_offset = -5.5.
         
         Supports:
-          "+0530" (HHMM) → -5.5  (UTC+X means local ahead, so subtrahend)
-          "-0500" (HHMM) → +5.0  (UTC-X means local behind, so addend)
-          "-5.36" (decimal) → -5.36 (direct JHD format)
+          "+0530", "+05:30", "+5:30", "+5.5", "+5" → -5.5 (UTC+X means local ahead, so subtrahend)
+          "-0500", "-05:00", "-5:00" → +5.0 (UTC-X means local behind, so addend)
+          "-5.36", "-5.5" (decimal) → direct JHD format
+          "Asia/Kolkata" → IANA timezone lookup
         """
-        if tz == "UTC":
+        if not tz or tz in ("UTC", "GMT", "Z"):
             return 0.0
         tz = tz.strip()
+
+        if "/" in tz:
+            try:
+                from zoneinfo import ZoneInfo
+                from datetime import datetime
+                zi = ZoneInfo(tz)
+                offset_sec = datetime.now(zi).utcoffset().total_seconds()
+                return -(offset_sec / 3600.0)
+            except Exception:
+                pass
+
         try:
             if tz.startswith("+"):
-                rest = tz[1:]
-                if len(rest) == 4 and rest.isdigit():
+                rest = tz[1:].strip()
+                if ":" in rest:
+                    h, m = rest.split(":", 1)
+                    return -(float(h) + float(m) / 60.0)
+                elif len(rest) == 4 and rest.isdigit():
                     h, m = int(rest[:2]), int(rest[2:])
                     return -(h + m / 60.0)
+                else:
+                    return -float(rest)
             elif tz.startswith("-"):
-                rest = tz[1:]
-                if len(rest) == 4 and rest.isdigit():
+                rest = tz[1:].strip()
+                if ":" in rest:
+                    h, m = rest.split(":", 1)
+                    return float(h) + float(m) / 60.0
+                elif len(rest) == 4 and rest.isdigit():
                     h, m = int(rest[:2]), int(rest[2:])
-                    return h + m / 60.0
+                    return float(h) + float(m) / 60.0
+                else:
+                    return float(tz)
+            if ":" in tz:
+                h, m = tz.split(":", 1)
+                return -(float(h) + float(m) / 60.0)
+            elif len(tz) == 4 and tz.isdigit():
+                h, m = int(tz[:2]), int(tz[2:])
+                return -(h + m / 60.0)
             return float(tz)
         except (ValueError, IndexError):
             return 0.0
