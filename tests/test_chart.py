@@ -234,3 +234,40 @@ class TestVargaPosition:
         assert vp.graha == Graha.MOON
         assert vp.varga_level == VargaLevel.D_9
         assert vp.rasi == Rasi.TAURUS
+
+
+class TestParseTz:
+    def test_utc_and_empty(self):
+        assert ChartBuilder._parse_tz("UTC") == 0.0
+        assert ChartBuilder._parse_tz("GMT") == 0.0
+        assert ChartBuilder._parse_tz("") == 0.0
+
+    def test_positive_utc_offsets(self):
+        # All of these represent UTC+5:30 (India) -> subtrahend -5.5
+        assert ChartBuilder._parse_tz("+5.5") == -5.5
+        assert ChartBuilder._parse_tz("+0530") == -5.5
+        assert ChartBuilder._parse_tz("+05:30") == -5.5
+        assert ChartBuilder._parse_tz("+5:30") == -5.5
+        assert ChartBuilder._parse_tz("+5") == -5.0
+        assert ChartBuilder._parse_tz("+5.75") == -5.75
+
+    def test_negative_utc_offsets(self):
+        # These represent UTC-5:00 (New York) -> addend +5.0
+        assert ChartBuilder._parse_tz("-0500") == 5.0
+        assert ChartBuilder._parse_tz("-05:00") == 5.0
+        assert ChartBuilder._parse_tz("-5:00") == 5.0
+
+    def test_direct_jhd_format(self):
+        # Direct JHD format (already signed subtrahend)
+        assert ChartBuilder._parse_tz("-5.5") == -5.5
+        assert ChartBuilder._parse_tz("-5.36") == -5.36
+
+    def test_build_with_various_tz_formats_gives_identical_result(self):
+        builder = ChartBuilder()
+        # Verify +5.5, +05:30, and +0530 all yield the identical chart calculation
+        cd_decimal = builder.build(1947, 8, 15, 0.0, 28.6139, 77.2090, tz="+5.5")
+        cd_compact = builder.build(1947, 8, 15, 0.0, 28.6139, 77.2090, tz="+0530")
+        cd_colon = builder.build(1947, 8, 15, 0.0, 28.6139, 77.2090, tz="+05:30")
+        assert cd_decimal.ascendant == pytest.approx(cd_compact.ascendant, abs=1e-5)
+        assert cd_decimal.ascendant == pytest.approx(cd_colon.ascendant, abs=1e-5)
+        assert cd_decimal.lagna.rasi == Rasi.TAURUS
