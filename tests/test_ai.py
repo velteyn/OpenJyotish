@@ -1,6 +1,6 @@
 """Tests for AI engine — offline-only (no LLM server required)."""
 
-from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS
+from jhora.ai.engine import AiEngine, AiConfig, PROVIDERS, _generic_catalog
 from jhora.ai.prompts import interpret_prompt, question_prompt, remedy_prompt, _chart_compact, _estimate_tokens
 from jhora.ai.json_export import chart_to_json
 from jhora.ai.analysis import build_analysis_text
@@ -366,6 +366,64 @@ class TestThinkingCapGating:
                                    base_url="http://x:11434/v1", model="m"))
         engine._call([{"role": "user", "content": "hi"}], stream=False)
         assert "max_thinking_tokens" not in captured["payload"]
+
+    def test_ollama_bounds_reasoning_effort_for_thinking_models(self, monkeypatch):
+        captured = self._post(monkeypatch)
+        engine = AiEngine(AiConfig(provider="ollama",
+                                   base_url="http://x:11434/v1",
+                                   model="qwen3:0.6b"))
+        engine._call([{"role": "user", "content": "hi"}], stream=False)
+        assert captured["payload"]["reasoning_effort"] == "low"
+
+    def test_ollama_no_reasoning_effort_for_plain_models(self, monkeypatch):
+        captured = self._post(monkeypatch)
+        engine = AiEngine(AiConfig(provider="ollama",
+                                   base_url="http://x:11434/v1", model="gemma3:1b"))
+        engine._call([{"role": "user", "content": "hi"}], stream=False)
+        assert "reasoning_effort" not in captured["payload"]
+
+
+class TestNullModelCatalog:
+    """Ollama returns `"data": null` on /v1/models when nothing is installed;
+    the catalog and health check must degrade to empty, not crash."""
+
+    def _null_resp(self, body):
+        import types
+        resp = types.SimpleNamespace()
+        resp.status_code = 200
+        resp.ok = True
+        resp.json = lambda: body
+        resp.raise_for_status = lambda: None
+        return resp
+
+    def test_generic_catalog_handles_null_data(self, monkeypatch):
+        import requests as _requests
+        monkeypatch.setattr(_requests, "get",
+                            lambda *a, **k: self._null_resp(
+                                {"object": "list", "data": None}))
+        assert _generic_catalog("http://x:11434/v1") == []
+
+    def test_health_check_handles_null_data(self, monkeypatch):
+        import requests as _requests
+        calls = {"n": [0]}
+
+        def fake_get(url, timeout=None):
+            calls["n"][0] += 1
+            if url.endswith("/models"):
+                return self._null_resp({"object": "list", "data": None})
+            raise AssertionError(f"unexpected url {url}")
+
+        monkeypatch.setattr(_requests, "get", fake_get)
+        engine = AiEngine(AiConfig(provider="ollama",
+                                   base_url="http://x:11434/v1",
+                                   model="qwen3:0.6b"))
+        monkeypatch.setattr(
+            engine, "resolve_model",
+            lambda timeout=6: {"status": "no_model", "model": "", "message": "m",
+                               "available": [], "loaded": []})
+        result = engine.health_check()
+        assert result["ok"] is True
+        assert result["models"] == []
 
 
 class TestDasaSystemsPropagation:
