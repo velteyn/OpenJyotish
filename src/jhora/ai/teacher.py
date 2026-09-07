@@ -131,10 +131,14 @@ class AiTeacher:
             "max_tokens": 16384,
             "stream": True,
         }
-        # Cap Qwen3-class reasoning thinking tokens on LM Studio so the answer
-        # always has output budget left; other providers reject unknown keys.
+        # Cap Qwen3-class reasoning on LM Studio via its thinking-token limit so
+        # the answer has output budget left. Ollama instead uses reasoning_effort
+        # (bound thinking on thinking models, ignored by plain chat models).
+        from jhora.ai.engine import _is_thinking_model
         if self.provider == "lmstudio":
             payload["max_thinking_tokens"] = 1024
+        elif self.provider == "ollama" and _is_thinking_model(self.model):
+            payload["reasoning_effort"] = "low"
         try:
             resp = requests.post(url, json=payload, timeout=180, stream=True)
             resp.raise_for_status()
