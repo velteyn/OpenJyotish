@@ -12,6 +12,7 @@ from typing import Optional
 
 import typer
 from rich.console import Console
+from rich.prompt import Prompt
 from rich.table import Table
 
 from jhora.charts.chart import ChartBuilder, ChartData
@@ -1641,6 +1642,8 @@ def ai(
                               help="general, relationship, career, health, spirituality, children, finance"),
     context: int = typer.Option(4096, "--context", "-c",
                                 help="Max prompt tokens (2048-16384)"),
+    chat: bool = typer.Option(False, "--chat",
+                              help="Interactive conversation mode (ask only)"),
 ):
     """AI-powered chart interpretation via local LLM (Ollama/LM Studio/Unsloth)."""
     if not birthdata:
@@ -1675,8 +1678,30 @@ def ai(
     used = health.get("model") or engine.config.model or model
     console.print(f"[dim]Using {provider} / {used}...[/dim]\n")
 
-    def _on_token(token: str):
-        console.print(token, end="", highlight=False)
+    def _on_token(tok: str):
+        console.print(tok, end="", highlight=False)
+
+    if chat:
+        if not question:
+            console.print("[red]--question required as initial question in --chat mode[/red]")
+            raise typer.Exit(1)
+        history: list = []
+        console.print(f"[bold yellow]AI Chat ({provider}/{used})[/bold yellow]  "
+                      "Type 'quit' or Ctrl-C to exit.\n")
+        try:
+            while True:
+                answer, history, reset = engine.chat(
+                    cd, question, history=history, on_token=_on_token)
+                console.print()
+                if reset:
+                    console.print("[dim][context compacted][/dim]")
+                question = Prompt.ask("[bold green]You[/bold green]")
+                if question.lower() in ("quit", "exit", "q", ""):
+                    break
+                console.print()
+        except (KeyboardInterrupt, EOFError):
+            console.print("\n[dim]Chat ended.[/dim]")
+        return
 
     if mode == "ask" and not question:
         console.print("[red]--question required for ask mode[/red]")
@@ -1700,6 +1725,8 @@ def teach(
     provider: str = typer.Option("ollama", "--provider", "-p"),
     model: str = typer.Option("", "--model", "-m"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    chat: bool = typer.Option(False, "--chat",
+                              help="Interactive conversation mode"),
 ):
     """AI Teacher — learn Vedic astrology from the textbook corpus."""
     chart = None
@@ -1734,10 +1761,30 @@ def teach(
     if health.get("status") == "ok" and health.get("model"):
         teacher.model = health["model"]
 
-    def _print(token):
-        console.print(token, end="", highlight=False)
+    def _print(tok):
+        console.print(tok, end="", highlight=False)
 
     console.print(f"[dim]Teacher ({provider} / {teacher.model}):[/dim]\n")
+
+    if chat:
+        history: list = []
+        console.print(f"[bold yellow]AI Teacher ({provider}/{teacher.model})[/bold yellow]  "
+                      "Type 'quit' or Ctrl-C to exit.\n")
+        try:
+            while True:
+                answer, history, reset = teacher.chat(
+                    question, chart=chart, history=history, on_token=_print)
+                console.print()
+                if reset:
+                    console.print("[dim][context compacted — fresh conversation][/dim]")
+                question = Prompt.ask("[bold green]You[/bold green]")
+                if question.lower() in ("quit", "exit", "q", ""):
+                    break
+                console.print()
+        except (KeyboardInterrupt, EOFError):
+            console.print("\n[dim]Chat ended.[/dim]")
+        return
+
     teacher.ask(question, chart=chart, on_token=_print)
     console.print()
 
