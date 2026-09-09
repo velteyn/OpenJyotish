@@ -66,9 +66,11 @@ class MainWindow(QMainWindow):
         self._ai_buffer = ""
         self._ai_last_render = 0.0
         self._ai_thinking = False
+        self._ai_history: list = []  # threaded conversation history for AI Chat
         self._teach_buffer = ""
         self._teach_last_render = 0.0
         self._teach_thinking = False
+        self._teach_history: list = []  # threaded conversation history for Teacher
         self._init_ui()
         self._create_menu_bar()
 
@@ -2262,6 +2264,8 @@ class MainWindow(QMainWindow):
     def _on_ai_provider_changed(self, provider: str):
         preset = PROVIDERS.get(provider, {})
         self.ai_model.setText(preset.get("default_model", ""))
+        self._ai_history.clear()
+        self._teach_history.clear()
 
     def _on_ai_health_check(self):
         self.ai_check_btn.setEnabled(False)
@@ -2460,7 +2464,8 @@ class MainWindow(QMainWindow):
         self._set_ai_buttons_enabled(False)
 
         engine = self._get_ai_engine()
-        self._ai_worker = _AiWorker(engine, "ask", cd, question=q)
+        self._ai_worker = _AiWorker(engine, "ask", cd, question=q,
+                                    history=list(self._ai_history))
         self._ai_worker.token.connect(self._on_ai_token)
         self._ai_worker.done.connect(self._on_ai_done)
         self._ai_worker.error.connect(self._on_ai_error)
@@ -2486,6 +2491,11 @@ class MainWindow(QMainWindow):
 
     def _on_ai_done(self):
         self._ai_thinking = False
+        w = self._ai_worker
+        if hasattr(w, "result_history"):
+            self._ai_history = w.result_history
+        if getattr(w, "result_reset", False):
+            self._ai_buffer += "\n\n[Context compacted — fresh conversation]"
         self._ai_buffer += "\n\n[done]"
         self._render_ai_output()
         self._set_ai_buttons_enabled(True)
@@ -2584,13 +2594,20 @@ class MainWindow(QMainWindow):
                                                                "http://localhost:11434/v1")
         chart = self.chart_data if hasattr(self, "chart_data") else None
 
-        self._teacher_worker = _TeacherWorker(question, chart, provider, base_url, model)
+        self._teacher_worker = _TeacherWorker(
+            question, chart, provider, base_url, model,
+            history=list(self._teach_history))
         self._teacher_worker.token.connect(self._on_teach_token)
         self._teacher_worker.done.connect(self._on_teach_done)
         self._teacher_worker.start()
 
     def _on_teach_done(self):
         self._teach_thinking = False
+        w = self._teacher_worker
+        if hasattr(w, "result_history"):
+            self._teach_history = w.result_history
+        if getattr(w, "result_reset", False):
+            self._teach_buffer += "\n\n[Context compacted — fresh conversation]"
         self._render_teach_output()
         self.teach_btn.setEnabled(True)
 
@@ -3574,13 +3591,18 @@ class _TeacherWorker(QThread):
     token = pyqtSignal(str)
     done = pyqtSignal()
 
-    def __init__(self, question, chart, provider, base_url, model):
+    def __init__(self, question, chart, provider, base_url, model,
+                 history=None, max_context_tokens=4096):
         super().__init__()
         self.question = question
         self.chart = chart
         self.provider = provider
         self.base_url = base_url
         self.model = model
+        self.history = history or []
+        self.max_context_tokens = max_context_tokens
+        self.result_history: list = []
+        self.result_reset: bool = False
 
     def run(self):
         try:
@@ -3593,8 +3615,13 @@ class _TeacherWorker(QThread):
                 return
             from jhora.ai.teacher import AiTeacher
             teacher = AiTeacher(resolver.config.provider,
-                                resolver.config.base_url, resolver.config.model)
-            teacher.ask(self.question, chart=self.chart, on_token=self.token.emit)
+                                resolver.config.base_url, resolver.config.model,
+                                max_context_tokens=self.max_context_tokens)
+            ans, hist, reset = teacher.chat(
+                self.question, chart=self.chart,
+                history=self.history, on_token=self.token.emit)
+            self.result_history = hist
+            self.result_reset = reset
             self.done.emit()
         except Exception as e:
             self.token.emit(str(e))
@@ -3645,7 +3672,8 @@ class _AiWorker(QThread):
     done = pyqtSignal()
     error = pyqtSignal(str)
     def __init__(self, engine: AiEngine, mode: str, chart: ChartData,
-                 style: str = "", question: str = "", topic: str = "general"):
+                 style: str = "", question: str = "", topic: str = "general",
+                 history: list = None):
         super().__init__()
         self.engine = engine
         self.mode = mode
@@ -3653,6 +3681,9 @@ class _AiWorker(QThread):
         self.style = style
         self.question = question
         self.topic = topic
+        self.history = history or []
+        self.result_history: list = []
+        self.result_reset: bool = False
 
     def run(self):
         try:
@@ -3662,7 +3693,11 @@ class _AiWorker(QThread):
             elif self.mode == "remedies":
                 self.engine.remedies(self.chart, on_token=self.token.emit)
             elif self.mode == "ask":
-                self.engine.ask(self.chart, self.question, on_token=self.token.emit)
+                ans, hist, reset = self.engine.chat(
+                    self.chart, self.question,
+                    history=self.history, on_token=self.token.emit)
+                self.result_history = hist
+                self.result_reset = reset
             self.done.emit()
         except Exception as e:
             self.error.emit(str(e))
