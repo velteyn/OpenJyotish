@@ -5,15 +5,23 @@ a teaching-focused system prompt to explain concepts, interpret charts,
 and guide users through the software's features.
 """
 
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 import json
 import requests
 
 from jhora.charts.chart import ChartData
 from jhora.ai.embeddings import EmbeddingStore
-from jhora.ai.prompts import _chart_compact, _chart_detailed
+from jhora.ai.prompts import (
+    _chart_compact, _chart_detailed, _estimate_tokens, thread_recap,
+)
 from jhora.ai.analysis import build_analysis_text
+
+# Default context budget — mirrors AiEngine until Ollama/LM Studio detection is
+# wired into the teacher.  Overridable via ``max_context_tokens`` on init.
+_DEFAULT_CONTEXT_TOKENS = 4096
+_BUDGET_RATIO = 0.70   # trip compaction at 70% of context
+_RESERVED_TOKENS = 600  # headroom for the model's reply
 
 TEACHER_SYSTEM_PROMPT = """You are Guru, a patient Vedic astrology teacher trained on the complete 
 corpus of Parasara, Jaimini, and modern Vedic astrology texts. Your role is to TEACH, not just interpret.
@@ -58,11 +66,13 @@ Matchmaking, Prasna, Muhurta, Knowledge, Reading, AI Chat, Mundane, Ephemeris.""
 class AiTeacher:
     def __init__(self, provider: str = "ollama",
                  base_url: str = "http://localhost:11434/v1",
-                 model: str = "llama3.2"):
+                 model: str = "llama3.2",
+                 max_context_tokens: int = _DEFAULT_CONTEXT_TOKENS):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.store = EmbeddingStore(base_url=base_url.replace("/v1", ""))
         self.provider = provider
+        self.max_context_tokens = max_context_tokens
 
     def ask(self, question: str, chart: Optional[ChartData] = None,
             on_token: Optional[Callable[[str], None]] = None) -> str:
@@ -183,3 +193,75 @@ class AiTeacher:
             if on_token:
                 on_token(str(e))
             return str(e)
+
+    # -- conversation threading (per-turn RAG) ------------------------------
+
+    def _budget_exceeded(self, messages: List[dict]) -> bool:
+        threshold = int(self.max_context_tokens * _BUDGET_RATIO)
+        return _estimate_tokens(messages) >= threshold
+
+    def _compact_history(self, history: List[dict]) -> str:
+        return thread_recap(history)
+
+    def _build_user_message(self, question: str,
+                            chart: Optional[ChartData] = None) -> str:
+        """Build the user message for a single teaching turn with fresh RAG."""
+        passages = self.store.search(question, top_k=4)
+        context = ""
+        if passages:
+            context = "Relevant textbook passages:\n\n"
+            for p in passages:
+                context += f"[{p['source']}]: {p['content'][:400]}\n\n"
+
+        if chart:
+            chart_data = _chart_detailed(chart)
+            analysis = build_analysis_text(chart)
+            return (
+                f"CHART DATA:\n{chart_data}\n\n"
+                f"COMPUTED ANALYSIS:\n{analysis}\n\n"
+                f"{context}"
+                f"QUESTION: {question}\n\n"
+                f"Teach me step by step. Reference the data and textbooks. "
+                f"Tell me which Jhora commands to use for deeper analysis."
+            )
+        return (
+            f"{context}"
+            f"QUESTION: {question}\n\n"
+            f"Teach me comprehensively. Reference the textbooks. "
+            f"Explain the relevant Vedic astrology concepts clearly."
+        )
+
+    def chat(self, question: str,
+             chart: Optional[ChartData] = None,
+             history: Optional[List[dict]] = None,
+             on_token: Optional[Callable[[str], None]] = None
+             ) -> Tuple[str, List[dict], bool]:
+        """Threaded teaching conversation with per-turn RAG.
+
+        Returns ``(answer, updated_history, reset_flag)`` where *reset_flag*
+        is True when a compact-and-restart just occurred.
+        """
+        history = list(history or [])
+        reset = False
+        user_msg = self._build_user_message(question, chart=chart)
+
+        messages = [{"role": "system", "content": TEACHER_SYSTEM_PROMPT}]
+        messages.extend(history)
+        messages.append({"role": "user", "content": user_msg})
+
+        if history and self._budget_exceeded(messages):
+            summary = self._compact_history(history)
+            reset = True
+            history = []
+            messages = [
+                {"role": "system", "content": TEACHER_SYSTEM_PROMPT},
+                {"role": "user", "content":
+                 f"Earlier in this conversation:\n{summary}\n\n"
+                 f"Continuing a follow-up conversation."},
+                {"role": "user", "content": user_msg},
+            ]
+
+        answer = self._stream(messages, on_token=on_token)
+        history.append({"role": "user", "content": question})
+        history.append({"role": "assistant", "content": answer})
+        return answer, history, reset
