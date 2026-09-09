@@ -263,3 +263,53 @@ def remedy_prompt(cd: ChartData, max_context: int = 4096) -> str:
             f"Suggest gem, mantra, ritual for each. Practical only."
         )
     return prompt
+
+
+def conversation_anchor(cd: ChartData, max_context: int = 4096) -> str:
+    """Lean one-time anchor for a threaded conversation.
+
+    A conversation inherently gives each turn a smaller budget than a one-shot
+    deep read, so this is deliberately lighter than ``interpret_prompt``: a
+    compact chart line, a trimmed computed-analysis block and a single textbook
+    passage (fits every turn and is reused, not recomputed).
+    """
+    sections = {}
+    # Priority 1: computed analysis (compact — numbers, not prose)
+    analysis = build_analysis_text(cd)
+    if analysis:
+        sections["analysis"] = f"--- COMPUTED ANALYSIS ---\n{analysis}"
+    # Priority 2: compact chart line
+    sections["chart_compact"] = f"--- CHART ---\n{_chart_compact(cd)}"
+    # Priority 3: single textbook passage
+    kb = _search_knowledge(cd, "general", n=1)
+    if kb:
+        sections["knowledge"] = f"--- TEXTBOOK ---\n{kb}"
+    budget = max(1200, min(max_context - 800, 6000))
+    return _truncate_sections(sections, budget)
+
+
+def thread_recap(history: List[dict], max_items: int = 8) -> str:
+    """Rule-based recap of prior Q/A turns for compact-and-restart.
+
+    Keeps the most recent ``max_items`` exchanges, each trimmed to ~220 chars.
+    This is the cheap default; an LLM summary is used only when the engine is
+    configured with ``llm_compact_summary=True``.
+    """
+    if not history:
+        return ""
+    lines = ["Earlier in this conversation:"]
+    for turn in history[-max_items:]:
+        role = "Question" if turn.get("role") == "user" else "Answer"
+        text = str(turn.get("content") or "").strip().replace("\n", " ")
+        if len(text) > 220:
+            text = text[:220] + "..."
+        if text:
+            lines.append(f"- {role}: {text}")
+    return "\n".join(lines)
+
+
+CONVERSATION_SUMMARY_PROMPT = """You are summarizing a Vedic astrology conversation
+thread. Produce a concise recap (max ~200 words) of the chart facts and the
+user's questions plus your key answers so far. Preserve specific planet/sign/
+house/dasa facts verbatim where possible. This recap will be the opening context
+of a fresh thread, so continuity matters more than style."""
