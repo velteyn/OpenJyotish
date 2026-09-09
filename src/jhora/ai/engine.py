@@ -21,9 +21,13 @@ import requests
 from jhora.charts.chart import ChartData
 from jhora.ai.prompts import (
     SYSTEM_PROMPT,
+    CONVERSATION_SUMMARY_PROMPT,
+    _estimate_tokens,
+    conversation_anchor,
     interpret_prompt,
     question_prompt,
     remedy_prompt,
+    thread_recap,
 )
 
 # Provider presets
@@ -134,6 +138,42 @@ def _ollama_catalog(base_url: str, timeout: float = 5.0) -> List[dict]:
     return out
 
 
+_DEFAULT_CONTEXT_TOKENS = 4096  # conservative fallback when the server says nothing
+
+
+def _ollama_context_length(base_url: str, model_id: str,
+                           timeout: float = 5.0) -> int:
+    """Best-effort context window for an Ollama model via ``/api/show``.
+
+    Ollama exposes the model's GGUF metadata under ``model_info`` with a
+    ``context_length`` key for the architecture (e.g. ``gpt-oss.context_length``
+    or ``llama.context_length``). Some servers/setups report a ``num_ctx``
+    parameter instead. Returns ``0`` when nothing usable is reported.
+    """
+    root = _root_url(base_url)
+    try:
+        resp = requests.post(f"{root}/api/show",
+                             json={"model": model_id}, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        mi = data.get("model_info") or {}
+        for key, value in mi.items():
+            if "context_length" in key:
+                try:
+                    ctx = int(value)
+                except (TypeError, ValueError):
+                    continue
+                if ctx > 0:
+                    return ctx
+        params = str(data.get("parameters") or "")
+        m = re.search(r"num_ctx\s+(\d+)", params)
+        if m:
+            return int(m.group(1))
+    except requests.exceptions.RequestException:
+        pass
+    return 0
+
+
 def _generic_catalog(base_url: str, timeout: float = 5.0) -> List[dict]:
     """List models from any OpenAI-compatible /models endpoint."""
     resp = requests.get(f"{base_url.rstrip('/')}/models", timeout=timeout)
@@ -232,6 +272,8 @@ class AiConfig:
     max_context_tokens: int = 4096  # total prompt budget (truncates if exceeded)
     timeout: int = 120
     short_context: bool = False  # if True, use compact mode (<2K tokens)
+    llm_compact_summary: bool = False  # if True, summarize threads with the LLM
+    # rather than a rule-based recap on budget compaction
 
 
 class AiEngine:
@@ -244,6 +286,8 @@ class AiEngine:
                 self.config.model = preset["default_model"]
         self._resolved = False
         self._retried_model = False
+        self._ctx_detected_for: Optional[str] = None  # model context was detected for
+        self._anchor_cache: dict = {}  # id(cd) -> conversation_anchor text
 
     def _call(self, messages: List[dict], stream: bool = False) -> dict:
         url = f"{self.config.base_url.rstrip('/')}/chat/completions"
@@ -358,6 +402,96 @@ class AiEngine:
         ]
         return self._chat_completion(messages, on_token)
 
+    # --- Threaded conversation chat ----------------------------------------
+
+    _BUDGET_THRESHOLD = 0.70  # compact-and-restart trips near 70% of context
+    _RESERVED_RESPONSE_TOKENS = 600
+
+    def chat(self, cd: ChartData, question: str,
+             history: Optional[List[dict]] = None,
+             on_token: Optional[Callable[[str], None]] = None):
+        """Threaded multi-turn conversation.
+
+        Builds the fixed conversation anchor once (cached per engine), appends
+        ``{user: question}`` and the prior ``history``, monitors the running
+        token budget, and compacts-and-restarts when the thread nears ~70% of
+        the detected context window.
+
+        Returns ``(answer, new_history, reset_flag)`` where ``new_history`` is
+        the caller's next ``history`` argument and ``reset_flag`` is True when
+        the thread was compacted into a fresh session seeded from a summary.
+        """
+        history = list(history or [])
+        anchor = self._conversation_anchor(cd)
+        messages = self._chat_messages(anchor, question, history)
+        reset = False
+        if history and self._budget_exceeded(messages):
+            summary = self._compact_history(history)
+            reset = True
+            history = []
+            messages = self._chat_messages(
+                anchor, question, history,
+                lead_in=f"{summary}\n\nContinuing a follow-up conversation.",
+            )
+        answer = self._chat_completion(messages, on_token)
+        history.append({"role": "user", "content": question})
+        history.append({"role": "assistant", "content": answer})
+        return answer, history, reset
+
+    def continue_chat(self, cd: ChartData, question: str,
+                      history: Optional[List[dict]] = None,
+                      on_token: Optional[Callable[[str], None]] = None):
+        """Alias for ``chat`` — the caller keeps a growing history list."""
+        return self.chat(cd, question, history=history, on_token=on_token)
+
+    def _conversation_anchor(self, cd: ChartData) -> str:
+        key = id(cd)
+        if self._anchor_cache.get(key) is None:
+            self._anchor_cache[key] = conversation_anchor(
+                cd, max_context=self.config.max_context_tokens)
+        return self._anchor_cache[key]
+
+    @staticmethod
+    def _chat_messages(anchor: str, question: str,
+                       history: List[dict],
+                       lead_in: Optional[str] = None) -> List[dict]:
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": anchor},
+        ]
+        if lead_in:
+            messages.append({"role": "user", "content": lead_in})
+        messages.extend(history)
+        messages.append({"role": "user", "content": question})
+        return messages
+
+    def _budget_exceeded(self, messages: List[dict]) -> bool:
+        used = sum(_estimate_tokens(m.get("content") or "")
+                   for m in messages)
+        used += self._RESERVED_RESPONSE_TOKENS
+        threshold = int(self.config.max_context_tokens * self._BUDGET_THRESHOLD)
+        return used >= threshold
+
+    def _compact_history(self, history: List[dict]) -> str:
+        """Render a short summary of the thread and return it as the seed text.
+
+        Defaults to a cheap rule-based recap (``thread_recap``). When configured
+        with ``llm_compact_summary=True`` a small LLM summarization request is
+        attempted first, falling back to the recap on any error.
+        """
+        if not self.config.llm_compact_summary:
+            return thread_recap(history)
+        try:
+            recap = thread_recap(history)
+            resp = self._chat_completion(
+                [{"role": "system", "content": CONVERSATION_SUMMARY_PROMPT},
+                 {"role": "user", "content": recap}])
+            if resp and "no visible answer" not in resp:
+                return resp
+        except Exception:
+            pass
+        return thread_recap(history)
+
     def resolve_model(self, timeout: float = 8.0) -> dict:
         """Pick a usable chat model for the configured provider.
 
@@ -451,6 +585,54 @@ class AiEngine:
             return result["message"]
         return None
 
+    def detect_context_length(self, model_id: Optional[str] = None) -> int:
+        """Detect the local server's actual context window for a model.
+
+        Works per provider: LM Studio reads ``max_context_length`` /
+        ``loaded_context_length`` from its model catalog (already surfaced as
+        ``ctx`` by ``_lmstudio_catalog``); Ollama queries ``/api/show``. Returns
+        ``0`` if the server does not report a usable value so the caller can
+        fall back to ``_DEFAULT_CONTEXT_TOKENS``.
+        """
+        prov = self.config.provider
+        model_id = (model_id or self.config.model) or ""
+        base = (self.config.base_url
+                or PROVIDERS.get(prov, {}).get("base_url", "")).rstrip("/")
+        try:
+            if prov == "lmstudio":
+                for m in _lmstudio_catalog(base):
+                    if m["id"] == model_id or model_id in ("", "loaded"):
+                        ctx = m.get("ctx") or 0
+                        return int(ctx) if ctx else 0
+                return 0
+            if prov == "ollama" and model_id:
+                return _ollama_context_length(base, model_id)
+        except requests.exceptions.RequestException:
+            pass
+        return 0
+
+    def _sync_context_length(self):
+        """Update ``config.max_context_tokens`` from the server's reported value.
+
+        Runs once per resolved model (guarded by ``_ctx_detected_for``). Mirrors
+        the runtime window so the budget monitor behaves correctly on a 4K
+        laptop model or a 128K GPU box. When the server does not report a value,
+        keeps the conservative default. An explicit user-specified value (anything
+        other than the default 4096) is never overridden so that the user's
+        intentional choice always wins.
+        """
+        prov = self.config.provider
+        model = (self.config.model or "").strip()
+        if not model or self._ctx_detected_for == model:
+            return
+        if self.config.max_context_tokens != _DEFAULT_CONTEXT_TOKENS:
+            self._ctx_detected_for = model
+            return
+        ctx = self.detect_context_length(model)
+        if ctx > 0:
+            self.config.max_context_tokens = ctx
+        self._ctx_detected_for = model
+
     def _chat_completion(self, messages: List[dict],
                          on_token: Optional[Callable[[str], None]] = None) -> str:
         """Stream a chat completion resolving the model and retrying once.
@@ -465,6 +647,7 @@ class AiEngine:
         if block is not None:
             return block
         try:
+            self._sync_context_length()
             resp = self._call(messages, stream=True)
             return self._stream_response(resp, on_token)
         except requests.exceptions.ConnectionError:
@@ -481,6 +664,7 @@ class AiEngine:
                     on_token(retry["message"])
                 return retry["message"]
             try:
+                self._sync_context_length()
                 resp = self._call(messages, stream=True)
                 return self._stream_response(resp, on_token)
             except requests.exceptions.ConnectionError:
@@ -517,6 +701,9 @@ class AiEngine:
                     info["message"] = res["message"]
                     info["model"] = res["model"] if res["status"] == "ok" else ""
                     info["available"] = res["available"][:20]
+                    if res["status"] == "ok":
+                        self._sync_context_length()
+                        info["context_tokens"] = self.config.max_context_tokens
                 except Exception:
                     pass
                 return info

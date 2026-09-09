@@ -454,3 +454,325 @@ class TestDasaSystemsPropagation:
         assert "Ashtottari" in text
         assert "Kalachakra" in text
 
+
+# ---- Tasks 1.1–1.3: context detection ---------------------------------
+
+class TestContextDetection:
+
+    def test_lmstudio_ctx_from_catalog(self, monkeypatch):
+        """_lmstudio_catalog exposes max_context_length as ctx."""
+        from jhora.ai import engine as eng
+        monkeypatch.setattr(eng, "_lmstudio_catalog", lambda base_url, timeout=5.0: [
+            {"id": "m1", "loaded": True, "type": "chat",
+             "arch": "qwen", "quant": "q4", "ctx": 16384},
+        ])
+        enginst = AiEngine(AiConfig(provider="lmstudio",
+                                     base_url="http://x:1234/v1", model="m1"))
+        ctx = enginst.detect_context_length()
+        assert ctx == 16384
+
+    def test_lmstudio_ctx_zero_when_absent(self, monkeypatch):
+        from jhora.ai import engine as eng
+        monkeypatch.setattr(eng, "_lmstudio_catalog", lambda base_url, timeout=5.0: [
+            {"id": "m1", "loaded": True, "type": "chat", "ctx": 0},
+        ])
+        enginst = AiEngine(AiConfig(provider="lmstudio",
+                                     base_url="http://x:1234/v1", model="m1"))
+        assert enginst.detect_context_length() == 0
+
+    def test_ollama_ctx_from_model_info(self, monkeypatch):
+        """Ollama /api/show model_info.gpt-oss.context_length is parsed."""
+        import requests as _requests
+        import types
+        fake = types.SimpleNamespace()
+        fake.raise_for_status = lambda: None
+        fake.json = lambda: {"model_info": {"gpt-oss.context_length": 32768}}
+        monkeypatch.setattr(_requests, "post", lambda url, json=None, timeout=None: fake)
+        from jhora.ai.engine import _ollama_context_length
+        assert _ollama_context_length("http://x:11434/v1", "gemma3:1b") == 32768
+
+    def test_ollama_ctx_from_num_ctx_param(self, monkeypatch):
+        import requests as _requests
+        import types
+        fake = types.SimpleNamespace()
+        fake.raise_for_status = lambda: None
+        fake.json = lambda: {"model_info": {},
+                             "parameters": "temperature 0.7\nnum_ctx 8192"}
+        monkeypatch.setattr(_requests, "post", lambda url, json=None, timeout=None: fake)
+        from jhora.ai.engine import _ollama_context_length
+        assert _ollama_context_length("http://x:11434/v1", "qwen3:0.6b") == 8192
+
+    def test_ollama_ctx_zero_when_no_report(self, monkeypatch):
+        import requests as _requests
+        import types
+        fake = types.SimpleNamespace()
+        fake.raise_for_status = lambda: None
+        fake.json = lambda: {"model_info": {}}
+        monkeypatch.setattr(_requests, "post", lambda url, json=None, timeout=None: fake)
+        from jhora.ai.engine import _ollama_context_length
+        assert _ollama_context_length("http://x:11434/v1", "m") == 0
+
+    def test_sync_context_length_uses_default_on_failure(self, monkeypatch):
+        enginst = AiEngine(AiConfig(provider="custom",
+                                     base_url="http://x:9999/v1", model="x"))
+        enginst._sync_context_length()
+        # custom provider — no detection; stays at default
+        assert enginst.config.max_context_tokens == 4096
+
+    def test_sync_context_length_overrides_default(self, monkeypatch):
+        from jhora.ai import engine as eng
+        monkeypatch.setattr(eng, "_lmstudio_catalog", lambda base_url, timeout=5.0: [
+            {"id": "m1", "loaded": True, "type": "chat",
+             "arch": "qwen", "quant": "q4", "ctx": 32768},
+        ])
+        enginst = AiEngine(AiConfig(provider="lmstudio",
+                                     base_url="http://x:1234/v1", model="m1"))
+        assert enginst.config.max_context_tokens == 4096  # default
+        enginst._sync_context_length()
+        assert enginst.config.max_context_tokens == 32768
+
+    def test_sync_context_length_stays_when_user_set_explicit(self, monkeypatch):
+        from jhora.ai import engine as eng
+        monkeypatch.setattr(eng, "_lmstudio_catalog", lambda base_url, timeout=5.0: [
+            {"id": "m1", "loaded": True, "type": "chat", "ctx": 65536},
+        ])
+        cfg = AiConfig(provider="lmstudio",
+                       base_url="http://x:1234/v1", model="m1",
+                       max_context_tokens=8192)  # user explicit
+        enginst = AiEngine(cfg)
+        enginst._sync_context_length()
+        # explicit non-default is untouched (detect runs but keeps existing)
+        assert enginst.config.max_context_tokens == 8192
+
+    def test_sync_context_length_idempotent(self, monkeypatch):
+        from jhora.ai import engine as eng
+        calls = {"n": 0}
+        def _cat(base_url, timeout=5.0):
+            calls["n"] += 1
+            return [{"id": "m1", "loaded": True, "type": "chat", "ctx": 16384}]
+        monkeypatch.setattr(eng, "_lmstudio_catalog", _cat)
+        enginst = AiEngine(AiConfig(provider="lmstudio",
+                                     base_url="http://x:1234/v1", model="m1"))
+        enginst._sync_context_length()
+        assert calls["n"] == 1
+        assert enginst.config.max_context_tokens == 16384
+        enginst._sync_context_length()
+        assert calls["n"] == 1  # second call skipped (model unchanged)
+
+
+# ---- Tasks 2.1–2.3: threaded chat + budget monitor ---------------------
+
+class TestConversationChat:
+
+    def _engine(self):
+        return AiEngine(AiConfig(provider="custom",
+                                 base_url="http://localhost:1/v1", model="x",
+                                 max_context_tokens=1_000_000))
+
+    def test_chat_includes_prior_history_in_request(self, monkeypatch):
+        """The engine re-sends the full thread (history + new question) to the model."""
+        enginst = self._engine()
+        captured = {}
+
+        def fake_chat_completion(messages, on_token=None):
+            captured["messages"] = messages
+            return "Moon in Aries answer"
+
+        monkeypatch.setattr(enginst, "_chat_completion", fake_chat_completion)
+        cd = _sample_chart()
+        hist = [{"role": "user", "content": "What about my career?"},
+                {"role": "assistant", "content": "Mars in the 10th house."}]
+        answer, new_hist, reset = enginst.chat(cd, "And marriage?",
+                                               history=hist)
+        msgs = captured["messages"]
+        all_text = " ".join(m.get("content", "") for m in msgs)
+        assert "What about my career?" in all_text
+        assert "Mars in the 10th house." in all_text
+        assert "And marriage?" in all_text
+        assert answer == "Moon in Aries answer"
+        assert reset is False
+        assert new_hist[2]["content"] == "And marriage?"
+        assert new_hist[3]["content"] == "Moon in Aries answer"
+
+    def test_chat_does_not_rebuild_anchor_each_turn(self, monkeypatch):
+        """Anchor is cached per chart; building it more than once per chart is a bug."""
+        import jhora.ai.engine as eng_mod
+        builds = {"n": 0}
+        orig = eng_mod.conversation_anchor
+
+        def counted(cd, max_context=4096):
+            builds["n"] += 1
+            return orig(cd, max_context)
+
+        monkeypatch.setattr(eng_mod, "conversation_anchor", counted)
+        enginst = self._engine()
+        cd = _sample_chart()
+        enginst.chat(cd, "Q1")
+        enginst.chat(cd, "Q2")
+        assert builds["n"] == 1  # cached second time
+
+    def test_budget_threshold_trips_above_boundary(self):
+        enginst = self._engine()
+        enginst.config.max_context_tokens = 1000
+        # 1000 * 0.70 = 700; reserved = 600; raw message tokens needed = 100
+        # 100 tokens ≈ 400 chars at 4 chars/token
+        msgs = [{"role": "user", "content": "A" * 400}]
+        assert enginst._budget_exceeded(msgs) is True
+
+    def test_budget_threshold_does_not_trip_below_boundary(self):
+        enginst = self._engine()
+        enginst.config.max_context_tokens = 1000000  # huge
+        msgs = [{"role": "user", "content": "A" * 400}]
+        assert enginst._budget_exceeded(msgs) is False
+
+    def test_compact_returns_fresh_history(self, monkeypatch):
+        enginst = self._engine()
+        captured = {}
+
+        def fake_chat_completion(messages, on_token=None):
+            captured["messages"] = messages
+            return "after-reset answer"
+
+        monkeypatch.setattr(enginst, "_chat_completion", fake_chat_completion)
+        # Force threshold to trip immediately
+        monkeypatch.setattr(enginst, "_budget_exceeded", lambda msgs: True)
+        cd = _sample_chart()
+        old_hist = [{"role": "user", "content": "old question"},
+                    {"role": "assistant", "content": "old answer"}]
+        answer, new_hist, reset = enginst.chat(cd, "new question",
+                                               history=old_hist)
+        assert reset is True
+        # Fresh history: only the current Q/A, no trace of old thread
+        assert len(new_hist) == 2
+        assert new_hist[0] == {"role": "user", "content": "new question"}
+        assert new_hist[1] == {"role": "assistant", "content": "after-reset answer"}
+        assert "old question" not in str(new_hist)
+        # The summary appears as the lead-in message (index 2, after system + anchor)
+        lead_in = captured["messages"][2].get("content", "")
+        assert "Earlier in this conversation" in lead_in
+
+    def test_compact_not_triggered_on_first_turn(self, monkeypatch):
+        enginst = self._engine()
+        called = {"flag": False}
+
+        def tracking_budget(msgs):
+            called["flag"] = True
+            return False
+
+        monkeypatch.setattr(enginst, "_budget_exceeded", tracking_budget)
+        cd = _sample_chart()
+        ans, hist, reset = enginst.chat(cd, "first question")
+        assert called["flag"] is False  # skipped because history empty
+        assert reset is False
+
+    def test_continue_chat_aliases_chat(self, monkeypatch):
+        enginst = self._engine()
+        monkeypatch.setattr(enginst, "_chat_completion",
+                            lambda msgs, on_token=None: "x")
+        cd = _sample_chart()
+        r1 = enginst.chat(cd, "Q")
+        r2 = enginst.continue_chat(cd, "R", history=r1[1])
+        assert r2[0] == "x"
+
+
+# ---- Tasks 3.1–3.2: threaded teacher ------------------------------------
+
+class TestTeacherChat:
+
+    def _teacher(self):
+        from jhora.ai.teacher import AiTeacher
+        t = AiTeacher(provider="custom",
+                      base_url="http://localhost:1/v1",
+                      model="x",
+                      max_context_tokens=1_000_000)
+        # Stub the embedding store search so tests don't need a database
+        t.store = type("Stub", (), {"search": lambda self, q, top_k=4: []})()
+        return t
+
+    def test_teacher_ask_one_shot_unchanged(self, monkeypatch):
+        """ask() returns a plain string — no threading semantics."""
+        t = self._teacher()
+        monkeypatch.setattr(t, "_stream",
+                            lambda messages, on_token=None: "one-shot answer")
+        result = t.ask("What is Shadbala?")
+        assert isinstance(result, str)
+        assert result == "one-shot answer"
+
+    def test_teacher_chat_returns_tuple_with_history(self, monkeypatch):
+        t = self._teacher()
+        monkeypatch.setattr(t, "_stream",
+                            lambda messages, on_token=None: "chat answer")
+        answer, hist, reset = t.chat("What is Shadbala?")
+        assert answer == "chat answer"
+        assert reset is False
+        assert len(hist) == 2
+        assert hist[0]["role"] == "user"
+        assert hist[0]["content"] == "What is Shadbala?"
+        assert hist[1]["content"] == "chat answer"
+
+    def test_teacher_chat_sends_full_thread(self, monkeypatch):
+        t = self._teacher()
+        captured = {}
+        monkeypatch.setattr(t, "_stream",
+                            lambda messages, on_token=None: (
+                                captured.__setitem__("msgs", messages),
+                                "r")[1])
+        hist = [{"role": "user", "content": "What is Rahu?"},
+                {"role": "assistant", "content": "Rahu is the north node."}]
+        answer, new_hist, reset = t.chat("And Ketu?", history=hist)
+        msgs = captured["msgs"]
+        all_text = " ".join(m.get("content", "") for m in msgs)
+        assert "What is Rahu?" in all_text
+        assert "And Ketu?" in all_text
+        assert "Rahu is the north node" in all_text
+
+    def test_teacher_chat_budget_compact(self, monkeypatch):
+        """Budget exceeded → compact-and-restart with fresh history."""
+        t = self._teacher()
+        t.max_context_tokens = 1000  # tiny context
+        monkeypatch.setattr(t, "_stream",
+                            lambda messages, on_token=None: "after compact")
+        monkeypatch.setattr(t, "_budget_exceeded", lambda msgs: True)
+        old_hist = [{"role": "user", "content": "old Q"},
+                    {"role": "assistant", "content": "old A"}]
+        answer, new_hist, reset = t.chat("new Q", history=old_hist)
+        assert reset is True
+        assert len(new_hist) == 2  # only new Q/A
+        assert new_hist[0]["content"] == "new Q"
+        assert new_hist[1]["content"] == "after compact"
+        assert "old Q" not in str(new_hist)
+
+    def test_teacher_chat_no_compact_on_first_turn(self, monkeypatch):
+        t = self._teacher()
+        called = {"n": 0}
+        def track(msgs):
+            called["n"] += 1
+            return False
+        monkeypatch.setattr(t, "_budget_exceeded", track)
+        monkeypatch.setattr(t, "_stream",
+                            lambda messages, on_token=None: "first")
+        answer, hist, reset = t.chat("first Q")
+        assert called["n"] == 0
+        assert reset is False
+
+    def test_teacher_explain_feature_uses_ask(self, monkeypatch):
+        t = self._teacher()
+        monkeypatch.setattr(t, "_stream",
+                            lambda messages, on_token=None: "feat")
+        r = t.explain_feature("chart")
+        assert r == "feat"
+
+    def test_teacher_chat_with_chart(self, monkeypatch):
+        t = self._teacher()
+        captured = {}
+        monkeypatch.setattr(t, "_stream",
+                            lambda messages, on_token=None: (
+                                captured.__setitem__("msgs", messages),
+                                "chart taught")[1])
+        cd = _sample_chart()
+        answer, hist, reset = t.chat("What does my Moon mean?", chart=cd)
+        msgs = captured["msgs"]
+        all_text = " ".join(m.get("content", "") for m in msgs)
+        assert "Moon" in all_text
+        assert "CHART DATA" in all_text
+
