@@ -1821,6 +1821,10 @@ class MainWindow(QMainWindow):
         self.muhurta_find_btn.clicked.connect(self._on_muhurta_find)
         btn_row.addWidget(self.muhurta_find_btn)
 
+        self.muhurta_choghadiya_btn = QPushButton("Choghadiya")
+        self.muhurta_choghadiya_btn.clicked.connect(self._on_muhurta_choghadiya)
+        btn_row.addWidget(self.muhurta_choghadiya_btn)
+
         self.muhurta_best_spin = QComboBox()
         self.muhurta_best_spin.addItems(["5", "10", "20", "All"])
         self.muhurta_best_spin.setCurrentIndex(0)
@@ -1962,6 +1966,74 @@ class MainWindow(QMainWindow):
             f"Best score: <b>{results[0].score:.2f}</b> — "
             f"{self.muhurta_date.date().toString('yyyy-MM-dd')}"
         )
+
+    def _on_muhurta_choghadiya(self):
+        from datetime import datetime
+
+        from jhora.calc.choghadiya import choghadiya_day
+
+        try:
+            dt, tz_offset, lat, lon = self._get_muhurta_inputs()
+        except (ValueError, AttributeError) as e:
+            QMessageBox.warning(self, "Input Error", f"Invalid input: {e}")
+            return
+
+        cd = choghadiya_day(dt, lat, lon, tz_offset)
+
+        headers = ["#", "Type", "Slot", "Rating", "Lord", "Start", "End"]
+        self.muhurta_table.setColumnCount(len(headers))
+        self.muhurta_table.setHorizontalHeaderLabels(headers)
+        self.muhurta_table.setRowCount(16)
+
+        now = datetime.now()
+        is_today = dt.date() == now.date()
+        current = cd.current_slot(now) if is_today else None
+
+        color_map = {"Good": "#00ff88", "Bad": "#ff6666", "Neutral": "#ffcc00"}
+
+        for idx, slot in enumerate(cd.day_slots + cd.night_slots):
+            row = idx
+            is_current = current is not None and slot is current
+            slot_label = f"▶ {slot.name}" if is_current else slot.name
+            color = color_map.get(slot.rating, "#ffffff")
+            items = [
+                QTableWidgetItem(str(row + 1)),
+                QTableWidgetItem("Night" if slot.is_night else "Day"),
+                QTableWidgetItem(slot_label),
+                QTableWidgetItem(slot.rating),
+                QTableWidgetItem(slot.lord.name),
+                QTableWidgetItem(slot.start.strftime("%H:%M")),
+                QTableWidgetItem(slot.end.strftime("%H:%M")),
+            ]
+            if is_current:
+                for item in items:
+                    item.setForeground(QColor("#000000"))
+                    item.setBackground(QColor(color))
+            else:
+                for item in items:
+                    item.setForeground(QColor(color))
+            for col, item in enumerate(items):
+                self.muhurta_table.setItem(row, col, item)
+
+        self.muhurta_table.resizeColumnsToContents()
+
+        self.muhurta_result.setText(
+            f"Choghadiya — {cd.date.strftime('%A %d %B %Y')}  "
+            f"({lat:.2f}°, {lon:.2f}°)  |  "
+            f"Day slot ≈ {cd.day_slots[0].duration_minutes:.0f} min, "
+            f"Night slot ≈ {cd.night_slots[0].duration_minutes:.0f} min"
+        )
+        if current:
+            remaining = (current.end - now).total_seconds() / 60.0
+            self.muhurta_detail.setText(
+                f"Current: {current.name} ({current.rating}) — "
+                f"{remaining:.0f} min remaining (ends {current.end.strftime('%H:%M')})"
+            )
+        else:
+            self.muhurta_detail.setText(
+                "Day slots are sunrise→sunset; night slots sunset→next sunrise. "
+                "Green = Good, Yellow = Neutral, Red = Bad."
+            )
 
     def _build_knowledge_tab(self):
         w = QWidget()

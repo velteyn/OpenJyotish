@@ -345,4 +345,34 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["ashtakavarga"] = {}
 
+    # ── Choghadiya (day/night slots) for birth place/date ──
+    try:
+        from jhora.ai.analysis import choghadiya_snapshot, _chart_tz_offset
+        from jhora.calc.choghadiya import choghadiya_day
+        tz = _chart_tz_offset(cd.timezone)
+        chogh = choghadiya_day(cd.birth_date, cd.latitude, cd.longitude, tz)
+        current = None
+        now = datetime.now()
+        cur = chogh.current_slot(now)
+        if cur is not None:
+            remaining = int((cur.end - now).total_seconds() / 60.0)
+            current = {"slot": cur.name, "rating": cur.rating,
+                       "lord": cur.lord.name, "is_night": cur.is_night,
+                       "start": cur.start.strftime("%H:%M"),
+                       "end": cur.end.strftime("%H:%M"),
+                       "minutes_remaining": remaining}
+        result["choghadiya"] = {
+            "date": chogh.date.strftime("%Y-%m-%d"),
+            "text": choghadiya_snapshot(cd),
+            "day": [{"slot": s.name, "rating": s.rating, "lord": s.lord.name,
+                     "start": s.start.strftime("%H:%M"), "end": s.end.strftime("%H:%M")}
+                    for s in chogh.day_slots],
+            "night": [{"slot": s.name, "rating": s.rating, "lord": s.lord.name,
+                       "start": s.start.strftime("%H:%M"), "end": s.end.strftime("%H:%M")}
+                      for s in chogh.night_slots],
+            "current": current,
+        }
+    except Exception:
+        result["choghadiya"] = {}
+
     return result
