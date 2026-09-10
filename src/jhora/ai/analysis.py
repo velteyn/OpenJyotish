@@ -261,6 +261,7 @@ def build_analysis_text(cd: ChartData, usl_config=None) -> str:
         ("ASHTAKAVARGA", lambda: _ashtakavarga_snapshot(cd)),
         ("CHALIT SHIFTS", lambda: _chalit_snapshot(cd)),
         ("SPECIAL POINTS", lambda: _special_points_snapshot(cd, usl_config)),
+        ("CHOGHADIYA", lambda: choghadiya_snapshot(cd)),
         ("LEARNING", lambda: _learning_snapshot(cd)),
     ]:
         try:
@@ -370,6 +371,54 @@ def _special_points_snapshot(cd: ChartData, usl_config=None) -> str:
         lines.append(f"  {s.name}: {Rasi(int(s.longitude / 30)).short_name} {s.longitude:.1f}° — {s.meaning}")
 
     return "\n".join(lines)
+
+
+def choghadiya_snapshot(cd: ChartData) -> str:
+    """Choghadiya (day/night auspicious slots) for the birth place/date.
+
+    Uses the Chaldean planetary-hour cycle (Sun→Venus→Mercury→Moon→Saturn→
+    Jupiter→Mars), matching the CLI/GUI/TUI surfaces. Ratings follow the
+    common convention: Amrit/Shubh/Labh = Good, Char = Neutral, Rog/Kaal/
+    Udveg = Bad.
+    """
+    try:
+        from datetime import datetime
+        from jhora.calc.choghadiya import choghadiya_day
+        tz = _chart_tz_offset(cd.timezone)
+        cd_day = choghadiya_day(cd.birth_date, cd.latitude, cd.longitude, tz)
+
+        lines = ["Choghadiya (day/night slots):"]
+        lines.append(f"  Day  ({cd_day.day_slots[0].start.strftime('%H:%M')}–"
+                     f"{cd_day.day_slots[-1].end.strftime('%H:%M')}): " +
+                     ", ".join(f"{s.name}({s.rating})" for s in cd_day.day_slots))
+        lines.append(f"  Night ({cd_day.night_slots[0].start.strftime('%H:%M')}–"
+                     f"{cd_day.night_slots[-1].end.strftime('%H:%M')}): " +
+                     ", ".join(f"{s.name}({s.rating})" for s in cd_day.night_slots))
+
+        now = datetime.now()
+        current = cd_day.current_slot(now)
+        if current is not None:
+            remaining = int((current.end - now).total_seconds() / 60.0)
+            lines.append(f"  Current: {current.name} ({current.rating}) — "
+                         f"{remaining} min remaining")
+            nxt = next((s for s in cd_day.all_slots if s.is_good and s.start > now),
+                       None)
+            if nxt is not None:
+                wait = int((nxt.start - now).total_seconds() / 60.0)
+                lines.append(f"  Next Good: {nxt.name} at "
+                             f"{nxt.start.strftime('%H:%M')} (+{wait} min)")
+        return "\n".join(lines)
+    except Exception:
+        return ""
+
+
+def _chart_tz_offset(tz_str: str) -> float:
+    """Timezone string (e.g. '+0530', '-0500') → signed hours east of UTC."""
+    try:
+        from jhora.charts.chart import ChartBuilder
+        return -ChartBuilder._parse_tz(tz_str)
+    except Exception:
+        return 0.0
 
 
 def _learning_snapshot(cd: ChartData) -> str:

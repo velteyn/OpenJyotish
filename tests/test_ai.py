@@ -196,6 +196,25 @@ class TestArudhaSahamaExport:
         assert "Sahamas" in text
         assert "Chara Karakas" in text
 
+    def test_analysis_text_has_choghadiya(self):
+        cd = _sample_chart()
+        text = build_analysis_text(cd)
+        assert "Choghadiya" in text
+        assert "Day " in text and "Night " in text
+
+    def test_json_export_has_choghadiya(self):
+        from jhora.ai.json_export import full_analysis
+        cd = _sample_chart()
+        result = full_analysis(
+            f"{cd.birth_date.strftime('%Y-%m-%d %H:%M:%S')} {cd.timezone} "
+            f"{cd.latitude:.4f} {cd.longitude:.4f}"
+        )
+        ch = result.get("choghadiya", {})
+        assert ch, "choghadiya block missing from JSON export"
+        assert len(ch.get("day", [])) == 8
+        assert len(ch.get("night", [])) == 8
+        assert ch["day"][0]["slot"] and ch["day"][0]["rating"]
+
 
 class TestModelResolution:
     """Auto model resolution: pick a chat model regardless of server state."""

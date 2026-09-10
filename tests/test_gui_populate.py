@@ -9,6 +9,7 @@ import sys
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+import datetime
 import pytest
 from PyQt6.QtWidgets import QApplication
 
@@ -236,3 +237,20 @@ def test_thinking_indicator_clears_on_done(main_window):
     main_window._ai_thinking = True
     main_window._on_ai_done()
     assert main_window._ai_thinking is False
+
+
+def test_muhurta_choghadiya_button_shows_slots(main_window):
+    """The Choghadiya button on the Muhurta tab populates a 16-row table."""
+    main_window._get_muhurta_inputs = lambda: (
+        datetime.datetime(2026, 9, 3), 5.5, 22.5726, 88.3639,
+    )
+    main_window._on_muhurta_choghadiya()
+    assert main_window.muhurta_table.rowCount() == 16, (
+        "Choghadiya table should have 16 rows (8 day + 8 night)"
+    )
+    headers = [main_window.muhurta_table.horizontalHeaderItem(i).text()
+               for i in range(main_window.muhurta_table.columnCount())]
+    assert "Slot" in headers and "Rating" in headers and "Lord" in headers
+    # First row should be a Day slot, row 9 a Night slot
+    assert main_window.muhurta_table.item(0, 1).text() == "Day"
+    assert main_window.muhurta_table.item(8, 1).text() == "Night"
