@@ -219,7 +219,8 @@ def test_cons_table_has_classic_special_lagnas(main_window, chart):
 def test_thinking_indicator_shows_then_clears_on_answer(main_window):
     """The 'Thinking…' affordance appears during the hidden reasoning phase and
     is replaced once the model streams an answer."""
-    main_window._ai_buffer = "[Asking: q]\n\n"
+    main_window._ai_transcript = [{"role": "user", "content": "q"}]
+    main_window._ai_stream = ""
     main_window._ai_thinking = True
     main_window._render_ai_output()
     html = main_window.ai_output.toHtml()
@@ -230,13 +231,274 @@ def test_thinking_indicator_shows_then_clears_on_answer(main_window):
     main_window._render_ai_output()
     html = main_window.ai_output.toHtml()
     assert "The Moon in Aries" in html
+    main_window._ai_transcript = []
+    main_window._ai_stream = ""
 
 
 def test_thinking_indicator_clears_on_done(main_window):
-    main_window._ai_buffer = "[Asking: q]\n\n"
+    main_window._ai_transcript = [{"role": "user", "content": "q"}]
+    main_window._ai_stream = "partial answer"
     main_window._ai_thinking = True
+    main_window._ai_worker = None
     main_window._on_ai_done()
     assert main_window._ai_thinking is False
+    main_window._ai_transcript = []
+    main_window._ai_stream = ""
+
+
+def test_ai_transcript_appends_two_turns(main_window):
+    """Two completed ask turns render oldest-first from the transcript list,
+    and the canonical worker history wins over streamed tail text."""
+
+    class _FakeAskWorker:
+        mode = "ask"
+        result_reset = False
+        result_history = [
+            {"role": "user", "content": "Q1"},
+            {"role": "assistant", "content": "Canonical A1"},
+        ]
+
+    main_window._ai_transcript = []
+    main_window._ai_history = []
+    main_window._ai_stream = ""
+    main_window._ai_thinking = False
+    previous_chart = main_window.chart_data
+    main_window.chart_data = None  # no persist: done-hook needs a chart
+    # First turn completes with streamed text differing from canonical.
+    main_window._ai_transcript.append({"role": "user", "content": "Q1"})
+    main_window._ai_stream = "drifted tail"
+    main_window._ai_worker = _FakeAskWorker()
+    main_window._on_ai_done()
+    assert main_window._ai_history == _FakeAskWorker.result_history
+    # Second turn appends below the first.
+    main_window._ai_transcript.append({"role": "user", "content": "Q2"})
+    main_window._ai_transcript.append({"role": "assistant", "content": "A2"})
+    main_window._render_ai_output()
+    html = main_window.ai_output.toHtml()
+    positions = [html.find(s) for s in ("Q1", "Canonical A1", "Q2", "A2")]
+    assert all(p >= 0 for p in positions), "all four blocks visible"
+    assert positions == sorted(positions), "oldest-first order"
+    assert "drifted tail" not in html, "canonical history wins"
+    main_window.chart_data = previous_chart
+    main_window._ai_transcript = []
+    main_window._ai_history = []
+    main_window._ai_worker = None
+
+
+def test_ai_interpret_appends_after_ask_exchange(main_window):
+    """An Interpret result becomes a transcript entry below the prior Ask
+    exchange, recorded into the thread history with its exact worker text."""
+
+    class _FakeInterpretWorker:
+        mode = "interpret"
+        result_text = "Full interpretation text."
+
+    main_window._ai_transcript = [
+        {"role": "user", "content": "Q1"},
+        {"role": "assistant", "content": "A1"},
+    ]
+    main_window._ai_history = [
+        {"role": "user", "content": "Q1"},
+        {"role": "assistant", "content": "A1"},
+    ]
+    previous_chart = main_window.chart_data
+    main_window.chart_data = None  # no persist: done-hook needs a chart
+    main_window._ai_pending_user = "[Interpret — detailed · general]"
+    main_window._ai_transcript.append(
+        {"role": "user", "content": main_window._ai_pending_user})
+    main_window._ai_stream = "partial stream..."
+    main_window._ai_thinking = True
+    main_window._ai_worker = _FakeInterpretWorker()
+    main_window._on_ai_done()
+    main_window._render_ai_output()
+    html = main_window.ai_output.toHtml()
+    positions = [html.find(s) for s in
+                 ("Q1", "A1", "Interpret", "Full interpretation text.")]
+    assert all(p >= 0 for p in positions), "ask + interpret entries visible"
+    assert positions == sorted(positions), "ask exchange stays above interpret"
+    assert "partial stream" not in html, "exact worker text wins"
+    assert main_window._ai_history[-2:] == [
+        {"role": "user", "content": "[Interpret — detailed · general]"},
+        {"role": "assistant", "content": "Full interpretation text."},
+    ], "thread history records the exchange"
+    main_window.chart_data = previous_chart
+    main_window._ai_transcript = []
+    main_window._ai_history = []
+    main_window._ai_worker = None
+
+
+def test_ai_compaction_renders_divider_keeps_history(main_window, chart,
+                                                     tmp_path):
+    """An over-budget turn inserts a divider above the fresh exchange while
+    prior exchanges stay visible, and the meter shows live numbers."""
+    from jhora.core import database as db
+    old_db_path = db._db_path
+    db.set_db_path(str(tmp_path / "gui-divider.db"))
+
+    class _FakeResetWorker:
+        mode = "ask"
+        result_reset = True
+        result_history = [
+            {"role": "user", "content": "new Q"},
+            {"role": "assistant", "content": "fresh A"},
+        ]
+
+    previous_chart = main_window.chart_data
+    main_window.chart_data = chart
+    main_window._ai_transcript = [
+        {"role": "user", "content": "old Q"},
+        {"role": "assistant", "content": "old A"},
+        {"role": "user", "content": "new Q"},
+    ]
+    main_window._ai_history = [
+        {"role": "user", "content": "old Q"},
+        {"role": "assistant", "content": "old A"},
+    ]
+    main_window._ai_stream = ""
+    main_window._ai_thinking = True
+    main_window._ai_worker = _FakeResetWorker()
+    try:
+        main_window._on_ai_done()
+        roles = [b["role"] for b in main_window._ai_transcript]
+        assert roles == ["user", "assistant", "divider", "user", "assistant"]
+        assert main_window._ai_history == _FakeResetWorker.result_history
+        main_window._render_ai_output()
+        html = main_window.ai_output.toHtml()
+        positions = [html.find(s) for s in
+                     ("old Q", "old A", "compacted", "new Q", "fresh A")]
+        assert all(p >= 0 for p in positions), "history + divider visible"
+        assert positions == sorted(positions), "divider sits above new turn"
+        meter = main_window.ai_context_label.text()
+        assert meter.startswith("Context: "), meter
+        assert "%" in meter
+    finally:
+        main_window.chart_data = previous_chart
+        main_window._ai_transcript = []
+        main_window._ai_history = []
+        main_window._ai_worker = None
+        main_window._ai_thread_id = None
+        main_window._ai_thread_title = ""
+        db.close_all()
+        db._db_path = old_db_path
+
+
+def _isolate_ai_db(tmp_path, name):
+    from jhora.core import database as db
+    old = db._db_path
+    db.set_db_path(str(tmp_path / name))
+    return old
+
+
+def _restore_ai_db(old):
+    from jhora.core import database as db
+    db.close_all()
+    db._db_path = old
+
+
+def test_ai_newchat_shelves_resume_restores_delete(main_window, chart,
+                                                   tmp_path):
+    """Full thread lifecycle: shelve on New chat, resume via picker, delete
+    clears; second turns update the same row."""
+    old_db = _isolate_ai_db(tmp_path, "gui-lifecycle.db")
+    previous_chart = main_window.chart_data
+    main_window.chart_data = chart
+    try:
+        # One completed exchange, unshelved: persist assigns an id.
+        main_window._ai_history = [
+            {"role": "user", "content": "Career?"},
+            {"role": "assistant", "content": "Mars tenth."},
+        ]
+        main_window._ai_transcript = [
+            {"role": "user", "content": "Career?"},
+            {"role": "assistant", "content": "Mars tenth."},
+        ]
+        main_window._ai_thread_id = None
+        main_window._persist_ai_thread()
+        tid = main_window._ai_thread_id
+        assert tid is not None
+        assert main_window.ai_thread_combo.count() == 1
+        # A second turn updates the same row, not a new one.
+        main_window._ai_history += [
+            {"role": "user", "content": "Marriage?"},
+            {"role": "assistant", "content": "Venus strong."},
+        ]
+        main_window._ai_transcript += [
+            {"role": "user", "content": "Marriage?"},
+            {"role": "assistant", "content": "Venus strong."},
+        ]
+        main_window._persist_ai_thread()
+        assert main_window._ai_thread_id == tid
+        assert main_window.ai_thread_combo.count() == 1
+        # New chat clears the view but the shelved thread remains.
+        main_window._on_ai_newchat()
+        assert main_window._ai_transcript == []
+        assert main_window._ai_history == []
+        assert main_window._ai_thread_id is None
+        assert main_window.ai_thread_combo.count() == 1
+        assert main_window.ai_thread_combo.currentIndex() == -1
+        # Resume through the real signal path restores everything.
+        main_window.ai_thread_combo.setCurrentIndex(0)
+        assert main_window._ai_thread_id == tid
+        assert len(main_window._ai_history) == 4
+        assert [b["role"] for b in main_window._ai_transcript] == [
+            "user", "assistant", "user", "assistant"]
+        # Delete removes the thread and clears the open view.
+        main_window._on_ai_delete_thread()
+        assert main_window.ai_thread_combo.count() == 1
+        assert main_window.ai_thread_combo.itemText(0) == "No saved threads"
+        assert main_window._ai_transcript == []
+        assert main_window._ai_thread_id is None
+    finally:
+        main_window.chart_data = previous_chart
+        main_window._ai_transcript = []
+        main_window._ai_history = []
+        main_window._ai_thread_id = None
+        main_window._ai_thread_title = ""
+        _restore_ai_db(old_db)
+
+
+def test_ai_picker_filters_by_chart(main_window, chart, tmp_path):
+    """Threads are scoped to their birth chart; no chart means no history."""
+    from jhora.charts.chart import ChartBuilder
+    old_db = _isolate_ai_db(tmp_path, "gui-scope.db")
+    previous_chart = main_window.chart_data
+    try:
+        main_window.chart_data = None
+        main_window._refresh_ai_threads()
+        assert main_window.ai_thread_combo.count() == 1
+        assert main_window.ai_thread_combo.itemText(0) == \
+            "No history (compute a chart first)"
+        # Persist one thread under the fixture chart.
+        main_window.chart_data = chart
+        main_window._ai_history = [
+            {"role": "user", "content": "Career?"},
+            {"role": "assistant", "content": "Mars tenth."},
+        ]
+        main_window._ai_transcript = list(main_window._ai_history)
+        main_window._ai_thread_id = None
+        main_window._persist_ai_thread()
+        assert main_window.ai_thread_combo.count() == 1
+        assert main_window.ai_thread_combo.itemData(0) is not None
+        # Switching charts (as _on_calculate does) hides it and clears view.
+        other = ChartBuilder().build(1973, 3, 13, 13.9, 45.41, 11.88,
+                                     tz="+0100")
+        main_window.chart_data = other
+        main_window._reset_ai_thread_view()
+        assert main_window.ai_thread_combo.count() == 1
+        assert main_window.ai_thread_combo.itemText(0) == "No saved threads"
+        assert main_window._ai_transcript == []
+        # Switching back reveals it again.
+        main_window.chart_data = chart
+        main_window._refresh_ai_threads()
+        assert main_window.ai_thread_combo.count() == 1
+        assert main_window.ai_thread_combo.itemData(0) is not None
+    finally:
+        main_window.chart_data = previous_chart
+        main_window._ai_transcript = []
+        main_window._ai_history = []
+        main_window._ai_thread_id = None
+        main_window._ai_thread_title = ""
+        _restore_ai_db(old_db)
 
 
 def test_muhurta_choghadiya_button_shows_slots(main_window):
