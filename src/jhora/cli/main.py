@@ -1502,11 +1502,15 @@ def muhurta(
                                   "house_construction"),
     find: bool = typer.Option(False, "--find", "-f", help="Scan entire day for best times (10-min steps)"),
     best: int = typer.Option(5, "--best", "-b", help="Number of best times to show (with --find)"),
+    adjuncts: bool = typer.Option(False, "--adjuncts", help="Show daily Durmuhurta/Varjya/Panchaka windows and Bala grades"),
+    janma_nakshatra: Optional[str] = typer.Option(None, "--janma-nakshatra", help="Janma nakshatra for Chandra/Tara Bala (used only with --adjuncts)"),
 ):
     """Muhurta (Electional Astrology) — evaluate or find auspicious times."""
     from jhora.calc.muhurta import (
-        MuhurtaTask, evaluate_time, find_muhurta,
+        MuhurtaTask, Tara, compute_adjuncts, evaluate_time, find_muhurta,
+        _datetime_to_jd, _sunrise_sunset,
     )
+    from jhora.types.nakshatra import Nakshatra
     from datetime import datetime
 
     task_map = {
@@ -1537,8 +1541,74 @@ def muhurta(
         console.print("[red]Invalid date/time format. Use YYYY-MM-DD HH:MM[/red]")
         raise typer.Exit(1)
 
+    def _parse_janma(value: Optional[str]):
+        # --janma-nakshatra is honored only with --adjuncts so it never changes
+        # the default output by itself.
+        if value is None:
+            return None
+        key = value.strip().upper().replace(" ", "_").replace("-", "_")
+        key = {"ASHVINI": "ASVINI", "ASHWINI": "ASVINI", "ASWINI": "ASVINI"}.get(key, key)
+        try:
+            return Nakshatra[key]
+        except KeyError:
+            console.print(f"[red]Unknown Janma nakshatra: {value}[/red]")
+            raise typer.Exit(2)
+
+    def _hhmm(jd_value: float, base_jd: float) -> str:
+        total = int(round((((jd_value - base_jd) * 24.0) % 24.0) * 60.0)) % (24 * 60)
+        return f"{total // 60:02d}:{total % 60:02d}"
+
+    def _print_adjuncts(day: datetime, janma) -> None:
+        info = compute_adjuncts(day, lat, lon, tz_offset, janma)
+        base_jd = _datetime_to_jd(day.replace(hour=0, minute=0, second=0, microsecond=0), tz_offset)
+        sunrise, sunset = _sunrise_sunset(day, lat, lon, tz_offset)
+
+        windows = Table(title=f"Daily Muhurta Adjuncts — {day.strftime('%Y-%m-%d')}")
+        windows.add_column("Item", style="cyan")
+        windows.add_column("Start", style="yellow")
+        windows.add_column("End", style="yellow")
+        windows.add_row("Sunrise", _hhmm(sunrise, base_jd), "")
+        windows.add_row("Sunset", _hhmm(sunset, base_jd), "")
+        for index, label in enumerate(("DurMuhurta1", "DurMuhurta2")):
+            if index < len(info.durmuhurta):
+                win = info.durmuhurta[index]
+                windows.add_row(label, _hhmm(win.start, base_jd), _hhmm(win.end, base_jd))
+            else:
+                windows.add_row(label, "—", "—")
+        for index, label in enumerate(("Varjya1", "Varjya2")):
+            if index < len(info.varjya):
+                win = info.varjya[index]
+                windows.add_row(label, _hhmm(win.start, base_jd), _hhmm(win.end, base_jd))
+            else:
+                windows.add_row(label, "—", "—")
+        console.print(windows)
+
+        segments = Table(title="Panchaka Segments")
+        segments.add_column("#", style="cyan")
+        segments.add_column("Start", style="yellow")
+        segments.add_column("End", style="yellow")
+        segments.add_column("Category", style="green")
+        for number, seg in enumerate(info.panchaka, start=1):
+            segments.add_row(str(number), _hhmm(seg.start, base_jd),
+                             _hhmm(seg.end, base_jd), seg.kind)
+        console.print(segments)
+
+        console.print(f"Chandra Bala: {info.chandra_bala.value}")
+        if info.tara_bala is None:
+            console.print("Tara Bala: unavailable (no Janma nakshatra)")
+        else:
+            if info.tara_bala is Tara.JANMA:
+                tara_class = "neutral"
+            elif info.tara_auspicious:
+                tara_class = "auspicious"
+            else:
+                tara_class = "inauspicious"
+            console.print(f"Tara Bala: {info.tara_bala.value} ({tara_class})")
+
+    janma = _parse_janma(janma_nakshatra) if adjuncts else None
+
     if find:
-        results = find_muhurta(dt, lat, lon, tz_offset, t, step_minutes=10)
+        results = find_muhurta(dt, lat, lon, tz_offset, t, jnama_nakshatra=janma, step_minutes=10)
         top = results[:best]
         table = Table(title=f"Top {best} Muhurta Times — {t.label}")
         table.add_column("Time", style="cyan")
@@ -1571,9 +1641,11 @@ def muhurta(
                 f"{r.score:.2f}", tithi, vara, nak, abh, issues,
             )
         console.print(table)
+        if adjuncts:
+            _print_adjuncts(dt, janma)
         return
 
-    r = evaluate_time(dt, lat, lon, tz_offset, t)
+    r = evaluate_time(dt, lat, lon, tz_offset, t, jnama_nakshatra=janma)
     status = "[green]AUSPICIOUS[/green]" if r.is_good else "[red]INAUSPICIOUS[/red]"
     console.print(f"[bold]{t.label}[/bold] — {dt.strftime('%Y-%m-%d %H:%M')} — {status}")
     console.print(f"  Score: [yellow]{r.score:.2f}[/yellow] / 1.00")
@@ -1598,6 +1670,9 @@ def muhurta(
 
     if r.score_detail and r.score_detail != "All good":
         console.print(f"  [red]{r.score_detail}[/red]")
+
+    if adjuncts:
+        _print_adjuncts(dt, janma)
 
 
 @app.command()

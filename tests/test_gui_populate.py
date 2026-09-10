@@ -254,3 +254,29 @@ def test_muhurta_choghadiya_button_shows_slots(main_window):
     # First row should be a Day slot, row 9 a Night slot
     assert main_window.muhurta_table.item(0, 1).text() == "Day"
     assert main_window.muhurta_table.item(8, 1).text() == "Night"
+
+
+def test_muhurta_adjuncts_button_shows_windows_and_grades(main_window, chart):
+    """The Adjuncts button renders windows/segments and native Bala grades."""
+    previous_chart = main_window.chart_data
+    main_window.chart_data = chart
+    main_window._get_muhurta_inputs = lambda: (
+        datetime.datetime(2026, 9, 16), 5.5, 13.0827, 80.2707,
+    )
+    try:
+        main_window._on_muhurta_adjuncts()
+        headers = [main_window.muhurta_table.horizontalHeaderItem(i).text()
+                   for i in range(main_window.muhurta_table.columnCount())]
+        assert headers == ["Item", "Start", "End", "Detail"]
+        items = [main_window.muhurta_table.item(row, 0).text()
+                 for row in range(main_window.muhurta_table.rowCount())]
+        assert "Sunrise" in items
+        assert "DurMuhurta1" in items
+        assert "Varjya1" in items
+        assert any(item.startswith("Panchaka ") for item in items)
+        detail = main_window.muhurta_detail.toPlainText()
+        assert "Chandra Bala:" in detail
+        assert "Tara Bala:" in detail
+        assert "saved birth chart Moon" in detail
+    finally:
+        main_window.chart_data = previous_chart

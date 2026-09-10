@@ -375,4 +375,46 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["choghadiya"] = {}
 
+    # ── Muhurta adjuncts (daily windows/grades) for birth place/date ──
+    try:
+        from jhora.ai.analysis import _chart_tz_offset
+        from jhora.calc.muhurta import Tara, compute_adjuncts, _datetime_to_jd
+        muhurta_tz = _chart_tz_offset(cd.timezone)
+        try:
+            native_janma, _pada = Nakshatra.from_longitude(cd.moon.longitude)
+        except Exception:
+            native_janma = None
+        adjuncts = compute_adjuncts(cd.birth_date, cd.latitude, cd.longitude,
+                                    muhurta_tz, native_janma)
+        day_start = _datetime_to_jd(cd.birth_date.replace(hour=0, minute=0, second=0,
+                                                          microsecond=0), muhurta_tz)
+
+        def _adjunct_hhmm(jd_value: float) -> str:
+            total = int(round((((jd_value - day_start) * 24.0) % 24.0) * 60.0)) % (24 * 60)
+            return f"{total // 60:02d}:{total % 60:02d}"
+
+        if adjuncts.tara_bala is None:
+            tara_json = {"name": None, "class": "unavailable", "auspicious": False}
+        elif adjuncts.tara_bala is Tara.JANMA:
+            tara_json = {"name": adjuncts.tara_bala.value, "class": "neutral",
+                         "auspicious": False}
+        else:
+            tara_json = {"name": adjuncts.tara_bala.value,
+                         "class": "auspicious" if adjuncts.tara_auspicious else "inauspicious",
+                         "auspicious": bool(adjuncts.tara_auspicious)}
+        result["muhurta_adjuncts"] = {
+            "date": cd.birth_date.strftime("%Y-%m-%d"),
+            "durmuhurta": [{"start": _adjunct_hhmm(w.start), "end": _adjunct_hhmm(w.end)}
+                           for w in adjuncts.durmuhurta],
+            "varjya": [{"start": _adjunct_hhmm(w.start), "end": _adjunct_hhmm(w.end)}
+                       for w in adjuncts.varjya],
+            "panchaka": [{"start": _adjunct_hhmm(w.start), "end": _adjunct_hhmm(w.end),
+                          "category": w.kind}
+                         for w in adjuncts.panchaka],
+            "chandra_bala": adjuncts.chandra_bala.value,
+            "tara_bala": tara_json,
+        }
+    except Exception:
+        result["muhurta_adjuncts"] = {}
+
     return result

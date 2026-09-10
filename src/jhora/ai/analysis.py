@@ -262,6 +262,7 @@ def build_analysis_text(cd: ChartData, usl_config=None) -> str:
         ("CHALIT SHIFTS", lambda: _chalit_snapshot(cd)),
         ("SPECIAL POINTS", lambda: _special_points_snapshot(cd, usl_config)),
         ("CHOGHADIYA", lambda: choghadiya_snapshot(cd)),
+        ("MUHURTA ADJUNCTS", lambda: muhurta_adjuncts_snapshot(cd)),
         ("LEARNING", lambda: _learning_snapshot(cd)),
     ]:
         try:
@@ -407,6 +408,57 @@ def choghadiya_snapshot(cd: ChartData) -> str:
                 wait = int((nxt.start - now).total_seconds() / 60.0)
                 lines.append(f"  Next Good: {nxt.name} at "
                              f"{nxt.start.strftime('%H:%M')} (+{wait} min)")
+        return "\n".join(lines)
+    except Exception:
+        return ""
+
+
+def muhurta_adjuncts_snapshot(cd: ChartData) -> str:
+    """Daily Muhurta adjuncts for the birth place/date, for AI prompt context.
+
+    Lists Durmuhurta/Varjya avoid windows, non-Rahita Panchaka avoid segments,
+    and the native Chandra/Tara Bala grades derived from the birth Moon.
+    """
+    try:
+        from jhora.calc.muhurta import Tara, compute_adjuncts, _datetime_to_jd
+        from jhora.types.nakshatra import Nakshatra
+        tz = _chart_tz_offset(cd.timezone)
+        try:
+            janma, _pada = Nakshatra.from_longitude(cd.moon.longitude)
+        except Exception:
+            janma = None
+        info = compute_adjuncts(cd.birth_date, cd.latitude, cd.longitude, tz, janma)
+        base_jd = _datetime_to_jd(cd.birth_date.replace(hour=0, minute=0, second=0,
+                                                        microsecond=0), tz)
+
+        def _hhmm(jd_value: float) -> str:
+            total = int(round((((jd_value - base_jd) * 24.0) % 24.0) * 60.0)) % (24 * 60)
+            return f"{total // 60:02d}:{total % 60:02d}"
+
+        lines = [f"Muhurta adjuncts ({cd.birth_date.strftime('%Y-%m-%d')}):"]
+        lines.append("  Durmuhurta avoid: " + ", ".join(
+            f"{_hhmm(w.start)}–{_hhmm(w.end)}" for w in info.durmuhurta))
+        if info.varjya:
+            lines.append("  Varjya avoid: " + ", ".join(
+                f"{_hhmm(w.start)}–{_hhmm(w.end)}" for w in info.varjya))
+        else:
+            lines.append("  Varjya avoid: none in effect")
+        avoid_segments = [s for s in info.panchaka if s.kind != "Rahita"]
+        if avoid_segments:
+            lines.append("  Panchaka avoid: " + "; ".join(
+                f"{s.kind.split()[0]} {_hhmm(s.start)}–{_hhmm(s.end)}"
+                for s in avoid_segments))
+        else:
+            lines.append("  Panchaka avoid: none in effect")
+        lines.append(f"  Chandra Bala: {info.chandra_bala.value}")
+        if info.tara_bala is None:
+            lines.append("  Tara Bala: unavailable (no Janma nakshatra)")
+        elif info.tara_bala is Tara.JANMA:
+            lines.append(f"  Tara Bala: {info.tara_bala.value} (neutral)")
+        elif info.tara_auspicious:
+            lines.append(f"  Tara Bala: {info.tara_bala.value} (auspicious)")
+        else:
+            lines.append(f"  Tara Bala: {info.tara_bala.value} (inauspicious)")
         return "\n".join(lines)
     except Exception:
         return ""
