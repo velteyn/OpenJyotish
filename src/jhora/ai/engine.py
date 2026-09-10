@@ -14,7 +14,7 @@ import json
 import re
 import time
 from dataclasses import dataclass, field
-from typing import Callable, Generator, List, Optional
+from typing import Callable, Generator, List, Optional, Tuple
 
 import requests
 
@@ -471,6 +471,28 @@ class AiEngine:
         used += self._RESERVED_RESPONSE_TOKENS
         threshold = int(self.config.max_context_tokens * self._BUDGET_THRESHOLD)
         return used >= threshold
+
+    def context_usage(self, cd: ChartData,
+                      history: Optional[List[dict]] = None) -> Tuple[int, int]:
+        """Estimated prompt tokens in use vs the ~70% compaction trip wire.
+
+        Additive readout for the GUI context meter. Uses the same accounting
+        as `_budget_exceeded` (system prompt + cached anchor + history +
+        reserved response) without changing any budget logic.
+        Returns (used_estimate, threshold).
+        """
+        history = list(history or [])
+        anchor = self._conversation_anchor(cd)
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": anchor},
+        ]
+        messages.extend(history)
+        used = sum(_estimate_tokens(m.get("content") or "")
+                   for m in messages)
+        used += self._RESERVED_RESPONSE_TOKENS
+        threshold = int(self.config.max_context_tokens * self._BUDGET_THRESHOLD)
+        return used, threshold
 
     def _compact_history(self, history: List[dict]) -> str:
         """Render a short summary of the thread and return it as the seed text.
