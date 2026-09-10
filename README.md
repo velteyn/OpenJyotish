@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-33 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-17-section JSON API for AI agents  |  689 tests  |  AGPL v3.0
+34 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+20-section JSON API for AI agents  |  852 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -45,6 +45,9 @@ jhora analyze "1973-03-14 14:55 +0100 45.41 11.88"
 
 # Current dasa period
 jhora dasa-timeline "1973-03-14 14:55 +0100 45.41 11.88"
+
+# Choghadiya — auspicious/inauspicious time slots for today
+jhora choghadiya --lat 28.61 --lon 77.21 --tz 5.5
 
 # Strengths
 jhora shadbala --bhava --vimsopaka "birthdata"
@@ -88,7 +91,7 @@ All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 | **Strengths** | Shadbala, Arudha & Karaka, Ashtakavarga |
 | **Dasas** | Dasa Periods with interactive bar chart |
 | **Transits & Tajaka** | Transits, Tajaka & TP, Mundane |
-| **Special** | Matchmaking, Prasna, Muhurta |
+| **Special** | Matchmaking, Prasna, Muhurta (incl. Choghadiya) |
 | **AI & Learn** | AI Chat, AI Teacher, Knowledge, Reading |
 | **Tools** | Ephemeris |
 
@@ -114,12 +117,13 @@ One command, everything computed. Pipe to AI agents, `jq`, or Python:
 
 ```bash
 jhora analyze "birthdata"
-# → 10KB JSON — 17 sections, every calculation
+# → 10KB JSON — 20 sections, every calculation
 
 # Pipe it around
 jhora analyze "..." | jq '.planets.Su.house'
 jhora analyze "..." | jq '.dasa.mahadashas[] | select(.current)'
 jhora analyze "..." | jq '.dasa.systems'   # current MD in every dasa system
+jhora analyze "..." | jq '.choghadiya.current'   # current Choghadiya slot
 ```
 
 ```python
@@ -129,12 +133,12 @@ data = json.loads(subprocess.run(
 ).stdout)
 ```
 
-## All CLI Commands (33)
+## All CLI Commands (34)
 
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets + upagrahas + outer planets |
-| `analyze` | AI-friendly JSON dump (17 sections) |
+| `analyze` | AI-friendly JSON dump (20 sections) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
@@ -149,6 +153,7 @@ data = json.loads(subprocess.run(
 | `kuta` | Marriage compatibility (Porutham + Ashta Koota) |
 | `prasna` | Horary (108/249/Nadi modes) |
 | `muhurta` | Electional — 11 task types |
+| `choghadiya` | 8 day + 8 night auspicious/inauspicious time slots |
 | `mundane` | World events, eclipses, ingresses |
 | `compare` | Natal vs transit or two-chart comparison |
 | `interpret` | Rule-based chart reading |
@@ -181,7 +186,7 @@ KP sub-lords (5 levels) · Chalit/Bhava charts
 ### Forecasting
 Transits with SAV scores · Tajaka solar return · Tithi Pravesha ·
 Progressions · Dasa timeline · Mundane (ingresses/eclipses/conjunctions) ·
-Matchmaking (10 Porutham + Ashta Koota 36pt) · Muhurta · Prasna
+Matchmaking (10 Porutham + Ashta Koota 36pt) · Muhurta · Choghadiya · Prasna
 
 ### AI & Data
 Local LLM (Ollama/LM Studio/Unsloth) · RAG pipeline with textbook citations ·
@@ -196,14 +201,14 @@ src/jhora/
 ├── types/          Enums: Graha, Rasi, Nakshatra, Varga, Bhava, Dasa
 ├── ephemeris/      Swiss Ephemeris wrapper (18 API functions)
 ├── charts/         ChartBuilder, ChartData (frozen), VargaChartComputer
-├── calc/           18 modules: strengths, yogas, dasas, transits, chakras...
+├── calc/           29 modules: strengths, yogas, dasas, transits, chakras...
 ├── dasas/          9 dasa system modules
 ├── ai/             AI engine, RAG pipeline, JSON export, teacher
 ├── interpreter/    Chart reading, knowledge base
 ├── export/         HTML report generator
 ├── io/             Atlas (SQLite/FTS5), JHD parser
 ├── core/           Unified database
-├── cli/            Typer CLI (27 commands)
+├── cli/            Typer CLI (34 commands)
 ├── tui/            prompt_toolkit menu system
 └── ui/             PyQt6 GUI (8-category tabs, chart widget, dasa timeline)
 ```
