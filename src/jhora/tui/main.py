@@ -682,6 +682,54 @@ class JhoraTui:
             rich.print(t)
         self._content_lines = cap.get().split("\n")
 
+    def _action_choghadiya(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.choghadiya import choghadiya_day, GRAHA_NAME
+        with rich.capture() as cap:
+            now = datetime.now()
+            tz_str = self.chart.timezone.replace("+", "").replace("−", "-")
+            tz = float(tz_str) if tz_str else 0.0
+            cd = choghadiya_day(
+                datetime(self.chart.year, self.chart.month, self.chart.day),
+                self.chart.latitude, self.chart.longitude, tz,
+            )
+            t = Table(
+                title=f"Choghadiya — {cd.date.strftime('%A %d %B %Y')} "
+                      f"({self.chart.latitude:.2f}°, {self.chart.longitude:.2f}°)",
+                box=rich_box.SIMPLE,
+            )
+            t.add_column("#", style="dim", width=3)
+            t.add_column("Slot", style="cyan", width=8)
+            t.add_column("Rating", width=8)
+            t.add_column("Lord", style="magenta", width=8)
+            t.add_column("Start", style="white")
+            t.add_column("End", style="white")
+
+            rating_style = {"Good": "green", "Bad": "red", "Neutral": "yellow"}
+            current = cd.current_slot(now)
+
+            for i, slot in enumerate(cd.day_slots, 1):
+                rs = rating_style.get(slot.rating, "white")
+                is_cur = current is not None and slot is current
+                label = f"[bold]{slot.name}[/bold]" if is_cur else slot.name
+                t.add_row(str(i), label, f"[{rs}]{slot.rating}[/{rs}]",
+                          slot.lord.name, slot.start.strftime("%H:%M"),
+                          slot.end.strftime("%H:%M"))
+            for i, slot in enumerate(cd.night_slots, 9):
+                rs = rating_style.get(slot.rating, "white")
+                is_cur = current is not None and slot is current
+                label = f"[bold]{slot.name}[/bold]" if is_cur else slot.name
+                t.add_row(str(i), label, f"[{rs}]{slot.rating}[/{rs}]",
+                          slot.lord.name, slot.start.strftime("%H:%M"),
+                          slot.end.strftime("%H:%M"))
+            rich.print(t)
+            if current:
+                remaining = (current.end - now).total_seconds() / 60.0
+                rich.print(f"\n[bold]Current: {current.name} ({current.rating}) "
+                           f"— {remaining:.0f} min remaining[/bold]")
+        self._content_lines = cap.get().split("\n")
+
     def _action_mundane(self):
         from prompt_toolkit.shortcuts import input_dialog
         y = input_dialog("Mundane", "Year:", str(datetime.now().year)).run()
@@ -963,6 +1011,7 @@ class JhoraTui:
             ("1", "Matchmaking (Kuta Porutham)", self._action_matchmaking),
             ("2", "Prasna (Horary)", self._action_prasna),
             ("3", "Muhurta (Electional)", self._action_muhurta),
+            ("4", "Choghadiya (Day/Night Slots)", self._action_choghadiya),
         ]
         self._sub_menu("Special Topics", items)
 
