@@ -251,7 +251,7 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     # ── Sahamas ──
     try:
         from jhora.calc.sahama import compute_sahamas
-        is_day = 6.0 <= cd.birth_date.hour < 18.0
+        is_day = 6.0 <= cd.time_of_day_hours < 18.0
         sahamas = compute_sahamas(cd.ascendant, planets, day=is_day)
         result["sahamas"] = [{
             "name": s.name,

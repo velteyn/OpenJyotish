@@ -117,9 +117,9 @@ def varnada_lagna(cd: ChartData) -> float:
 
 def pranapada_lagna(cd: ChartData) -> float:
     """Pranapada Lagna: based on birth time in ghatis."""
-    bd = cd.birth_date
-    # Birth time in hours from midnight
-    birth_hours = bd.hour + bd.minute / 60.0 + bd.second / 3600.0
+    # Birth time in hours from midnight (true local time; birth_date is
+    # date-only by design, the exact moment lives in the Julian day).
+    birth_hours = cd.time_of_day_hours
     sunrise = _sunrise_approx(cd)
     # Time from sunrise in ghatis (1 ghati = 24 minutes)
     from_sunrise = (birth_hours - sunrise + 24) % 24
@@ -129,8 +129,7 @@ def pranapada_lagna(cd: ChartData) -> float:
 
 def vighati_lagna(cd: ChartData) -> float:
     """Vighati Lagna: finer time division."""
-    bd = cd.birth_date
-    birth_hours = bd.hour + bd.minute / 60.0 + bd.second / 3600.0
+    birth_hours = cd.time_of_day_hours
     sunrise = _sunrise_approx(cd)
     from_sunrise = (birth_hours - sunrise + 24) % 24
     vighatis = from_sunrise * 60  # 1 vighati = 24 seconds
