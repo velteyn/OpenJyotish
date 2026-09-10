@@ -56,6 +56,11 @@ STYLE = theme.STYLESHEET
 _THINKING_LINE = "\n\n*⏳ Thinking…*"
 
 
+def _janma_ghatis(birth_hours: float, sunrise_hours: float) -> float:
+    """Janma ghatis from true birth time (1 ghati = 24 min from sunrise)."""
+    return (birth_hours - sunrise_hours + 24) % 24 / 0.4
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -1303,7 +1308,7 @@ class MainWindow(QMainWindow):
             ])
         self._fill_table(self.karaka_table, headers, rows)
 
-        is_day = 6.0 <= cd.birth_date.hour < 18.0
+        is_day = 6.0 <= cd.time_of_day_hours < 18.0
         sahamas = compute_sahamas(cd.ascendant, planets, day=is_day)
         headers = ["Sahama", "Meaning", "Longitude", "Sign", "House"]
         rows = []
@@ -3830,9 +3835,9 @@ class MainWindow(QMainWindow):
             sunset = "N/A"
 
         # Janma ghatis (1 ghati = 24 min from sunrise)
-        birth_h = cd.birth_date.hour + cd.birth_date.minute / 60.0 + cd.birth_date.second / 3600.0
+        birth_h = cd.time_of_day_hours
         try:
-            jg = (birth_h - sr_h + 24) % 24 / 0.4
+            jg = _janma_ghatis(birth_h, sr_h)
         except Exception:
             jg = 0
 
