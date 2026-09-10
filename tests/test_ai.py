@@ -660,6 +660,31 @@ class TestConversationChat:
         msgs = [{"role": "user", "content": "A" * 400}]
         assert enginst._budget_exceeded(msgs) is False
 
+    def test_context_usage_below_threshold_empty_history(self):
+        enginst = self._engine()  # max_context_tokens=1_000_000
+        used, threshold = enginst.context_usage(_sample_chart(), history=[])
+        assert threshold == int(1_000_000 * AiEngine._BUDGET_THRESHOLD)
+        assert used < threshold
+
+    def test_context_usage_near_threshold(self):
+        enginst = self._engine()
+        cd = _sample_chart()
+        used_full, _ = enginst.context_usage(cd, history=[])
+        # Size the window so the trip wire sits just above current usage.
+        enginst.config.max_context_tokens = int((used_full + 50) / 0.70)
+        used, threshold = enginst.context_usage(cd, history=[])
+        assert used == used_full  # usage independent of window size
+        assert used < threshold
+        assert threshold - used < 200  # near, not far
+
+    def test_context_usage_over_threshold(self):
+        enginst = self._engine()
+        enginst.config.max_context_tokens = 1000  # trip wire at 700
+        fat = [{"role": "user", "content": "A" * 10000}]
+        used, threshold = enginst.context_usage(_sample_chart(), history=fat)
+        assert threshold == 700
+        assert used >= threshold
+
     def test_compact_returns_fresh_history(self, monkeypatch):
         enginst = self._engine()
         captured = {}
