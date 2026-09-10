@@ -86,6 +86,14 @@ def _ensure_schema(conn: sqlite3.Connection):
         _create_application_tables(conn)
         conn.commit()
 
+    # Ensure AI chat thread tables exist — older databases predate them.
+    cur = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='chat_threads'"
+    )
+    if cur.fetchone() is None:
+        _create_chat_tables(conn)
+        conn.commit()
+
 
 def _create_application_tables(conn: sqlite3.Connection):
     """Create only the charts, chart_planets, and preferences tables."""
@@ -121,6 +129,23 @@ def _create_application_tables(conn: sqlite3.Connection):
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
+    """)
+    _create_chat_tables(conn)
+
+
+def _create_chat_tables(conn: sqlite3.Connection):
+    """Create AI chat thread tables (owned by the AI Chat tab; the Guru tab
+    owns its own parallel tables so the two features diverge freely)."""
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS chat_threads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chart_fp TEXT NOT NULL,
+            title TEXT NOT NULL,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            messages_json TEXT NOT NULL DEFAULT '[]'
+        );
+        CREATE INDEX IF NOT EXISTS idx_chat_threads_chart
+            ON chat_threads(chart_fp, updated_at);
     """)
 
 
@@ -190,6 +215,7 @@ def _create_all(conn: sqlite3.Connection):
             value TEXT NOT NULL
         );
     """)
+    _create_chat_tables(conn)
 
 
 # ---- Query helpers ----

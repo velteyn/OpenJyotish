@@ -63,7 +63,15 @@ class MainWindow(QMainWindow):
         self.current_file: Optional[str] = None
         self.builder = ChartBuilder()
         # Streaming buffers for the Markdown-rendered LLM output windows.
-        self._ai_buffer = ""
+        # AI Chat shows a transcript: _ai_transcript holds display blocks
+        # ({"role": "user"/"assistant"/"divider"/"notice", "content": ...}),
+        # _ai_stream the in-flight tail text, _ai_history the model messages.
+        self._ai_transcript: list = []
+        self._ai_stream = ""
+        self._ai_pending_user = ""
+        self._ai_thread_id = None
+        self._ai_thread_title = ""
+        self._ai_thread_rows: dict = {}
         self._ai_last_render = 0.0
         self._ai_thinking = False
         self._ai_history: list = []  # threaded conversation history for AI Chat
@@ -784,6 +792,9 @@ class MainWindow(QMainWindow):
             self._populate_consolidated(self.chart_data)
             self._update_cons_navamsa(self.chart_data)
             self._populate_dashboard(self.chart_data)
+            # A new chart means a new thread scope: the open thread (already
+            # persisted) belongs to the previous chart.
+            self._reset_ai_thread_view()
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -2370,6 +2381,21 @@ class MainWindow(QMainWindow):
         self.ai_remedy_btn.clicked.connect(lambda: self._on_ai_action("remedies"))
         row1.addWidget(self.ai_remedy_btn)
 
+        self.ai_newchat_btn = QPushButton("New chat")
+        self.ai_newchat_btn.clicked.connect(self._on_ai_newchat)
+        row1.addWidget(self.ai_newchat_btn)
+
+        self.ai_thread_combo = QComboBox()
+        self.ai_thread_combo.setMinimumWidth(150)
+        self.ai_thread_combo.currentIndexChanged.connect(
+            self._on_ai_thread_selected)
+        row1.addWidget(self.ai_thread_combo)
+
+        self.ai_delete_btn = QPushButton("Delete")
+        self.ai_delete_btn.setFixedWidth(70)
+        self.ai_delete_btn.clicked.connect(self._on_ai_delete_thread)
+        row1.addWidget(self.ai_delete_btn)
+
         self.ai_style = QComboBox()
         self.ai_style.addItems(["concise", "detailed", "professional"])
         self.ai_style.setCurrentText("detailed")
@@ -2387,10 +2413,11 @@ class MainWindow(QMainWindow):
         row1.addStretch()
         layout.addLayout(row1)
 
-        # Row 2: free-form ask
+        # Row 2: free-form ask — lives BELOW the transcript so follow-ups
+        # read naturally after the guru's answer (Enter = send).
         row2 = QHBoxLayout()
         self.ai_ask_input = QLineEdit()
-        self.ai_ask_input.setPlaceholderText("Ask a specific question...")
+        self.ai_ask_input.setPlaceholderText("Ask a follow-up...")
         self.ai_ask_input.returnPressed.connect(self._on_ai_ask)
         row2.addWidget(self.ai_ask_input, 1)
 
@@ -2398,15 +2425,22 @@ class MainWindow(QMainWindow):
         self.ai_ask_btn.setFixedWidth(70)
         self.ai_ask_btn.clicked.connect(self._on_ai_ask)
         row2.addWidget(self.ai_ask_btn)
-        layout.addLayout(row2)
 
-        # Output area
+        self.ai_context_label = QLabel("Context: —")
+        self.ai_context_label.setStyleSheet("color:#888;font-size:11px;")
+        self.ai_context_label.setToolTip(
+            "Estimated prompt tokens vs the ~70% compaction trip wire.")
+        row2.addWidget(self.ai_context_label)
+
+        # Output area (transcript) sits above the input.
         self.ai_output = QTextEdit()
         self.ai_output.setReadOnly(True)
         layout.addWidget(self.ai_output)
+        layout.addLayout(row2)
 
         self._ai_worker: Optional[_AiWorker] = None
         self._ai_engine: Optional[AiEngine] = None
+        self._refresh_ai_threads()
         return w
 
     def _get_ai_engine(self) -> AiEngine:
@@ -2421,6 +2455,16 @@ class MainWindow(QMainWindow):
         preset = PROVIDERS.get(provider, {})
         self.ai_model.setText(preset.get("default_model", ""))
         self._ai_history.clear()
+        self._ai_transcript.clear()
+        self._ai_stream = ""
+        self._ai_thread_id = None
+        self._ai_thread_title = ""
+        if hasattr(self, "ai_output"):
+            self._render_ai_output()
+        if hasattr(self, "ai_context_label"):
+            self._update_ai_meter()
+        if hasattr(self, "ai_thread_combo"):
+            self._refresh_ai_threads()
         self._teach_history.clear()
 
     def _on_ai_health_check(self):
@@ -2581,17 +2625,23 @@ class MainWindow(QMainWindow):
     def _on_ai_action(self, mode: str):
         cd = self.chart_data
         if cd is None:
-            self._ai_buffer = "[Compute a chart first using the main form]"
+            self._ai_transcript.append(
+                {"role": "notice",
+                 "content": "[Compute a chart first using the main form]"})
             self._render_ai_output()
             return
         style = self.ai_style.currentText()
         topic = self.ai_topic.currentText()
-        self._ai_buffer = (
-            f"[Generating {mode} with {self.ai_provider.currentText()}/"
-            f"{self.ai_model.text()}...]\n\n"
-        )
+        if mode == "interpret":
+            label = f"[Interpret — {style} · {topic}]"
+        else:
+            label = "[Remedies]"
+        self._ai_pending_user = label
+        self._ai_transcript.append({"role": "user", "content": label})
+        self._ai_stream = ""
         self._ai_thinking = True
         self._render_ai_output()
+        self._update_ai_meter()
         self._set_ai_buttons_enabled(False)
 
         engine = self._get_ai_engine()
@@ -2611,12 +2661,18 @@ class MainWindow(QMainWindow):
             return
         cd = self.chart_data
         if cd is None:
-            self._ai_buffer = "[Compute a chart first using the main form]"
+            self._ai_transcript.append(
+                {"role": "notice",
+                 "content": "[Compute a chart first using the main form]"})
             self._render_ai_output()
             return
-        self._ai_buffer = f"[Asking: {q}]\n\n"
+        self._ai_pending_user = q
+        self._ai_transcript.append({"role": "user", "content": q})
+        self.ai_ask_input.clear()
+        self._ai_stream = ""
         self._ai_thinking = True
         self._render_ai_output()
+        self._update_ai_meter()
         self._set_ai_buttons_enabled(False)
 
         engine = self._get_ai_engine()
@@ -2627,19 +2683,159 @@ class MainWindow(QMainWindow):
         self._ai_worker.error.connect(self._on_ai_error)
         self._ai_worker.start()
 
+    def _insert_ai_divider(self, content: str):
+        """Insert a divider above the current turn (never twice in a row)."""
+        blocks = self._ai_transcript
+        if blocks and blocks[-1].get("role") == "divider":
+            return
+        pos = len(blocks)
+        if blocks and blocks[-1].get("role") == "user":
+            pos -= 1
+        blocks.insert(pos, {"role": "divider", "content": content})
+
+    def _update_ai_meter(self):
+        """Refresh the context meter from the engine's budget estimator."""
+        cd = self.chart_data
+        if cd is None:
+            self.ai_context_label.setText("Context: —")
+            return
+        try:
+            used, threshold = self._get_ai_engine().context_usage(
+                cd, self._ai_history)
+        except Exception:
+            self.ai_context_label.setText("Context: —")
+            return
+        pct = int(100 * used / threshold) if threshold else 0
+        self.ai_context_label.setText(
+            f"Context: {used}/{threshold} ({pct}%)")
+
+    def _reset_ai_thread_view(self):
+        """Clear the visible thread and model state (the current thread is
+        already persisted by the done-hook, so shelving is never lossy)."""
+        self._ai_history = []
+        self._ai_transcript = []
+        self._ai_stream = ""
+        self._ai_thinking = False
+        self._ai_pending_user = ""
+        self._ai_thread_id = None
+        self._ai_thread_title = ""
+        self._ai_thread_rows = {}
+        self._render_ai_output()
+        self._update_ai_meter()
+        self._refresh_ai_threads()
+
+    def _persist_ai_thread(self):
+        """Upsert the current thread after each successful turn."""
+        cd = self.chart_data
+        if cd is None:
+            return
+        if not any(b.get("role") == "assistant"
+                   for b in self._ai_transcript):
+            return
+        from jhora.ai import chat_history as ch
+        if self._ai_thread_id is None:
+            self._ai_thread_title = ch.thread_title(self._ai_history)
+        self._ai_thread_id = ch.save_thread(
+            ch.chart_fingerprint(cd), self._ai_thread_title,
+            {"history": list(self._ai_history),
+             "transcript": [dict(b) for b in self._ai_transcript]},
+            thread_id=self._ai_thread_id)
+        self._refresh_ai_threads()
+
+    def _refresh_ai_threads(self):
+        """Rebuild the picker for the current chart (no-op state if none)."""
+        combo = self.ai_thread_combo
+        combo.blockSignals(True)
+        try:
+            combo.clear()
+            self._ai_thread_rows = {}
+            cd = self.chart_data
+            if cd is None:
+                combo.addItem("No history (compute a chart first)", None)
+                return
+            from jhora.ai import chat_history as ch
+            threads = ch.list_threads(ch.chart_fingerprint(cd))
+            if not threads:
+                combo.addItem("No saved threads", None)
+                return
+            for t in threads:
+                self._ai_thread_rows[t["id"]] = t["title"]
+                label = t["title"]
+                if len(label) > 32:
+                    label = label[:32] + "..."
+                combo.addItem(f"{label} — {t['updated_at'][:16]}", t["id"])
+            if self._ai_thread_id is not None:
+                combo.setCurrentIndex(combo.findData(self._ai_thread_id))
+            elif combo.count() and combo.itemData(0) is not None:
+                combo.setCurrentIndex(-1)  # threads exist, none open
+        finally:
+            combo.blockSignals(False)
+
+    def _on_ai_newchat(self):
+        self._reset_ai_thread_view()
+
+    def _on_ai_thread_selected(self, index: int):
+        tid = self.ai_thread_combo.itemData(index)
+        if tid is None or tid == self._ai_thread_id:
+            return
+        from jhora.ai import chat_history as ch
+        payload = ch.load_thread(tid)
+        if not payload.get("history") and not payload.get("transcript"):
+            self._refresh_ai_threads()
+            return
+        self._ai_history = list(payload.get("history", []))
+        self._ai_transcript = [dict(b) for b in payload.get("transcript", [])]
+        self._ai_stream = ""
+        self._ai_thinking = False
+        self._ai_thread_id = tid
+        self._ai_thread_title = self._ai_thread_rows.get(tid, "")
+        self._render_ai_output()
+        self._update_ai_meter()
+
+    def _on_ai_delete_thread(self):
+        tid = self.ai_thread_combo.currentData()
+        if tid is None:
+            return
+        from jhora.ai import chat_history as ch
+        ch.delete_thread(tid)
+        if tid == self._ai_thread_id:
+            self._reset_ai_thread_view()
+        else:
+            self._refresh_ai_threads()
+
     def _render_ai_output(self):
-        """Repaint the AI output window from the markdown buffer (throttled)."""
-        body = self._ai_buffer
+        """Repaint the AI transcript from display blocks + in-flight tail.
+
+        Follows the tail only when the view is already there, so re-reading
+        scrolled-up content is never yanked down by incoming tokens.
+        """
+        parts = []
+        for block in self._ai_transcript:
+            role = block.get("role")
+            content = block.get("content", "")
+            if role == "user":
+                parts.append("**You:** " + content)
+            elif role == "divider":
+                parts.append("--- *" + content + "* ---")
+            elif role == "notice":
+                parts.append("*" + content + "*")
+            else:
+                parts.append(content)
+        if self._ai_stream:
+            parts.append(self._ai_stream)
+        body = "\n\n".join(p for p in parts if p)
         if self._ai_thinking:
             body += _THINKING_LINE
-        self.ai_output.setHtml(md_document(body))
         bar = self.ai_output.verticalScrollBar()
-        bar.setValue(bar.maximum())
+        at_bottom = bar.value() >= bar.maximum() - 5
+        self.ai_output.setHtml(md_document(body))
+        if at_bottom:
+            bar.setValue(bar.maximum())
 
     def _on_ai_token(self, text: str):
         if self._ai_thinking:
             self._ai_thinking = False
-        self._ai_buffer += text
+        self._ai_stream += text
         now = time.monotonic()
         if now - self._ai_last_render >= 0.3:
             self._render_ai_output()
@@ -2648,23 +2844,49 @@ class MainWindow(QMainWindow):
     def _on_ai_done(self):
         self._ai_thinking = False
         w = self._ai_worker
-        if hasattr(w, "result_history"):
+        mode = getattr(w, "mode", "ask")
+        if mode == "ask" and hasattr(w, "result_history"):
+            # Canonical model history wins over the streamed tail text.
             self._ai_history = w.result_history
-        if getattr(w, "result_reset", False):
-            self._ai_buffer += "\n\n[Context compacted — fresh conversation]"
-        self._ai_buffer += "\n\n[done]"
+            if getattr(w, "result_reset", False):
+                self._insert_ai_divider(
+                    "Context compacted — fresh conversation")
+            if w.result_history:
+                tail = w.result_history[-1].get("content", "")
+                if tail:
+                    self._ai_transcript.append(
+                        {"role": "assistant", "content": tail})
+        else:
+            # One-shot actions have no model history round-trip; the worker's
+            # exact return text is the transcript entry, recorded into the
+            # thread so follow-ups see the exchange.
+            text = getattr(w, "result_text", "") or self._ai_stream
+            if text:
+                self._ai_transcript.append(
+                    {"role": "assistant", "content": text})
+                self._ai_history.append(
+                    {"role": "user", "content": self._ai_pending_user})
+                self._ai_history.append(
+                    {"role": "assistant", "content": text})
+        self._ai_stream = ""
         self._render_ai_output()
+        self._persist_ai_thread()
+        self._update_ai_meter()
         self._set_ai_buttons_enabled(True)
 
     def _on_ai_error(self, msg: str):
         self._ai_thinking = False
-        self._ai_buffer += f"\n\n[Error: {msg}]"
+        self._ai_transcript.append({"role": "notice", "content": f"[Error: {msg}]"})
+        self._ai_stream = ""
         self._render_ai_output()
         self._set_ai_buttons_enabled(True)
 
     def _set_ai_buttons_enabled(self, enabled: bool):
-        for btn in [self.ai_interpret_btn, self.ai_remedy_btn, self.ai_ask_btn]:
+        for btn in [self.ai_interpret_btn, self.ai_remedy_btn, self.ai_ask_btn,
+                    self.ai_newchat_btn, self.ai_delete_btn]:
             btn.setEnabled(enabled)
+        self.ai_ask_input.setEnabled(enabled)
+        self.ai_thread_combo.setEnabled(enabled)
 
     # --- AI Teacher Tab ---
 
@@ -3840,14 +4062,17 @@ class _AiWorker(QThread):
         self.history = history or []
         self.result_history: list = []
         self.result_reset: bool = False
+        self.result_text: str = ""
 
     def run(self):
         try:
             if self.mode == "interpret":
-                self.engine.interpret(self.chart, self.style, self.topic,
-                                      on_token=self.token.emit)
+                self.result_text = self.engine.interpret(
+                    self.chart, self.style, self.topic,
+                    on_token=self.token.emit)
             elif self.mode == "remedies":
-                self.engine.remedies(self.chart, on_token=self.token.emit)
+                self.result_text = self.engine.remedies(
+                    self.chart, on_token=self.token.emit)
             elif self.mode == "ask":
                 ans, hist, reset = self.engine.chat(
                     self.chart, self.question,
