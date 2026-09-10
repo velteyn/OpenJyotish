@@ -201,6 +201,122 @@ _YAMAGANDA_PERIOD_INDEX: List[int] = [
 ]
 
 
+# ── Durmuhurta — day/night avoided windows (15 equal muhurtas) ────────────────
+# Day (sunrise→sunset) is split into 15 equal day-muhurtas; the weekday lord of the
+# day picks one muhurta (1-based): Sun→14th, Mon→9th, Tue→4th, Wed→8th, Thu→6th,
+# Fri→4th, Sat→1st. Values below are 0-based indexes into the 15 muhurtas.
+# Source: classical 15-muhurta Dur Muhurtam rule (Kalaprakashika / Muhurta
+# Chintamani, via https://panchangtime.com/methodology/dur-muhurtam). The reference
+# daily-adjuncts table prints DurMuhurta1Start/End and DurMuhurta2Start/End;
+# DurMuhurta1 is the day window and DurMuhurta2 is modelled as the same weekday
+# index applied to the 15 equal night-muhurtas (sunset→next sunrise).
+
+_DURMUHURTA_DAY_MUHURTA_INDEX: List[int] = [
+    13,  # Sunday    → 14th day-muhurta
+    8,   # Monday    →  9th
+    3,   # Tuesday   →  4th
+    7,   # Wednesday →  8th
+    5,   # Thursday  →  6th
+    3,   # Friday    →  4th
+    0,   # Saturday  →  1st
+]
+
+_DURMUHURTA_NIGHT_MUHURTA_INDEX: List[int] = [
+    13,  # Sunday    → 14th night-muhurta
+    8,   # Monday    →  9th
+    3,   # Tuesday   →  4th
+    7,   # Wednesday →  8th
+    5,   # Thursday  →  6th
+    3,   # Friday    →  4th
+    0,   # Saturday  →  1st
+]
+
+
+# ── Varjya (Nakshatra Varjyam / Visha Ghatis) — avoided nakshatra windows ─────
+# The ~96-minute avoid window inside a running nakshatra. Each nakshatra has a fixed
+# starting hour X (measured into a nakshatra normalized to 24 hours) at which the
+# window begins; the window lasts 1/15 of the nakshatra's span (≈1.6 h per 24 h
+# nakshatra). Up to two windows (Varjya1/2) can fall in one day — the day nakshatra's
+# and, when it also intersects daytime, the next nakshatra's.
+# Source: Drik Panchang "Nakshatra Thyajyam | Varjyam" table — start times for all
+# 27 nakshatras (https://www.drikpanchang.com/tutorials/panchang-utilities/nakshatra-thyajyam.html);
+# duration method per PanchangamCalculations.pdf (archive.org item PanchangamCalculations);
+# cross-checked against panchangtime.com Varjyam guide ("Varjyam is based on that
+# day's nakshatra"). Values are hours, keyed by Nakshatra enum (ASVINI=0 … REVATI=26).
+
+_NAKSHATRA_VARJYA_START_HOURS: List[float] = [
+    20.0,  # Ashwini
+    9.6,   # Bharani
+    12.0,  # Krittika
+    16.0,  # Rohini
+    5.6,   # Mrigasira
+    8.4,   # Ardra
+    12.0,  # Punarvasu
+    8.0,   # Pushya
+    12.8,  # Ashlesha
+    12.0,  # Magha
+    8.0,   # Purva Phalguni
+    7.2,   # Uttara Phalguni
+    8.4,   # Hasta
+    8.0,   # Chitra
+    5.6,   # Swati
+    5.6,   # Vishakha
+    4.0,   # Anuradha
+    5.6,   # Jyeshtha
+    8.4,   # Mula
+    9.6,   # Purva Ashadha
+    8.0,   # Uttara Ashadha
+    4.0,   # Shravana
+    4.0,   # Dhanishta
+    7.2,   # Shatabhisha
+    6.4,   # Purva Bhadrapada
+    9.6,   # Uttara Bhadrapada
+    12.0,  # Revati
+]
+
+_NAKSHATRA_SPAN_DEG = 360.0 / 27.0      # 13°20' per nakshatra
+_VARJYA_FRACTION = 1.0 / 15.0           # window length = 1/15 of the nakshatra span
+_MOON_SPEED_DEG_PER_DAY = 360.0 / 27.321661  # mean sidereal Moon motion (°/day)
+
+
+# ── Panchaka Rahita — five avoided types over the day (B.V. Raman mod-9 rule) ──
+# For a candidate moment: category = (Tithi# + Vara# + Nakshatra# + Lagna#) mod 9,
+# where Tithi# is 1..15 within its paksha, Vara# is Sun=1..Sat=7, Nakshatra# is
+# Ashwini=1..Revati=27, and Lagna# is the ascending rashi Aries=1..Pisces=12.
+# Remainder → category: 0,3,5,7 Rahita (good); 1 Mrityu; 2 Agni; 4 Raja; 6 Chora;
+# 8 Roga. Source: Dr. B.V. Raman's "Muhurta" (mapping per RVA muhurta notes at
+# https://www.rahasyavedicastrology.com/muhurat-panchaka-rahitam); verified
+# segment-by-segment against Drik Panchang "Panchaka Rahita Muhurta for the day"
+# for Chennai 2026-09-16 (all 13 segments reproduce exactly).
+
+_PANCHAKA_CATEGORY_BY_REMAINDER: Dict[int, Tuple[str, bool]] = {
+    0: ("Rahita", True),
+    1: ("Mrityu", False),
+    2: ("Agni", False),
+    3: ("Rahita", True),
+    4: ("Raja", False),
+    5: ("Rahita", True),
+    6: ("Chora", False),
+    7: ("Rahita", True),
+    8: ("Roga", False),
+}
+
+
+# ── Chandra Bala — personal Moon strength from the Janma rashi ─────────────────
+# Count inclusively from the person's Janma rashi (derived from the Janma nakshatra)
+# to the day's Moon rashi; the resulting house maps to a grade:
+#   GOOD    on 1st, 3rd, 6th, 7th, 10th, 11th — favorable for beginnings
+#   NEUTRAL on 2nd, 5th, 9th                  — middling, not relied upon
+#   BAD     on 4th, 8th, 12th                 — weakest, avoided
+# Source: Drik Panchang "Good Chandrabalam … rashi borns" lists,
+# PanchangTime Chandrabala methodology (https://panchangtime.com/methodology/chandrabala),
+# AstroShruti "1-3-6-7-10-11 rule", mypanchang.mypanchang.com chandra-bala note.
+
+_CHANDRA_BALA_GOOD_HOUSES: Tuple[int, ...] = (1, 3, 6, 7, 10, 11)
+_CHANDRA_BALA_NEUTRAL_HOUSES: Tuple[int, ...] = (2, 5, 9)
+_CHANDRA_BALA_BAD_HOUSES: Tuple[int, ...] = (4, 8, 12)
+
+
 # ── Abhijit Muhurta — the daily 48-minute auspicious window ──────────────────
 # Around local noon (when Sun is at the meridian).
 # Standard: 24 minutes before local noon to 24 minutes after.
@@ -262,6 +378,65 @@ class TaskEvaluation:
         if self.in_abhijit:
             parts.append("Abhijit!")
         return f"{self.datetime.strftime('%H:%M')} score={self.score:.2f} {' '.join(parts)}"
+
+
+# ── Adjunct grades ─────────────────────────────────────────────────────────────
+
+class Tara(Enum):
+    """Tara Bala — 9-fold star strength counted Janma→target inclusive, mod 9."""
+
+    JANMA = "Janma"
+    SAMPAT = "Sampat"
+    VIPAT = "Vipat"
+    KSHEMA = "Kshema"
+    PRATYARI = "Pratyari"
+    SADHAKA = "Sadhaka"
+    NIDHANA = "Nidhana"
+    MITRA = "Mitra"
+    PARAMA_MITRA = "Parama Mitra"
+
+    @property
+    def auspicious(self) -> bool:
+        return self in (
+            Tara.SAMPAT, Tara.KSHEMA, Tara.SADHAKA, Tara.MITRA, Tara.PARAMA_MITRA,
+        )
+
+    @classmethod
+    def from_janma(cls, janma: Nakshatra, target: Nakshatra) -> Tuple["Tara", bool]:
+        """Classify `target` relative to the Janma nakshatra (inclusive 9-count)."""
+        count = (target.value - janma.value) % 27 + 1
+        remainder = count % 9
+        by_remainder = {
+            1: Tara.JANMA, 2: Tara.SAMPAT, 3: Tara.VIPAT, 4: Tara.KSHEMA,
+            5: Tara.PRATYARI, 6: Tara.SADHAKA, 7: Tara.NIDHANA, 8: Tara.MITRA,
+            0: Tara.PARAMA_MITRA,
+        }
+        tara = by_remainder[remainder]
+        return tara, tara.auspicious
+
+
+class ChandraBala(Enum):
+    """Chandra Bala grade from the house count Janma-rashi → day Moon-rashi.
+
+    GOOD houses 1,3,6,7,10,11; NEUTRAL 2,5,9; BAD 4,8,12; UNAVAILABLE without Janma.
+    """
+
+    GOOD = "Good"
+    NEUTRAL = "Neutral"
+    BAD = "Bad"
+    UNAVAILABLE = "unavailable"
+
+
+@dataclass(frozen=True)
+class AdjunctsInfo:
+    """Bundle of Durmuhurta/Varjya/Panchaka windows plus Bala grades for a day."""
+
+    durmuhurta: Tuple[InauspiciousPeriod, ...]
+    varjya: Tuple[InauspiciousPeriod, ...]
+    panchaka: Tuple[InauspiciousPeriod, ...]
+    chandra_bala: ChandraBala
+    tara_bala: Optional[Tara]
+    tara_auspicious: bool
 
 
 # ── Core helpers ───────────────────────────────────────────────────────────────
@@ -425,10 +600,7 @@ def evaluate_time(
     in_rahukalam = False
     in_gulika = False
     in_yamaganda = False
-    from jhora.ephemeris.swe import SweEngine
-    swe = SweEngine()
-    gmt = dt.hour - tz_offset
-    jd_dt = swe.julday(dt.year, dt.month, dt.day, gmt)
+    jd_dt = _datetime_to_jd(dt, tz_offset)
     for p in inauspicious:
         if p.start <= jd_dt <= p.end:
             if p.kind == "Rahu Kalam":
@@ -483,6 +655,26 @@ def evaluate_time(
         score += 0.15
         detail_parts.append("Abhijit!")
 
+    # Daily adjuncts: Durmuhurta/Varjya/Panchaka avoidance, Chandra GOOD and
+    # auspicious Tara rewards (Tara/Chandra need a Janma nakshatra).
+    adjuncts = _day_adjuncts(dt, lat, lon, tz_offset, jnama_nakshatra)
+    if any(win.start <= jd_dt <= win.end for win in adjuncts.durmuhurta):
+        score -= 0.15
+        detail_parts.append("Durmuhurta!")
+    if any(win.start <= jd_dt <= win.end for win in adjuncts.varjya):
+        score -= 0.15
+        detail_parts.append("Varjya!")
+    _pan_kind, pan_rahita = _segments_kind_at(adjuncts.panchaka, jd_dt)
+    if _pan_kind is not None and not pan_rahita:
+        score -= 0.10
+        detail_parts.append(f"{_pan_kind} Panchaka!")
+    if adjuncts.chandra_bala is ChandraBala.GOOD:
+        score += 0.10
+        detail_parts.append("Chandra Bala Good")
+    if adjuncts.tara_auspicious:
+        score += 0.10
+        detail_parts.append("Tara Bala Good")
+
     score = max(0.0, min(1.0, score))
 
     return TaskEvaluation(
@@ -513,8 +705,242 @@ def _is_abhijit(dt: datetime, lat: float, lon: float, tz_offset: float) -> bool:
 def _datetime_to_jd(dt: datetime, tz_offset: float) -> float:
     from jhora.ephemeris.swe import SweEngine
     swe = SweEngine()
-    gmt = dt.hour - tz_offset
+    gmt = (dt.hour + dt.minute / 60.0 + dt.second / 3600.0) - tz_offset
     return swe.julday(dt.year, dt.month, dt.day, gmt)
+
+
+# ── Adjunct computations ───────────────────────────────────────────────────────
+
+def _moon_longitude_at_jd(jd: float) -> float:
+    from jhora.ephemeris.swe import SweEngine, SE_MOON
+    swe = SweEngine()
+    swe.set_sidereal_mode("lahiri")
+    return swe.calc_planet(SE_MOON, jd).longitude
+
+
+def _nakshatra_rasi(nakshatra: Nakshatra) -> Rasi:
+    """Rashi that contains the nakshatra's starting longitude."""
+    return Rasi.from_longitude(nakshatra.value * _NAKSHATRA_SPAN_DEG)
+
+
+def _durmuhurta_windows(date: datetime, lat: float, lon: float, tz_offset: float
+                        ) -> Tuple[InauspiciousPeriod, ...]:
+    """Day + night Durmuhurta windows from the weekday → 15-muhurta index tables.
+
+    DurMuhurta1 spans the weekday's day-muhurta; DurMuhurta2 the same index in the
+    15 equal night-muhurtas (sunset → next sunrise), matching the two columns of the
+    reference daily-adjuncts table.
+    """
+    sunrise, sunset = _sunrise_sunset(date, lat, lon, tz_offset)
+    next_sunrise, _next_sunset = _sunrise_sunset(date + timedelta(days=1), lat, lon, tz_offset)
+
+    wd = (date.weekday() + 1) % 7  # Sun=0
+    day_idx = _DURMUHURTA_DAY_MUHURTA_INDEX[wd]
+    night_idx = _DURMUHURTA_NIGHT_MUHURTA_INDEX[wd]
+
+    day_span = (sunset - sunrise) / 15.0
+    night_span = (next_sunrise - sunset) / 15.0
+
+    return (
+        InauspiciousPeriod(kind="Durmuhurta",
+                           start=sunrise + day_idx * day_span,
+                           end=sunrise + (day_idx + 1) * day_span),
+        InauspiciousPeriod(kind="Durmuhurta",
+                           start=sunset + night_idx * night_span,
+                           end=sunset + (night_idx + 1) * night_span),
+    )
+
+
+def _nakshatra_varjya_windows(date: datetime, lat: float, lon: float, tz_offset: float
+                              ) -> Tuple[InauspiciousPeriod, ...]:
+    """Nakshatra Varjyam windows (Visha Ghatis) inside the civil day.
+
+    Windows of the nakshatras the Moon occupies during the day (the one at the civil
+    day start and the next) are each clamped to the civil day 00:00–24:00 local and
+    returned as Varjya1/Varjya2, matching the two Varjya columns of the reference
+    table (Drik lists night Varjyam windows, so no daylight clipping is applied).
+    Moon position is referenced at the civil-day start.
+    """
+    day_start_dt = date.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_start_jd = _datetime_to_jd(day_start_dt, tz_offset)
+    day_end_jd = day_start_jd + 1.0
+
+    moon0 = _moon_longitude_at_jd(day_start_jd)
+    moon1 = _moon_longitude_at_jd(day_end_jd)
+    rate = (moon1 - moon0) % 360.0
+    if rate > 180.0:
+        rate -= 360.0
+
+    day_nak, _pada = Nakshatra.from_longitude(moon0)
+
+    def _crossing_jd(target_lon: float) -> Optional[float]:
+        frac = (target_lon - moon0) % 360.0 / rate if rate else float("inf")
+        return day_start_jd + frac if 0.0 <= frac <= 1.0 else None
+
+    windows = []
+    for nak in (day_nak, Nakshatra((day_nak.value + 1) % 27)):
+        nak_start_lon = nak.value * _NAKSHATRA_SPAN_DEG
+        start_fraction = _NAKSHATRA_VARJYA_START_HOURS[nak.value] / 24.0
+        start_lon = nak_start_lon + start_fraction * _NAKSHATRA_SPAN_DEG
+        end_lon = start_lon + _VARJYA_FRACTION * _NAKSHATRA_SPAN_DEG
+
+        start_jd = _crossing_jd(start_lon)
+        end_jd = _crossing_jd(end_lon)
+        if start_jd is None or end_jd is None:
+            continue
+
+        clipped_start = max(start_jd, day_start_jd)
+        clipped_end = min(end_jd, day_end_jd)
+        if clipped_end > clipped_start:
+            windows.append(InauspiciousPeriod(
+                kind="Varjya",
+                start=clipped_start,
+                end=clipped_end,
+            ))
+
+    return tuple(windows)
+
+
+def _panchaka_category_for(tithi_no: int, vara_no: int, nak_no: int, lagna_no: int
+                           ) -> Tuple[str, bool]:
+    """Panchaka category for the remainder (Tithi# + Vara# + Nakshatra# + Lagna#) mod 9."""
+    remainder = (tithi_no + vara_no + nak_no + lagna_no) % 9
+    return _PANCHAKA_CATEGORY_BY_REMAINDER[remainder]
+
+
+def _panchaka_category(dt: datetime, lat: float, lon: float, tz_offset: float
+                       ) -> Tuple[str, bool]:
+    from jhora.ephemeris.swe import SweEngine
+    panchanga = compute_panchanga(dt, lat, lon, tz_offset)
+    tithi_no = (panchanga.tithi.index % 15) + 1
+    vara_no = panchanga.weekday + 1
+    nak_no = panchanga.nakshatra.value + 1
+    swe = SweEngine()
+    ascendant = swe.houses(_datetime_to_jd(dt, tz_offset), lat, lon).ascendant
+    lagna_no = Rasi.from_longitude(ascendant).value + 1
+    return _panchaka_category_for(tithi_no, vara_no, nak_no, lagna_no)
+
+
+def _panchaka_segments(date: datetime, lat: float, lon: float, tz_offset: float
+                       ) -> Tuple[InauspiciousPeriod, ...]:
+    """Panchaka-Rahita segments over the civil day, grouped at 10-minute resolution.
+
+    Consecutive candidate moments sharing a category form one segment; Rahita (good)
+    segments carry kind "Rahita", the five avoid types carry "<Name> Panchaka".
+    """
+    step = timedelta(minutes=10)
+    day_start = date.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = date.replace(hour=23, minute=59)
+
+    segments = []
+    seg_start = day_start
+    seg_kind = None
+    seg_cat = None
+    dt = day_start
+    while dt < day_end:
+        cat = _panchaka_category(dt, lat, lon, tz_offset)
+        if cat != seg_cat:
+            if seg_kind is not None:
+                label = seg_kind if seg_cat[1] else f"{seg_kind} Panchaka"
+                segments.append(InauspiciousPeriod(
+                    kind=label,
+                    start=_datetime_to_jd(seg_start, tz_offset),
+                    end=_datetime_to_jd(dt, tz_offset),
+                ))
+            seg_cat = cat
+            seg_kind, _rahita = cat
+            seg_start = dt
+        dt += step
+
+    label = seg_kind if seg_cat[1] else f"{seg_kind} Panchaka"
+    segments.append(InauspiciousPeriod(
+        kind=label,
+        start=_datetime_to_jd(seg_start, tz_offset),
+        end=_datetime_to_jd(day_end, tz_offset),
+    ))
+    return tuple(segments)
+
+
+def _chandra_bala_grade_for(moon_rasi_value: int, janma_nakshatra: Optional[Nakshatra]
+                            ) -> ChandraBala:
+    if janma_nakshatra is None:
+        return ChandraBala.UNAVAILABLE
+    janma_rasi = _nakshatra_rasi(janma_nakshatra)
+    house = (moon_rasi_value - janma_rasi.value) % 12 + 1
+    if house in _CHANDRA_BALA_GOOD_HOUSES:
+        return ChandraBala.GOOD
+    if house in _CHANDRA_BALA_BAD_HOUSES:
+        return ChandraBala.BAD
+    return ChandraBala.NEUTRAL
+
+
+def _tara_bala_for(day_nakshatra: Nakshatra,
+                   janma_nakshatra: Optional[Nakshatra]) -> Tuple[Optional[Tara], bool]:
+    if janma_nakshatra is None:
+        return None, False
+    tara, auspicious = Tara.from_janma(janma_nakshatra, day_nakshatra)
+    return tara, auspicious
+
+
+def compute_adjuncts(
+    date: datetime,
+    lat: float,
+    lon: float,
+    tz_offset: float = 0.0,
+    janma_nakshatra: Optional[Nakshatra] = None,
+) -> AdjunctsInfo:
+    """Single-source day-level adjunct bundle shared by CLI, GUI, JSON, and AI.
+
+    Durmuhurta/Varjya/Panchaka are returned as spans in JD hours (reusing
+    InauspiciousPeriod); Chandra Bala uses the Moon at sunrise; Tara Bala is graded
+    against the day nakshatra (the panchang nakshatra at sunrise) and is UNAVAILABLE
+    when no Janma nakshatra is supplied.
+    """
+    sunrise, _sunset = _sunrise_sunset(date, lat, lon, tz_offset)
+    moon_at_sunrise = _moon_longitude_at_jd(sunrise)
+    day_nak, _pada = Nakshatra.from_longitude(moon_at_sunrise)
+    moon_rasi = Rasi.from_longitude(moon_at_sunrise)
+
+    tara, tara_auspicious = _tara_bala_for(day_nak, janma_nakshatra)
+
+    return AdjunctsInfo(
+        durmuhurta=_durmuhurta_windows(date, lat, lon, tz_offset),
+        varjya=_nakshatra_varjya_windows(date, lat, lon, tz_offset),
+        panchaka=_panchaka_segments(date, lat, lon, tz_offset),
+        chandra_bala=_chandra_bala_grade_for(moon_rasi.value, janma_nakshatra),
+        tara_bala=tara,
+        tara_auspicious=tara_auspicious,
+    )
+
+
+# Bounded per-day adjunct cache: Durmuhurta/Varjya windows, Panchaka segments, and
+# the Chandra/Tara day grades depend only on (date, lat, lon, tz, Janma), so the
+# per-moment scorer reuses them across the 10-minute scan without recomputation.
+_DAY_ADJUNCTS_CACHE: Dict[Tuple, AdjunctsInfo] = {}
+_DAY_ADJUNCTS_CACHE_MAX = 64
+
+
+def _day_adjuncts(date: datetime, lat: float, lon: float, tz_offset: float,
+                  janma_nakshatra: Optional[Nakshatra]) -> AdjunctsInfo:
+    key = (date.date(), round(lat, 6), round(lon, 6), tz_offset, janma_nakshatra)
+    cached = _DAY_ADJUNCTS_CACHE.get(key)
+    if cached is None:
+        cached = compute_adjuncts(date, lat, lon, tz_offset, janma_nakshatra)
+        if len(_DAY_ADJUNCTS_CACHE) >= _DAY_ADJUNCTS_CACHE_MAX:
+            _DAY_ADJUNCTS_CACHE.pop(next(iter(_DAY_ADJUNCTS_CACHE)))
+        _DAY_ADJUNCTS_CACHE[key] = cached
+    return cached
+
+
+def _segments_kind_at(segments: Tuple[InauspiciousPeriod, ...], jd: float
+                      ) -> Tuple[Optional[str], bool]:
+    """Panchaka (name, rahita) for the segment containing `jd`, else (None, False)."""
+    for seg in segments:
+        if seg.start <= jd <= seg.end:
+            if seg.kind == "Rahita":
+                return "Rahita", True
+            return seg.kind.split()[0], False
+    return None, False
 
 
 def find_muhurta(

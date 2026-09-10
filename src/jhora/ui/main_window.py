@@ -1825,6 +1825,10 @@ class MainWindow(QMainWindow):
         self.muhurta_choghadiya_btn.clicked.connect(self._on_muhurta_choghadiya)
         btn_row.addWidget(self.muhurta_choghadiya_btn)
 
+        self.muhurta_adjuncts_btn = QPushButton("Adjuncts")
+        self.muhurta_adjuncts_btn.clicked.connect(self._on_muhurta_adjuncts)
+        btn_row.addWidget(self.muhurta_adjuncts_btn)
+
         self.muhurta_best_spin = QComboBox()
         self.muhurta_best_spin.addItems(["5", "10", "20", "All"])
         self.muhurta_best_spin.setCurrentIndex(0)
@@ -2034,6 +2038,86 @@ class MainWindow(QMainWindow):
                 "Day slots are sunrise→sunset; night slots sunset→next sunrise. "
                 "Green = Good, Yellow = Neutral, Red = Bad."
             )
+
+    def _on_muhurta_adjuncts(self):
+        from jhora.calc.muhurta import (
+            Tara, compute_adjuncts, _datetime_to_jd, _sunrise_sunset,
+        )
+        from jhora.types.nakshatra import Nakshatra
+
+        try:
+            dt, tz_offset, lat, lon = self._get_muhurta_inputs()
+        except (ValueError, AttributeError) as e:
+            QMessageBox.warning(self, "Input Error", f"Invalid input: {e}")
+            return
+
+        janma = None
+        janma_source = "no saved birth chart"
+        chart = getattr(self, "chart_data", None)
+        if chart is not None:
+            try:
+                janma, _pada = Nakshatra.from_longitude(chart.moon.longitude)
+                janma_source = "saved birth chart Moon"
+            except Exception:
+                janma = None
+
+        info = compute_adjuncts(dt, lat, lon, tz_offset, janma)
+        base_jd = _datetime_to_jd(dt.replace(hour=0, minute=0, second=0, microsecond=0),
+                                  tz_offset)
+        sunrise, sunset = _sunrise_sunset(dt, lat, lon, tz_offset)
+
+        def _hhmm(jd_value: float) -> str:
+            total = int(round((((jd_value - base_jd) * 24.0) % 24.0) * 60.0)) % (24 * 60)
+            return f"{total // 60:02d}:{total % 60:02d}"
+
+        headers = ["Item", "Start", "End", "Detail"]
+        rows = [
+            ("Sunrise", _hhmm(sunrise), "", ""),
+            ("Sunset", _hhmm(sunset), "", ""),
+        ]
+        for index, label in enumerate(("DurMuhurta1", "DurMuhurta2")):
+            if index < len(info.durmuhurta):
+                win = info.durmuhurta[index]
+                rows.append((label, _hhmm(win.start), _hhmm(win.end), "avoid"))
+            else:
+                rows.append((label, "—", "—", ""))
+        for index, label in enumerate(("Varjya1", "Varjya2")):
+            if index < len(info.varjya):
+                win = info.varjya[index]
+                rows.append((label, _hhmm(win.start), _hhmm(win.end), "avoid"))
+            else:
+                rows.append((label, "—", "—", ""))
+        for number, seg in enumerate(info.panchaka, start=1):
+            rows.append((f"Panchaka {number}", _hhmm(seg.start), _hhmm(seg.end), seg.kind))
+
+        self.muhurta_table.setColumnCount(len(headers))
+        self.muhurta_table.setHorizontalHeaderLabels(headers)
+        self.muhurta_table.setRowCount(len(rows))
+        for row, (item, start, end, detail) in enumerate(rows):
+            self.muhurta_table.setItem(row, 0, QTableWidgetItem(item))
+            self.muhurta_table.setItem(row, 1, QTableWidgetItem(start))
+            self.muhurta_table.setItem(row, 2, QTableWidgetItem(end))
+            self.muhurta_table.setItem(row, 3, QTableWidgetItem(detail))
+        self.muhurta_table.resizeColumnsToContents()
+
+        if info.tara_bala is None:
+            tara_line = "Tara Bala: unavailable (no Janma nakshatra)"
+        elif info.tara_bala is Tara.JANMA:
+            tara_line = f"Tara Bala: {info.tara_bala.value} (neutral)"
+        elif info.tara_auspicious:
+            tara_line = f"Tara Bala: {info.tara_bala.value} (auspicious)"
+        else:
+            tara_line = f"Tara Bala: {info.tara_bala.value} (inauspicious)"
+        self.muhurta_detail.setText(
+            f"Daily adjuncts — {dt.strftime('%Y-%m-%d')} ({lat:.2f}°, {lon:.2f}°)\n"
+            f"Chandra Bala: {info.chandra_bala.value}\n"
+            f"{tara_line}\n"
+            f"Janma source: {janma_source}"
+        )
+        self.muhurta_result.setText(
+            f"Muhurta adjuncts — {dt.strftime('%A %d %B %Y')}  "
+            f"({lat:.2f}°, {lon:.2f}°)"
+        )
 
     def _build_knowledge_tab(self):
         w = QWidget()
