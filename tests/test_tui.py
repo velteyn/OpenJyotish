@@ -3,6 +3,19 @@
 from jhora.tui.main import JhoraTui
 
 
+def _isolate_db(tmp_path, name="tui-save.db"):
+    from jhora.core import database as db
+    old = db._db_path
+    db.set_db_path(str(tmp_path / name))
+    return old
+
+
+def _restore_db(old):
+    from jhora.core import database as db
+    db.close_all()
+    db._db_path = old
+
+
 def test_usl_menu_item_present():
     """User's Special Lagna is a reachable entry in the Chart menu."""
     tui = JhoraTui()
@@ -43,3 +56,24 @@ def test_dasa_menu_item_all_systems():
     labels = [label for _, label, _ in items]
     assert any("all systems" in label for label in labels)
     assert any("system/seed" in label for label in labels)
+
+
+def test_save_db_stores_true_birth_time(tmp_path):
+    """Charts saved from the TUI keep the birth hour, not midnight."""
+    from jhora.charts.chart import ChartBuilder
+    from jhora.core import database as db
+    old = _isolate_db(tmp_path)
+    try:
+        tui = JhoraTui()
+        tui.chart = ChartBuilder().build(
+            2026, 7, 7, 10.5, lat=13.08, lon=80.27, tz="+0530")
+        tui._action_save_db()
+        conn = db.get_db()
+        row = conn.execute(
+            "SELECT time_hours, day, month, year FROM charts "
+            "ORDER BY id DESC LIMIT 1").fetchone()
+        assert row is not None
+        assert abs(row["time_hours"] - 10.5) < 1e-6
+        assert (row["day"], row["month"], row["year"]) == (7, 7, 2026)
+    finally:
+        _restore_db(old)

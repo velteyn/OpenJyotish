@@ -843,7 +843,7 @@ class JhoraTui:
         cid = save_chart_to_db(
             name=f"Chart {datetime.now().strftime('%Y-%m-%d %H:%M')}",
             day=bd.day, month=bd.month, year=bd.year,
-            time_hours=bd.hour + bd.minute / 60.0,
+            time_hours=self.chart.time_of_day_hours,
             tz_offset=float(self.chart.timezone.replace("+", "").replace("−", "-") or 0),
             latitude=self.chart.latitude, longitude=self.chart.longitude,
         )
