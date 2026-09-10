@@ -1874,6 +1874,61 @@ def mundane(
             console.print()
 
 
+@app.command()
+def choghadiya(
+    date_str: Optional[str] = typer.Argument(None, help="Date YYYY-MM-DD (default: today)"),
+    lat: float = typer.Option(28.61, "--lat", help="Latitude"),
+    lon: float = typer.Option(77.21, "--lon", help="Longitude"),
+    tz: float = typer.Option(5.5, "--tz", help="Timezone offset hours east of UTC"),
+    now: bool = typer.Option(False, "--now", help="Highlight the current slot"),
+):
+    """Choghadiya — 8 day + 8 night auspicious/inauspicious time slots."""
+    from jhora.calc.choghadiya import choghadiya_day, GRAHA_NAME
+    if date_str:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+    else:
+        dt = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    cd = choghadiya_day(dt, lat, lon, tz)
+    current = None
+    if now:
+        current = cd.current_slot(datetime.now())
+
+    table = Table(title=f"Choghadiya — {dt.strftime('%A %d %B %Y')}  ({lat:.2f}°, {lon:.2f}°)")
+    table.add_column("#", style="dim", width=3)
+    table.add_column("Slot", style="cyan", width=8)
+    table.add_column("Rating", width=8)
+    table.add_column("Lord", style="magenta", width=8)
+    table.add_column("Start", style="white")
+    table.add_column("End", style="white")
+    table.add_column("Duration", style="dim")
+
+    rating_style = {"Good": "green", "Bad": "red", "Neutral": "yellow"}
+
+    for i, slot in enumerate(cd.day_slots, 1):
+        rs = rating_style.get(slot.rating, "white")
+        is_current = current is not None and slot is current
+        label = f"[bold]{slot.name}[/bold]" if is_current else slot.name
+        rating_label = f"[{rs}]{slot.rating}[/{rs}]"
+        dur = f"{slot.duration_minutes:.0f}m"
+        table.add_row(str(i), label, rating_label, slot.lord.name,
+                      slot.start.strftime("%H:%M"), slot.end.strftime("%H:%M"), dur)
+
+    for i, slot in enumerate(cd.night_slots, 9):
+        rs = rating_style.get(slot.rating, "white")
+        is_current = current is not None and slot is current
+        label = f"[bold]{slot.name}[/bold]" if is_current else slot.name
+        rating_label = f"[{rs}]{slot.rating}[/{rs}]"
+        dur = f"{slot.duration_minutes:.0f}m"
+        table.add_row(str(i), label, rating_label, slot.lord.name,
+                      slot.start.strftime("%H:%M"), slot.end.strftime("%H:%M"), dur)
+
+    console.print(table)
+    if current:
+        remaining = (current.end - datetime.now()).total_seconds() / 60.0
+        console.print(f"\n[bold]Current: {current.name} ({current.rating}) "
+                      f"— {remaining:.0f} min remaining[/bold]")
+
+
 @app.callback()
 def cli():
     """OpenJyotish — Vedic astrology calculator (Python port)."""
