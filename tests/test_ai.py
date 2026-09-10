@@ -202,6 +202,22 @@ class TestArudhaSahamaExport:
         assert "Choghadiya" in text
         assert "Day " in text and "Night " in text
 
+    def test_analysis_text_has_muhurta_adjuncts(self):
+        from jhora.ai.analysis import muhurta_adjuncts_snapshot
+        from jhora.types.nakshatra import Nakshatra
+
+        cd = _sample_chart()
+        janma, _pada = Nakshatra.from_longitude(cd.moon.longitude)
+        assert janma is not None
+        text = build_analysis_text(cd)
+        assert "MUHURTA ADJUNCTS" in text
+        snapshot = muhurta_adjuncts_snapshot(cd)
+        assert "Durmuhurta avoid" in snapshot
+        assert "Varjya avoid" in snapshot
+        assert "Panchaka avoid" in snapshot
+        assert "Chandra Bala:" in snapshot
+        assert "Tara Bala:" in snapshot
+
     def test_json_export_has_choghadiya(self):
         from jhora.ai.json_export import full_analysis
         cd = _sample_chart()

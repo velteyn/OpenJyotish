@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 34 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-20-section JSON API for AI agents  |  852 tests  |  AGPL v3.0
+21-section JSON API for AI agents  |  876 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -117,13 +117,14 @@ One command, everything computed. Pipe to AI agents, `jq`, or Python:
 
 ```bash
 jhora analyze "birthdata"
-# → 10KB JSON — 20 sections, every calculation
+# → 10KB JSON — 21 sections, every calculation
 
 # Pipe it around
 jhora analyze "..." | jq '.planets.Su.house'
 jhora analyze "..." | jq '.dasa.mahadashas[] | select(.current)'
 jhora analyze "..." | jq '.dasa.systems'   # current MD in every dasa system
 jhora analyze "..." | jq '.choghadiya.current'   # current Choghadiya slot
+jhora analyze "..." | jq '.muhurta_adjuncts.chandra_bala'   # daily adjunct grades
 ```
 
 ```python
@@ -138,7 +139,7 @@ data = json.loads(subprocess.run(
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets + upagrahas + outer planets |
-| `analyze` | AI-friendly JSON dump (20 sections) |
+| `analyze` | AI-friendly JSON dump (21 sections) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
@@ -152,7 +153,7 @@ data = json.loads(subprocess.run(
 | `progression` | Secondary progressions (1 day = 1 year) |
 | `kuta` | Marriage compatibility (Porutham + Ashta Koota) |
 | `prasna` | Horary (108/249/Nadi modes) |
-| `muhurta` | Electional — 11 task types |
+| `muhurta` | Electional — 11 task types (+ `--adjuncts` daily table, `--janma-nakshatra` Bala grades) |
 | `choghadiya` | 8 day + 8 night auspicious/inauspicious time slots |
 | `mundane` | World events, eclipses, ingresses |
 | `compare` | Natal vs transit or two-chart comparison |
