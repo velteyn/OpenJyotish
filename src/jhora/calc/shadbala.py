@@ -176,7 +176,7 @@ class ShadbalaComputer:
         self._varga_cache: Dict[VargaLevel, dict] = {}
         self._init_vargas()
         try:
-            tz_east = -ChartBuilder._parse_tz(cd.timezone)
+            tz_east = -ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
         except Exception:
             tz_east = 0.0
         self._tz_east = tz_east
