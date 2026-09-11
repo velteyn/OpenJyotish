@@ -3668,7 +3668,8 @@ class MainWindow(QMainWindow):
             up_lines.append("")
             next_md = None
             for p in periods:
-                if p.start_date > current_md.end_date:
+                # Contiguous MDs: the next starts exactly when current ends.
+                if p.start_date >= current_md.end_date:
                     next_md = p
                     break
             if next_md:
@@ -3696,25 +3697,40 @@ class MainWindow(QMainWindow):
         self.dash_upcoming.setHtml(_to_html(up_lines) if up_lines else "Dasa data unavailable")
 
         # ── KEY DATES ──
+        # Sade Sati and retrograde status are TRANSIT facts (current sky vs
+        # natal Moon), never natal positions.
         kd_lines = ["[bold]Sade Sati Check:[/bold]"]
-        saturn = cd.planet(Graha.SATURN).longitude
-        moon_rasi = int(cd.planet(Graha.MOON).longitude / 30)
-        sat_rasi = int(saturn / 30)
-        # Sade Sati: Saturn transiting 12th, 1st, 2nd from Moon
-        ss_signs = [(moon_rasi - 1) % 12, moon_rasi, (moon_rasi + 1) % 12]
-        if sat_rasi in ss_signs:
-            pos = ["12th from Moon", "1st from Moon (peak)", "2nd from Moon"][ss_signs.index(sat_rasi)]
-            kd_lines.append(f"  🟡 IN Sade Sati ({pos})")
-        else:
-            dist = min((sat_rasi - moon_rasi) % 12, (moon_rasi - sat_rasi) % 12)
-            kd_lines.append(f"  Sade Sati in ~{dist * 2.5:.0f} years (Saturn at {dist} signs away)")
+        try:
+            tr_now = compute_transits(cd)
+            by_graha = {e.graha: e for e in tr_now.entries}
+            sat_rasi = by_graha[Graha.SATURN].transit_rasi
+            moon_rasi = int(cd.planet(Graha.MOON).longitude / 30)
+            # Sade Sati: transit Saturn in 12th, 1st, 2nd from natal Moon
+            ss_signs = [(moon_rasi - 1) % 12, moon_rasi, (moon_rasi + 1) % 12]
+            if sat_rasi in ss_signs:
+                pos = ["12th from Moon", "1st from Moon (peak)", "2nd from Moon"][ss_signs.index(sat_rasi)]
+                kd_lines.append(f"  🟡 IN Sade Sati ({pos})")
+            else:
+                dist = min((sat_rasi - moon_rasi) % 12, (moon_rasi - sat_rasi) % 12)
+                kd_lines.append(f"  Sade Sati in ~{dist * 2.5:.0f} years (Saturn at {dist} signs away)")
+        except Exception:
+            kd_lines.append("  Transit data unavailable")
 
         kd_lines.append("")
-        kd_lines.append("[bold]Retrograde Watch:[/bold]")
-        for g in [Graha.MERCURY, Graha.VENUS, Graha.MARS, Graha.JUPITER, Graha.SATURN]:
-            p = cd.planet(g)
-            if p.is_retrograde:
-                kd_lines.append(f"  {g.short_name} is currently RETROGRADE")
+        kd_lines.append("[bold]Retrograde Watch (transit):[/bold]")
+        try:
+            tr_now = compute_transits(cd)
+            retro = [e.graha.short_name for e in tr_now.entries
+                     if e.graha in (Graha.MERCURY, Graha.VENUS, Graha.MARS,
+                                    Graha.JUPITER, Graha.SATURN)
+                     and e.is_retrograde]
+            if retro:
+                for name in retro:
+                    kd_lines.append(f"  {name} is currently RETROGRADE")
+            else:
+                kd_lines.append("  No major planet retrograde right now")
+        except Exception:
+            kd_lines.append("  Transit data unavailable")
         kd_lines.append("")
         kd_lines.append("[bold]Auspicious Days (this month):[/bold]")
         kd_lines.append("  Every Monday, Thursday, Friday")
