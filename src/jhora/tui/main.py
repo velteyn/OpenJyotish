@@ -845,7 +845,7 @@ class JhoraTui:
             day=bd.day, month=bd.month, year=bd.year,
             time_hours=self.chart.time_of_day_hours,
             # DB/JHD convention is east-positive; _parse_tz is west-positive.
-            tz_offset=-ChartBuilder._parse_tz(self.chart.timezone),
+            tz_offset=-ChartBuilder._parse_tz(self.chart.timezone, bd),
             latitude=self.chart.latitude, longitude=self.chart.longitude,
         )
         self._content_lines = [f"\n  [green]Saved to DB (ID: {cid})[/green]"]
