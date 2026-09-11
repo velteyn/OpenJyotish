@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Ayanamsa | True Chitra Paksha (~23.842) | Lahiri (~23.808) | Systematic ~0.015–0.034°, normalized per chart |
 | Ephemeris | JPL DE421 (Skyfield) | Swiss Ephemeris | Planets agree to the ayanamsa offset; tropical Moon within ~0.01° |
-| Nodes | Unknown theory (see TRIAGE-1) | Mean node | Unresolved |
+| Nodes | Truncated linear Meeus (proven) | Swiss fitted mean elements | Ours more precise |
 | Dasa year | Effectively solar (MD ends ≤ days) | Solar 365.2425 default | Match |
 | Houses | Whole-sign Rasi | Whole-sign Rasi (+Placidus Bhava) | Match at Rasi level |
 | AD alignment | From MD lord (standard) | Always Ketu-first (see TRIAGE-3) | Our bug |
@@ -28,11 +28,11 @@
 
 ## Open findings (mismatches → follow-ups, never absorbed here)
 
-- **TRIAGE-1 — node theory**: their Rahu gaps vs our mean node vary by chart
-  (−0.39° … +0.36°), matching neither mean nor true node + offset. Their
-  algorithm unknown. Impact: Rahu/Ketu nakshatra + dasa-balance edge cases.
-  Follow-up: pin their theory (ask upstream or probe osculating/smoothed
-  variants) or document mean-node stance.
+- **TRIAGE-1 — node theory**: ✅ RESOLVED by reading their open source
+  (`core/astronomical.py`): their Rahu is the *truncated linear* Meeus mean
+  node (`125.04452 − 1934.136261·T`, no higher terms), reproduced to 0.0001°
+  on all 8 fixtures. Ours is Swiss fitted mean elements — strictly more
+  precise. No action; our mean-node stance stands, documented here.
 - **TRIAGE-2 — our `_karana` ignores the half-tithi fraction**
   (`tithi.index * 2 % 11`): wrong karana name for most tithis (e.g. Taitula
   instead of Balava for first-half Krishna Chaturthi). ✅ RESOLVED by
