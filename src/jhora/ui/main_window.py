@@ -541,7 +541,8 @@ class MainWindow(QMainWindow):
             lon = float(self.lon_input.text().strip())
             city = self.city_input.text().strip()
             hour = qt.hour() + qt.minute() / 60.0 + qt.second() / 3600.0
-            tz_offset = ChartBuilder._parse_tz(tz_str)
+            # DB/JHD convention is east-positive; _parse_tz is west-positive.
+            tz_offset = -ChartBuilder._parse_tz(tz_str)
             name = f"{city or 'Unknown'} {qd.day():02d}/{qd.month():02d}/{qd.year()}"
             chart_id = save_chart_to_db(
                 name=name, day=qd.day(), month=qd.month(), year=qd.year(),
@@ -609,7 +610,8 @@ class MainWindow(QMainWindow):
             lon = float(self.lon_input.text().strip())
             city = self.city_input.text().strip()
             hour = qt.hour() + qt.minute() / 60.0 + qt.second() / 3600.0
-            tz_offset = ChartBuilder._parse_tz(tz_str)
+            # JHD convention is east-positive; _parse_tz is west-positive.
+            tz_offset = -ChartBuilder._parse_tz(tz_str)
             data = JhdData(
                 filename=path.split("/")[-1],
                 format=JhdFormat.BIRTH_CITY,
@@ -3765,8 +3767,6 @@ class MainWindow(QMainWindow):
         self.cons_planet_table.resizeColumnsToContents()
 
     def _populate_cons_natal_panel(self, cd: ChartData):
-        import swisseph as swe
-
         from jhora.types.nakshatra import Nakshatra
 
         moon = cd.planet(Graha.MOON).longitude
@@ -3815,19 +3815,13 @@ class MainWindow(QMainWindow):
         karana_lords = ["Su","Mo","Ma","Me","Ju","Ve","Sa"]
         karana_lord = karana_lords[karana_idx % 7]
 
-        # Sunrise/sunset
+        # Sunrise/sunset via the single precise source (the raw swe call this
+        # replaced was rejected by pyswisseph and always showed "N/A").
         try:
-            jd = cd.julian_day
-            flag = swe.CALC_RISE | swe.BIT_NO_REFRACTION
-            res, tret = swe.rise_trans(jd - 1, swe.SUN, 0, 0, flag,
-                                       (cd.longitude, cd.latitude, 0))
-            sr_jd = tret[0] if tret else jd + 0.25
-            sr_h = (sr_jd - int(sr_jd)) * 24
-            res2, tret2 = swe.rise_trans(jd - 1, swe.SUN, 0, 0,
-                                         flag | swe.CALC_SET,
-                                         (cd.longitude, cd.latitude, 0))
-            ss_jd = tret2[0] if tret2 else jd + 0.75
-            ss_h = (ss_jd - int(ss_jd)) * 24
+            from jhora.calc.muhurta import sunrise_sunset_hours
+            tz_east = -ChartBuilder._parse_tz(cd.timezone)
+            sr_h, ss_h = sunrise_sunset_hours(cd.birth_date, cd.latitude,
+                                              cd.longitude, tz_east)
             sunrise = f"{int(sr_h):02d}:{int((sr_h%1)*60):02d}:{int(((sr_h%1)*60%1)*60):02d}"
             sunset = f"{int(ss_h):02d}:{int((ss_h%1)*60):02d}:{int(((ss_h%1)*60%1)*60):02d}"
         except Exception:
@@ -3849,9 +3843,11 @@ class MainWindow(QMainWindow):
         wdays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
         wd = wdays[cd.birth_date.weekday()]
 
+        # True birth time (birth_date is date-only by design).
+        _bt = int(round(birth_h * 3600)) % 86400
         lines = [
             f"Date:         {cd.birth_date.strftime('%B %d, %Y')}",
-            f"Time:         {cd.birth_date.strftime('%H:%M:%S')}",
+            f"Time:         {_bt//3600:02d}:{(_bt%3600)//60:02d}:{_bt%60:02d}",
             f"Time Zone:    {cd.timezone} (West of GMT)" if cd.timezone.startswith("-") else f"Time Zone:    {cd.timezone} (East of GMT)",
             f"Place:        {cd.latitude:.4f}°, {cd.longitude:.4f}°",
             f"",

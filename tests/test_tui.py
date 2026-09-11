@@ -70,10 +70,11 @@ def test_save_db_stores_true_birth_time(tmp_path):
         tui._action_save_db()
         conn = db.get_db()
         row = conn.execute(
-            "SELECT time_hours, day, month, year FROM charts "
+            "SELECT time_hours, tz_offset, day, month, year FROM charts "
             "ORDER BY id DESC LIMIT 1").fetchone()
         assert row is not None
         assert abs(row["time_hours"] - 10.5) < 1e-6
+        assert abs(row["tz_offset"] - 5.5) < 1e-9
         assert (row["day"], row["month"], row["year"]) == (7, 7, 2026)
     finally:
         _restore_db(old)
