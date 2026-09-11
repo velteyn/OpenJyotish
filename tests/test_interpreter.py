@@ -100,3 +100,28 @@ class TestKnowledgeBase:
         kb = KnowledgeBase()
         results = kb.search("xyznonexistent12345")
         assert results == []
+
+    def test_kb_construction_skips_rebuild_when_loaded(self, tmp_path):
+        """A second construction with nothing new issues no rebuild/COMMIT
+        (previously every construction paid a full FTS reindex)."""
+        from jhora.core import database as db
+        old_path = db._db_path
+        db.set_db_path(str(tmp_path / "kb-rebuild.db"))
+        try:
+            books = tmp_path / "books"
+            books.mkdir()
+            db.get_db()  # settle schema outside the trace
+            conn = db.get_db()
+            seen = []
+            conn.set_trace_callback(seen.append)
+            try:
+                KnowledgeBase(books_dir=books)
+                KnowledgeBase(books_dir=books)
+            finally:
+                conn.set_trace_callback(None)
+            joined = "\n".join(seen)
+            assert "rebuild" not in joined
+            assert "COMMIT" not in joined
+        finally:
+            db.close_all()
+            db._db_path = old_path

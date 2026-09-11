@@ -2478,7 +2478,7 @@ class MainWindow(QMainWindow):
         if hasattr(self, "ai_output"):
             self._render_ai_output()
         if hasattr(self, "ai_context_label"):
-            self._update_ai_meter()
+            self.ai_context_label.setText("Context: —")
         if hasattr(self, "ai_thread_combo"):
             self._refresh_ai_threads()
         self._teach_history.clear()
@@ -2489,7 +2489,7 @@ class MainWindow(QMainWindow):
         if hasattr(self, "teach_output"):
             self._render_teach_output()
         if hasattr(self, "teach_context_label"):
-            self._update_teach_meter()
+            self.teach_context_label.setText("Context: —")
         if hasattr(self, "teach_thread_combo"):
             self._refresh_teach_threads()
 
@@ -2747,7 +2747,9 @@ class MainWindow(QMainWindow):
         self._ai_thread_title = ""
         self._ai_thread_rows = {}
         self._render_ai_output()
-        self._update_ai_meter()
+        # No thread is open: reset the meter without building an anchor
+        # (anchor construction costs a full analysis build + KB search).
+        self.ai_context_label.setText("Context: —")
         self._refresh_ai_threads()
 
     def _persist_ai_thread(self):
@@ -3117,7 +3119,8 @@ class MainWindow(QMainWindow):
         self._teach_thread_title = ""
         self._teach_thread_rows = {}
         self._render_teach_output()
-        self._update_teach_meter()
+        # No lesson is open: reset the meter without building an anchor.
+        self.teach_context_label.setText("Context: —")
         self._refresh_teach_threads()
 
     def _persist_teach_thread(self):
