@@ -80,7 +80,15 @@ class MainWindow(QMainWindow):
         self._ai_last_render = 0.0
         self._ai_thinking = False
         self._ai_history: list = []  # threaded conversation history for AI Chat
-        self._teach_buffer = ""
+        # Guru transcript mirrors the chat model: _teach_transcript holds
+        # display blocks (assistant blocks may carry a "sources" list),
+        # _teach_stream the in-flight tail, _teach_history the model messages.
+        self._teach_transcript: list = []
+        self._teach_stream = ""
+        self._teach_pending_user = ""
+        self._teach_thread_id = None
+        self._teach_thread_title = ""
+        self._teach_thread_rows: dict = {}
         self._teach_last_render = 0.0
         self._teach_thinking = False
         self._teach_history: list = []  # threaded conversation history for Teacher
@@ -799,9 +807,10 @@ class MainWindow(QMainWindow):
             self._populate_consolidated(self.chart_data)
             self._update_cons_navamsa(self.chart_data)
             self._populate_dashboard(self.chart_data)
-            # A new chart means a new thread scope: the open thread (already
-            # persisted) belongs to the previous chart.
+            # A new chart means a new thread scope: the open threads (already
+            # persisted) belong to the previous chart.
             self._reset_ai_thread_view()
+            self._reset_teach_thread_view()
 
             if self.navamsa_toggle.isChecked():
                 self._on_navamsa_toggle(True)
@@ -2473,6 +2482,16 @@ class MainWindow(QMainWindow):
         if hasattr(self, "ai_thread_combo"):
             self._refresh_ai_threads()
         self._teach_history.clear()
+        self._teach_transcript.clear()
+        self._teach_stream = ""
+        self._teach_thread_id = None
+        self._teach_thread_title = ""
+        if hasattr(self, "teach_output"):
+            self._render_teach_output()
+        if hasattr(self, "teach_context_label"):
+            self._update_teach_meter()
+        if hasattr(self, "teach_thread_combo"):
+            self._refresh_teach_threads()
 
     def _on_ai_health_check(self):
         self.ai_check_btn.setEnabled(False)
@@ -2908,15 +2927,40 @@ class MainWindow(QMainWindow):
         self.teach_status.setStyleSheet("color:#888;font-size:12px;padding:4px;")
         layout.addWidget(self.teach_status)
 
-        self.teach_input = QLineEdit()
-        self.teach_input.setPlaceholderText("Ask the Guru — learn Vedic astrology step by step...")
-        self.teach_input.returnPressed.connect(self._on_teach_ask)
-        layout.addWidget(self.teach_input)
+        # Transcript sits above the input so follow-ups read after answers.
+        self.teach_output = QTextEdit()
+        self.teach_output.setReadOnly(True)
+        layout.addWidget(self.teach_output)
 
-        btn_row = QHBoxLayout()
+        # Ask row: single follow-up input + send.
+        ask_row = QHBoxLayout()
+        self.teach_input = QLineEdit()
+        self.teach_input.setPlaceholderText("Ask a follow-up...")
+        self.teach_input.returnPressed.connect(self._on_teach_ask)
+        ask_row.addWidget(self.teach_input, 1)
+
         self.teach_btn = QPushButton("Ask Guru")
         self.teach_btn.clicked.connect(self._on_teach_ask)
-        btn_row.addWidget(self.teach_btn)
+        ask_row.addWidget(self.teach_btn)
+        layout.addLayout(ask_row)
+
+        # Thread row: lessons, picker, presets, meter.
+        thread_row = QHBoxLayout()
+        self.teach_newchat_btn = QPushButton("New lesson")
+        self.teach_newchat_btn.clicked.connect(self._on_teach_newlesson)
+        thread_row.addWidget(self.teach_newchat_btn)
+
+        self.teach_thread_combo = QComboBox()
+        self.teach_thread_combo.setMinimumWidth(150)
+        self.teach_thread_combo.currentIndexChanged.connect(
+            self._on_teach_thread_selected)
+        thread_row.addWidget(self.teach_thread_combo)
+
+        self.teach_delete_btn = QPushButton("Delete")
+        self.teach_delete_btn.setFixedWidth(70)
+        self.teach_delete_btn.clicked.connect(self._on_teach_delete_thread)
+        thread_row.addWidget(self.teach_delete_btn)
+
         self.teach_topic = QComboBox()
         self.teach_topic.addItems([
             "Ask anything...", "Explain my lagna", "What is the 7th house?",
@@ -2927,13 +2971,15 @@ class MainWindow(QMainWindow):
             "How to use the Chalit chart?", "What is mundane astrology?",
         ])
         self.teach_topic.currentTextChanged.connect(self._on_teach_topic)
-        btn_row.addWidget(self.teach_topic)
-        btn_row.addStretch()
-        layout.addLayout(btn_row)
+        thread_row.addWidget(self.teach_topic)
 
-        self.teach_output = QTextEdit()
-        self.teach_output.setReadOnly(True)
-        layout.addWidget(self.teach_output)
+        self.teach_context_label = QLabel("Context: —")
+        self.teach_context_label.setStyleSheet("color:#888;font-size:11px;")
+        self.teach_context_label.setToolTip(
+            "Estimated prompt tokens vs the ~70% compaction trip wire.")
+        thread_row.addWidget(self.teach_context_label)
+        thread_row.addStretch()
+        layout.addLayout(thread_row)
 
         self._build_teacher_btn = QPushButton("Build Textbook Index")
         self._build_teacher_btn.clicked.connect(self._on_build_teacher_index)
@@ -2941,20 +2987,25 @@ class MainWindow(QMainWindow):
             "Chunk all textbooks and generate embedding vectors (requires Ollama + nomic-embed-text)"
         )
         layout.addWidget(self._build_teacher_btn)
+        self._refresh_teach_threads()
         return w
 
     def _on_build_teacher_index(self):
         from jhora.ai.embeddings import EmbeddingStore
-        self._teach_buffer += "[Building textbook index...]\n"
+        self._teach_transcript.append(
+            {"role": "notice", "content": "[Building textbook index...]"})
         self._render_teach_output()
         self._build_teacher_btn.setEnabled(False)
         try:
             store = EmbeddingStore()
             count = store.build()
-            self._teach_buffer += f"[✓ Index built: {count} chunks]\n"
+            self._teach_transcript.append(
+                {"role": "notice",
+                 "content": f"[✓ Index built: {count} chunks]"})
             self._render_teach_output()
         except Exception as e:
-            self._teach_buffer += f"[✗ Error: {e}]\n"
+            self._teach_transcript.append(
+                {"role": "notice", "content": f"[✗ Error: {e}]"})
             self._render_teach_output()
         self._build_teacher_btn.setEnabled(True)
 
@@ -2966,10 +3017,14 @@ class MainWindow(QMainWindow):
         question = self.teach_input.text().strip()
         if not question:
             return
-        self._teach_buffer = f"[Guru, {question}]\n\n"
+        self._teach_pending_user = question
+        self._teach_transcript.append({"role": "user", "content": question})
+        self.teach_input.clear()
+        self._teach_stream = ""
         self._teach_thinking = True
         self._render_teach_output()
-        self.teach_btn.setEnabled(False)
+        self._update_teach_meter()
+        self._set_teach_buttons_enabled(False)
 
         provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "ollama"
         model = self.ai_model.text().strip() if hasattr(self, 'ai_model') else ""
@@ -2990,25 +3045,202 @@ class MainWindow(QMainWindow):
         self._teach_thinking = False
         w = self._teacher_worker
         if hasattr(w, "result_history"):
+            # Canonical model history wins over the streamed tail text.
             self._teach_history = w.result_history
-        if getattr(w, "result_reset", False):
-            self._teach_buffer += "\n\n[Context compacted — fresh conversation]"
+            if getattr(w, "result_reset", False):
+                self._insert_teach_divider(
+                    "Context compacted — fresh conversation")
+            if w.result_history:
+                tail = w.result_history[-1].get("content", "")
+                if tail:
+                    block = {"role": "assistant", "content": tail}
+                    sources = getattr(w, "result_sources", [])
+                    if sources:
+                        block["sources"] = sources
+                    self._teach_transcript.append(block)
+        self._teach_stream = ""
         self._render_teach_output()
-        self.teach_btn.setEnabled(True)
+        self._persist_teach_thread()
+        self._update_teach_meter()
+        self._set_teach_buttons_enabled(True)
+
+    def _set_teach_buttons_enabled(self, enabled: bool):
+        self.teach_btn.setEnabled(enabled)
+        self.teach_newchat_btn.setEnabled(enabled)
+        self.teach_delete_btn.setEnabled(enabled)
+        self.teach_input.setEnabled(enabled)
+        self.teach_thread_combo.setEnabled(enabled)
+
+    def _insert_teach_divider(self, content: str):
+        """Insert a divider above the current turn (never twice in a row)."""
+        blocks = self._teach_transcript
+        if blocks and blocks[-1].get("role") == "divider":
+            return
+        pos = len(blocks)
+        if blocks and blocks[-1].get("role") == "user":
+            pos -= 1
+        blocks.insert(pos, {"role": "divider", "content": content})
+
+    def _teach_sources_block(self, sources) -> str:
+        lines = []
+        for s in sources or []:
+            excerpt = str(s.get("excerpt", ""))[:160].replace("\n", " ")
+            lines.append(f"- *[{s.get('source', 'textbook')}]*: {excerpt}")
+        return "\n".join(lines)
+
+    def _update_teach_meter(self):
+        """Refresh the context meter from the teacher's budget estimator."""
+        from jhora.ai.teacher import AiTeacher
+        chart = self.chart_data if hasattr(self, "chart_data") else None
+        try:
+            provider = self.ai_provider.currentText() \
+                if hasattr(self, "ai_provider") else "ollama"
+            teacher = AiTeacher(provider=provider)
+            used, threshold = teacher.context_usage(chart,
+                                                    self._teach_history)
+        except Exception:
+            self.teach_context_label.setText("Context: —")
+            return
+        pct = int(100 * used / threshold) if threshold else 0
+        self.teach_context_label.setText(
+            f"Context: {used}/{threshold} ({pct}%)")
+
+    def _reset_teach_thread_view(self):
+        """Clear the visible lesson and model state (the current lesson is
+        already persisted by the done-hook, so shelving is never lossy)."""
+        self._teach_history = []
+        self._teach_transcript = []
+        self._teach_stream = ""
+        self._teach_thinking = False
+        self._teach_pending_user = ""
+        self._teach_thread_id = None
+        self._teach_thread_title = ""
+        self._teach_thread_rows = {}
+        self._render_teach_output()
+        self._update_teach_meter()
+        self._refresh_teach_threads()
+
+    def _persist_teach_thread(self):
+        """Upsert the current lesson after each successful turn."""
+        from jhora.ai import guru_history as gh
+        chart = self.chart_data if hasattr(self, "chart_data") else None
+        if not any(b.get("role") == "assistant"
+                   for b in self._teach_transcript):
+            return
+        fp = gh.chart_fingerprint(chart)
+        if self._teach_thread_id is None:
+            self._teach_thread_title = gh.thread_title(self._teach_history)
+        self._teach_thread_id = gh.save_thread(
+            fp, self._teach_thread_title,
+            {"history": list(self._teach_history),
+             "transcript": [dict(b) for b in self._teach_transcript]},
+            thread_id=self._teach_thread_id)
+        self._refresh_teach_threads()
+
+    def _refresh_teach_threads(self):
+        """Rebuild the picker: chart lessons plus General study group."""
+        from jhora.ai import guru_history as gh
+        combo = self.teach_thread_combo
+        combo.blockSignals(True)
+        try:
+            combo.clear()
+            self._teach_thread_rows = {}
+            chart = self.chart_data if hasattr(self, "chart_data") else None
+            groups = []
+            if chart is not None:
+                groups.append((gh.chart_fingerprint(chart), False))
+            groups.append((gh.GENERAL_SCOPE, True))
+            for fp, general in groups:
+                for t in gh.list_threads(fp):
+                    self._teach_thread_rows[t["id"]] = t["title"]
+                    label = t["title"]
+                    if len(label) > 32:
+                        label = label[:32] + "..."
+                    if general:
+                        label = f"[Study] {label}"
+                    combo.addItem(
+                        f"{label} — {t['updated_at'][:16]}", t["id"])
+            if not combo.count():
+                if chart is None:
+                    combo.addItem("No history (compute a chart first)", None)
+                else:
+                    combo.addItem("No saved lessons", None)
+            elif self._teach_thread_id is not None:
+                combo.setCurrentIndex(
+                    combo.findData(self._teach_thread_id))
+            elif combo.itemData(0) is not None:
+                combo.setCurrentIndex(-1)  # lessons exist, none open
+        finally:
+            combo.blockSignals(False)
+
+    def _on_teach_newlesson(self):
+        self._reset_teach_thread_view()
+
+    def _on_teach_thread_selected(self, index: int):
+        tid = self.teach_thread_combo.itemData(index)
+        if tid is None or tid == self._teach_thread_id:
+            return
+        from jhora.ai import guru_history as gh
+        payload = gh.load_thread(tid)
+        if not payload.get("history") and not payload.get("transcript"):
+            self._refresh_teach_threads()
+            return
+        self._teach_history = list(payload.get("history", []))
+        self._teach_transcript = [dict(b) for b in payload.get("transcript", [])]
+        self._teach_stream = ""
+        self._teach_thinking = False
+        self._teach_thread_id = tid
+        self._teach_thread_title = self._teach_thread_rows.get(tid, "")
+        self._render_teach_output()
+        self._update_teach_meter()
+
+    def _on_teach_delete_thread(self):
+        tid = self.teach_thread_combo.currentData()
+        if tid is None:
+            return
+        from jhora.ai import guru_history as gh
+        gh.delete_thread(tid)
+        if tid == self._teach_thread_id:
+            self._reset_teach_thread_view()
+        else:
+            self._refresh_teach_threads()
 
     def _render_teach_output(self):
-        """Repaint the AI Teacher output window from the markdown buffer."""
-        body = self._teach_buffer
+        """Repaint the lesson transcript from display blocks + in-flight tail.
+
+        Follows the tail only when the view is already there, so re-reading
+        scrolled-up content is never yanked down by incoming tokens.
+        """
+        parts = []
+        for block in self._teach_transcript:
+            role = block.get("role")
+            content = block.get("content", "")
+            if role == "user":
+                parts.append("**You:** " + content)
+            elif role == "divider":
+                parts.append("--- *" + content + "* ---")
+            elif role == "notice":
+                parts.append("*" + content + "*")
+            else:
+                parts.append(content)
+                sources = self._teach_sources_block(block.get("sources"))
+                if sources:
+                    parts.append("*Sources:*\n" + sources)
+        if self._teach_stream:
+            parts.append(self._teach_stream)
+        body = "\n\n".join(p for p in parts if p)
         if self._teach_thinking:
             body += _THINKING_LINE
-        self.teach_output.setHtml(md_document(body))
         bar = self.teach_output.verticalScrollBar()
-        bar.setValue(bar.maximum())
+        at_bottom = bar.value() >= bar.maximum() - 5
+        self.teach_output.setHtml(md_document(body))
+        if at_bottom:
+            bar.setValue(bar.maximum())
 
     def _on_teach_token(self, text: str):
         if self._teach_thinking:
             self._teach_thinking = False
-        self._teach_buffer += text
+        self._teach_stream += text
         now = time.monotonic()
         if now - self._teach_last_render >= 0.3:
             self._render_teach_output()
@@ -3982,6 +4214,7 @@ class _TeacherWorker(QThread):
         self.max_context_tokens = max_context_tokens
         self.result_history: list = []
         self.result_reset: bool = False
+        self.result_sources: list = []
 
     def run(self):
         try:
@@ -4001,6 +4234,7 @@ class _TeacherWorker(QThread):
                 history=self.history, on_token=self.token.emit)
             self.result_history = hist
             self.result_reset = reset
+            self.result_sources = list(getattr(teacher, "last_sources", []))
             self.done.emit()
         except Exception as e:
             self.token.emit(str(e))
