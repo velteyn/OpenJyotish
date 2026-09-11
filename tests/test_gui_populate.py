@@ -721,6 +721,52 @@ def test_teach_picker_filters_by_chart(main_window, chart, tmp_path):
         _restore_teach_db(old_db)
 
 
+def test_ai_reset_meter_without_computation(main_window, chart, monkeypatch):
+    """Reset paths show an empty meter without building anchors (the
+    Calculate-path waste: full analysis + KB search per reset)."""
+    import jhora.ai.engine as eng
+
+    def boom(self, cd, history=None):
+        raise AssertionError("meter must not compute on reset")
+
+    monkeypatch.setattr(eng.AiEngine, "context_usage", boom)
+    previous_chart = main_window.chart_data
+    main_window.chart_data = chart
+    main_window._ai_history = [{"role": "user", "content": "Q"}]
+    try:
+        main_window._reset_ai_thread_view()
+        assert main_window.ai_context_label.text() == "Context: —"
+    finally:
+        main_window.chart_data = previous_chart
+        main_window._ai_transcript = []
+        main_window._ai_history = []
+        main_window._ai_thread_id = None
+        main_window._ai_thread_title = ""
+
+
+def test_teach_reset_meter_without_computation(main_window, chart,
+                                              monkeypatch):
+    """Teach reset likewise never touches the engine."""
+    import jhora.ai.teacher as teach_mod
+
+    def boom(self, chart=None, history=None):
+        raise AssertionError("meter must not compute on reset")
+
+    monkeypatch.setattr(teach_mod.AiTeacher, "context_usage", boom)
+    previous_chart = main_window.chart_data
+    main_window.chart_data = chart
+    main_window._teach_history = [{"role": "user", "content": "Q"}]
+    try:
+        main_window._reset_teach_thread_view()
+        assert main_window.teach_context_label.text() == "Context: —"
+    finally:
+        main_window.chart_data = previous_chart
+        main_window._teach_transcript = []
+        main_window._teach_history = []
+        main_window._teach_thread_id = None
+        main_window._teach_thread_title = ""
+
+
 def test_muhurta_choghadiya_button_shows_slots(main_window):
     """The Choghadiya button on the Muhurta tab populates a 16-row table."""
     main_window._get_muhurta_inputs = lambda: (
