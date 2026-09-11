@@ -33,6 +33,20 @@ SAV_BAD_THRESHOLD = 25
 BAV_GOOD_THRESHOLD = 4
 
 
+def sade_sati_status(natal_moon_rasi: int, transit_saturn_rasi: int) -> str:
+    """Sade Sati phase of transit Saturn against the natal Moon.
+
+    Returns '12th from Moon', '1st from Moon (peak)' or '2nd from Moon'
+    when transit Saturn occupies those signs from natal Moon, else ''.
+    Rasi indices are 0-based (0 = Aries).
+    """
+    ss = [(natal_moon_rasi - 1) % 12, natal_moon_rasi, (natal_moon_rasi + 1) % 12]
+    if transit_saturn_rasi in ss:
+        return ["12th from Moon", "1st from Moon (peak)",
+                "2nd from Moon"][ss.index(transit_saturn_rasi)]
+    return ""
+
+
 @dataclass
 class TransitEntry:
     graha: Graha

@@ -373,7 +373,8 @@ class JhoraTui:
                 t.add_column(h)
             for h in range(1, 13):
                 r = report.results[h]
-                ri = (int(self.chart.ascendant / 30) + h - 1) % 12
+                from jhora.charts.chart import house_rasi_index
+                ri = house_rasi_index(self.chart.ascendant, h)
                 t.add_row(str(h), Rasi(ri).short_name, f"{r.sthana:.0f}",
                           f"{r.drishti:.0f}", f"{r.dig:.0f}",
                           f"{r.adhipati:.0f}", f"{r.drig:+.0f}", f"{r.total:.0f}")
@@ -459,16 +460,18 @@ class JhoraTui:
             t.add_column("Start")
             t.add_column("End")
             t.add_column("Status")
+            from jhora.calc.dasa_timeline import current_period
+            current_md = current_period(periods, now)
             for md in periods:
-                status = "◀ CURRENT" if md.start_date <= now <= md.end_date else ""
+                status = "◀ CURRENT" if md == current_md else ""
                 t.add_row(md.lord_name, md.start_date.strftime("%Y-%m"),
                           md.end_date.strftime("%Y-%m"), status)
-                if md.start_date <= now <= md.end_date:
-                    for ad in (md.sub_periods or []):
-                        if ad.start_date <= now <= ad.end_date:
-                            t.add_row(f"  └ {ad.lord_name} (AD)",
-                                      ad.start_date.strftime("%Y-%m"),
-                                      ad.end_date.strftime("%Y-%m"), "◀ now")
+                if md == current_md:
+                    current_ad = current_period(md.sub_periods or [], now)
+                    if current_ad is not None:
+                        t.add_row(f"  └ {current_ad.lord_name} (AD)",
+                                  current_ad.start_date.strftime("%Y-%m"),
+                                  current_ad.end_date.strftime("%Y-%m"), "◀ now")
             rich.print(t)
         self._content_lines = cap.get().split("\n")
 
@@ -928,21 +931,21 @@ class JhoraTui:
         lines.append("")
         try:
             from jhora.dasas.vimsottari import VimsottariDasa
+            from jhora.calc.dasa_timeline import current_period, upcoming_sub_periods
             dasa = VimsottariDasa()
             cd = {"planets": {g.value: {"longitude": p.longitude} for g, p in self.chart.planets.items()}, "lagna_lon": self.chart.ascendant}
             periods = dasa.compute(self.chart.julian_day, cd)
-            md = next((p for p in periods if p.start_date <= now <= p.end_date), None)
+            md = current_period(periods, now)
             if md:
                 left = (md.end_date - now).days
                 lines.append(f"[bold]Dasa: {md.lord_name} MD[/bold] — {left}d remaining")
-                for ad in (md.sub_periods or []):
-                    if ad.start_date <= now <= ad.end_date:
-                        lines.append(f"  └ {ad.lord_name} AD — {(ad.end_date - now).days}d left")
-                upcoming = [sp for sp in (md.sub_periods or []) if sp.start_date > now]
-                upcoming.sort(key=lambda x: x.start_date)
+                ad = current_period(md.sub_periods or [], now)
+                if ad is not None:
+                    lines.append(f"  └ {ad.lord_name} AD — {(ad.end_date - now).days}d left")
+                upcoming = upcoming_sub_periods(md, now, 3)
                 lines.append("")
                 lines.append("Next:")
-                for sp in upcoming[:3]:
+                for sp in upcoming:
                     lines.append(f"  {sp.lord_name}: {sp.start_date.strftime('%b %d')} ({(sp.start_date-now).days}d)")
         except Exception:
             pass
