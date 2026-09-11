@@ -460,6 +460,21 @@ def _sunrise_sunset(date: datetime, lat: float, lon: float, tz_offset: float
     return sunrise, sunset
 
 
+def sunrise_sunset_hours(date: datetime, lat: float, lon: float,
+                         tz_offset_east: float) -> Tuple[float, float]:
+    """Sunrise/sunset as local decimal hours (single precise source).
+
+    Wraps the verified swe-based engine. tz_offset_east is signed hours EAST
+    of UTC (e.g. +5.5 for IST), matching the JHD/DB convention. Falls back
+    gracefully when swe has no data.
+    """
+    sunrise_jd, sunset_jd = _sunrise_sunset(date, lat, lon, tz_offset_east)
+    base = _datetime_to_jd(date.replace(hour=0, minute=0, second=0,
+                                        microsecond=0), tz_offset_east)
+    return ((sunrise_jd - base) * 24.0 % 24.0,
+            (sunset_jd - base) * 24.0 % 24.0)
+
+
 def _tithi(sun_lon: float, moon_lon: float) -> TithiInfo:
     diff = (moon_lon - sun_lon) % 360.0
     tithi_num = int(diff // 12)

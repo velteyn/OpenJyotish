@@ -13,9 +13,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 
-from jhora.charts.chart import ChartData
+from jhora.charts.chart import ChartData, ChartBuilder
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
+from jhora.calc.muhurta import sunrise_sunset_hours
 
 # Graha → Swiss Ephemeris body ID (used by swe.rise_trans / calc_planet)
 _PLANET_BODY_MAP: Dict[Graha, int] = {
@@ -115,12 +116,20 @@ def varnada_lagna(cd: ChartData) -> float:
     return (varnada * 30 + (lagna % 30) / 30) % 360
 
 
+def _sunrise_local_hours(cd: ChartData) -> float:
+    """Sunrise as local decimal hours via the single precise source."""
+    tz_east = -ChartBuilder._parse_tz(cd.timezone)
+    sr, _ss = sunrise_sunset_hours(cd.birth_date, cd.latitude,
+                                   cd.longitude, tz_east)
+    return sr
+
+
 def pranapada_lagna(cd: ChartData) -> float:
     """Pranapada Lagna: based on birth time in ghatis."""
     # Birth time in hours from midnight (true local time; birth_date is
     # date-only by design, the exact moment lives in the Julian day).
     birth_hours = cd.time_of_day_hours
-    sunrise = _sunrise_approx(cd)
+    sunrise = _sunrise_local_hours(cd)
     # Time from sunrise in ghatis (1 ghati = 24 minutes)
     from_sunrise = (birth_hours - sunrise + 24) % 24
     ghatis = from_sunrise / 0.4
@@ -130,7 +139,7 @@ def pranapada_lagna(cd: ChartData) -> float:
 def vighati_lagna(cd: ChartData) -> float:
     """Vighati Lagna: finer time division."""
     birth_hours = cd.time_of_day_hours
-    sunrise = _sunrise_approx(cd)
+    sunrise = _sunrise_local_hours(cd)
     from_sunrise = (birth_hours - sunrise + 24) % 24
     vighatis = from_sunrise * 60  # 1 vighati = 24 seconds
     return (cd.planet(Graha.SUN).longitude + vighatis * 0.1) % 360
@@ -320,20 +329,6 @@ def compute_time_lagnas(cd: ChartData) -> Dict:
         "sree": sree_lagna(cd),
         "upapada": upapada_lagna(cd),
     }
-
-
-def _sunrise_approx(cd: ChartData) -> float:
-    """Approximate sunrise hour (6 AM for simplicity)."""
-    try:
-        bd = cd.birth_date
-        lat = cd.latitude
-        if lat > 23.5 and bd.month in [6, 7]:
-            return 5.0
-        elif lat > 23.5 and bd.month in [12, 1]:
-            return 7.0
-        return 6.0
-    except Exception:
-        return 6.0
 
 
 def compute_special_lagnas(cd: ChartData) -> list:

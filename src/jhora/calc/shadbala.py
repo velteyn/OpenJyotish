@@ -19,9 +19,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict
 
-from jhora.charts.chart import ChartData
+from jhora.charts.chart import ChartData, ChartBuilder
 from jhora.charts.varga import VargaChartComputer, VargaLevel, VargaVariant
 from jhora.calc.angles import diff as angle_diff
+from jhora.calc.muhurta import sunrise_sunset_hours
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 
@@ -174,6 +175,27 @@ class ShadbalaComputer:
         self._varga_computer = VargaChartComputer()
         self._varga_cache: Dict[VargaLevel, dict] = {}
         self._init_vargas()
+        try:
+            tz_east = -ChartBuilder._parse_tz(cd.timezone)
+        except Exception:
+            tz_east = 0.0
+        self._tz_east = tz_east
+
+    def _sun_times(self):
+        """(sunrise_h, sunset_h, local_hour) from the single precise source.
+
+        Falls back to 6:00/18:00 and the JD-derived hour when swe has no data.
+        """
+        jd = self.cd.julian_day
+        ut_hour = ((jd + 0.5) % 1.0) * 24.0
+        local_hour = (ut_hour + self._tz_east) % 24.0
+        try:
+            sr, ss = sunrise_sunset_hours(self.cd.birth_date,
+                                          self.cd.latitude,
+                                          self.cd.longitude, self._tz_east)
+        except Exception:
+            sr, ss = 6.0, 18.0
+        return sr, ss, local_hour
 
     def _init_vargas(self):
         for vl in _SAPTAVARGA_LEVELS:
@@ -322,11 +344,9 @@ class ShadbalaComputer:
         }
 
     def _nathonnatha_bala(self, g: Graha) -> ShadbalaComponent:
-        jd = self.cd.julian_day
-        lat = self.cd.latitude
-        frac = (jd + 0.5) % 1.0
-        hour_of_day = frac * 24
-        is_day = 6 <= hour_of_day < 18
+        sr, ss, hour_of_day = self._sun_times()
+        day_len = (ss - sr) % 24.0
+        is_day = (hour_of_day - sr) % 24.0 < day_len
         if g in (Graha.SUN, Graha.JUPITER, Graha.VENUS):
             base = 60 if is_day else 0
         elif g in (Graha.MOON, Graha.MARS, Graha.SATURN):
@@ -335,14 +355,18 @@ class ShadbalaComputer:
             base = 60
         else:
             base = 0
-        mid_day = 12.0
-        mid_night = 0.0
+        solar_noon = (sr + day_len / 2.0) % 24.0
+        solar_midnight = (solar_noon + 12.0) % 24.0
         if base > 0:
-            center = mid_day if is_day else mid_night
+            if is_day:
+                center, half_width = solar_noon, (day_len / 2.0) or 6.0
+            else:
+                center = solar_midnight
+                half_width = ((24.0 - day_len) / 2.0) or 6.0
             dist = abs(hour_of_day - center)
-            if dist > 6:
-                dist = 12 - dist
-            base = max(0, 60 - dist * 10)
+            if dist > 12:
+                dist = 24 - dist
+            base = max(0, 60 - dist / half_width * 60)
         return ShadbalaComponent("nathonnatha", base, 60)
 
     def _paksha_bala(self, g: Graha) -> ShadbalaComponent:
@@ -361,11 +385,11 @@ class ShadbalaComputer:
         return ShadbalaComponent("paksha", virupa, 60)
 
     def _tribhaga_bala(self, g: Graha) -> ShadbalaComponent:
-        jd = self.cd.julian_day
-        frac = (jd + 0.5) % 1.0
-        hour_of_day = frac * 24
-        period = min(int(hour_of_day / 6), 3)
-        is_day = 6 <= hour_of_day < 18
+        sr, ss, hour_of_day = self._sun_times()
+        day_len = (ss - sr) % 24.0
+        solar_hour = (hour_of_day - sr) % 24.0
+        period = min(int(solar_hour / 6), 3)
+        is_day = solar_hour < day_len
         day_lords = [Graha.MOON, Graha.SUN, Graha.SATURN, Graha.JUPITER]
         night_lords = [Graha.SUN, Graha.MOON, Graha.JUPITER, Graha.SATURN]
         lord = (day_lords if is_day else night_lords)[period]
@@ -400,12 +424,9 @@ class ShadbalaComputer:
         return ShadbalaComponent("vara", 45 if lord == g else 0, 45)
 
     def _hora_bala(self, g: Graha) -> ShadbalaComponent:
-        jd = self.cd.julian_day
-        frac = (jd + 0.5) % 1.0
-        hour_of_day = frac * 24
-        sunrise = 6.0
-        sunset = 18.0
-        is_day = sunrise <= hour_of_day < sunset
+        sr, ss, hour_of_day = self._sun_times()
+        day_len = (ss - sr) % 24.0
+        is_day = (hour_of_day - sr) % 24.0 < day_len
         day_lords = [
             Graha.SUN, Graha.VENUS, Graha.MERCURY, Graha.MOON,
             Graha.SATURN, Graha.JUPITER, Graha.MARS,
@@ -414,10 +435,12 @@ class ShadbalaComputer:
             Graha.MOON, Graha.SATURN, Graha.JUPITER, Graha.MARS,
             Graha.SUN, Graha.VENUS, Graha.MERCURY,
         ]
-        hours_passed = hour_of_day - (sunrise if is_day else sunset)
-        if hours_passed < 0:
-            hours_passed += 12
-        hora_idx = int(hours_passed) % 7
+        if is_day:
+            elapsed, span = (hour_of_day - sr) % 24.0, day_len or 12.0
+        else:
+            elapsed, span = (hour_of_day - ss) % 24.0, \
+                (24.0 - day_len) or 12.0
+        hora_idx = int(elapsed / span * 12) % 7
         lords = day_lords if is_day else night_lords
         lord = lords[hora_idx]
         return ShadbalaComponent("hora", 60 if lord == g else 0, 60)
