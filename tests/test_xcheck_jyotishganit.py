@@ -204,6 +204,20 @@ def test_l2_dasa_mahadasa_boundaries(cid):
     frac_theirs = ((their_end - birth).days
                    / (their_end - their_start).days)
     assert abs(frac_ours - frac_theirs) < 0.003, first.lord_name
+    # Antardasas of full MDs (birth MD excluded: balance-shifted by design).
+    # Order must match exactly; boundaries within 10 d (micro-differences
+    # in Moon position accumulate down long MDs; convention errors would
+    # show in months).
+    for md in our_periods[1:]:
+        t = fix["data"]["dashas"][md.lord_name]
+        assert [ad.lord_name for ad in (md.sub_periods or [])] == \
+            list(t["antardashas"].keys()), md.lord_name
+        for ad in (md.sub_periods or []):
+            ta = t["antardashas"][ad.lord_name]
+            assert abs((ad.start_date.date()
+                        - datetime.fromisoformat(
+                            ta["start"]).date()).days) <= 10, \
+                f"{md.lord_name}/{ad.lord_name}"
 
 
 @pytest.mark.parametrize("cid", _chart_ids())

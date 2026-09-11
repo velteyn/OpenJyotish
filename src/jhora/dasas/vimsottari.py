@@ -94,6 +94,7 @@ class VimsottariDasa(DasaBase):
             y_per_d=y_per_d,
             max_level=opts.subdivision_level,
             sub_lord_names=sub_lord_names,
+            sub_order=[g.value for g in self.CYCLE_LORDS],
         )
 
     def _days_per_year(self, year_definition: str) -> float:
