@@ -39,9 +39,11 @@
   (GUI/AI panchanga lines). Follow-up: proper movable/fixed mapping from
   elongation + regression tests.
 - **TRIAGE-3 — our antardashas always start at Ketu** instead of rotating
-  from the MD lord (universal Vimsottari rule). User-visible in dasa
-  timelines and GUI/JSON dasa output. Follow-up: rotate sub-ratios to the
-  parent lord + regression tests. HIGH priority.
+  from the MD lord (universal Vimsottari rule). ✅ RESOLVED by
+  `fix-antardasa-rotation` (opt-in rotation in the shared builder, enabled
+  for Vimsottari): full-MD AD order now matches the reference exactly and
+  boundaries within days on all 8 charts. Sibling dasas intentionally
+  untouched (verify-then-enable follow-ups).
 - **TRIAGE-4 — Shadbala model variants**: Paksha graded vs binary, Tribhaga
   lords, Ojha/Drek granularity (15 vs 30 scales), combined VMDH vs split
   Abda/Masa/Vara/Hora, Ayana scale (>60), signed continuous Drik vs our
