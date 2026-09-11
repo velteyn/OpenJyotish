@@ -344,6 +344,7 @@ class PanchangaInfo:
     nakshatra: Nakshatra
     yoga_index: int
     karana_index: int
+    karana_name: str
 
 @dataclass(frozen=True)
 class TaskEvaluation:
@@ -505,8 +506,35 @@ def _yoga(sun_lon: float, moon_lon: float) -> int:
     return int(total // (360.0 / 27))
 
 
-def _karana(tithi_index: int) -> int:
-    return tithi_index * 2 % 11
+_YOGA_NAMES = [
+    "Vishkambha", "Priti", "Ayushman", "Saubhagya", "Shobhana",
+    "Atiganda", "Sukarma", "Dhriti", "Shula", "Ganda", "Vriddhi",
+    "Dhruva", "Vyaghata", "Harshana", "Vajra", "Siddhi",
+    "Vyatipata", "Variyana", "Parigha", "Shiva", "Siddha",
+    "Sadhya", "Shubha", "Shukla", "Brahma", "Indra", "Vaidhriti",
+]
+
+
+_KARANA_NAMES = [
+    "Bava", "Balava", "Kaulava", "Taitila", "Gara", "Vanija", "Vishti",
+    "Shakuni", "Chatushpada", "Naga", "Kimstughna",
+]
+
+
+def _karana(sun_lon: float, moon_lon: float) -> Tuple[int, str]:
+    """Karana index + name from the half-tithi serial k = floor(elong/6).
+
+    k=0 Kimstughna; k=1..56 the movable cycle; k=57/58/59 Shakuni,
+    Chatushpada, Naga. Index addresses _KARANA_NAMES.
+    """
+    k = int(((moon_lon - sun_lon) % 360.0) // 6.0) % 60
+    if k == 0:
+        idx = 10
+    elif k >= 57:
+        idx = k - 50
+    else:
+        idx = (k - 1) % 7
+    return idx, _KARANA_NAMES[idx]
 
 
 def _inauspicious_periods(date: datetime, lat: float, lon: float, tz_offset: float
@@ -584,7 +612,7 @@ def compute_panchanga(date: datetime, lat: float, lon: float, tz_offset: float =
 
     nakshatra, _ = Nakshatra.from_longitude(moon_lon)
     yoga_idx = _yoga(sun_lon, moon_lon)
-    karana_idx = _karana(tithi.index)
+    karana_idx, karana_name = _karana(sun_lon, moon_lon)
 
     return PanchangaInfo(
         tithi=tithi,
@@ -593,6 +621,7 @@ def compute_panchanga(date: datetime, lat: float, lon: float, tz_offset: float =
         nakshatra=nakshatra,
         yoga_index=yoga_idx,
         karana_index=karana_idx,
+        karana_name=karana_name,
     )
 
 
