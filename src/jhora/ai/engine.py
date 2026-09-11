@@ -98,7 +98,11 @@ def _lmstudio_catalog(base_url: str, timeout: float = 5.0) -> List[dict]:
             "type": str(m.get("type", "")).lower(),
             "arch": str(m.get("arch", "")).lower(),
             "quant": str(m.get("quantization", "")).lower(),
-            "ctx": m.get("max_context_length") or m.get("loaded_context_length") or 0,
+            # Prefer the actually-loaded window: max_context_length is the
+            # model's theoretical ceiling (e.g. 1M) while loaded_context_length
+            # is what's really serving (e.g. 8K). Unloaded models report no
+            # loaded length, so their behavior is unchanged.
+            "ctx": m.get("loaded_context_length") or m.get("max_context_length") or 0,
         })
     return out
 
@@ -336,20 +340,27 @@ class AiEngine:
         """
         full = []
         reasoning = []
+        finish = None
+        saw_done = False
         for line in response.iter_lines(decode_unicode=False):
             if not line:
                 continue
-            line = line.decode("utf-8")
+            line = line.decode("utf-8").strip()
             if not line.startswith("data: "):
                 continue
             data = line[6:]
             if data == "[DONE]":
+                saw_done = True
                 break
             try:
                 chunk = json.loads(data)
-                delta = chunk.get("choices", [{}])[0].get("delta", {})
-            except (json.JSONDecodeError, KeyError):
+                choice = chunk.get("choices", [{}])[0]
+                delta = choice.get("delta", {})
+            except (json.JSONDecodeError, KeyError, IndexError):
                 continue
+            fr = choice.get("finish_reason")
+            if fr:
+                finish = fr
             content = delta.get("content", "")
             think = delta.get("reasoning_content", "")
             if think:
@@ -358,15 +369,25 @@ class AiEngine:
                 full.append(content)
                 if on_token:
                     on_token(content)
+        suffix = ""
+        if finish == "length":
+            suffix = "\n\n[truncated — output budget exhausted]"
+        elif finish is not None and finish != "stop":
+            suffix = f"\n\n[stopped early — reason: {finish}]"
+        elif not saw_done and finish is None and (full or reasoning):
+            suffix = "\n\n[interrupted — connection ended before completion]"
         text = "".join(full).strip()
-        if not text:
-            if reasoning:
-                msg = reasoning_only_message()
-                if on_token:
-                    on_token(msg)
-                return msg
-            return text
-        return text
+        if not text and reasoning:
+            base = reasoning_only_message()
+            if on_token:
+                on_token(base)
+        else:
+            base = text
+        if suffix:
+            if on_token:
+                on_token(suffix)
+            return (base + suffix) if base else suffix
+        return base
 
     def interpret(self, cd: ChartData, style: str = "detailed",
                   topic: str = "general",

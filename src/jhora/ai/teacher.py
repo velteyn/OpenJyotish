@@ -73,6 +73,7 @@ class AiTeacher:
         self.store = EmbeddingStore(base_url=base_url.replace("/v1", ""))
         self.provider = provider
         self.max_context_tokens = max_context_tokens
+        self._static_cache: dict = {}  # id(chart) -> (detailed, analysis)
 
     def ask(self, question: str, chart: Optional[ChartData] = None,
             on_token: Optional[Callable[[str], None]] = None) -> str:
@@ -154,20 +155,27 @@ class AiTeacher:
             resp.raise_for_status()
             full = []
             reasoning = []
+            finish = None
+            saw_done = False
             for line in resp.iter_lines(decode_unicode=False):
                 if not line:
                     continue
-                line = line.decode("utf-8")
+                line = line.decode("utf-8").strip()
                 if not line.startswith("data: "):
                     continue
                 data = line[6:]
                 if data == "[DONE]":
+                    saw_done = True
                     break
                 try:
                     chunk = json.loads(data)
-                    delta = chunk.get("choices", [{}])[0].get("delta", {})
-                except (json.JSONDecodeError, KeyError):
+                    choice = chunk.get("choices", [{}])[0]
+                    delta = choice.get("delta", {})
+                except (json.JSONDecodeError, KeyError, IndexError):
                     continue
+                fr = choice.get("finish_reason")
+                if fr:
+                    finish = fr
                 content = delta.get("content", "")
                 think = delta.get("reasoning_content", "")
                 if think:
@@ -176,14 +184,26 @@ class AiTeacher:
                     full.append(content)
                     if on_token:
                         on_token(content)
+            suffix = ""
+            if finish == "length":
+                suffix = "\n\n[truncated — output budget exhausted]"
+            elif finish is not None and finish != "stop":
+                suffix = f"\n\n[stopped early — reason: {finish}]"
+            elif not saw_done and finish is None and (full or reasoning):
+                suffix = "\n\n[interrupted — connection ended before completion]"
             text = "".join(full).strip()
             if not text and reasoning:
                 from jhora.ai.engine import reasoning_only_message
-                msg = reasoning_only_message()
+                base = reasoning_only_message()
                 if on_token:
-                    on_token(msg)
-                return msg
-            return text
+                    on_token(base)
+            else:
+                base = text
+            if suffix:
+                if on_token:
+                    on_token(suffix)
+                return (base + suffix) if base else suffix
+            return base
         except requests.exceptions.ConnectionError:
             msg = "AI server not running. Start Ollama: ollama serve"
             if on_token:
@@ -203,6 +223,18 @@ class AiTeacher:
     def _compact_history(self, history: List[dict]) -> str:
         return thread_recap(history)
 
+    def _static_block(self, chart):
+        """Cached (chart_detailed, analysis) pair — static per chart.
+
+        Only the textbook passages stay freshly retrieved per question;
+        mirrors the chat anchor cache.
+        """
+        key = id(chart)
+        if self._static_cache.get(key) is None:
+            self._static_cache[key] = (_chart_detailed(chart),
+                                       build_analysis_text(chart))
+        return self._static_cache[key]
+
     def _build_user_message(self, question: str,
                             chart: Optional[ChartData] = None) -> str:
         """Build the user message for a single teaching turn with fresh RAG."""
@@ -214,8 +246,7 @@ class AiTeacher:
                 context += f"[{p['source']}]: {p['content'][:400]}\n\n"
 
         if chart:
-            chart_data = _chart_detailed(chart)
-            analysis = build_analysis_text(chart)
+            chart_data, analysis = self._static_block(chart)
             return (
                 f"CHART DATA:\n{chart_data}\n\n"
                 f"COMPUTED ANALYSIS:\n{analysis}\n\n"
