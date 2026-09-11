@@ -400,8 +400,9 @@ class TestModelResolution:
 
 
 class TestThinkingCapGating:
-    """LM Studio must cap reasoning thinking tokens; other providers must not
-    receive the LM Studio-only key (Ollama rejects unknown request fields)."""
+    """Neither engine nor teacher may send max_thinking_tokens (proven live
+    to end completions instead of answering); Ollama keeps reasoning_effort,
+    which plain models ignore."""
 
     def _post(self, monkeypatch):
         captured = {}
@@ -419,12 +420,14 @@ class TestThinkingCapGating:
         monkeypatch.setattr(_requests, "post", fake_post)
         return captured
 
-    def test_lmstudio_sends_thinking_cap(self, monkeypatch):
+    def test_lmstudio_omits_thinking_cap(self, monkeypatch):
+        """Proven live: the cap ends the whole completion instead of
+        transitioning to the answer (empty replies). Never send it."""
         captured = self._post(monkeypatch)
         engine = AiEngine(AiConfig(provider="lmstudio",
                                    base_url="http://x:1234/v1", model="m"))
         engine._call([{"role": "user", "content": "hi"}], stream=False)
-        assert captured["payload"]["max_thinking_tokens"] == 1024
+        assert "max_thinking_tokens" not in captured["payload"]
 
     def test_ollama_omits_thinking_cap(self, monkeypatch):
         captured = self._post(monkeypatch)
@@ -447,6 +450,14 @@ class TestThinkingCapGating:
                                    base_url="http://x:11434/v1", model="gemma3:1b"))
         engine._call([{"role": "user", "content": "hi"}], stream=False)
         assert "reasoning_effort" not in captured["payload"]
+
+    def test_teacher_omits_thinking_cap(self, monkeypatch):
+        from jhora.ai.teacher import AiTeacher
+        captured = self._post(monkeypatch)
+        t = AiTeacher(provider="lmstudio", base_url="http://x:1234/v1",
+                      model="m")
+        t._stream([{"role": "user", "content": "hi"}])
+        assert "max_thinking_tokens" not in captured["payload"]
 
 
 class TestNullModelCatalog:
