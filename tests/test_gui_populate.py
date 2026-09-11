@@ -501,6 +501,226 @@ def test_ai_picker_filters_by_chart(main_window, chart, tmp_path):
         _restore_ai_db(old_db)
 
 
+def test_teach_transcript_appends_two_turns_with_sources(main_window):
+    """Two completed lessons render oldest-first, each with its Sources block,
+    and the canonical worker history wins over streamed tail text."""
+
+    class _FakeTeachWorker:
+        result_reset = False
+        result_history = [
+            {"role": "user", "content": "Q1"},
+            {"role": "assistant", "content": "Canonical A1"},
+        ]
+        result_sources = [{"source": "BPHS", "excerpt": "strength..."}]
+
+    main_window._teach_transcript = []
+    main_window._teach_history = []
+    main_window._teach_stream = ""
+    main_window._teach_thinking = False
+    main_window._teach_thread_id = None
+    main_window._teach_transcript.append({"role": "user", "content": "Q1"})
+    main_window._teach_stream = "drifted tail"
+    main_window._teacher_worker = _FakeTeachWorker()
+    main_window._on_teach_done()
+    assert main_window._teach_history == _FakeTeachWorker.result_history
+    main_window._teach_transcript.append({"role": "user", "content": "Q2"})
+    main_window._teach_transcript.append({"role": "assistant", "content": "A2"})
+    main_window._render_teach_output()
+    html = main_window.teach_output.toHtml()
+    positions = [html.find(s) for s in
+                 ("Q1", "Canonical A1", "BPHS", "Q2", "A2")]
+    assert all(p >= 0 for p in positions), "turns + sources visible"
+    assert positions == sorted(positions), "oldest-first order"
+    assert "drifted tail" not in html, "canonical history wins"
+    main_window._teach_transcript = []
+    main_window._teach_history = []
+    main_window._teacher_worker = None
+
+
+def test_teach_compaction_renders_divider_keeps_lesson(main_window, chart,
+                                                       tmp_path):
+    """An over-budget turn inserts a divider above the fresh exchange while
+    prior exchanges stay visible, and the meter shows live numbers."""
+    from jhora.core import database as db
+    old_db_path = db._db_path
+    db.set_db_path(str(tmp_path / "gui-teach-divider.db"))
+
+    class _FakeTeachResetWorker:
+        result_reset = True
+        result_history = [
+            {"role": "user", "content": "new Q"},
+            {"role": "assistant", "content": "fresh A"},
+        ]
+        result_sources = []
+
+    previous_chart = main_window.chart_data
+    main_window.chart_data = chart
+    main_window._teach_transcript = [
+        {"role": "user", "content": "old Q"},
+        {"role": "assistant", "content": "old A"},
+        {"role": "user", "content": "new Q"},
+    ]
+    main_window._teach_history = [
+        {"role": "user", "content": "old Q"},
+        {"role": "assistant", "content": "old A"},
+    ]
+    main_window._teach_stream = ""
+    main_window._teach_thinking = True
+    main_window._teacher_worker = _FakeTeachResetWorker()
+    try:
+        main_window._on_teach_done()
+        roles = [b["role"] for b in main_window._teach_transcript]
+        assert roles == ["user", "assistant", "divider", "user", "assistant"]
+        assert main_window._teach_history == \
+            _FakeTeachResetWorker.result_history
+        main_window._render_teach_output()
+        html = main_window.teach_output.toHtml()
+        positions = [html.find(s) for s in
+                     ("old Q", "old A", "compacted", "new Q", "fresh A")]
+        assert all(p >= 0 for p in positions), "lesson + divider visible"
+        assert positions == sorted(positions), "divider sits above new turn"
+        meter = main_window.teach_context_label.text()
+        assert meter.startswith("Context: "), meter
+        assert "%" in meter
+    finally:
+        main_window.chart_data = previous_chart
+        main_window._teach_transcript = []
+        main_window._teach_history = []
+        main_window._teacher_worker = None
+        main_window._teach_thread_id = None
+        main_window._teach_thread_title = ""
+        db.close_all()
+        db._db_path = old_db_path
+
+
+def _isolate_teach_db(tmp_path, name):
+    from jhora.core import database as db
+    old = db._db_path
+    db.set_db_path(str(tmp_path / name))
+    return old
+
+
+def _restore_teach_db(old):
+    from jhora.core import database as db
+    db.close_all()
+    db._db_path = old
+
+
+def test_teach_newlesson_shelves_resume_restores_delete(main_window, chart,
+                                                        tmp_path):
+    """Full lesson lifecycle: shelve on New lesson, resume via picker,
+    delete clears; second turns update the same row."""
+    old_db = _isolate_teach_db(tmp_path, "gui-teach-lifecycle.db")
+    previous_chart = main_window.chart_data
+    main_window.chart_data = chart
+    try:
+        main_window._teach_history = [
+            {"role": "user", "content": "Shadbala?"},
+            {"role": "assistant", "content": "Sixfold."},
+        ]
+        main_window._teach_transcript = [
+            {"role": "user", "content": "Shadbala?"},
+            {"role": "assistant", "content": "Sixfold.",
+             "sources": [{"source": "BPHS", "excerpt": "strength..."}]},
+        ]
+        main_window._teach_thread_id = None
+        main_window._persist_teach_thread()
+        tid = main_window._teach_thread_id
+        assert tid is not None
+        assert main_window.teach_thread_combo.count() == 1
+        main_window._teach_history += [
+            {"role": "user", "content": "Hora?"},
+            {"role": "assistant", "content": "Hour lord."},
+        ]
+        main_window._teach_transcript += [
+            {"role": "user", "content": "Hora?"},
+            {"role": "assistant", "content": "Hour lord."},
+        ]
+        main_window._persist_teach_thread()
+        assert main_window._teach_thread_id == tid
+        assert main_window.teach_thread_combo.count() == 1
+        main_window._on_teach_newlesson()
+        assert main_window._teach_transcript == []
+        assert main_window._teach_history == []
+        assert main_window._teach_thread_id is None
+        assert main_window.teach_thread_combo.count() == 1
+        assert main_window.teach_thread_combo.currentIndex() == -1
+        main_window.teach_thread_combo.setCurrentIndex(0)
+        assert main_window._teach_thread_id == tid
+        assert len(main_window._teach_history) == 4
+        assert [b["role"] for b in main_window._teach_transcript] == [
+            "user", "assistant", "user", "assistant"]
+        assert main_window._teach_transcript[1]["sources"] == [
+            {"source": "BPHS", "excerpt": "strength..."}]
+        main_window._on_teach_delete_thread()
+        assert main_window.teach_thread_combo.count() == 1
+        assert main_window.teach_thread_combo.itemText(0) == \
+            "No saved lessons"
+        assert main_window._teach_transcript == []
+        assert main_window._teach_thread_id is None
+    finally:
+        main_window.chart_data = previous_chart
+        main_window._teach_transcript = []
+        main_window._teach_history = []
+        main_window._teach_thread_id = None
+        main_window._teach_thread_title = ""
+        _restore_teach_db(old_db)
+
+
+def test_teach_picker_filters_by_chart(main_window, chart, tmp_path):
+    """Lessons are scoped to their birth chart; chartless study has its own
+    group; no chart means no history."""
+    from jhora.charts.chart import ChartBuilder
+    old_db = _isolate_teach_db(tmp_path, "gui-teach-scope.db")
+    previous_chart = main_window.chart_data
+    try:
+        main_window.chart_data = None
+        main_window._refresh_teach_threads()
+        assert main_window.teach_thread_combo.count() == 1
+        assert main_window.teach_thread_combo.itemText(0) == \
+            "No history (compute a chart first)"
+        # Chartless study thread lands in the General study group.
+        main_window._teach_history = [
+            {"role": "user", "content": "Kemadruma?"},
+            {"role": "assistant", "content": "A yoga."},
+        ]
+        main_window._teach_transcript = list(main_window._teach_history)
+        main_window._teach_thread_id = None
+        main_window._persist_teach_thread()
+        assert main_window.teach_thread_combo.count() == 1
+        assert main_window.teach_thread_combo.itemText(0).startswith(
+            "[Study]")
+        # A chart thread joins the list; switching charts hides it.
+        main_window.chart_data = chart
+        main_window._teach_history = [
+            {"role": "user", "content": "Shadbala?"},
+            {"role": "assistant", "content": "Sixfold."},
+        ]
+        main_window._teach_transcript = list(main_window._teach_history)
+        main_window._teach_thread_id = None
+        main_window._persist_teach_thread()
+        assert main_window.teach_thread_combo.count() == 2
+        other = ChartBuilder().build(2026, 7, 7, 10.5, lat=13.08,
+                                     lon=80.27, tz="+0530")
+        assert other is not chart
+        main_window.chart_data = other
+        main_window._reset_teach_thread_view()
+        assert main_window.teach_thread_combo.count() == 1
+        assert main_window.teach_thread_combo.itemText(0).startswith(
+            "[Study]")
+        # Switching back reveals the chart thread again.
+        main_window.chart_data = chart
+        main_window._refresh_teach_threads()
+        assert main_window.teach_thread_combo.count() == 2
+    finally:
+        main_window.chart_data = previous_chart
+        main_window._teach_transcript = []
+        main_window._teach_history = []
+        main_window._teach_thread_id = None
+        main_window._teach_thread_title = ""
+        _restore_teach_db(old_db)
+
+
 def test_muhurta_choghadiya_button_shows_slots(main_window):
     """The Choghadiya button on the Muhurta tab populates a 16-row table."""
     main_window._get_muhurta_inputs = lambda: (
