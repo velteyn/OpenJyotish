@@ -284,3 +284,50 @@ class TestVimsottariYearDefinitions:
         total = sum(p.duration_years for p in periods)
         assert abs(total - 120.0) < 0.01
 
+
+
+def _ads(md):
+    return [ad.lord_name for ad in (md.sub_periods or [])]
+
+
+class TestAntardasaRotation:
+    """Sub-periods rotate from the parent lord (TRIAGE-3 fixed)."""
+
+    def test_jupiter_md_ads_start_at_jupiter(self, dasa_engine, ref_chart):
+        # ref_chart Moon in Purva Bhadrapada -> Jupiter first MD.
+        periods = dasa_engine.compute(ref_chart.julian_day,
+                                      _chart_dict(ref_chart))
+        assert [md.lord_name for md in periods] == [
+            "Jupiter", "Saturn", "Mercury", "Ketu", "Venus", "Sun",
+            "Moon", "Mars", "Rahu"]
+        assert _ads(periods[0]) == [
+            "Jupiter", "Saturn", "Mercury", "Ketu", "Venus", "Sun",
+            "Moon", "Mars", "Rahu"]
+
+    def test_mid_cycle_md_ads_rotate(self, dasa_engine, ref_chart):
+        periods = dasa_engine.compute(ref_chart.julian_day,
+                                      _chart_dict(ref_chart))
+        saturn_md = next(md for md in periods
+                         if md.lord_name == "Saturn")
+        assert _ads(saturn_md) == [
+            "Saturn", "Mercury", "Ketu", "Venus", "Sun",
+            "Moon", "Mars", "Rahu", "Jupiter"]
+
+    def test_pd_rotates_from_ad_lord(self, dasa_engine, ref_chart):
+        periods = dasa_engine.compute(ref_chart.julian_day,
+                                      _chart_dict(ref_chart))
+        first_ad = periods[0].sub_periods[0]
+        assert first_ad.lord_name == "Jupiter"
+        assert [pd.lord_name for pd in (first_ad.sub_periods or [])] == [
+            "Jupiter", "Saturn", "Mercury", "Ketu", "Venus", "Sun",
+            "Moon", "Mars", "Rahu"]
+
+    def test_md_level_unchanged(self, dasa_engine, ref_chart):
+        # Rotation affects only sub-periods: MD starts/end/durations intact.
+        periods = dasa_engine.compute(ref_chart.julian_day,
+                                      _chart_dict(ref_chart))
+        assert abs(periods[0].start_jd - ref_chart.julian_day) < 0.01
+        total = sum(md.duration_years for md in periods)
+        assert total < 120.0  # balance remainder at birth
+        for i in range(len(periods) - 1):
+            assert abs(periods[i].end_jd - periods[i + 1].start_jd) < 0.01
