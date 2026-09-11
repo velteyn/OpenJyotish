@@ -202,6 +202,20 @@ class TestArudhaSahamaExport:
         assert "Choghadiya" in text
         assert "Day " in text and "Night " in text
 
+    def test_analysis_text_has_panchanga(self):
+        from jhora.calc.muhurta import compute_panchanga
+        cd = _sample_chart()
+        text = build_analysis_text(cd)
+        assert "Panchanga Info:" in text
+        for label in ("Tithi:", "Nakshatra:", "Yoga:", "Karana:",
+                      "Weekday:"):
+            assert label in text
+        # Karana matches the canonical computation (same inputs as the
+        # snapshot: birth date at 12:00 UTC).
+        info = compute_panchanga(cd.birth_date.replace(hour=12, minute=0),
+                                 cd.latitude, cd.longitude, 0.0)
+        assert f"Karana: {info.karana_name}" in text
+
     def test_analysis_text_has_muhurta_adjuncts(self):
         from jhora.ai.analysis import muhurta_adjuncts_snapshot
         from jhora.types.nakshatra import Nakshatra
