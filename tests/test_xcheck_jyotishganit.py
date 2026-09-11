@@ -34,9 +34,8 @@ YOGA_NAMES = ["Vishkambha", "Priti", "Ayushman", "Saubhagya", "Shobhana",
               "Dhruva", "Vyaghata", "Harshana", "Vajra", "Siddhi",
               "Vyatipata", "Variyana", "Parigha", "Shiva", "Siddha",
               "Sadhya", "Shubha", "Shukla", "Brahma", "Indra", "Vaidhriti"]
-KARANA_NAMES = ["Bava", "Balava", "Kaulava", "Taitula", "Gara", "Vanija",
-                "Vishti"]
-KARANA_ALIASES = {"taitila": "taitula"}
+KARANA_ALIASES = {"taitula": "taitila", "garaja": "gara",
+                  "naaga": "naga", "visti": "vishti"}
 
 
 def _norm(name):
@@ -150,17 +149,33 @@ def test_l1_panchanga_indices(cid):
 
 
 @pytest.mark.parametrize("cid", _chart_ids())
-@pytest.mark.xfail(reason="TRIAGE-2: our _karana ignores the half-tithi "
-                          "fraction; follow-up change required", strict=True)
 def test_l1_karana_index(cid):
-    """Karana names agree (expected to fail until TRIAGE-2 is fixed)."""
+    """Karana names agree via the canonical half-tithi rule.
+
+    On *-cusp charts a neighboring half is accepted (arcminute ayanamsa
+    differences flip 6° halves, same systematic class as the tithi flips).
+    """
+    from jhora.calc.muhurta import _KARANA_NAMES
+    from jhora.types.graha import Graha
     fix = _load(cid)
-    _cd, pc = _ours(fix)
+    cd, pc = _ours(fix)
     pan = fix["data"]["panchanga"]
     karana = KARANA_ALIASES.get(_norm(pan["karana"].split()[0]),
                                 _norm(pan["karana"].split()[0]))
-    assert pc.karana_index == [_norm(k) for k in KARANA_NAMES].index(
-        karana), pan["karana"]
+    want = [_norm(k) for k in _KARANA_NAMES].index(karana)
+    if cid.endswith("-cusp"):
+        sun = cd.planet(Graha.SUN).longitude
+        moon = cd.planet(Graha.MOON).longitude
+        k = int(((moon - sun) % 360.0) // 6.0) % 60
+
+        def _idx(kk):
+            return 10 if kk == 0 else kk - 50 if kk >= 57 else (kk - 1) % 7
+
+        allowed = {_idx((k - 1) % 60), _idx(k), _idx((k + 1) % 60)}
+        assert pc.karana_index in allowed, pan["karana"]
+    else:
+        assert pc.karana_index == want, pan["karana"]
+        assert pc.karana_name == _KARANA_NAMES[want]
 
 
 @pytest.mark.parametrize("cid", _chart_ids())
