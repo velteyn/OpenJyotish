@@ -1,11 +1,38 @@
 """Dasa timeline — text-based visualization of dasa periods."""
 
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from jhora.charts.chart import ChartData
 from jhora.dasas.vimsottari import VimsottariDasa
 from jhora.types.dasa import DasaPeriod
+
+
+def current_period(periods: List[DasaPeriod], now: datetime) -> Optional[DasaPeriod]:
+    """Return the period containing `now`, or None if outside the sequence."""
+    return next((p for p in periods if p.start_date <= now <= p.end_date), None)
+
+
+def next_mahadasa(periods: List[DasaPeriod],
+                  current_md: DasaPeriod) -> Optional[DasaPeriod]:
+    """Return the MD following `current_md`.
+
+    MDs are contiguous: the next starts exactly when the current ends,
+    so the comparison must be >= (strict > skips it and lands a full
+    cycle ahead).
+    """
+    for p in periods:
+        if p.start_date >= current_md.end_date:
+            return p
+    return None
+
+
+def upcoming_sub_periods(md: DasaPeriod, now: datetime,
+                         limit: int = 4) -> List[DasaPeriod]:
+    """Sub-periods of `md` starting after `now`, soonest first."""
+    upcoming = sorted((sp for sp in (md.sub_periods or []) if sp.start_date > now),
+                      key=lambda x: x.start_date)
+    return upcoming[:limit]
 
 
 def dasa_timeline_text(cd: ChartData, width: int = 80) -> str:

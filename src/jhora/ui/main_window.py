@@ -23,7 +23,7 @@ from jhora.calc.ashtakavarga import (_OCCUPANT_GRAHAS, all_bhinna_ashtakavarga,
 from jhora.calc.bhava_bala import BhavaBalaComputer
 from jhora.calc.shadbala import ShadbalaComputer
 from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
-from jhora.charts.chart import ChartBuilder, ChartData
+from jhora.charts.chart import ChartBuilder, ChartData, house_rasi_index
 from jhora.charts.varga import (VargaChartComputer, VargaChartData,
                                 get_variants_for_level)
 from jhora.core.database import get_db, set_db_path
@@ -3551,7 +3551,9 @@ class MainWindow(QMainWindow):
         from datetime import datetime, timedelta
 
         from jhora.calc.bhava_bala import BhavaBalaComputer
-        from jhora.calc.gochara import compute_transits
+        from jhora.calc.dasa_timeline import (current_period, next_mahadasa,
+                                              upcoming_sub_periods)
+        from jhora.calc.gochara import compute_transits, sade_sati_status
         from jhora.calc.shadbala import ShadbalaComputer
         from jhora.dasas.vimsottari import VimsottariDasa
         from jhora.ephemeris.swe import SweEngine
@@ -3605,13 +3607,9 @@ class MainWindow(QMainWindow):
                                    for g, p in cd.planets.items()},
                       "lagna_lon": cd.ascendant}
             periods = dasa.compute(cd.julian_day, cd_dict)
-            current_md = next((p for p in periods if p.start_date <= now <= p.end_date), None)
-            current_ad = None
-            if current_md:
-                for ad in (current_md.sub_periods or []):
-                    if ad.start_date <= now <= ad.end_date:
-                        current_ad = ad
-                        break
+            current_md = current_period(periods, now)
+            current_ad = (current_period(current_md.sub_periods or [], now)
+                          if current_md else None)
         except Exception:
             current_md = current_ad = None
 
@@ -3649,7 +3647,7 @@ class MainWindow(QMainWindow):
             str_lines.append("")
             str_lines.append("[bold]House Strengths:[/bold]")
             for h, val in bh[:5]:
-                ri = (int(cd.ascendant/30) + h - 1) % 12
+                ri = house_rasi_index(cd.ascendant, h)
                 bar = "█" * int(val / 12) + "░" * (18 - int(val / 12))
                 str_lines.append(f"  H{h} {Rasi(ri).short_name} {bar} {val:.0f}")
             self.dash_strengths.setHtml(_to_html(str_lines))
@@ -3660,18 +3658,11 @@ class MainWindow(QMainWindow):
         up_lines = []
         if current_md:
             up_lines.append("[bold]Upcoming Antardasas:[/bold]")
-            upcoming = sorted([sp for sp in (current_md.sub_periods or [])
-                              if sp.start_date > now], key=lambda x: x.start_date)
-            for sp in upcoming[:4]:
+            for sp in upcoming_sub_periods(current_md, now):
                 days_to = (sp.start_date - now).days
                 up_lines.append(f"  {sp.lord_name}: {sp.start_date.strftime('%b %d, %Y')} ({days_to}d)")
             up_lines.append("")
-            next_md = None
-            for p in periods:
-                # Contiguous MDs: the next starts exactly when current ends.
-                if p.start_date >= current_md.end_date:
-                    next_md = p
-                    break
+            next_md = next_mahadasa(periods, current_md)
             if next_md:
                 up_lines.append(f"[bold]Next Mahadasha: {next_md.lord_name}[/bold] — {next_md.start_date.strftime('%b %Y')}")
         up_lines.append("")
@@ -3706,10 +3697,9 @@ class MainWindow(QMainWindow):
             sat_rasi = by_graha[Graha.SATURN].transit_rasi
             moon_rasi = int(cd.planet(Graha.MOON).longitude / 30)
             # Sade Sati: transit Saturn in 12th, 1st, 2nd from natal Moon
-            ss_signs = [(moon_rasi - 1) % 12, moon_rasi, (moon_rasi + 1) % 12]
-            if sat_rasi in ss_signs:
-                pos = ["12th from Moon", "1st from Moon (peak)", "2nd from Moon"][ss_signs.index(sat_rasi)]
-                kd_lines.append(f"  🟡 IN Sade Sati ({pos})")
+            phase = sade_sati_status(moon_rasi, sat_rasi)
+            if phase:
+                kd_lines.append(f"  🟡 IN Sade Sati ({phase})")
             else:
                 dist = min((sat_rasi - moon_rasi) % 12, (moon_rasi - sat_rasi) % 12)
                 kd_lines.append(f"  Sade Sati in ~{dist * 2.5:.0f} years (Saturn at {dist} signs away)")
