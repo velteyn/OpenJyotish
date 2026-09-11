@@ -217,6 +217,26 @@ src/jhora/
 ### 💬 Community & Support
 If you want to discuss the project, ask questions, or share your own astrology software tools, join our official community on Reddit: [r/AstrologySoftware](https://www.reddit.com/r/AstrologySoftware/).
 
+## Traditions & Lineage
+
+No single sampradaya — like JHora itself, this toolkit follows an eclectic
+school with a clear backbone:
+
+- **Parashara core** (Brihat Parashara Hora Shastra): Lahiri ayanamsa,
+  whole-sign Rasi houses, Vimsottari dasa, Shadbala, Ashtakavarga —
+  the mainstream North-Indian practice most software implements.
+- **Jaimini integration** (SJC / Sanjay Rath lineage, via P.V.R. Narasimha
+  Rao's integrated approach): Arudha Padas, Chara Karakas, Rasi dasas
+  (Chara, Narayana, Sudasa).
+- **Karnataka muhurta** (B.V. Raman): electional rules, Panchaka-Rahita,
+  Durmuhurta/Varjya.
+- **Krishnamurti elements**: KP sub-lords for stellar precision.
+- **Tajaka annual horoscopy**: Indo-Persian Varshaphala (solar returns,
+  Muntha, Mudda/Patyayini dasas).
+
+Purists of any single tradition will find foreign bodies here; that mixing
+*is* the JHora school this project continues.
+
 ## Credits
 
 Based on **OpenJyotish 8.0 Lite** by PVR Narasimha Rao (Sri Jagannath Vedic Centre).  
