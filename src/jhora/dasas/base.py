@@ -94,6 +94,7 @@ class DasaBase(ABC):
         max_level: PeriodLevel = PeriodLevel.PRATYANTARDASA,
         lord_names: Optional[Dict[int, str]] = None,
         sub_lord_names: Optional[Dict[int, str]] = None,
+        sub_order: Optional[List[int]] = None,
     ) -> List[DasaPeriod]:
         """Build hierarchical period tree from lord sequence.
         
@@ -106,6 +107,9 @@ class DasaBase(ABC):
             max_level: How deep to subdivide
             lord_names: Optional dict mapping lord_index → display name
             sub_lord_names: Optional dict mapping ratio-index → sub-period display name
+            sub_order: Optional cycle lord indices parallel to sub_ratios.
+                When given, each parent's sub-periods rotate to start from the
+                parent lord; when absent, legacy input order is kept.
         """
         lord_names = lord_names or {}
         if sub_lord_names is None:
@@ -139,7 +143,8 @@ class DasaBase(ABC):
             )
             if max_level.value >= PeriodLevel.ANTARDASA.value:
                 md.sub_periods = _subdivide(
-                    md, sub_ratios, y_per_d, 1, max_level, sub_lord_names
+                    md, sub_ratios, y_per_d, 1, max_level, sub_lord_names,
+                    sub_order,
                 )
             periods.append(md)
             current_jd = end_jd
@@ -153,11 +158,26 @@ def _subdivide(
     depth: int,
     max_depth: PeriodLevel,
     sub_lord_names: Optional[Dict[int, str]] = None,
+    sub_order: Optional[List[int]] = None,
 ) -> List[DasaPeriod]:
-    """Create subdivision periods for a parent period."""
+    """Create subdivision periods for a parent period.
+
+    When sub_order (cycle lord indices parallel to ratios) is given, the
+    enumeration rotates to the parent lord's cycle position, so sub-periods
+    start from the parent lord at every depth; otherwise legacy input order
+    is kept byte-identical.
+    """
     if depth > max_depth.value:
         return None
     sub_lord_names = sub_lord_names or {}
+    order = list(sub_order) if sub_order is not None else None
+    if order is not None:
+        try:
+            start = order.index(parent.lord_index)
+        except ValueError:
+            start = 0
+    else:
+        start = 0
     total_ratio = sum(ratios)
     periods = []
     level_map = {
@@ -170,12 +190,15 @@ def _subdivide(
     level = level_map.get(depth, PeriodLevel.ANTARDASA)
     parent_duration = parent.end_jd - parent.start_jd
     current_jd = parent.start_jd
-    for i, ratio in enumerate(ratios):
+    n = len(ratios)
+    for k in range(n):
+        i = (start + k) % n if order is not None else k
+        ratio = ratios[i]
         dur = parent_duration * (ratio / total_ratio)
         end_jd = current_jd + dur
         sub_name = sub_lord_names.get(i, str(i))
         sub = DasaPeriod(
-            lord_index=i,
+            lord_index=order[i] if order is not None else i,
             lord_name=sub_name,
             start_jd=current_jd,
             end_jd=end_jd,
@@ -183,7 +206,8 @@ def _subdivide(
             level=level,
         )
         if depth < max_depth.value:
-            sub.sub_periods = _subdivide(sub, ratios, y_per_d, depth + 1, max_depth, sub_lord_names)
+            sub.sub_periods = _subdivide(sub, ratios, y_per_d, depth + 1, max_depth, sub_lord_names,
+                                         sub_order)
         periods.append(sub)
         current_jd = end_jd
     return periods
