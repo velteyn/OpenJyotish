@@ -35,9 +35,10 @@
   variants) or document mean-node stance.
 - **TRIAGE-2 — our `_karana` ignores the half-tithi fraction**
   (`tithi.index * 2 % 11`): wrong karana name for most tithis (e.g. Taitula
-  instead of Balava for first-half Krishna Chaturthi). Display-only today
-  (GUI/AI panchanga lines). Follow-up: proper movable/fixed mapping from
-  elongation + regression tests.
+  instead of Balava for first-half Krishna Chaturthi). ✅ RESOLVED by
+  `fix-karana-mapping` (canonical elongation-based computation shared by
+  calculator, panel, and the revived AI panchanga snapshot; proven by a
+  60-half-tithi sweep plus the 8 former strict-xfail reference asserts).
 - **TRIAGE-3 — our antardashas always start at Ketu** instead of rotating
   from the MD lord (universal Vimsottari rule). ✅ RESOLVED by
   `fix-antardasa-rotation` (opt-in rotation in the shared builder, enabled
