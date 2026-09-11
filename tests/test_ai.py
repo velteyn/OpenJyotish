@@ -995,3 +995,36 @@ class TestTeacherChat:
         m2 = t._build_user_message("Q2", chart=cd)
         assert builds == {"detailed": 1, "analysis": 1}
         assert "Q1" in m1 and "Q2" in m2  # questions still differ per turn
+
+    def test_chat_records_last_sources(self, monkeypatch):
+        t = self._teacher()
+        t.store = type("Stub", (), {"search": lambda self, q, top_k=4: [
+            {"source": "BPHS", "content": "x" * 500},
+            {"source": "US", "content": "y"},
+        ]})()
+        monkeypatch.setattr(t, "_stream",
+                            lambda messages, on_token=None: "taught")
+        answer, hist, reset = t.chat("What is Shadbala?")
+        assert answer == "taught"
+        assert t.last_sources == [
+            {"source": "BPHS", "excerpt": "x" * 400},
+            {"source": "US", "excerpt": "y"},
+        ]
+
+    def test_budget_sums_contents_not_messages(self):
+        t = self._teacher()
+        t.max_context_tokens = 1000  # trip wire at 700
+        fat = [{"role": "user", "content": "A" * 10000}]
+        assert t._budget_exceeded(fat) is True
+        assert t._budget_exceeded(
+            [{"role": "user", "content": "hi"}]) is False
+
+    def test_context_usage_below_and_over_threshold(self):
+        t = self._teacher()  # max_context_tokens=1_000_000
+        used, threshold = t.context_usage(chart=None, history=[])
+        assert threshold == int(1_000_000 * 0.70)
+        assert used < threshold
+        t.max_context_tokens = 1000
+        used, _ = t.context_usage(
+            chart=None, history=[{"role": "user", "content": "A" * 10000}])
+        assert used >= 700

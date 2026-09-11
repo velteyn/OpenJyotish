@@ -74,6 +74,8 @@ class AiTeacher:
         self.provider = provider
         self.max_context_tokens = max_context_tokens
         self._static_cache: dict = {}  # id(chart) -> (detailed, analysis)
+        self._last_passages: list = []
+        self.last_sources: list = []
 
     def ask(self, question: str, chart: Optional[ChartData] = None,
             on_token: Optional[Callable[[str], None]] = None) -> str:
@@ -216,9 +218,14 @@ class AiTeacher:
 
     # -- conversation threading (per-turn RAG) ------------------------------
 
+    _RESERVED_RESPONSE_TOKENS = 600
+
     def _budget_exceeded(self, messages: List[dict]) -> bool:
         threshold = int(self.max_context_tokens * _BUDGET_RATIO)
-        return _estimate_tokens(messages) >= threshold
+        used = sum(_estimate_tokens(m.get("content") or "")
+                   for m in messages)
+        used += self._RESERVED_RESPONSE_TOKENS
+        return used >= threshold
 
     def _compact_history(self, history: List[dict]) -> str:
         return thread_recap(history)
@@ -239,6 +246,11 @@ class AiTeacher:
                             chart: Optional[ChartData] = None) -> str:
         """Build the user message for a single teaching turn with fresh RAG."""
         passages = self.store.search(question, top_k=4)
+        self._last_passages = [
+            {"source": p.get("source", "textbook"),
+             "excerpt": str(p.get("content", ""))[:400]}
+            for p in (passages or [])
+        ]
         context = ""
         if passages:
             context = "Relevant textbook passages:\n\n"
@@ -275,6 +287,7 @@ class AiTeacher:
         history = list(history or [])
         reset = False
         user_msg = self._build_user_message(question, chart=chart)
+        self.last_sources = list(self._last_passages)
 
         messages = [{"role": "system", "content": TEACHER_SYSTEM_PROMPT}]
         messages.extend(history)
@@ -296,3 +309,24 @@ class AiTeacher:
         history.append({"role": "user", "content": question})
         history.append({"role": "assistant", "content": answer})
         return answer, history, reset
+
+    def context_usage(self, chart: Optional[ChartData] = None,
+                      history: Optional[List[dict]] = None) -> Tuple[int, int]:
+        """Estimated prompt tokens in use vs the ~70% compaction trip wire.
+
+        Additive readout for the GUI context meter; mirrors the engine
+        accounting (system + static block + history + reserved response)
+        without changing any budget logic.
+        Returns (used_estimate, threshold).
+        """
+        history = list(history or [])
+        used = _estimate_tokens(TEACHER_SYSTEM_PROMPT)
+        if chart is not None:
+            chart_data, analysis = self._static_block(chart)
+            used += _estimate_tokens(chart_data)
+            used += _estimate_tokens(analysis)
+        used += sum(_estimate_tokens(m.get("content") or "")
+                    for m in history)
+        used += self._RESERVED_RESPONSE_TOKENS
+        threshold = int(self.max_context_tokens * _BUDGET_RATIO)
+        return used, threshold
