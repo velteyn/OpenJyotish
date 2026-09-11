@@ -950,10 +950,13 @@ def _print_vimsopaka(cd, scheme_name: str = "shadvarga"):
 def ashtakavarga(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
-    parasara: bool = typer.Option(True, "--parasara/--varahamihira", help="Use Parasara (moon=1, venus=11) or Varahamihira (moon=12, venus=12)"),
+    parasara: bool = typer.Option(True, "--parasara/--varahamihira", help="Ashtakavarga tradition (Varahamihira matrix not yet validated — Parasara only)"),
     kakshya: Optional[str] = typer.Option(None, "--kakshya", "-k", help="Show Kakshya table for a planet: sun, moon, mars, mercury, jupiter, venus, saturn"),
 ):
     """Compute Ashtakavarga — planetary strengths by house."""
+    if not parasara:
+        console.print("[red]The Varahamihira Ashtakavarga matrix is not validated yet — Parasara only.[/red]")
+        raise typer.Exit(1)
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()
     cd = builder.build(
@@ -1373,11 +1376,14 @@ def kuta(
 def transit(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
-    parasara: bool = typer.Option(True, "--parasara/--varahamihira", help="Ashtakavarga tradition"),
+    parasara: bool = typer.Option(True, "--parasara/--varahamihira", help="Ashtakavarga tradition (Varahamihira matrix not yet validated — Parasara only)"),
 ):
     """Current transit positions vs natal chart with Ashtakavarga scores."""
     from jhora.calc.gochara import compute_transits
 
+    if not parasara:
+        console.print("[red]The Varahamihira Ashtakavarga matrix is not validated yet — Parasara only.[/red]")
+        raise typer.Exit(1)
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()
     cd = builder.build(

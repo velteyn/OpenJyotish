@@ -14,8 +14,8 @@ from jhora.calc.ashtakavarga import (
     kakshya_totals,
     kakshya_index_from_degree,
     _OCCUPANT_GRAHAS,
-    _PLANETARY_AV,
-    _LAGNA_AV,
+    _BAV_MATRIX,
+    _BAV_TOTALS,
 )
 from jhora.charts.chart import ChartBuilder
 from jhora.types.graha import Graha
@@ -44,23 +44,29 @@ def ref_chart():
     )
 
 
-class TestPlanetaryAV:
-    """Verify that the benefic-house tables have correct structure."""
+class TestMatrix:
+    """The (subject, contributor) benefic matrix: 7 subjects × 8 contributors."""
 
-    def test_all_planets_have_entries(self):
+    def test_all_subjects_have_all_contributors(self):
         for g in _OCCUPANT_GRAHAS:
-            assert g in _PLANETARY_AV
-            assert isinstance(_PLANETARY_AV[g], list)
-            assert len(_PLANETARY_AV[g]) >= 7
+            assert g in _BAV_MATRIX
+            row = _BAV_MATRIX[g]
+            for c in _OCCUPANT_GRAHAS:
+                assert c in row
+            assert "LAGNA" in row
 
-    def test_lagna_av_length(self):
-        assert len(_LAGNA_AV) == 8
+    def test_row_sums_are_fixed_totals(self):
+        """Each subject's matrix rows sum to its canonical BAV total."""
+        for g in _OCCUPANT_GRAHAS:
+            total = sum(len(houses) for houses in _BAV_MATRIX[g].values())
+            assert total == _BAV_TOTALS[g], f"{g.name}: {total}"
 
-    def test_sun_av(self):
-        assert _PLANETARY_AV[Graha.SUN] == [1, 2, 3, 4, 5, 8, 9, 11]
-
-    def test_moon_av(self):
-        assert _PLANETARY_AV[Graha.MOON] == [1, 3, 6, 7, 8, 10, 11]
+    def test_expected_totals(self):
+        assert _BAV_TOTALS == {
+            Graha.SUN: 48, Graha.MOON: 49, Graha.MARS: 39,
+            Graha.MERCURY: 54, Graha.JUPITER: 56, Graha.VENUS: 52,
+            Graha.SATURN: 39,
+        }
 
 
 class TestBAV:
@@ -96,14 +102,18 @@ class TestBAV:
             assert g in bavs
             assert len(bavs[g]) == 12
 
-    def test_bav_sun_excludes_sun_own_house(self, chart):
-        """Sun's BAV: Sun's own house should have exactly the contributions from
-        the 7 references that are NOT Sun (since Sun as reference excludes Sun
-        as occupant, and others find Sun's house benefic or not)."""
-        bav_sun = bhinna_ashtakavarga(chart, Graha.SUN)
-        bav_moon = bhinna_ashtakavarga(chart, Graha.MOON)
-        # They should not be identical — confirm subject exclusion logic
-        assert bav_sun != bav_moon
+    def test_bav_fixed_totals(self, chart):
+        """Each BAV sums to its canonical total in every chart."""
+        bavs = all_bhinna_ashtakavarga(chart)
+        for g in _OCCUPANT_GRAHAS:
+            assert sum(bavs[g]) == _BAV_TOTALS[g], f"{g.name}"
+
+    def test_bav_totals_invariant_across_charts(self, chart, ref_chart):
+        """Distribution moves, totals don't."""
+        for cd in (chart, ref_chart):
+            bavs = all_bhinna_ashtakavarga(cd)
+            for g in _OCCUPANT_GRAHAS:
+                assert sum(bavs[g]) == _BAV_TOTALS[g]
 
 
 class TestSAV:
@@ -126,21 +136,48 @@ class TestSAV:
         sav = sarva_ashtakavarga(chart)
         assert all(s <= 56 for s in sav)
 
+    def test_sav_total_is_337(self, chart, ref_chart):
+        """Sarvashtakavarga sums to 337 in every chart."""
+        for cd in (chart, ref_chart):
+            assert sum(sarva_ashtakavarga(cd)) == 337
+
+    def test_sav_no_zero_houses(self, chart):
+        """Every rasi receives bindus (the zero-house bug is gone)."""
+        assert all(s > 0 for s in sarva_ashtakavarga(chart))
+
+    def test_validated_distribution(self):
+        """Spot-check against an independent implementation (jyotishganit).
+
+        1973-03-13 13:55 +0100 Padua: SAV matched house-for-house.
+        """
+        cd = ChartBuilder().build(1973, 3, 13, 13 + 55 / 60,
+                                  lat=45.4130, lon=11.8806, tz="+0100")
+        assert sarva_ashtakavarga(cd) == [30, 25, 25, 31, 27, 29,
+                                          33, 32, 40, 22, 20, 23]
+
 
 class TestPAV:
-    """Prastara Ashtakavarga tests."""
+    """Prastara Ashtakavarga tests (per-subject contributor rows)."""
 
     def test_pav_output(self, chart):
-        pav = prastara_ashtakavarga(chart)
+        pav = prastara_ashtakavarga(chart, Graha.SUN)
         assert isinstance(pav, dict)
         assert len(pav) == 8  # 7 planets + Lagna
 
     def test_pav_values_01(self, chart):
-        """Each PAV cell is binary (0 or 1) — one reference, one house."""
-        pav = prastara_ashtakavarga(chart)
+        """Each PAV cell is binary (0 or 1) — one contributor, one house."""
+        pav = prastara_ashtakavarga(chart, Graha.MARS)
         for ref_name, row in pav.items():
             for h in range(12):
                 assert row[h] in (0, 1), f"{ref_name}[{h}]={row[h]}"
+
+    def test_pav_columns_equal_bav(self, chart):
+        """Column sums of the prastara equal the subject's BAV."""
+        for g in _OCCUPANT_GRAHAS:
+            pav = prastara_ashtakavarga(chart, g)
+            bav = bhinna_ashtakavarga(chart, g)
+            for h in range(12):
+                assert sum(row[h] for row in pav.values()) == bav[h]
 
 
 class TestTrikonaShodhana:
@@ -160,10 +197,13 @@ class TestTrikonaShodhana:
         for a, b, c in groups:
             assert reduced[a] == 0 or reduced[b] == 0 or reduced[c] == 0
 
-    def test_trikona_all(self, chart):
-        bavs = all_bhinna_ashtakavarga(chart)
-        reduced = trikona_shodhana_all(bavs)
-        assert len(reduced) == 7
+    def test_subtracts_minimum_from_all_three(self):
+        """The minimum is subtracted from every group member — including
+        the third (regression: it used to be zeroed unconditionally)."""
+        bav = [0] * 12
+        bav[0], bav[4], bav[8] = 5, 2, 4
+        reduced = trikona_shodhana(bav)
+        assert (reduced[0], reduced[4], reduced[8]) == (3, 0, 2)
 
 
 class TestEkadhipatyaShodhana:
@@ -228,20 +268,15 @@ class TestSodhyaPinda:
 class TestEdgeCases:
     """Edge case tests for Ashtakavarga."""
 
-    def test_parasara_vs_varahamihira_moon(self, chart):
-        """Moon's AV differs between Parasara and Varahamihira definitions."""
-        bav_para = bhinna_ashtakavarga(chart, Graha.MOON, parasara_moon=True)
-        bav_vara = bhinna_ashtakavarga(chart, Graha.MOON, parasara_moon=False)
-        assert bav_para != bav_vara
-
-    def test_parasara_vs_varahamihira_venus(self, chart):
-        """Venus's benefic house 11 vs 12 — check the setting is passed through."""
-        # Just verify the settings produce some result (may be same for this chart)
-        bav_para = bhinna_ashtakavarga(chart, Graha.VENUS, parasara_venus=True)
-        bav_vara = bhinna_ashtakavarga(chart, Graha.VENUS, parasara_venus=False)
-        # Settings are different but the chart might not exercise the difference
-        assert len(bav_para) == 12
-        assert len(bav_vara) == 12
+    def test_varahamihira_variant_not_implemented(self, chart):
+        """The Varahamihira variant has no validated matrix — it must fail
+        loudly, never silently produce numbers."""
+        with pytest.raises(NotImplementedError):
+            bhinna_ashtakavarga(chart, Graha.MOON, parasara_moon=False)
+        with pytest.raises(NotImplementedError):
+            bhinna_ashtakavarga(chart, Graha.VENUS, parasara_venus=False)
+        with pytest.raises(NotImplementedError):
+            sarva_ashtakavarga(chart, parasara_moon=False)
 
 
 class TestKakshya:
@@ -292,11 +327,14 @@ class TestKakshya:
         for ref_name, houses in totals.items():
             assert len(houses) == 12
 
-    def test_kakshya_subject_excludes_self(self, ref_chart):
-        """Jupiter is alone in Libra; Jupiter's kakshya table in Libra should be
-        all zeros (no planet Q ≠ Jupiter in Libra)."""
-        table = kakshya_bindu_table(Graha.JUPITER, ref_chart)
-        libra_idx = 6
-        assert sum(table[libra_idx]) == 0, (
-            "Jupiter alone in Libra, kakshya should show 0 bindus in Libra"
-        )
+    def test_kakshya_matches_prastara(self, ref_chart):
+        """Kakshya columns and prastara rows are two views of the same
+        contributor math: table[H][K] == prastara_row(K-lord)[H]."""
+        from jhora.calc.ashtakavarga import (prastara_ashtakavarga,
+                                             _KAKSHYA_REFERENCES, ref_to_str)
+        for g in _OCCUPANT_GRAHAS:
+            table = kakshya_bindu_table(g, ref_chart)
+            pav = prastara_ashtakavarga(ref_chart, g)
+            for h in range(12):
+                for k, ref in enumerate(_KAKSHYA_REFERENCES):
+                    assert table[h][k] == pav[ref_to_str(ref)][h]
