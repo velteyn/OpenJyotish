@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, Q
                              QHeaderView, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
                              QPushButton, QRadioButton, QScrollArea, QSplitter,
+                             QSpinBox,
                              QStackedWidget, QTableWidget, QTableWidgetItem,
                              QTabWidget, QTextEdit,
                              QTimeEdit, QVBoxLayout, QWidget)
@@ -2468,6 +2469,8 @@ class MainWindow(QMainWindow):
             provider=self.ai_provider.currentText(),
             model=self.ai_model.text().strip(),
             base_url=PROVIDERS.get(self.ai_provider.currentText(), {}).get("base_url", ""),
+            preferred_model=self.ai_preferred.text().strip() if hasattr(self, "ai_preferred") else "",
+            ensure_context=self.ai_ctx.value() if hasattr(self, "ai_ctx") else 8192,
         )
         return AiEngine(config)
 
@@ -2562,6 +2565,30 @@ class MainWindow(QMainWindow):
         cfg.addWidget(self.ai_status)
         cfg.addStretch()
         layout.addLayout(cfg)
+
+        # Preferred-model row (LM Studio auto-setup; empty = accept loaded)
+        pref = QHBoxLayout()
+        pref.addWidget(QLabel("Prefer:"))
+        self.ai_preferred = QLineEdit("")
+        self.ai_preferred.setPlaceholderText("model key, e.g. qwen/qwen3.5-9b")
+        self.ai_preferred.setToolTip(
+            "LM Studio model key to auto-load when missing (per-machine "
+            "choice). Governs over the Model field above. Empty = use "
+            "whatever suitable model is already loaded.")
+        self.ai_preferred.setFixedWidth(220)
+        pref.addWidget(self.ai_preferred)
+        pref.addWidget(QLabel("Ctx:"))
+        self.ai_ctx = QSpinBox()
+        self.ai_ctx.setRange(1024, 131072)
+        self.ai_ctx.setSingleStep(1024)
+        self.ai_ctx.setValue(8192)
+        self.ai_ctx.setToolTip(
+            "Context requested when the app loads the preferred model "
+            "(halved automatically if the server refuses — VRAM-safe). "
+            "Keep modest on small GPUs.")
+        pref.addWidget(self.ai_ctx)
+        pref.addStretch()
+        layout.addLayout(pref)
 
         group = QGroupBox("Vector Database")
         group.setStyleSheet("QGroupBox{color:#d4af37;font-weight:bold;}")
@@ -3042,7 +3069,9 @@ class MainWindow(QMainWindow):
 
         self._teacher_worker = _TeacherWorker(
             question, chart, provider, base_url, model,
-            history=list(self._teach_history))
+            history=list(self._teach_history),
+            preferred_model=self.ai_preferred.text().strip() if hasattr(self, "ai_preferred") else "",
+            ensure_context=self.ai_ctx.value() if hasattr(self, "ai_ctx") else 8192)
         self._teacher_worker.token.connect(self._on_teach_token)
         self._teacher_worker.done.connect(self._on_teach_done)
         self._teacher_worker.start()
@@ -4214,7 +4243,8 @@ class _TeacherWorker(QThread):
     done = pyqtSignal()
 
     def __init__(self, question, chart, provider, base_url, model,
-                 history=None, max_context_tokens=4096):
+                 history=None, max_context_tokens=4096,
+                 preferred_model="", ensure_context=8192):
         super().__init__()
         self.question = question
         self.chart = chart
@@ -4223,6 +4253,8 @@ class _TeacherWorker(QThread):
         self.model = model
         self.history = history or []
         self.max_context_tokens = max_context_tokens
+        self.preferred_model = preferred_model
+        self.ensure_context = ensure_context
         self.result_history: list = []
         self.result_reset: bool = False
         self.result_sources: list = []
@@ -4231,7 +4263,9 @@ class _TeacherWorker(QThread):
         try:
             from jhora.ai.engine import AiEngine, AiConfig
             resolver = AiEngine(AiConfig(provider=self.provider,
-                                         base_url=self.base_url, model=self.model))
+                                         base_url=self.base_url, model=self.model,
+                                         preferred_model=self.preferred_model,
+                                         ensure_context=self.ensure_context))
             block = resolver._ensure_chat_model(self.token.emit)
             if block:
                 self.done.emit()

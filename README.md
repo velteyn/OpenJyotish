@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 35 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1021 tests  |  AGPL v3.0
+21-section JSON API for AI agents  |  1034 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -193,6 +193,7 @@ Matchmaking (10 Porutham + Ashta Koota 36pt) · Muhurta · Choghadiya · Prasna
 ### AI & Data
 Local LLM (Ollama/LM Studio/Unsloth) · RAG pipeline with textbook citations ·
 AI Teacher mode · 8 AI topic templates · Context budgeting for small models ·
+LM Studio setup guard (preferred model auto-load with VRAM-safe context) ·
 Unified SQLite DB (atlas 34K cities + knowledge + charts) · HTML export ·
 JHD import/export · Chart browser · JSON API for AI agents
 
