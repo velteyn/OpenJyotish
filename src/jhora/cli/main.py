@@ -1726,6 +1726,10 @@ def ai(
                                 help="Max prompt tokens (2048-16384)"),
     chat: bool = typer.Option(False, "--chat",
                               help="Interactive conversation mode (ask only)"),
+    preferred_model: str = typer.Option("", "--preferred-model",
+                                        help="LM Studio model key to auto-load when missing"),
+    ensure_context: int = typer.Option(8192, "--ensure-context",
+                                       help="Context requested when auto-loading (halved on refusal)"),
 ):
     """AI-powered chart interpretation via local LLM (Ollama/LM Studio/Unsloth)."""
     if not birthdata:
@@ -1741,7 +1745,8 @@ def ai(
         tz=bd["tz"], ayanamsa=ayanamsa,
     )
 
-    config = AiConfig(provider=provider, base_url=base_url, max_context_tokens=context)
+    config = AiConfig(provider=provider, base_url=base_url, max_context_tokens=context,
+                      preferred_model=preferred_model, ensure_context=ensure_context)
     if model:
         config.model = model
     engine = AiEngine(config)
@@ -1809,6 +1814,10 @@ def teach(
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
     chat: bool = typer.Option(False, "--chat",
                               help="Interactive conversation mode"),
+    preferred_model: str = typer.Option("", "--preferred-model",
+                                        help="LM Studio model key to auto-load when missing"),
+    ensure_context: int = typer.Option(8192, "--ensure-context",
+                                       help="Context requested when auto-loading (halved on refusal)"),
 ):
     """AI Teacher — learn Vedic astrology from the textbook corpus."""
     chart = None
@@ -1832,7 +1841,9 @@ def teach(
     teacher = AiTeacher(provider=provider, base_url=base_url, model=model or "")
 
     from jhora.ai.engine import AiEngine, AiConfig
-    resolver = AiEngine(AiConfig(provider=provider, base_url=base_url, model=model))
+    resolver = AiEngine(AiConfig(provider=provider, base_url=base_url, model=model,
+                                 preferred_model=preferred_model,
+                                 ensure_context=ensure_context))
     health = resolver.health_check()
     if not health["ok"]:
         console.print(f"[red]AI server unreachable: {health['error']}[/red]")
