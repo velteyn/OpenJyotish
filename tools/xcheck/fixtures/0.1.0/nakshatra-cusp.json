@@ -1,0 +1,751 @@
+{
+ "id": "nakshatra-cusp",
+ "birth": {
+  "date": "2026-07-07",
+  "hour": 16.416666666666668,
+  "lat": 13.08,
+  "lon": 80.27,
+  "tz": 5.5,
+  "tz_str": "+0530"
+ },
+ "ayanamsa": {
+  "name": "True Chitra Paksha",
+  "value": 23.842013032343857
+ },
+ "tropical": {
+  "Sun": 105.356256,
+  "Moon": 10.901073,
+  "Mars": 66.126842,
+  "Mercury": 114.108841,
+  "Venus": 147.466303,
+  "Jupiter": 121.554269,
+  "Saturn": 14.431222
+ },
+ "data": {
+  "planets": [
+   {
+    "body": "Sun",
+    "sign": "Gemini",
+    "sign_deg": 21.1416,
+    "abs_lon": 81.1416,
+    "nakshatra": "Punarvasu",
+    "pada": 1,
+    "house": 8
+   },
+   {
+    "body": "Moon",
+    "sign": "Pisces",
+    "sign_deg": 16.6866,
+    "abs_lon": 346.6866,
+    "nakshatra": "Revati",
+    "pada": 1,
+    "house": 5
+   },
+   {
+    "body": "Mars",
+    "sign": "Taurus",
+    "sign_deg": 11.9121,
+    "abs_lon": 41.9121,
+    "nakshatra": "Rohini",
+    "pada": 1,
+    "house": 7
+   },
+   {
+    "body": "Mercury",
+    "sign": "Gemini",
+    "sign_deg": 29.8943,
+    "abs_lon": 89.8943,
+    "nakshatra": "Punarvasu",
+    "pada": 3,
+    "house": 8
+   },
+   {
+    "body": "Jupiter",
+    "sign": "Cancer",
+    "sign_deg": 7.3396,
+    "abs_lon": 97.3396,
+    "nakshatra": "Pushya",
+    "pada": 2,
+    "house": 9
+   },
+   {
+    "body": "Venus",
+    "sign": "Leo",
+    "sign_deg": 3.2515,
+    "abs_lon": 123.2515,
+    "nakshatra": "Magha",
+    "pada": 1,
+    "house": 10
+   },
+   {
+    "body": "Saturn",
+    "sign": "Pisces",
+    "sign_deg": 20.2164,
+    "abs_lon": 350.2164,
+    "nakshatra": "Revati",
+    "pada": 2,
+    "house": 5
+   },
+   {
+    "body": "Rahu",
+    "sign": "Aquarius",
+    "sign_deg": 8.4006,
+    "abs_lon": 308.4006,
+    "nakshatra": "Shatabhisha",
+    "pada": 1,
+    "house": 4
+   },
+   {
+    "body": "Ketu",
+    "sign": "Leo",
+    "sign_deg": 8.4006,
+    "abs_lon": 128.4006,
+    "nakshatra": "Magha",
+    "pada": 3,
+    "house": 10
+   }
+  ],
+  "panchanga": {
+   "tithi": "Krishna Ashtami",
+   "nakshatra": "Revati",
+   "yoga": "Atiganda",
+   "karana": "Balava",
+   "vaara": "Tuesday"
+  },
+  "dashas": {
+   "Mercury": {
+    "start": "2026-06-28T09:56:50.357268",
+    "end": "2043-06-28T18:32:31.925268",
+    "antardashas": {
+     "Mercury": {
+      "start": "2026-06-28T09:56:50.357268",
+      "end": "2028-11-24T01:45:53.746068"
+     },
+     "Ketu": {
+      "start": "2028-11-24T01:45:53.746068",
+      "end": "2029-11-21T06:51:58.670868"
+     },
+     "Venus": {
+      "start": "2029-11-21T06:51:58.670868",
+      "end": "2032-09-21T04:17:55.598868"
+     },
+     "Sun": {
+      "start": "2032-09-21T04:17:55.598868",
+      "end": "2033-07-28T15:31:42.677268"
+     },
+     "Moon": {
+      "start": "2033-07-28T15:31:42.677268",
+      "end": "2034-12-28T02:14:41.141268"
+     },
+     "Mars": {
+      "start": "2034-12-28T02:14:41.141268",
+      "end": "2035-12-25T07:20:46.066068"
+     },
+     "Rahu": {
+      "start": "2035-12-25T07:20:46.066068",
+      "end": "2038-07-13T17:02:07.301268"
+     },
+     "Jupiter": {
+      "start": "2038-07-13T17:02:07.301268",
+      "end": "2040-10-18T14:58:52.843668"
+     },
+     "Saturn": {
+      "start": "2040-10-18T14:58:52.843668",
+      "end": "2043-06-28T18:32:31.925268"
+     }
+    }
+   },
+   "Ketu": {
+    "start": "2043-06-28T18:32:31.925268",
+    "end": "2050-06-28T13:36:38.453268",
+    "antardashas": {
+     "Ketu": {
+      "start": "2043-06-28T18:32:31.925268",
+      "end": "2043-11-24T22:03:16.306068"
+     },
+     "Venus": {
+      "start": "2043-11-24T22:03:16.306068",
+      "end": "2045-01-24T01:13:57.394068"
+     },
+     "Sun": {
+      "start": "2045-01-24T01:13:57.394068",
+      "end": "2045-05-31T21:23:09.720468"
+     },
+     "Moon": {
+      "start": "2045-05-31T21:23:09.720468",
+      "end": "2045-12-30T22:58:30.264468"
+     },
+     "Mars": {
+      "start": "2045-12-30T22:58:30.264468",
+      "end": "2046-05-29T02:29:14.645268"
+     },
+     "Rahu": {
+      "start": "2046-05-29T02:29:14.645268",
+      "end": "2047-06-16T14:56:51.624468"
+     },
+     "Jupiter": {
+      "start": "2047-06-16T14:56:51.624468",
+      "end": "2048-05-22T12:41:24.494868"
+     },
+     "Saturn": {
+      "start": "2048-05-22T12:41:24.494868",
+      "end": "2049-07-01T08:30:33.528468"
+     },
+     "Mercury": {
+      "start": "2049-07-01T08:30:33.528468",
+      "end": "2050-06-28T13:36:38.453268"
+     }
+    }
+   },
+   "Venus": {
+    "start": "2050-06-28T13:36:38.453268",
+    "end": "2070-06-28T16:39:48.533268",
+    "antardashas": {
+     "Venus": {
+      "start": "2050-06-28T13:36:38.453268",
+      "end": "2053-10-28T02:07:10.133268"
+     },
+     "Sun": {
+      "start": "2053-10-28T02:07:10.133268",
+      "end": "2054-10-28T08:16:19.637268"
+     },
+     "Moon": {
+      "start": "2054-10-28T08:16:19.637268",
+      "end": "2056-06-28T02:31:35.477268"
+     },
+     "Mars": {
+      "start": "2056-06-28T02:31:35.477268",
+      "end": "2057-08-28T05:42:16.565268"
+     },
+     "Rahu": {
+      "start": "2057-08-28T05:42:16.565268",
+      "end": "2060-08-28T00:09:45.077268"
+     },
+     "Jupiter": {
+      "start": "2060-08-28T00:09:45.077268",
+      "end": "2063-04-29T00:34:10.421268"
+     },
+     "Saturn": {
+      "start": "2063-04-29T00:34:10.421268",
+      "end": "2066-06-28T16:03:10.517268"
+     },
+     "Mercury": {
+      "start": "2066-06-28T16:03:10.517268",
+      "end": "2069-04-28T13:29:07.445268"
+     },
+     "Ketu": {
+      "start": "2069-04-28T13:29:07.445268",
+      "end": "2070-06-28T16:39:48.533268"
+     }
+    }
+   },
+   "Sun": {
+    "start": "2070-06-28T16:39:48.533268",
+    "end": "2076-06-28T05:34:45.557268",
+    "antardashas": {
+     "Sun": {
+      "start": "2070-06-28T16:39:48.533268",
+      "end": "2070-10-16T06:30:33.384468"
+     },
+     "Moon": {
+      "start": "2070-10-16T06:30:33.384468",
+      "end": "2071-04-16T21:35:08.136468"
+     },
+     "Mars": {
+      "start": "2071-04-16T21:35:08.136468",
+      "end": "2071-08-22T17:44:20.462868"
+     },
+     "Rahu": {
+      "start": "2071-08-22T17:44:20.462868",
+      "end": "2072-07-16T11:16:35.016468"
+     },
+     "Jupiter": {
+      "start": "2072-07-16T11:16:35.016468",
+      "end": "2073-05-04T16:11:54.619668"
+     },
+     "Saturn": {
+      "start": "2073-05-04T16:11:54.619668",
+      "end": "2074-04-16T16:02:36.648468"
+     },
+     "Mercury": {
+      "start": "2074-04-16T16:02:36.648468",
+      "end": "2075-02-21T03:16:23.726868"
+     },
+     "Ketu": {
+      "start": "2075-02-21T03:16:23.726868",
+      "end": "2075-06-28T23:25:36.053268"
+     },
+     "Venus": {
+      "start": "2075-06-28T23:25:36.053268",
+      "end": "2076-06-28T05:34:45.557268"
+     }
+    }
+   },
+   "Moon": {
+    "start": "2076-06-28T05:34:45.557268",
+    "end": "2086-06-28T19:06:20.597268",
+    "antardashas": {
+     "Moon": {
+      "start": "2076-06-28T05:34:45.557268",
+      "end": "2077-04-28T14:42:23.477268"
+     },
+     "Mars": {
+      "start": "2077-04-28T14:42:23.477268",
+      "end": "2077-11-27T16:17:44.021268"
+     },
+     "Rahu": {
+      "start": "2077-11-27T16:17:44.021268",
+      "end": "2079-05-29T13:31:28.277268"
+     },
+     "Jupiter": {
+      "start": "2079-05-29T13:31:28.277268",
+      "end": "2080-09-27T13:43:40.949268"
+     },
+     "Saturn": {
+      "start": "2080-09-27T13:43:40.949268",
+      "end": "2082-04-28T21:28:10.997268"
+     },
+     "Mercury": {
+      "start": "2082-04-28T21:28:10.997268",
+      "end": "2083-09-28T08:11:09.461268"
+     },
+     "Ketu": {
+      "start": "2083-09-28T08:11:09.461268",
+      "end": "2084-04-28T09:46:30.005268"
+     },
+     "Venus": {
+      "start": "2084-04-28T09:46:30.005268",
+      "end": "2085-12-28T04:01:45.845268"
+     },
+     "Sun": {
+      "start": "2085-12-28T04:01:45.845268",
+      "end": "2086-06-28T19:06:20.597268"
+     }
+    }
+   },
+   "Mars": {
+    "start": "2086-06-28T19:06:20.597268",
+    "end": "2093-06-28T14:10:27.125268",
+    "antardashas": {
+     "Mars": {
+      "start": "2086-06-28T19:06:20.597268",
+      "end": "2086-11-24T22:37:04.978068"
+     },
+     "Rahu": {
+      "start": "2086-11-24T22:37:04.978068",
+      "end": "2087-12-13T11:04:41.957268"
+     },
+     "Jupiter": {
+      "start": "2087-12-13T11:04:41.957268",
+      "end": "2088-11-18T08:49:14.827668"
+     },
+     "Saturn": {
+      "start": "2088-11-18T08:49:14.827668",
+      "end": "2089-12-28T04:38:23.861268"
+     },
+     "Mercury": {
+      "start": "2089-12-28T04:38:23.861268",
+      "end": "2090-12-25T09:44:28.786068"
+     },
+     "Ketu": {
+      "start": "2090-12-25T09:44:28.786068",
+      "end": "2091-05-23T13:15:13.166868"
+     },
+     "Venus": {
+      "start": "2091-05-23T13:15:13.166868",
+      "end": "2092-07-22T16:25:54.254868"
+     },
+     "Sun": {
+      "start": "2092-07-22T16:25:54.254868",
+      "end": "2092-11-27T12:35:06.581268"
+     },
+     "Moon": {
+      "start": "2092-11-27T12:35:06.581268",
+      "end": "2093-06-28T14:10:27.125268"
+     }
+    }
+   },
+   "Rahu": {
+    "start": "2093-06-28T14:10:27.125268",
+    "end": "2111-06-30T04:55:18.197268",
+    "antardashas": {
+     "Rahu": {
+      "start": "2093-06-28T14:10:27.125268",
+      "end": "2096-03-10T18:47:10.786068"
+     },
+     "Jupiter": {
+      "start": "2096-03-10T18:47:10.786068",
+      "end": "2098-08-04T09:33:09.595668"
+     },
+     "Saturn": {
+      "start": "2098-08-04T09:33:09.595668",
+      "end": "2101-06-11T09:05:15.682068"
+     },
+     "Mercury": {
+      "start": "2101-06-11T09:05:15.682068",
+      "end": "2103-12-29T18:46:36.917268"
+     },
+     "Ketu": {
+      "start": "2103-12-29T18:46:36.917268",
+      "end": "2105-01-16T07:14:13.896468"
+     },
+     "Venus": {
+      "start": "2105-01-16T07:14:13.896468",
+      "end": "2108-01-17T01:41:42.408468"
+     },
+     "Sun": {
+      "start": "2108-01-17T01:41:42.408468",
+      "end": "2108-12-10T19:13:56.962068"
+     },
+     "Moon": {
+      "start": "2108-12-10T19:13:56.962068",
+      "end": "2110-06-11T16:27:41.218068"
+     },
+     "Mars": {
+      "start": "2110-06-11T16:27:41.218068",
+      "end": "2111-06-30T04:55:18.197268"
+     }
+    }
+   },
+   "Jupiter": {
+    "start": "2111-06-30T04:55:18.197268",
+    "end": "2127-06-30T07:21:50.261268",
+    "antardashas": {
+     "Jupiter": {
+      "start": "2111-06-30T04:55:18.197268",
+      "end": "2113-08-17T10:02:50.472468"
+     },
+     "Saturn": {
+      "start": "2113-08-17T10:02:50.472468",
+      "end": "2116-02-28T17:38:02.549268"
+     },
+     "Mercury": {
+      "start": "2116-02-28T17:38:02.549268",
+      "end": "2118-06-05T15:34:48.091668"
+     },
+     "Ketu": {
+      "start": "2118-06-05T15:34:48.091668",
+      "end": "2119-05-12T13:19:20.962068"
+     },
+     "Venus": {
+      "start": "2119-05-12T13:19:20.962068",
+      "end": "2122-01-10T13:43:46.306068"
+     },
+     "Sun": {
+      "start": "2122-01-10T13:43:46.306068",
+      "end": "2122-10-29T18:39:05.909268"
+     },
+     "Moon": {
+      "start": "2122-10-29T18:39:05.909268",
+      "end": "2124-02-28T18:51:18.581268"
+     },
+     "Mars": {
+      "start": "2124-02-28T18:51:18.581268",
+      "end": "2125-02-03T16:35:51.451668"
+     },
+     "Rahu": {
+      "start": "2125-02-03T16:35:51.451668",
+      "end": "2127-06-30T07:21:50.261268"
+     }
+    }
+   },
+   "Saturn": {
+    "start": "2127-06-30T07:21:50.261268",
+    "end": "2146-06-30T04:15:50.837268",
+    "antardashas": {
+     "Saturn": {
+      "start": "2127-06-30T07:21:50.261268",
+      "end": "2130-07-03T02:52:23.352468"
+     },
+     "Mercury": {
+      "start": "2130-07-03T02:52:23.352468",
+      "end": "2133-03-12T06:26:02.434068"
+     },
+     "Ketu": {
+      "start": "2133-03-12T06:26:02.434068",
+      "end": "2134-04-21T02:15:11.467668"
+     },
+     "Venus": {
+      "start": "2134-04-21T02:15:11.467668",
+      "end": "2137-06-20T17:44:11.563668"
+     },
+     "Sun": {
+      "start": "2137-06-20T17:44:11.563668",
+      "end": "2138-06-02T17:34:53.592468"
+     },
+     "Moon": {
+      "start": "2138-06-02T17:34:53.592468",
+      "end": "2140-01-02T01:19:23.640468"
+     },
+     "Mars": {
+      "start": "2140-01-02T01:19:23.640468",
+      "end": "2141-02-09T21:08:32.674068"
+     },
+     "Rahu": {
+      "start": "2141-02-09T21:08:32.674068",
+      "end": "2143-12-17T20:40:38.760468"
+     },
+     "Jupiter": {
+      "start": "2143-12-17T20:40:38.760468",
+      "end": "2146-06-30T04:15:50.837268"
+     }
+    }
+   }
+  },
+  "shadbala": {
+   "Sun": {
+    "Sthanabala": {
+     "Uchhabala": 36.286,
+     "Saptavargajabala": 71.25,
+     "Ojhayugmarashiamshabala": 30.0,
+     "Kendradhibala": 30.0,
+     "Drekshanabala": 0.0,
+     "Total": 167.536
+    },
+    "Digbala": 42.047,
+    "Kaalabala": {
+     "Natonnatabala": 15.833,
+     "Pakshabala": 28.515,
+     "Tribhagabala": 0.0,
+     "VarshaMaasaDinaHoraBala": 0.0,
+     "Ayanabala": 116.486,
+     "Total": 160.834
+    },
+    "Cheshtabala": 116.486,
+    "Naisargikabala": 60.0,
+    "Drikbala": -0.081,
+    "Shadbala": {
+     "Total": 546.822,
+     "Rupas": 9.114
+    },
+    "Vimshopaka": {
+     "shadvarga": 13.75,
+     "saptavarga": 13.3,
+     "dashavarga": 11.95,
+     "shodashavarga": 12.95
+    },
+    "Ishtabala": 65.014,
+    "Kashtabala": -5.014
+   },
+   "Moon": {
+    "Sthanabala": {
+     "Uchhabala": 44.562,
+     "Saptavargajabala": 60.0,
+     "Ojhayugmarashiamshabala": 15.0,
+     "Kendradhibala": 30.0,
+     "Drekshanabala": 0.0,
+     "Total": 149.562
+    },
+    "Digbala": 49.438,
+    "Kaalabala": {
+     "Natonnatabala": 44.167,
+     "Pakshabala": 31.485,
+     "Tribhagabala": 0.0,
+     "VarshaMaasaDinaHoraBala": 0.0,
+     "Ayanabala": 39.039,
+     "Total": 114.691
+    },
+    "Cheshtabala": 31.485,
+    "Naisargikabala": 51.43,
+    "Drikbala": -1.819,
+    "Shadbala": {
+     "Total": 394.787,
+     "Rupas": 6.58
+    },
+    "Vimshopaka": {
+     "shadvarga": 14.2,
+     "saptavarga": 14.2,
+     "dashavarga": 14.625,
+     "shodashavarga": 14.725
+    },
+    "Ishtabala": 37.457,
+    "Kashtabala": 22.543
+   },
+   "Mars": {
+    "Sthanabala": {
+     "Uchhabala": 25.363,
+     "Saptavargajabala": 123.75,
+     "Ojhayugmarashiamshabala": 15.0,
+     "Kendradhibala": 60.0,
+     "Drekshanabala": 0.0,
+     "Total": 224.113
+    },
+    "Digbala": 28.971,
+    "Kaalabala": {
+     "Natonnatabala": 44.167,
+     "Pakshabala": 28.515,
+     "Tribhagabala": 0.0,
+     "VarshaMaasaDinaHoraBala": 45.0,
+     "Ayanabala": 56.304,
+     "Total": 173.986,
+     "Yuddhabala": 0.0
+    },
+    "Cheshtabala": 9.645,
+    "Naisargikabala": 17.14,
+    "Drikbala": 7.567,
+    "Shadbala": {
+     "Total": 461.422,
+     "Rupas": 7.69
+    },
+    "Vimshopaka": {
+     "shadvarga": 10.75,
+     "saptavarga": 11.125,
+     "dashavarga": 13.125,
+     "shodashavarga": 12.925
+    },
+    "Ishtabala": 15.641,
+    "Kashtabala": 44.359
+   },
+   "Mercury": {
+    "Sthanabala": {
+     "Uchhabala": 34.965,
+     "Saptavargajabala": 161.25,
+     "Ojhayugmarashiamshabala": 30.0,
+     "Kendradhibala": 30.0,
+     "Drekshanabala": 0.0,
+     "Total": 256.215
+    },
+    "Digbala": 14.965,
+    "Kaalabala": {
+     "Natonnatabala": 60.0,
+     "Pakshabala": 0.0,
+     "Tribhagabala": 0.0,
+     "VarshaMaasaDinaHoraBala": 60.0,
+     "Ayanabala": 51.696,
+     "Total": 171.696,
+     "Yuddhabala": 0.0
+    },
+    "Cheshtabala": 20.103,
+    "Naisargikabala": 25.71,
+    "Drikbala": -2.269,
+    "Shadbala": {
+     "Total": 486.42,
+     "Rupas": 8.107
+    },
+    "Vimshopaka": {
+     "shadvarga": 9.1,
+     "saptavarga": 8.875,
+     "dashavarga": 8.35,
+     "shodashavarga": 8.425
+    },
+    "Ishtabala": 26.512,
+    "Kashtabala": 33.488
+   },
+   "Jupiter": {
+    "Sthanabala": {
+     "Uchhabala": 59.22,
+     "Saptavargajabala": 82.5,
+     "Ojhayugmarashiamshabala": 0.0,
+     "Kendradhibala": 15.0,
+     "Drekshanabala": 15.0,
+     "Total": 171.72
+    },
+    "Digbala": 17.447,
+    "Kaalabala": {
+     "Natonnatabala": 15.833,
+     "Pakshabala": 31.485,
+     "Tribhagabala": 60.0,
+     "VarshaMaasaDinaHoraBala": 30.0,
+     "Ayanabala": 55.41,
+     "Total": 192.728,
+     "Yuddhabala": 0.0
+    },
+    "Cheshtabala": 24.193,
+    "Naisargikabala": 34.29,
+    "Drikbala": -3.62,
+    "Shadbala": {
+     "Total": 436.758,
+     "Rupas": 7.279
+    },
+    "Vimshopaka": {
+     "shadvarga": 8.65,
+     "saptavarga": 8.425,
+     "dashavarga": 8.8,
+     "shodashavarga": 9.6
+    },
+    "Ishtabala": 37.851,
+    "Kashtabala": 22.149
+   },
+   "Venus": {
+    "Sthanabala": {
+     "Uchhabala": 17.916,
+     "Saptavargajabala": 112.5,
+     "Ojhayugmarashiamshabala": 0.0,
+     "Kendradhibala": 60.0,
+     "Drekshanabala": 0.0,
+     "Total": 190.416
+    },
+    "Digbala": 3.916,
+    "Kaalabala": {
+     "Natonnatabala": 15.833,
+     "Pakshabala": 31.485,
+     "Tribhagabala": 0.0,
+     "VarshaMaasaDinaHoraBala": 15.0,
+     "Ayanabala": 47.416,
+     "Total": 109.734,
+     "Yuddhabala": 0.0
+    },
+    "Cheshtabala": 51.264,
+    "Naisargikabala": 42.86,
+    "Drikbala": -11.481,
+    "Shadbala": {
+     "Total": 386.709,
+     "Rupas": 6.445
+    },
+    "Vimshopaka": {
+     "shadvarga": 8.9,
+     "saptavarga": 9.125,
+     "dashavarga": 10.75,
+     "shodashavarga": 10.925
+    },
+    "Ishtabala": 30.306,
+    "Kashtabala": 29.694
+   },
+   "Saturn": {
+    "Sthanabala": {
+     "Uchhabala": 9.928,
+     "Saptavargajabala": 108.75,
+     "Ojhayugmarashiamshabala": 0.0,
+     "Kendradhibala": 30.0,
+     "Drekshanabala": 0.0,
+     "Total": 148.678
+    },
+    "Digbala": 41.739,
+    "Kaalabala": {
+     "Natonnatabala": 44.167,
+     "Pakshabala": 28.515,
+     "Tribhagabala": 60.0,
+     "VarshaMaasaDinaHoraBala": 0.0,
+     "Ayanabala": 34.15,
+     "Total": 166.832,
+     "Yuddhabala": 0.0
+    },
+    "Cheshtabala": 55.851,
+    "Naisargikabala": 8.57,
+    "Drikbala": -0.496,
+    "Shadbala": {
+     "Total": 421.174,
+     "Rupas": 7.02
+    },
+    "Vimshopaka": {
+     "shadvarga": 13.9,
+     "saptavarga": 13.4,
+     "dashavarga": 12.85,
+     "shodashavarga": 12.225
+    },
+    "Ishtabala": 23.548,
+    "Kashtabala": 36.452
+   },
+   "Rahu": {
+    "Kaalabala": {
+     "Pakshabala": 0.0
+    }
+   },
+   "Ketu": {
+    "Kaalabala": {
+     "Pakshabala": 0.0
+    }
+   }
+  }
+ }
+}
