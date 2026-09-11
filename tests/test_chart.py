@@ -271,3 +271,37 @@ class TestParseTz:
         assert cd_decimal.ascendant == pytest.approx(cd_compact.ascendant, abs=1e-5)
         assert cd_decimal.ascendant == pytest.approx(cd_colon.ascendant, abs=1e-5)
         assert cd_decimal.lagna.rasi == Rasi.TAURUS
+
+
+class TestParseTzIana:
+    """IANA zone names must resolve the offset in force at the birth/event
+    date — never today's offset (regression: a March birth computed in a
+    DST-observing September silently gained an hour)."""
+
+    def test_winter_birth_gets_standard_time(self):
+        # Padua, 13 Mar 1973: CET (UTC+1) — DST started late May that year.
+        assert ChartBuilder._parse_tz(
+            "Europe/Rome", datetime(1973, 3, 13, 13, 55)) == pytest.approx(-1.0)
+
+    def test_summer_birth_gets_daylight_time(self):
+        assert ChartBuilder._parse_tz(
+            "Europe/Rome", datetime(2026, 9, 11, 12, 0)) == pytest.approx(-2.0)
+
+    def test_date_accepted_too(self):
+        from datetime import date
+        assert ChartBuilder._parse_tz(
+            "Europe/Rome", date(1973, 3, 13)) == pytest.approx(-1.0)
+
+    def test_build_with_iana_matches_numeric_offset(self):
+        builder = ChartBuilder()
+        cd_iana = builder.build(1973, 3, 13, 13 + 55 / 60, 45.4130, 11.8806,
+                                tz="Europe/Rome")
+        cd_numeric = builder.build(1973, 3, 13, 13 + 55 / 60, 45.4130, 11.8806,
+                                   tz="+0100")
+        assert cd_iana.ascendant == pytest.approx(cd_numeric.ascendant, abs=1e-5)
+        assert cd_iana.lagna.rasi == Rasi.CANCER
+        assert cd_iana.ascendant == pytest.approx(101.33, abs=0.05)
+
+    def test_no_ref_still_returns_float(self):
+        # Back-compat: without a reference date today's offset is used.
+        assert isinstance(ChartBuilder._parse_tz("Europe/Rome"), float)
