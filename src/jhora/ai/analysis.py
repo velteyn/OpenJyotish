@@ -224,8 +224,9 @@ def yogas_snapshot(cd: ChartData) -> str:
 
 
 def panchanga_snapshot(cd: ChartData) -> str:
-    """Today's panchanga elements."""
+    """Today's panchanga elements (uses real PanchangaInfo fields)."""
     try:
+        from jhora.calc.muhurta import _YOGA_NAMES
         bd = cd.birth_date
         info = compute_panchanga(
             datetime(bd.year, bd.month, bd.day, 12, 0, 0),
@@ -234,9 +235,9 @@ def panchanga_snapshot(cd: ChartData) -> str:
         )
         lines = [
             "Panchanga Info:",
-            f"  Tithi: {info.tithi_name}",
-            f"  Nakshatra: {info.nakshatra_name}",
-            f"  Yoga: {info.yoga_name}",
+            f"  Tithi: {info.tithi.name}",
+            f"  Nakshatra: {info.nakshatra.name.replace('_', ' ').title()}",
+            f"  Yoga: {_YOGA_NAMES[info.yoga_index % 27]}",
             f"  Karana: {info.karana_name}",
             f"  Weekday: {info.weekday_name}",
         ]
@@ -262,6 +263,7 @@ def build_analysis_text(cd: ChartData, usl_config=None) -> str:
         ("CHALIT SHIFTS", lambda: _chalit_snapshot(cd)),
         ("SPECIAL POINTS", lambda: _special_points_snapshot(cd, usl_config)),
         ("CHOGHADIYA", lambda: choghadiya_snapshot(cd)),
+        ("PANCHANGA", lambda: panchanga_snapshot(cd)),
         ("MUHURTA ADJUNCTS", lambda: muhurta_adjuncts_snapshot(cd)),
         ("LEARNING", lambda: _learning_snapshot(cd)),
     ]:
