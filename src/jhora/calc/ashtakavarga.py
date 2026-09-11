@@ -20,20 +20,91 @@ from jhora.charts.chart import ChartData
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 
-# ── Benefic houses from each reference (1-based, house = self is 1) ──
+# ── Benefic houses per (subject, contributor) — Parasara school ──
+# Outer key: the planet whose BAV is built. Inner key: the contributing
+# reference (Graha, or "LAGNA"). Houses are 1-based from the contributor.
+# Source: BPHS Ashtakavarga adhyaya; B.V. Raman. Row sums are the fixed
+# BAV totals: Sun 48, Moon 49, Mars 39, Mercury 54, Jupiter 56,
+# Venus 52, Saturn 39 (SAV 337 in every chart).
 
-_PLANETARY_AV: Dict[Graha, List[int]] = {
-    Graha.SUN:     [1, 2, 3, 4, 5, 8, 9, 11],
-    Graha.MOON:    [1, 3, 6, 7, 8, 10, 11],
-    Graha.MARS:    [1, 2, 4, 7, 8, 9, 10, 11],
-    Graha.MERCURY: [1, 3, 5, 6, 7, 8, 10, 11],
-    Graha.JUPITER: [1, 2, 3, 4, 7, 8, 9, 10, 11],
-    Graha.VENUS:   [1, 2, 3, 4, 5, 8, 9, 10, 11],
-    Graha.SATURN:  [1, 3, 4, 5, 7, 8, 9, 10, 11],
+_BAV_MATRIX = {
+    Graha.SUN: {
+        Graha.SUN: [1, 2, 4, 7, 8, 9, 10, 11],
+        Graha.MOON: [3, 6, 10, 11],
+        Graha.MARS: [1, 2, 4, 7, 8, 9, 10, 11],
+        Graha.MERCURY: [3, 5, 6, 9, 10, 11, 12],
+        Graha.JUPITER: [5, 6, 9, 11],
+        Graha.VENUS: [6, 7, 12],
+        Graha.SATURN: [1, 2, 4, 7, 8, 9, 10, 11],
+        "LAGNA": [3, 4, 6, 10, 11, 12],
+    },
+    Graha.MOON: {
+        Graha.SUN: [3, 6, 7, 8, 10, 11],
+        Graha.MOON: [1, 3, 6, 7, 10, 11],
+        Graha.MARS: [2, 3, 5, 6, 9, 10, 11],
+        Graha.MERCURY: [1, 3, 4, 5, 7, 8, 10, 11],
+        Graha.JUPITER: [1, 4, 7, 8, 10, 11, 12],
+        Graha.VENUS: [3, 4, 5, 7, 9, 10, 11],
+        Graha.SATURN: [3, 5, 6, 11],
+        "LAGNA": [3, 6, 10, 11],
+    },
+    Graha.MARS: {
+        Graha.SUN: [3, 5, 6, 10, 11],
+        Graha.MOON: [3, 6, 11],
+        Graha.MARS: [1, 2, 4, 7, 8, 10, 11],
+        Graha.MERCURY: [3, 5, 6, 11],
+        Graha.JUPITER: [6, 10, 11, 12],
+        Graha.VENUS: [6, 8, 11, 12],
+        Graha.SATURN: [1, 4, 7, 8, 9, 10, 11],
+        "LAGNA": [1, 3, 6, 10, 11],
+    },
+    Graha.MERCURY: {
+        Graha.SUN: [5, 6, 9, 11, 12],
+        Graha.MOON: [2, 4, 6, 8, 10, 11],
+        Graha.MARS: [1, 2, 4, 7, 8, 9, 10, 11],
+        Graha.MERCURY: [1, 3, 5, 6, 9, 10, 11, 12],
+        Graha.JUPITER: [6, 8, 11, 12],
+        Graha.VENUS: [1, 2, 3, 4, 5, 8, 9, 11],
+        Graha.SATURN: [1, 2, 4, 7, 8, 9, 10, 11],
+        "LAGNA": [1, 2, 4, 6, 8, 10, 11],
+    },
+    Graha.JUPITER: {
+        Graha.SUN: [1, 2, 3, 4, 7, 8, 9, 10, 11],
+        Graha.MOON: [2, 5, 7, 9, 11],
+        Graha.MARS: [1, 2, 4, 7, 8, 10, 11],
+        Graha.MERCURY: [1, 2, 4, 5, 6, 9, 10, 11],
+        Graha.JUPITER: [1, 2, 3, 4, 7, 8, 10, 11],
+        Graha.VENUS: [2, 5, 6, 9, 10, 11],
+        Graha.SATURN: [3, 5, 6, 12],
+        "LAGNA": [1, 2, 4, 5, 6, 7, 9, 10, 11],
+    },
+    Graha.VENUS: {
+        Graha.SUN: [8, 11, 12],
+        Graha.MOON: [1, 2, 3, 4, 5, 8, 9, 11, 12],
+        Graha.MARS: [3, 5, 6, 9, 11, 12],
+        Graha.MERCURY: [3, 5, 6, 9, 11],
+        Graha.JUPITER: [5, 8, 9, 10, 11],
+        Graha.VENUS: [1, 2, 3, 4, 5, 8, 9, 10, 11],
+        Graha.SATURN: [3, 4, 5, 8, 9, 10, 11],
+        "LAGNA": [1, 2, 3, 4, 5, 8, 9, 11],
+    },
+    Graha.SATURN: {
+        Graha.SUN: [1, 2, 4, 7, 8, 10, 11],
+        Graha.MOON: [3, 6, 11],
+        Graha.MARS: [3, 5, 6, 10, 11, 12],
+        Graha.MERCURY: [6, 8, 9, 10, 11, 12],
+        Graha.JUPITER: [5, 6, 11, 12],
+        Graha.VENUS: [6, 11, 12],
+        Graha.SATURN: [3, 5, 6, 11],
+        "LAGNA": [1, 3, 4, 6, 10, 11],
+    },
 }
 
-# Lagna / Ascendant benefic houses (1-based)
-_LAGNA_AV = [1, 2, 4, 5, 7, 9, 10, 11]
+# Fixed BAV totals (sum of each subject's matrix rows) — chart-invariant.
+_BAV_TOTALS = {
+    Graha.SUN: 48, Graha.MOON: 49, Graha.MARS: 39, Graha.MERCURY: 54,
+    Graha.JUPITER: 56, Graha.VENUS: 52, Graha.SATURN: 39,
+}
 
 # The 7 grahas used as occupants in Ashtakavarga (Sun through Saturn).
 _OCCUPANT_GRAHAS = [Graha.SUN, Graha.MOON, Graha.MARS,
@@ -59,32 +130,35 @@ def _dist(from_rasi: int, to_rasi: int) -> int:
     return (to_rasi - from_rasi) % 12 + 1
 
 
-# ── Benefic-house lookup table (fast) ──
+# ── Benefic-house lookup ──
 
-def _is_benefic(reference: str, ref_sign: int, target_rasi: int,
-                parasara_moon: bool = True, parasara_venus: bool = True) -> bool:
-    d = _dist(ref_sign, target_rasi)
-    if reference == "LAGNA":
-        return d in _LAGNA_AV
-    graha = Graha[reference]  # string → Graha enum
-    if graha == Graha.MOON and not parasara_moon:
-        return d in [1, 2, 3, 4, 5, 8, 9, 11, 12]
-    if graha == Graha.VENUS and not parasara_venus:
-        return d in [1, 2, 3, 4, 5, 8, 9, 10, 12]
-    return d in _PLANETARY_AV[graha]
+def _require_parasara(parasara_moon: bool, parasara_venus: bool) -> None:
+    """Only the Parasara school matrix is implemented.
+
+    The old single-table code path never produced valid output, so no
+    working behavior is lost; the Varahamihira variant needs its own
+    attested matrix before it can be offered honestly.
+    """
+    if not parasara_moon or not parasara_venus:
+        raise NotImplementedError(
+            "Only the Parasara Ashtakavarga school is implemented; "
+            "the Varahamihira variant has no validated matrix yet."
+        )
+
+
+def _contrib_sign(contrib, planet_rasi: Dict[Graha, int], lagna_rasi: int) -> int:
+    if isinstance(contrib, Graha):
+        return planet_rasi[contrib]
+    return lagna_rasi  # "LAGNA"
+
+
+def _is_benefic(subject: Graha, contrib, contrib_sign: int,
+                target_rasi: int) -> bool:
+    d = _dist(contrib_sign, target_rasi)
+    return d in _BAV_MATRIX[subject][contrib]
 
 
 # ── Core BAV computation ──
-
-def _has_other_planet(house_rasi: int, planet_rasi_map: Dict[Graha, int],
-                      exclude: Optional[Graha]) -> bool:
-    """True if there's a planet (≠ exclude) in the given rasi.
-    If exclude is None, any planet counts."""
-    for g, r in planet_rasi_map.items():
-        if (exclude is None or g != exclude) and r == house_rasi:
-            return True
-    return False
-
 
 def bhinna_ashtakavarga(
     chart: ChartData,
@@ -96,32 +170,20 @@ def bhinna_ashtakavarga(
 
     Returns a 12-element list (one per rasi, Ar=0..Pi=11) of bindu counts.
 
-    Algorithm:
-      Each reference R (Sun, Moon, …, Saturn, Lagna) contributes at most
-      1 bindu per house. For each house H, R contributes 1 bindu if:
-        - H is in a benefic position from R, AND
-        - at least one occupant planet Q (Q ≠ subject) is in H.
+    Algorithm (BPHS): each contributor C (Sun … Saturn, Lagna) drops one
+    bindu into every house that is benefic from C's own position per the
+    (subject, C) matrix row. Pure geometry — no occupancy condition, so
+    each subject's total is chart-invariant (48/49/39/54/56/52/39).
     """
+    _require_parasara(parasara_moon, parasara_venus)
     bav = [0] * 12
     planet_rasi = {g: _rasi_of(g, chart) for g in _OCCUPANT_GRAHAS}
     lagna_r = _lagna_rasi(chart)
 
-    for ref_graha in _OCCUPANT_GRAHAS:
-        ref_r = planet_rasi[ref_graha]
-        for h in range(12):
-            if not _has_other_planet(h, planet_rasi, subject):
-                continue
-            if _is_benefic(ref_graha.name, ref_r, h,
-                           parasara_moon, parasara_venus):
-                bav[h] += 1
-
-    # Reference: Lagna (lagna excludes subject planet like other references)
-    for h in range(12):
-        if not _has_other_planet(h, planet_rasi, subject):
-            continue
-        if _is_benefic("LAGNA", lagna_r, h,
-                       parasara_moon, parasara_venus):
-            bav[h] += 1
+    for contrib in list(_OCCUPANT_GRAHAS) + ["LAGNA"]:
+        contrib_r = _contrib_sign(contrib, planet_rasi, lagna_r)
+        for house_num in _BAV_MATRIX[subject][contrib]:
+            bav[(contrib_r + house_num - 1) % 12] += 1
 
     return bav
 
@@ -163,40 +225,29 @@ def sarva_ashtakavarga(
 
 def prastara_ashtakavarga(
     chart: ChartData,
+    subject: Graha,
     parasara_moon: bool = True,
     parasara_venus: bool = True,
 ) -> Dict[str, Dict[int, int]]:
-    """Prastara Ashtakavarga — 8 references × 12 houses.
+    """Prastara Ashtakavarga — 8 contributor rows × 12 houses for one subject.
 
-    Returns {reference_name: {house_index: bindu_count}}.
-    Each reference R contributes 1 bindu to a house H (or 0) if:
-      - H is benefic from R, AND
-      - some planet Q ≠ R occupies H.
+    Returns {contributor_name: {house_index: 0/1}}.
+    Row C has a 1 in every house benefic from C per the (subject, C)
+    matrix row — the column sums equal the subject's BAV.
     """
+    _require_parasara(parasara_moon, parasara_venus)
+    _require_parasara(parasara_moon, parasara_venus)
     planet_rasi = {g: _rasi_of(g, chart) for g in _OCCUPANT_GRAHAS}
     lagna_r = _lagna_rasi(chart)
     pav: Dict[str, Dict[int, int]] = {}
 
-    for ref_graha in _OCCUPANT_GRAHAS:
-        ref_r = planet_rasi[ref_graha]
+    for contrib in list(_OCCUPANT_GRAHAS) + ["LAGNA"]:
+        contrib_r = _contrib_sign(contrib, planet_rasi, lagna_r)
         row = {h: 0 for h in range(12)}
-        for h in range(12):
-            if not _has_other_planet(h, planet_rasi, ref_graha):
-                continue
-            if _is_benefic(ref_graha.name, ref_r, h,
-                           parasara_moon, parasara_venus):
-                row[h] = 1
-        pav[ref_graha.name] = row
-
-    # Lagna reference (lagna is not a planet, so all 7 planets count)
-    row_l = {h: 0 for h in range(12)}
-    for h in range(12):
-        if not _has_other_planet(h, planet_rasi, None):
-            continue
-        if _is_benefic("LAGNA", lagna_r, h,
-                       parasara_moon, parasara_venus):
-            row_l[h] = 1
-    pav["LAGNA"] = row_l
+        for house_num in _BAV_MATRIX[subject][contrib]:
+            row[(contrib_r + house_num - 1) % 12] = 1
+        name = contrib.name if isinstance(contrib, Graha) else contrib
+        pav[name] = row
 
     return pav
 
@@ -218,7 +269,7 @@ def trikona_shodhana(
         mn = min(working[a], working[b], working[c])
         working[a] -= mn
         working[b] -= mn
-        working[c] = 0  # per standard practice, the third is zeroed
+        working[c] -= mn
     return working
 
 
@@ -316,21 +367,12 @@ def kakshya_lord(kakshya_idx: int):
 
 
 def _ref_contributes(
-    house_rasi: int, ref,
+    house_rasi: int, ref, subject: Graha,
     planet_rasi: Dict[Graha, int], lagna_rasi: int,
-    exclude: Optional[Graha] = None,
-    parasara_moon: bool = True,
-    parasara_venus: bool = True,
 ) -> bool:
-    """Does reference R contribute a bindu to house H (for a given subject exclusion)?"""
-    if not _has_other_planet(house_rasi, planet_rasi, exclude):
-        return False
-    if isinstance(ref, Graha):
-        return _is_benefic(ref.name, planet_rasi[ref], house_rasi,
-                          parasara_moon, parasara_venus)
-    else:  # "LAGNA"
-        return _is_benefic("LAGNA", lagna_rasi, house_rasi,
-                          parasara_moon, parasara_venus)
+    """Does contributor R put a bindu into house H of the subject's BAV?"""
+    contrib_r = _contrib_sign(ref, planet_rasi, lagna_rasi)
+    return _is_benefic(subject, ref, contrib_r, house_rasi)
 
 
 def kakshya_bindu_table(
@@ -342,21 +384,19 @@ def kakshya_bindu_table(
     """12×8 Kakshya table for a given subject planet.
 
     For each house H (0-11) and each Kakshya K (0-7), the cell shows 1
-    if the reference that rules Kakshya K contributes 1 bindu to house H
-    (per BAV rules, excluding the subject planet).
-
+    if the contributor ruling Kakshya K puts a bindu into house H of the
+    subject's BAV. Row sums equal the BAV.
     Returns List[12 houses][8 kakshyas].
     """
+    _require_parasara(parasara_moon, parasara_venus)
+    _require_parasara(parasara_moon, parasara_venus)
     planet_rasi = {g: _rasi_of(g, chart) for g in _OCCUPANT_GRAHAS}
     lagna_r = _lagna_rasi(chart)
     table = [[0] * 8 for _ in range(12)]
 
     for h in range(12):
         for k, ref in enumerate(_KAKSHYA_REFERENCES):
-            if _ref_contributes(h, ref, planet_rasi, lagna_r,
-                                exclude=subject,
-                                parasara_moon=parasara_moon,
-                                parasara_venus=parasara_venus):
+            if _ref_contributes(h, ref, subject, planet_rasi, lagna_r):
                 table[h][k] = 1
     return table
 
