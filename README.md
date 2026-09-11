@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-34 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  985 tests  |  AGPL v3.0
+35 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+21-section JSON API for AI agents  |  991 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -134,7 +134,7 @@ data = json.loads(subprocess.run(
 ).stdout)
 ```
 
-## All CLI Commands (34)
+## All CLI Commands (35)
 
 | Command | What it does |
 |---------|-------------|
@@ -169,6 +169,7 @@ data = json.loads(subprocess.run(
 | `panchanga` | Monthly calendar (tithi/nakshatra/rahu kalam) |
 | `chakras` | Sarvatobhadra + Kota chakras |
 | `lagnas` | All special lagnas with meanings |
+| `sphutas` | Prasna Marga auspicious points (Tri/Chatus/Pancha/Prana/Deha/Mrityu/Beeja/Kshetra/Yoga) |
 | `learning` | Marana karaka, KP sub-lords, vaiseshikamsas |
 | `tui` | Launch interactive terminal UI |
 | `gui` | Launch desktop GUI |
