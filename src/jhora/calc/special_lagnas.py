@@ -118,7 +118,7 @@ def varnada_lagna(cd: ChartData) -> float:
 
 def _sunrise_local_hours(cd: ChartData) -> float:
     """Sunrise as local decimal hours via the single precise source."""
-    tz_east = -ChartBuilder._parse_tz(cd.timezone)
+    tz_east = -ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
     sr, _ss = sunrise_sunset_hours(cd.birth_date, cd.latitude,
                                    cd.longitude, tz_east)
     return sr
@@ -170,7 +170,7 @@ def _local_date(cd: ChartData):
     """Return (year, month, day) of the birth's LOCAL calendar date."""
     from datetime import datetime as _dt, timedelta as _td
     from jhora.charts.chart import ChartBuilder
-    tz = ChartBuilder._parse_tz(cd.timezone)
+    tz = ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
     y, m, d, ut_hour = _chart_swe(cd).revjul(cd.julian_day)
     # local time = UT - tz_offset hours
     ut = _dt(int(y), int(m), int(d)) + _td(hours=ut_hour)
@@ -182,7 +182,7 @@ def _sunrise_jd(cd: ChartData) -> Optional[float]:
     """JD (UT) of sunrise on the birth's local calendar date."""
     from jhora.ephemeris.swe import SE_SUN
     from jhora.charts.chart import ChartBuilder
-    tz = ChartBuilder._parse_tz(cd.timezone)
+    tz = ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
     swe = _chart_swe(cd)
     y, m, d = _local_date(cd)
     jd_start = swe.julday(y, m, d, 0.1667 + tz)  # local ~00:10 onwards
@@ -215,7 +215,7 @@ def _planet_rise(cd: ChartData, planet: Graha) -> Tuple[Optional[float], Optiona
     from jhora.charts.chart import ChartBuilder
     swe = _chart_swe(cd)
     y, m, d = _local_date(cd)
-    tz_offset = ChartBuilder._parse_tz(cd.timezone)
+    tz_offset = ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
     jd_start = swe.julday(y, m, d, 0.1667 + tz_offset)
 
     if planet == Graha.KETU:
