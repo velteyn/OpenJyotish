@@ -2004,6 +2004,51 @@ def choghadiya(
                       f"— {remaining:.0f} min remaining[/bold]")
 
 
+@app.command()
+def sphutas(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Sphutas — Prasna Marga auspicious-point longitudes."""
+    from jhora.calc.sphuta import compute_sphutas
+    from jhora.calc.upagraha import compute_temporal_upagrahas
+    from jhora.calc.muhurta import _sunrise_sunset
+    from jhora.types.graha import Graha
+    from jhora.types.rasi import Rasi
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    day_start = datetime(bd["year"], bd["month"], bd["day"])
+    tz_east = -ChartBuilder._parse_tz(bd["tz"])
+    # Sunrise/sunset JDs on the civil-day scale, as upagraha expects.
+    sunrise, sunset = _sunrise_sunset(day_start, bd["lat"], bd["lon"], tz_east)
+    temporal = compute_temporal_upagrahas(cd, sunrise, sunset)
+    gulika = next((r.longitude for r in temporal if r.name == "Gulika"), None)
+    if gulika is None:
+        console.print("[red]Could not determine Gulika for this date[/red]")
+        raise typer.Exit(1)
+    pl = cd.planet
+    sph = compute_sphutas(
+        lagna=cd.ascendant, sun=pl(Graha.SUN).longitude,
+        moon=pl(Graha.MOON).longitude, mars=pl(Graha.MARS).longitude,
+        jupiter=pl(Graha.JUPITER).longitude,
+        venus=pl(Graha.VENUS).longitude, rahu=pl(Graha.RAHU).longitude,
+        gulika=gulika)
+    table = Table(title=f"Sphutas — {birthdata}")
+    table.add_column("Sphuta", style="cyan")
+    table.add_column("Longitude", style="yellow")
+    table.add_column("Rasi", style="green")
+    for name, val in sph.items():
+        r = Rasi.from_longitude(val)
+        table.add_row(name, f"{val:.2f}°", r.short_name)
+    console.print(table)
+
+
 @app.callback()
 def cli():
     """OpenJyotish — Vedic astrology calculator (Python port)."""
