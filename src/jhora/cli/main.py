@@ -1531,15 +1531,16 @@ def muhurta(
         console.print(f"[red]Unknown task: {task}[/red]")
         raise typer.Exit(1)
 
-    # _parse_tz returns negative for positive timezones; muhurta module expects positive
-    raw_tz = ChartBuilder._parse_tz(tz)
-    tz_offset = -raw_tz if raw_tz < 0 else raw_tz
-
     try:
         dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
     except ValueError:
         console.print("[red]Invalid date/time format. Use YYYY-MM-DD HH:MM[/red]")
         raise typer.Exit(1)
+
+    # _parse_tz returns negative for positive timezones; muhurta module expects positive.
+    # The event date resolves historical DST for IANA zone names.
+    raw_tz = ChartBuilder._parse_tz(tz, dt)
+    tz_offset = -raw_tz if raw_tz < 0 else raw_tz
 
     def _parse_janma(value: Optional[str]):
         # --janma-nakshatra is honored only with --adjuncts so it never changes
@@ -2024,7 +2025,7 @@ def sphutas(
         tz=bd["tz"], ayanamsa=ayanamsa,
     )
     day_start = datetime(bd["year"], bd["month"], bd["day"])
-    tz_east = -ChartBuilder._parse_tz(bd["tz"])
+    tz_east = -ChartBuilder._parse_tz(bd["tz"], day_start)
     # Sunrise/sunset JDs on the civil-day scale, as upagraha expects.
     sunrise, sunset = _sunrise_sunset(day_start, bd["lat"], bd["lon"], tz_east)
     temporal = compute_temporal_upagrahas(cd, sunrise, sunset)
