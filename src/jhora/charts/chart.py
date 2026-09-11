@@ -102,6 +102,15 @@ class ChartData:
         return local_hour % 24.0
 
 
+def house_rasi_index(ascendant_lon: float, house_num: int) -> int:
+    """0-based rasi index of a whole-sign house from the ascendant longitude.
+
+    house_num is 1-based (1 = lagna). E.g. ascendant 101.3° (Cancer),
+    house 7 → 9 (Capricorn).
+    """
+    return (int(ascendant_lon / 30) + house_num - 1) % 12
+
+
 class ChartBuilder:
     """Builds ChartData from birth information."""
 
