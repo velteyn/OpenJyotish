@@ -269,8 +269,9 @@ class TestModelResolution:
     def _lm(self, monkeypatch, items, load_ok=True):
         import jhora.ai.engine as eng
         monkeypatch.setattr(eng, "_lmstudio_catalog", lambda base_url, timeout=5.0: items)
-        monkeypatch.setattr(eng, "_lmstudio_load",
-                            lambda base_url, model_id, timeout=15.0: load_ok)
+        monkeypatch.setattr(eng, "_load_with_fallback",
+                            lambda base_url, model_key, want_ctx,
+                            min_ctx=1024, timeout=120.0: "inst-1" if load_ok else "")
         monkeypatch.setattr(eng, "_ollama_catalog",
                             lambda base_url, timeout=5.0: [])
         return AiEngine(AiConfig(provider="lmstudio"))
@@ -296,7 +297,9 @@ class TestModelResolution:
         engine = self._lm(monkeypatch, items)
         r = engine.resolve_model()
         assert r["status"] == "ok"
-        assert r["model"] == "hf.co/x/qwen3-8b"
+        assert r["model"] == "inst-1"  # pinned to the loaded instance
+        assert engine.config.model == "inst-1"
+        assert "inst-1" in engine._managed_instances
         assert "automatically" in r["message"] or "Loaded" in r["message"]
 
     def test_no_chat_model_suggests_under_9gb(self, monkeypatch):
@@ -353,12 +356,13 @@ class TestModelResolution:
         import jhora.ai.engine as eng
         monkeypatch.setattr(eng, "_lmstudio_catalog",
                             lambda base_url, timeout=5.0: items)
-        monkeypatch.setattr(eng, "_lmstudio_load",
-                            lambda base_url, model_id, timeout=15.0: True)
+        monkeypatch.setattr(eng, "_load_with_fallback",
+                            lambda base_url, model_key, want_ctx,
+                            min_ctx=1024, timeout=120.0: "inst-9")
         engine = AiEngine(AiConfig(provider="lmstudio",
                                    model="text-embedding-nomic-embed-text-v1.5"))
         assert engine._ensure_chat_model() is None
-        assert engine.config.model == "hf.co/x/qwen3-8b"
+        assert engine.config.model == "inst-9"
 
     def test_ensure_chat_model_blocks_with_suggestion(self, monkeypatch):
         items = [{"id": "hf.co/x/nomic-embed-text-v1.5", "loaded": True,
