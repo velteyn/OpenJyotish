@@ -515,6 +515,30 @@ class TestContextDetection:
                                      base_url="http://x:1234/v1", model="m1"))
         assert enginst.detect_context_length() == 0
 
+    def test_lmstudio_ctx_prefers_loaded_length(self, monkeypatch):
+        """Loaded window wins over the theoretical maximum (1M vs 8K live)."""
+        import requests as _requests
+        import jhora.ai.engine as eng
+
+        class _FakeResp:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"data": [
+                    {"id": "m1", "state": "loaded", "type": "llm",
+                     "max_context_length": 1048576,
+                     "loaded_context_length": 8192},
+                    {"id": "m2", "state": "not-loaded", "type": "llm",
+                     "max_context_length": 262144},
+                ]}
+
+        monkeypatch.setattr(_requests, "get", lambda *a, **k: _FakeResp())
+        by_id = {m["id"]: m
+                 for m in eng._lmstudio_catalog("http://x:1234/v1")}
+        assert by_id["m1"]["ctx"] == 8192
+        assert by_id["m2"]["ctx"] == 262144
+
     def test_ollama_ctx_from_model_info(self, monkeypatch):
         """Ollama /api/show model_info.gpt-oss.context_length is parsed."""
         import requests as _requests
@@ -685,6 +709,78 @@ class TestConversationChat:
         assert threshold == 700
         assert used >= threshold
 
+
+# ---- fix-lm-context-truncation: honest stream endings --------------------
+
+def _sse_chunk(content="", finish=None, reasoning=""):
+    import json as _json
+    delta = {}
+    if content:
+        delta["content"] = content
+    if reasoning:
+        delta["reasoning_content"] = reasoning
+    return "data: " + _json.dumps(
+        {"choices": [{"delta": delta, "finish_reason": finish}]})
+
+
+class _FakeSSE:
+    def __init__(self, lines):
+        self._lines = lines
+
+    def raise_for_status(self):
+        pass
+
+    def iter_lines(self, decode_unicode=False):
+        for ln in self._lines:
+            yield ln.encode("utf-8")
+
+
+class TestStreamHonesty:
+
+    def _engine(self):
+        return AiEngine(AiConfig(provider="custom",
+                                 base_url="http://localhost:1/v1", model="x",
+                                 max_context_tokens=1_000_000))
+
+    def test_length_finish_appends_truncation_notice(self):
+        enginst = self._engine()
+        seen = []
+        text = enginst._stream_response(_FakeSSE([
+            _sse_chunk("Part one. "),
+            _sse_chunk("", finish="length"),
+            "[DONE]",
+        ]), on_token=seen.append)
+        assert text.startswith("Part one.")
+        assert "[truncated — output budget exhausted]" in text
+        assert "[truncated — output budget exhausted]" in "".join(seen)
+
+    def test_stop_finish_returns_clean_text(self):
+        enginst = self._engine()
+        text = enginst._stream_response(_FakeSSE([
+            _sse_chunk("All good."),
+            _sse_chunk("", finish="stop"),
+            "[DONE]",
+        ]))
+        assert text == "All good."
+
+    def test_vanishing_stream_appends_interruption_notice(self):
+        enginst = self._engine()
+        text = enginst._stream_response(_FakeSSE([
+            _sse_chunk("Half an"),
+        ]))
+        assert text.startswith("Half an")
+        assert "[interrupted — connection ended before completion]" in text
+
+    def test_reasoning_only_length_keeps_both_notices(self):
+        enginst = self._engine()
+        text = enginst._stream_response(_FakeSSE([
+            _sse_chunk(reasoning="thinking..."),
+            _sse_chunk("", finish="length"),
+            "[DONE]",
+        ]))
+        assert "no visible answer" in text
+        assert "[truncated — output budget exhausted]" in text
+
     def test_compact_returns_fresh_history(self, monkeypatch):
         enginst = self._engine()
         captured = {}
@@ -836,3 +932,66 @@ class TestTeacherChat:
         assert "Moon" in all_text
         assert "CHART DATA" in all_text
 
+
+    def test_teacher_stream_length_appends_truncation_notice(self, monkeypatch):
+        import requests as _requests
+        t = self._teacher()
+        monkeypatch.setattr(
+            _requests, "post",
+            lambda *a, **k: _FakeSSE([
+                _sse_chunk("Partial lesson. "),
+                _sse_chunk("", finish="length"),
+                "[DONE]",
+            ]))
+        seen = []
+        text = t._stream([{"role": "user", "content": "Q"}],
+                         on_token=seen.append)
+        assert text.startswith("Partial lesson.")
+        assert "[truncated — output budget exhausted]" in text
+        assert "[truncated — output budget exhausted]" in "".join(seen)
+
+    def test_teacher_stream_stop_returns_clean_text(self, monkeypatch):
+        import requests as _requests
+        t = self._teacher()
+        monkeypatch.setattr(
+            _requests, "post",
+            lambda *a, **k: _FakeSSE([
+                _sse_chunk("Complete lesson."),
+                _sse_chunk("", finish="stop"),
+                "[DONE]",
+            ]))
+        assert t._stream([{"role": "user", "content": "Q"}]) == \
+            "Complete lesson."
+
+    def test_teacher_stream_vanishing_appends_interruption(self, monkeypatch):
+        import requests as _requests
+        t = self._teacher()
+        monkeypatch.setattr(
+            _requests, "post",
+            lambda *a, **k: _FakeSSE([_sse_chunk("Half a")]))
+        text = t._stream([{"role": "user", "content": "Q"}])
+        assert "[interrupted — connection ended before completion]" in text
+
+    def test_teacher_static_block_cached_per_chart(self, monkeypatch):
+        """Static chart/analysis block builds once; passages stay fresh."""
+        import jhora.ai.teacher as teach_mod
+        t = self._teacher()
+        builds = {"detailed": 0, "analysis": 0}
+        orig_cd, orig_an = (teach_mod._chart_detailed,
+                            teach_mod.build_analysis_text)
+
+        def counted_cd(chart):
+            builds["detailed"] += 1
+            return orig_cd(chart)
+
+        def counted_an(chart):
+            builds["analysis"] += 1
+            return orig_an(chart)
+
+        monkeypatch.setattr(teach_mod, "_chart_detailed", counted_cd)
+        monkeypatch.setattr(teach_mod, "build_analysis_text", counted_an)
+        cd = _sample_chart()
+        m1 = t._build_user_message("Q1", chart=cd)
+        m2 = t._build_user_message("Q2", chart=cd)
+        assert builds == {"detailed": 1, "analysis": 1}
+        assert "Q1" in m1 and "Q2" in m2  # questions still differ per turn
