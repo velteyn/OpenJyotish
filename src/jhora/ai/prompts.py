@@ -158,9 +158,10 @@ def _estimate_tokens(text: str) -> int:
     return max(1, len(text) // 3)
 
 
-def _truncate_sections(sections: dict, budget: int) -> str:
+def _truncate_sections(sections: dict, budget: int, order=None) -> str:
     """Merge sections in priority order until budget exhausted."""
-    priority = ["analysis", "chart_detail", "chart_compact", "knowledge", "instruction"]
+    priority = order or ["analysis", "chart_detail", "chart_compact",
+                         "knowledge", "instruction"]
     parts = []
     used = _estimate_tokens("")  # baseline
     for key in priority:
@@ -284,8 +285,18 @@ def conversation_anchor(cd: ChartData, max_context: int = 4096) -> str:
     kb = _search_knowledge(cd, "general", n=1)
     if kb:
         sections["knowledge"] = f"--- TEXTBOOK ---\n{kb}"
-    budget = max(1200, min(max_context - 800, 6000))
-    return _truncate_sections(sections, budget)
+    budget = anchor_budget(max_context)
+    # Grounding first: chart line survives even the tiniest budgets, the
+    # analysis tail trims instead.
+    return _truncate_sections(sections, budget,
+                              order=["chart_compact", "analysis",
+                                     "knowledge"])
+
+
+def anchor_budget(max_context: int) -> int:
+    """Context-proportional anchor budget: 40% of the window (floor 800,
+    cap 6000), so small windows keep room for history and answers."""
+    return min(max(800, int(max_context * 0.4)), 6000)
 
 
 def thread_recap(history: List[dict], max_items: int = 8) -> str:

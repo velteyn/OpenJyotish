@@ -50,6 +50,23 @@ class TestPrompts:
         prompt = question_prompt(cd, "What is my career?")
         assert "What is my career?" in prompt
 
+    def test_anchor_budget_scales_with_window(self):
+        from jhora.ai.prompts import anchor_budget
+        assert anchor_budget(2048) == 819
+        assert anchor_budget(4096) == 1638
+        assert anchor_budget(8192) == 3276
+        assert anchor_budget(131072) == 6000
+
+    def test_anchor_sections_survive_small_window(self):
+        from jhora.ai.prompts import conversation_anchor, _estimate_tokens
+        cd = _sample_chart()
+        anchor = conversation_anchor(cd, max_context=8192)
+        assert "--- CHART ---" in anchor
+        assert _estimate_tokens(anchor) <= 3276 + 2000
+        small = conversation_anchor(cd, max_context=2048)
+        assert "--- CHART ---" in small
+        assert len(small) <= len(anchor)
+
     def test_remedy_prompt(self):
         cd = _sample_chart()
         prompt = remedy_prompt(cd)
