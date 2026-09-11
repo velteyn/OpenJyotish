@@ -6,8 +6,11 @@ Only the base URL and default model differ between providers.
 The engine is model-resilient: it works regardless of which model the server
 has loaded. If the configured model is a placeholder or an embedding model, it
 enumerates the server's catalogue, picks a usable chat model (preferring an
-already-loaded one, else auto-loading the best small one), and falls back to a
-download suggestion (models ≤9GB) when nothing usable exists.
+already-loaded one, else auto-loading the best small one with a VRAM-safe
+context size), and falls back to a download suggestion (models ≤9GB) when
+nothing usable exists. With `preferred_model` set (LM Studio), that per-machine
+choice is ensured instead — loaded with the requested context when missing —
+while instances the user loaded themselves are never evicted by the app.
 """
 
 import json
@@ -85,8 +88,54 @@ def _looks_embedding(model_id: str) -> bool:
     return any(h in low for h in EMBED_HINTS)
 
 
-def _lmstudio_catalog(base_url: str, timeout: float = 5.0) -> List[dict]:
-    """List available models from LM Studio, including load state and type."""
+def _params_size(display: str) -> float:
+    """Rough parameter count in billions from strings like '9B', '7.5B'."""
+    low = (display or "").lower()
+    m = re.search(r"(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*b\b", low)
+    if m:
+        return float(m.group(2))
+    m = re.search(r"(\d+(?:\.\d+)?)\s*b\b", low)
+    return float(m.group(1)) if m else 0.0
+
+
+def _lmstudio_catalog_v1(base_url: str, timeout: float = 5.0) -> List[dict]:
+    """List models via LM Studio v1 API (load state + context per instance)."""
+    root = _root_url(base_url)
+    resp = requests.get(f"{root}/api/v1/models", timeout=timeout)
+    resp.raise_for_status()
+    data = resp.json()
+    if "models" not in data:
+        raise ValueError("not an LM Studio v1 catalog")
+    out = []
+    for m in data.get("models", []):
+        if not isinstance(m, dict):
+            continue
+        instances = m.get("loaded_instances") or []
+        first = instances[0] if instances else {}
+        cfg = first.get("config") or {}
+        quant = m.get("quantization") or {}
+        out.append({
+            "id": m.get("key") or m.get("id") or "",
+            "display": str(m.get("display_name") or ""),
+            "loaded": bool(instances),
+            "instance_id": first.get("id") or "",
+            "type": str(m.get("type", "")).lower(),
+            "arch": str(m.get("architecture", "")).lower(),
+            "quant": str(quant.get("name", "")).lower(),
+            "params": _params_size(
+                f"{m.get('params_string') or ''} {m.get('display_name') or ''}"),
+            # Prefer the actually-loaded window: max_context_length is the
+            # model's theoretical ceiling while the instance config holds
+            # what's really serving. Unloaded models report no live length.
+            "ctx": int(cfg.get("context_length") or 0),
+            "max_ctx": int(m.get("max_context_length") or 0),
+            "ttl": first.get("remaining_ttl_seconds"),
+        })
+    return out
+
+
+def _lmstudio_catalog_v0(base_url: str, timeout: float = 5.0) -> List[dict]:
+    """List available models from LM Studio (legacy v0 shape)."""
     root = _root_url(base_url)
     resp = requests.get(f"{root}/api/v0/models", timeout=timeout)
     resp.raise_for_status()
@@ -94,24 +143,123 @@ def _lmstudio_catalog(base_url: str, timeout: float = 5.0) -> List[dict]:
     for m in resp.json().get("data", []):
         out.append({
             "id": m.get("id") or m.get("name") or m.get("path") or "",
+            "display": str(m.get("name") or m.get("id") or ""),
             "loaded": str(m.get("state", "")).lower() == "loaded",
+            "instance_id": "",
             "type": str(m.get("type", "")).lower(),
             "arch": str(m.get("arch", "")).lower(),
             "quant": str(m.get("quantization", "")).lower(),
+            "params": 0.0,
             # Prefer the actually-loaded window: max_context_length is the
             # model's theoretical ceiling (e.g. 1M) while loaded_context_length
             # is what's really serving (e.g. 8K). Unloaded models report no
             # loaded length, so their behavior is unchanged.
             "ctx": m.get("loaded_context_length") or m.get("max_context_length") or 0,
+            "max_ctx": m.get("max_context_length") or 0,
+            "ttl": None,
         })
     return out
 
 
-def _lmstudio_load(base_url: str, model_id: str, timeout: float = 15.0) -> bool:
-    """Ask LM Studio to load a model into memory."""
+def _lmstudio_catalog(base_url: str, timeout: float = 5.0) -> List[dict]:
+    """List available models from LM Studio, including load state and type.
+
+    Prefers the v1 API (per-instance context, params, TTL) and falls back
+    to v0 on older servers. Offline errors propagate from the last attempt.
+    """
+    try:
+        return _lmstudio_catalog_v1(base_url, timeout=timeout)
+    except Exception:
+        pass
+    return _lmstudio_catalog_v0(base_url, timeout=timeout)
+
+
+def _lmstudio_load_v1(base_url: str, model_key: str,
+                      context_length: Optional[int] = None,
+                      timeout: float = 30.0) -> str:
+    """Ask LM Studio (v1 API) to load a model, optionally with a context size.
+
+    Returns the loaded instance id, or "" when the load did not succeed
+    (VRAM exhaustion, unknown key, ...). Only raises on transport errors.
+    """
     root = _root_url(base_url)
-    resp = requests.post(f"{root}/api/v0/models/load",
-                         json={"model": model_id}, timeout=timeout)
+    body = {"model": model_key}
+    if context_length:
+        body["context_length"] = int(context_length)
+    try:
+        resp = requests.post(f"{root}/api/v1/models/load",
+                             json=body, timeout=timeout)
+    except requests.exceptions.RequestException:
+        raise
+    if resp.status_code not in (200, 201, 202):
+        return ""
+    try:
+        data = resp.json()
+    except ValueError:
+        return ""
+    return str(data.get("instance_id") or data.get("model_instance_id") or "")
+
+
+def _lmstudio_unload(base_url: str, instance_id: str,
+                     timeout: float = 15.0) -> bool:
+    """Unload one managed model instance from LM Studio memory."""
+    root = _root_url(base_url)
+    try:
+        resp = requests.post(f"{root}/api/v1/models/unload",
+                             json={"instance_id": instance_id},
+                             timeout=timeout)
+    except requests.exceptions.RequestException:
+        return False
+    return resp.status_code in (200, 201, 202)
+
+
+def _match_preferred(entries: List[dict], preferred: str) -> List[dict]:
+    """Catalog entries matching a preferred model key (exact key first)."""
+    p = (preferred or "").strip().lower()
+    if not p:
+        return []
+    exact = [e for e in entries if (e.get("id") or "").lower() == p]
+    if exact:
+        return exact
+    return [e for e in entries
+            if p in (e.get("id") or "").lower()
+            or p in (e.get("display") or "").lower()]
+
+
+def _load_with_fallback(base_url: str, model_key: str, want_ctx: int,
+                        min_ctx: int, timeout: float = 120.0) -> str:
+    """Load a model, halving the requested context on failure (VRAM-safe).
+
+    Returns the loaded instance id, or "" when every attempt failed.
+    """
+    ctx = int(want_ctx or 8192)
+    floor = max(int(min_ctx or 1024), 1024)
+    while ctx >= floor:
+        try:
+            inst = _lmstudio_load_v1(base_url, model_key, ctx, timeout=timeout)
+        except requests.exceptions.RequestException:
+            return ""
+        if inst:
+            return inst
+        ctx //= 2
+    return ""
+
+
+def _lmstudio_load(base_url: str, model_id: str, timeout: float = 15.0) -> bool:
+    """Ask LM Studio to load a model into memory (legacy entry point).
+
+    Kept for compatibility; new code prefers _lmstudio_load_v1 with an
+    explicit context size. Falls back to v0 on older servers.
+    """
+    inst = _lmstudio_load_v1(base_url, model_id, None, timeout=timeout)
+    if inst:
+        return True
+    root = _root_url(base_url)
+    try:
+        resp = requests.post(f"{root}/api/v0/models/load",
+                             json={"model": model_id}, timeout=timeout)
+    except requests.exceptions.RequestException:
+        return False
     return resp.status_code in (200, 201, 202)
 
 
@@ -277,6 +425,12 @@ class AiConfig:
     short_context: bool = False  # if True, use compact mode (<2K tokens)
     llm_compact_summary: bool = False  # if True, summarize threads with the LLM
     # rather than a rule-based recap on budget compaction
+    preferred_model: str = ""  # LM Studio model key to auto-ensure (per-machine
+    # choice, e.g. "qwen/qwen3.5-9b"); empty = accept whatever is loaded
+    ensure_context: int = 8192  # context requested when the app loads a model
+    # (conservative default for 8GB-VRAM class hardware)
+    min_context: int = 4096  # below this a loaded setup earns a warning/reload
+    auto_ensure: bool = True  # ensure the setup automatically before chatting
 
 
 class AiEngine:
@@ -291,6 +445,8 @@ class AiEngine:
         self._retried_model = False
         self._ctx_detected_for: Optional[str] = None  # model context was detected for
         self._anchor_cache: dict = {}  # id(cd) -> conversation_anchor text
+        self._managed_instances: set = set()  # LM Studio instance ids WE loaded
+        self._ensured_keys: set = set()  # preferred keys already ensured
 
     def _call(self, messages: List[dict], stream: bool = False) -> dict:
         url = f"{self.config.base_url.rstrip('/')}/chat/completions"
@@ -532,6 +688,158 @@ class AiEngine:
             pass
         return thread_recap(history)
 
+    def ensure_setup(self, timeout: float = 8.0) -> dict:
+        """Ensure the preferred LM Studio model is loaded with enough context.
+
+        Policy (per-machine choice, VRAM-safe, never touches user models):
+        - preferred loaded with ctx >= min_context → use it, no server action.
+        - preferred loaded with smaller ctx: reload with a proper context
+          only when the instance is one WE loaded; otherwise use as-is
+          with a warning (a foreign instance is never evicted).
+        - preferred not loaded: unload our own managed instances first to
+          free VRAM, then load with ensure_context (halving down to
+          min_context on failure).
+        - total failure: fall back to the best already-loaded chat model.
+
+        Returns {"status", "model", "ctx", "action", "message", ...} where
+        action is using|loaded|fallback|unavailable.
+        """
+        base = (self.config.base_url
+                or PROVIDERS.get("lmstudio", {}).get("base_url", "")).rstrip("/")
+        try:
+            catalog = _lmstudio_catalog(base, timeout=timeout)
+        except requests.exceptions.ConnectionError:
+            return {"status": "offline", "model": "", "ctx": 0,
+                    "action": "unavailable",
+                    "message": "Could not reach the AI server for model lookup. "
+                               "Is it running?",
+                    "available": [], "loaded": []}
+        except requests.exceptions.RequestException:
+            return {"status": "no_model", "model": "", "ctx": 0,
+                    "action": "unavailable",
+                    "message": _download_suggestion("lmstudio"),
+                    "available": [], "loaded": []}
+        chat = [m for m in catalog if _is_chat_model(m)]
+        chat_ids = [m["id"] for m in chat]
+        loaded_ids = [m["id"] for m in chat if m.get("loaded")]
+        if not chat:
+            return {"status": "no_model", "model": "", "ctx": 0,
+                    "action": "unavailable",
+                    "message": _download_suggestion("lmstudio"),
+                    "available": [], "loaded": []}
+        pref = (self.config.preferred_model or "").strip()
+        min_ctx = max(int(self.config.min_context or 0), 1024)
+        if not pref:
+            return self._resolve_auto(chat, chat_ids, loaded_ids, base)
+        matched = _match_preferred(chat, pref)
+        if not matched:
+            res = self._resolve_auto(chat, chat_ids, loaded_ids, base)
+            res["action"] = "fallback"
+            res["message"] = (f"Preferred model '{pref}' not found on the "
+                              f"server. {res['message']}")
+            return res
+        target = matched[0]
+        live = [m for m in matched if m.get("loaded")]
+        good = [m for m in live if int(m.get("ctx") or 0) >= min_ctx]
+        if good:
+            use = good[0]
+            self.config.model = use.get("instance_id") or use["id"]
+            return {"status": "ok", "model": self.config.model,
+                    "ctx": int(use.get("ctx") or 0), "action": "using",
+                    "message": f"Using {use['id']} "
+                               f"({int(use.get('ctx') or 0)} context)",
+                    "available": chat_ids, "loaded": loaded_ids}
+        if live:
+            use = live[0]
+            self.config.model = use.get("instance_id") or use["id"]
+            if use.get("instance_id") in self._managed_instances:
+                inst = _load_with_fallback(base, target["id"],
+                                           self.config.ensure_context, min_ctx)
+                if inst:
+                    self._managed_instances.add(inst)
+                    self._forget_managed(use.get("instance_id"))
+                    self.config.model = inst
+                    return {"status": "ok", "model": inst,
+                            "ctx": self.config.ensure_context,
+                            "action": "loaded",
+                            "message": f"Reloaded {target['id']} with "
+                                       f"{self.config.ensure_context} context",
+                            "available": chat_ids, "loaded": loaded_ids}
+            return {"status": "ok", "model": self.config.model,
+                    "ctx": int(use.get("ctx") or 0), "action": "using",
+                    "message": f"Using {use['id']} with only "
+                               f"{int(use.get('ctx') or 0)} context — long "
+                               f"answers may truncate. Raise its context in "
+                               f"LM Studio or clear the preferred model so "
+                               f"the app can manage loading.",
+                    "available": chat_ids, "loaded": loaded_ids}
+        self._forget_all_managed(base)
+        inst = _load_with_fallback(base, target["id"],
+                                   self.config.ensure_context, min_ctx)
+        if inst:
+            self._managed_instances.add(inst)
+            self.config.model = inst
+            return {"status": "ok", "model": inst,
+                    "ctx": self.config.ensure_context, "action": "loaded",
+                    "message": f"Loaded {target['id']} automatically "
+                               f"({self.config.ensure_context} context)",
+                    "available": chat_ids, "loaded": loaded_ids}
+        res = self._resolve_auto(chat, chat_ids, loaded_ids, base)
+        res["action"] = "fallback"
+        res["message"] = (f"Could not load '{target['id']}' (server refused "
+                          f"— likely VRAM). {res['message']}")
+        return res
+
+    def _forget_managed(self, instance_id: str) -> None:
+        if instance_id:
+            self._managed_instances.discard(instance_id)
+
+    def _forget_all_managed(self, base_url: str) -> None:
+        """Unload every instance WE loaded (frees VRAM before a fresh load)."""
+        for inst in sorted(self._managed_instances):
+            try:
+                if _lmstudio_unload(base_url, inst):
+                    self._managed_instances.discard(inst)
+            except requests.exceptions.RequestException:
+                pass
+
+    def _resolve_auto(self, chat: List[dict], chat_ids: List[str],
+                      loaded_ids: List[str], base: str) -> dict:
+        """Prefer whatever chat model is already loaded, else auto-load one."""
+        prov = self.config.provider
+        if loaded_ids:
+            best = min(chat, key=_chat_score)
+            self.config.model = best.get("instance_id") or best["id"]
+            return {"status": "ok", "model": self.config.model,
+                    "ctx": int(best.get("ctx") or 0),
+                    "message": f"Using loaded model {best['id']}",
+                    "available": chat_ids, "loaded": loaded_ids}
+        best = min(chat, key=_chat_score)
+        if prov == "lmstudio":
+            try:
+                inst = _load_with_fallback(base, best["id"],
+                                           self.config.ensure_context,
+                                           self.config.min_context)
+            except requests.exceptions.RequestException:
+                inst = ""
+            if inst:
+                self._managed_instances.add(inst)
+                self.config.model = inst
+                return {"status": "ok", "model": inst,
+                        "ctx": self.config.ensure_context,
+                        "message": f"Loaded {best['id']} automatically",
+                        "available": chat_ids, "loaded": loaded_ids}
+            return {"status": "no_model", "model": "", "ctx": 0,
+                    "message": "No chat model is loaded. "
+                               + _download_suggestion(prov),
+                    "available": chat_ids, "loaded": loaded_ids}
+
+        # Ollama loads a model on first inference, so naming it is enough.
+        self.config.model = best["id"]
+        return {"status": "ok", "model": best["id"], "ctx": 0,
+                "message": f"Will auto-load {best['id']} on first request",
+                "available": chat_ids, "loaded": loaded_ids}
+
     def resolve_model(self, timeout: float = 8.0) -> dict:
         """Pick a usable chat model for the configured provider.
 
@@ -569,6 +877,9 @@ class AiEngine:
                     "message": _download_suggestion(prov),
                     "available": [], "loaded": []}
 
+        if prov == "lmstudio" and (self.config.preferred_model or "").strip():
+            return self.ensure_setup(timeout=timeout)
+
         current = (self.config.model or "").strip()
         # A concrete, chat-capable model the user chose is kept as-is.
         if current and current not in PLACEHOLDER_MODELS and not _looks_embedding(current):
@@ -577,34 +888,7 @@ class AiEngine:
                         "message": f"Using {current}",
                         "available": chat_ids, "loaded": loaded_ids}
 
-        # Prefer whatever chat model is already loaded.
-        if loaded_ids:
-            best = min(chat, key=_chat_score)
-            self.config.model = best["id"]
-            return {"status": "ok", "model": best["id"],
-                    "message": f"Using loaded model {best['id']}",
-                    "available": chat_ids, "loaded": loaded_ids}
-
-        # Nothing loaded: try to load the best small chat model.
-        best = min(chat, key=_chat_score)
-        if prov == "lmstudio":
-            try:
-                if _lmstudio_load(base, best["id"], timeout=10):
-                    self.config.model = best["id"]
-                    return {"status": "ok", "model": best["id"],
-                            "message": f"Loaded {best['id']} automatically",
-                            "available": chat_ids, "loaded": loaded_ids}
-            except requests.exceptions.RequestException:
-                pass
-            return {"status": "no_model", "model": "",
-                    "message": "No chat model is loaded. " + _download_suggestion(prov),
-                    "available": chat_ids, "loaded": loaded_ids}
-
-        # Ollama loads a model on first inference, so naming it is enough.
-        self.config.model = best["id"]
-        return {"status": "ok", "model": best["id"],
-                "message": f"Will auto-load {best['id']} on first request",
-                "available": chat_ids, "loaded": loaded_ids}
+        return self._resolve_auto(chat, chat_ids, loaded_ids, base)
 
     def _ensure_chat_model(self,
                            on_token: Optional[Callable[[str], None]] = None
@@ -613,8 +897,20 @@ class AiEngine:
 
         If ``config.model`` is a placeholder (e.g. ``loaded``) or an embedding
         model, resolve a real chat model, auto-loading it when possible.
+        With a preferred model configured (LM Studio), that setup is ensured
+        instead — it governs even over a concrete ``config.model``.
         Returns None once a usable model is configured.
         """
+        pref = (self.config.preferred_model or "").strip()
+        if (self.config.provider == "lmstudio" and self.config.auto_ensure
+                and pref and pref not in self._ensured_keys):
+            result = self.ensure_setup()
+            if result["status"] == "ok":
+                self._ensured_keys.add(pref)
+                return None
+            if on_token:
+                on_token(result["message"])
+            return result["message"]
         current = (self.config.model or "").strip()
         if current not in PLACEHOLDER_MODELS and not _looks_embedding(current):
             return None
@@ -641,7 +937,9 @@ class AiEngine:
         try:
             if prov == "lmstudio":
                 for m in _lmstudio_catalog(base):
-                    if m["id"] == model_id or model_id in ("", "loaded"):
+                    if (m["id"] == model_id
+                            or m.get("instance_id") == model_id
+                            or model_id in ("", "loaded")):
                         ctx = m.get("ctx") or 0
                         return int(ctx) if ctx else 0
                 return 0
