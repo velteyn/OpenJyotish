@@ -211,3 +211,58 @@ class TestEnsureSetup:
                                   preferred_model="qwen/qwen3.5-9b")
         assert engine._ensure_chat_model() is None
         assert engine._ensure_chat_model() is None  # second call is free
+
+
+class TestLoadedDominance:
+    """Regression: a loaded model must beat any unloaded one (user report:
+    loaded Ministral-14B lost to unloaded Qwen-9B, causing a 66s JIT reload
+    of the wrong model)."""
+
+    def _eng2(self, monkeypatch, items, **cfg_kw):
+        import jhora.ai.engine as e
+        monkeypatch.setattr(e, "_lmstudio_catalog",
+                            lambda base_url, timeout=8.0: items)
+        calls = {"load": []}
+        monkeypatch.setattr(
+            e, "_load_with_fallback",
+            lambda b, k, w, m=1024, timeout=120.0: calls["load"].append(k) or "")
+        cfg = AiConfig(provider="lmstudio", **cfg_kw)
+        return AiEngine(cfg), calls
+
+    def _items(self):
+        return [
+            {"id": "mistralai/ministral-3-14b-reasoning",
+             "display": "Ministral 3 14B Reasoning",
+             "loaded": True, "instance_id": "inst-min",
+             "type": "llm", "ctx": 8192, "max_ctx": 262144, "params": 14.0},
+            {"id": "qwen/qwen3.5-9b", "display": "Qwen3.5 9B",
+             "loaded": False, "instance_id": "", "type": "llm", "ctx": 0,
+             "max_ctx": 262144, "params": 9.0},
+        ]
+
+    def test_loaded_big_beats_unloaded_small(self, monkeypatch):
+        engine, calls = self._eng2(monkeypatch, self._items())
+        r = engine.resolve_model()
+        assert r["status"] == "ok"
+        assert r["model"] == "inst-min"
+        assert calls["load"] == []  # no reload of anything
+
+    def test_toy_model_loses_to_real_download(self, monkeypatch):
+        import jhora.ai.engine as e
+        monkeypatch.setattr(e, "_lmstudio_catalog",
+                            lambda base_url, timeout=8.0: [
+            {"id": "tiny-stories", "display": "Stories",
+             "loaded": True, "instance_id": "inst-toy", "type": "llm",
+             "ctx": 2048, "max_ctx": 2048, "params": 0.1},
+            {"id": "qwen/qwen3.5-9b", "display": "Qwen3.5 9B",
+             "loaded": False, "instance_id": "", "type": "llm", "ctx": 0,
+             "max_ctx": 262144, "params": 9.0},
+        ])
+        monkeypatch.setattr(
+            e, "_load_with_fallback",
+            lambda b, k, w, m=1024, timeout=120.0: "inst-qwen")
+        engine = AiEngine(AiConfig(provider="lmstudio"))
+        r = engine.ensure_setup()
+        assert r["status"] == "ok"
+        # the real model is loaded properly instead of using the toy
+        assert engine.config.model == "inst-qwen"

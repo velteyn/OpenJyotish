@@ -366,17 +366,28 @@ def _is_thinking_model(model_id: str) -> bool:
 
 
 def _chat_score(info: dict) -> float:
-    """Lower = better for automatic chat-model selection (small ≤9GB first)."""
+    """Lower = better for automatic chat-model selection.
+
+    Loaded-ness dominates: a ready model always beats an unloaded one (no
+    minute-long JIT reload, no VRAM churn behind the user's back). Within
+    the same loaded-ness, small (≤9GB) known families win. Tiny toy models
+    (<1B params) are deprioritized even when loaded — a real download the
+    server already holds is worth one load.
+    """
     item = _bare_name(info.get("id") or "")
+    params = float(info.get("params") or 0.0)
+    if not params:
+        m = re.search(r"(\d+(?:\.\d+)?)b\b", item)
+        params = float(m.group(1)) if m else 0.0
     score = 100.0
     if info.get("loaded"):
-        score -= 60.0
-    m = re.search(r"(\d+(?:\.\d+)?)b\b", item)
-    params = float(m.group(1)) if m else 0.0
-    if 0 < params <= 9:
-        score -= 20.0
+        score -= 1000.0
+    if 0 < params < 1:
+        score += 2000.0
     elif params > 9:
         score += 40.0
+    elif params > 0:
+        score -= 20.0
     for i, fam in enumerate(CHAT_FAMILIES):
         if fam in item:
             score += i
@@ -805,16 +816,15 @@ class AiEngine:
 
     def _resolve_auto(self, chat: List[dict], chat_ids: List[str],
                       loaded_ids: List[str], base: str) -> dict:
-        """Prefer whatever chat model is already loaded, else auto-load one."""
+        """Use the best chat model; load it properly when it isn't loaded."""
         prov = self.config.provider
-        if loaded_ids:
-            best = min(chat, key=_chat_score)
+        best = min(chat, key=_chat_score)
+        if best.get("loaded"):
             self.config.model = best.get("instance_id") or best["id"]
             return {"status": "ok", "model": self.config.model,
                     "ctx": int(best.get("ctx") or 0),
                     "message": f"Using loaded model {best['id']}",
                     "available": chat_ids, "loaded": loaded_ids}
-        best = min(chat, key=_chat_score)
         if prov == "lmstudio":
             try:
                 inst = _load_with_fallback(base, best["id"],
