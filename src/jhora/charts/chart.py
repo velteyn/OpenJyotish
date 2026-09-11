@@ -98,7 +98,7 @@ class ChartData:
     def time_of_day_hours(self) -> float:
         """Local clock time in decimal hours, derived from JD and timezone."""
         _year, _month, _day, utc_hour = SweEngine().revjul(self.julian_day)
-        local_hour = utc_hour - ChartBuilder._parse_tz(self.timezone)
+        local_hour = utc_hour - ChartBuilder._parse_tz(self.timezone, self.birth_date)
         return local_hour % 24.0
 
 
@@ -109,7 +109,7 @@ class ChartBuilder:
         self.swe = swe or SweEngine()
 
     @staticmethod
-    def _parse_tz(tz: str) -> float:
+    def _parse_tz(tz: str, ref: Optional[datetime] = None) -> float:
         """Parse timezone string to signed decimal hours.
         
         Convention: tz_offset is added to local time to get UTC.
@@ -120,6 +120,10 @@ class ChartBuilder:
           "-0500", "-05:00", "-5:00" → +5.0 (UTC-X means local behind, so addend)
           "-5.36", "-5.5" (decimal) → direct JHD format
           "Asia/Kolkata" → IANA timezone lookup
+        For IANA names the offset is resolved at `ref` (a naive datetime/date
+        interpreted as wall time in that zone). Without `ref` the current
+        instant is used — pass the birth/event date whenever it is known so
+        historical DST rules apply instead of today's.
         """
         if not tz or tz in ("UTC", "GMT", "Z"):
             return 0.0
@@ -130,7 +134,10 @@ class ChartBuilder:
                 from zoneinfo import ZoneInfo
                 from datetime import datetime
                 zi = ZoneInfo(tz)
-                offset_sec = datetime.now(zi).utcoffset().total_seconds()
+                at = ref if ref is not None else datetime.now(zi).replace(tzinfo=None)
+                if not isinstance(at, datetime):
+                    at = datetime(at.year, at.month, at.day)
+                offset_sec = at.replace(tzinfo=zi).utcoffset().total_seconds()
                 return -(offset_sec / 3600.0)
             except Exception:
                 pass
@@ -177,7 +184,8 @@ class ChartBuilder:
         sex: str = "",
     ) -> ChartData:
         self.swe.set_sidereal_mode(ayanamsa)
-        tz_offset = self._parse_tz(tz)
+        _hh, _mm = int(hour), int((hour % 1) * 60)
+        tz_offset = self._parse_tz(tz, datetime(year, month, day, _hh, _mm))
         utc_hour = hour + tz_offset  # local → UTC via signed offset
         jd = self.swe.julday(year, month, day, utc_hour)
         ayanamsa_val = self.swe.get_ayanamsa(jd)
