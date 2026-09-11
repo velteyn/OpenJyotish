@@ -15,13 +15,18 @@ class KnowledgeBase:
         self._load_on_demand(books_dir or BOOKS_DIR)
 
     def _load_on_demand(self, books_dir: Path):
-        """Import text files into the database if not already loaded."""
+        """Import text files into the database if not already loaded.
+
+        The FTS reindex + commits run only when new books were actually
+        added — previously every construction paid a full rebuild.
+        """
         if not books_dir.exists():
             return
         existing = {
             row[0] for row in
             self._db.execute("SELECT source_name FROM knowledge_texts").fetchall()
         }
+        added = False
         for f in sorted(books_dir.glob("*.txt")):
             name = f.stem.replace("_", " ").replace(".pdf", "").title()
             if name in existing:
@@ -32,6 +37,9 @@ class KnowledgeBase:
                 "VALUES (?, ?, ?)",
                 (name, content, len(content)),
             )
+            added = True
+        if not added:
+            return
         self._db.commit()
         self._db.execute("INSERT INTO knowledge_fts(knowledge_fts) VALUES('rebuild')")
         self._db.commit()
