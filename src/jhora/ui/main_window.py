@@ -4039,11 +4039,9 @@ class MainWindow(QMainWindow):
         yoga_lords = ["Su","Mo","Ma","Me","Ju","Ve","Sa"]
         yoga_lord = yoga_lords[yoga_idx % 7]
 
-        # Karana: tithi_index * 2 + (0 if first half, 1 if second)
-        karana_idx = (tithi_idx * 2 + (0 if tithi_pct > 50 else 1)) % 11
-        karana_names = ["Bava","Balava","Kaulava","Taitula","Garaja","Vanija",
-                        "Vishti","Shakuni","Chatushpada","Naaga","Kimstughna"]
-        karana_name = karana_names[karana_idx % 11]
+        # Karana: single canonical computation from elongation.
+        from jhora.calc.muhurta import _karana as _canonical_karana
+        karana_idx, karana_name = _canonical_karana(sun, moon)
         karana_lords = ["Su","Mo","Ma","Me","Ju","Ve","Sa"]
         karana_lord = karana_lords[karana_idx % 7]
 

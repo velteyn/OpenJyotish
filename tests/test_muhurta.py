@@ -65,20 +65,31 @@ class TestPanchangaHelpers(unittest.TestCase):
         y = _yoga(160.0, 200.0)
         self.assertEqual(y, 0)
 
-    def test_karana_tithi0(self):
-        """Tithi 0 → first half karana = 0."""
-        k = _karana(0)
-        self.assertEqual(k, 0)
+    def test_karana_full_sweep(self):
+        """All 60 half-tithis: k=0 Kimstughna, k=1..56 movable cycle,
+        k=57/58/59 Shakuni/Chatushpada/Naga (mid-half elongations)."""
+        from jhora.calc.muhurta import _KARANA_NAMES
+        movable = ["Bava", "Balava", "Kaulava", "Taitila", "Gara",
+                   "Vanija", "Vishti"]
+        for k in range(60):
+            idx, name = _karana(0.0, k * 6.0 + 3.0)
+            self.assertEqual(_KARANA_NAMES[idx], name)
+            if k == 0:
+                self.assertEqual(name, "Kimstughna")
+            elif k >= 57:
+                self.assertEqual(
+                    name, ["Shakuni", "Chatushpada", "Naga"][k - 57])
+            else:
+                self.assertEqual(name, movable[(k - 1) % 7])
 
-    def test_karana_tithi1(self):
-        """Tithi 1 → first half = 2."""
-        k = _karana(1)
-        self.assertEqual(k, 2)
-
-    def test_karana_tithi2(self):
-        """Tithi 2 → first half = 4."""
-        k = _karana(2)
-        self.assertEqual(k, 4)
+    def test_karana_krishna_chaturthi_halves(self):
+        """Elongation 219° (first half) → Bava; 225° (second half) → Balava."""
+        idx, name = _karana(0.0, 219.0)
+        self.assertEqual(name, "Bava")
+        self.assertEqual(idx, 0)
+        idx, name = _karana(0.0, 225.0)
+        self.assertEqual(name, "Balava")
+        self.assertEqual(idx, 1)
 
 
 class TestComputePanchanga(unittest.TestCase):
