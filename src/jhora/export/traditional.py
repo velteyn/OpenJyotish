@@ -174,7 +174,7 @@ def _panchanga_fields(cd: ChartData) -> Dict[str, str]:
 
 def _sunrise_sunset(cd: ChartData) -> Tuple[str, str]:
     from jhora.calc.muhurta import _sunrise_sunset as _ss
-    tz_offset = ChartBuilder._parse_tz(cd.timezone)
+    tz_offset = ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
     sr_jd, ss_jd = _ss(cd.birth_date, cd.latitude, cd.longitude, tz_offset)
     sunrise = _hms(_jd_to_local_hours(sr_jd, tz_offset))
     sunset = _hms(_jd_to_local_hours(ss_jd, tz_offset))

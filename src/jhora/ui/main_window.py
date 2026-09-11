@@ -550,7 +550,9 @@ class MainWindow(QMainWindow):
             city = self.city_input.text().strip()
             hour = qt.hour() + qt.minute() / 60.0 + qt.second() / 3600.0
             # DB/JHD convention is east-positive; _parse_tz is west-positive.
-            tz_offset = -ChartBuilder._parse_tz(tz_str)
+            # The form date resolves historical DST for IANA zone names.
+            tz_offset = -ChartBuilder._parse_tz(
+                tz_str, datetime(qd.year(), qd.month(), qd.day()))
             name = f"{city or 'Unknown'} {qd.day():02d}/{qd.month():02d}/{qd.year()}"
             chart_id = save_chart_to_db(
                 name=name, day=qd.day(), month=qd.month(), year=qd.year(),
@@ -619,7 +621,9 @@ class MainWindow(QMainWindow):
             city = self.city_input.text().strip()
             hour = qt.hour() + qt.minute() / 60.0 + qt.second() / 3600.0
             # JHD convention is east-positive; _parse_tz is west-positive.
-            tz_offset = -ChartBuilder._parse_tz(tz_str)
+            # The form date resolves historical DST for IANA zone names.
+            tz_offset = -ChartBuilder._parse_tz(
+                tz_str, datetime(qd.year(), qd.month(), qd.day()))
             data = JhdData(
                 filename=path.split("/")[-1],
                 format=JhdFormat.BIRTH_CITY,
@@ -1896,7 +1900,7 @@ class MainWindow(QMainWindow):
         qt = self.muhurta_time.time()
         dt = datetime(qd.year(), qd.month(), qd.day(),
                       qt.hour(), qt.minute(), 0)
-        raw_tz = ChartBuilder._parse_tz(self.muhurta_tz.text().strip())
+        raw_tz = ChartBuilder._parse_tz(self.muhurta_tz.text().strip(), dt)
         tz_offset = -raw_tz if raw_tz < 0 else raw_tz
         lat = float(self.muhurta_lat.text().strip())
         lon = float(self.muhurta_lon.text().strip())
@@ -4052,7 +4056,7 @@ class MainWindow(QMainWindow):
         # replaced was rejected by pyswisseph and always showed "N/A").
         try:
             from jhora.calc.muhurta import sunrise_sunset_hours
-            tz_east = -ChartBuilder._parse_tz(cd.timezone)
+            tz_east = -ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
             sr_h, ss_h = sunrise_sunset_hours(cd.birth_date, cd.latitude,
                                               cd.longitude, tz_east)
             sunrise = f"{int(sr_h):02d}:{int((sr_h%1)*60):02d}:{int(((sr_h%1)*60%1)*60):02d}"
