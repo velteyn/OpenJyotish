@@ -8,6 +8,7 @@ Ghatis use time_of_day_hours, not the truncated birth_date.
 import os
 import re
 import sys
+from datetime import datetime
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -122,20 +123,92 @@ def test_janma_ghatis_formula_uses_birth_time():
         assert abs(shift - 21.25) < 1e-9
 
 
-def test_natal_panel_renders_ghatis_line(main_window):
-    assert _ghatis(main_window, _chart(10.5)) >= 0.0
+def test_natal_panel_live_sun_times(main_window):
+    # The panel now resolves through the canonical source: live Sunrise,
+    # and Ghatis shifting 21.25 per 8.5 h of birth time.
+    from jhora.calc.muhurta import sunrise_sunset_hours
+    from jhora.charts.chart import ChartBuilder
+    day_cd, night_cd = _chart(10.5), _chart(2.0)
+    main_window._populate_cons_natal_panel(day_cd)
+    text = main_window.cons_natal_panel.toPlainText()
+    m = re.search(r"Sunrise:\s*(\d+):(\d+)", text)
+    assert m, "live Sunrise missing from natal panel"
+    shown = int(m.group(1)) + int(m.group(2)) / 60.0
+    sr, _ss = sunrise_sunset_hours(
+        day_cd.birth_date, 13.08, 80.27,
+        -ChartBuilder._parse_tz("+0530"))
+    assert abs(shown - sr) < 2 / 60.0
+    day_g = _ghatis(main_window, day_cd)
+    night_g = _ghatis(main_window, night_cd)
+    assert day_g > 0.0
+    assert abs((day_g - night_g) % 60.0 - 21.25) < 0.05
+
+
+def test_shadbala_dawn_noon_true_sun_phases():
+    # Dawn (just after true sunrise): first day hora lord Sun scores, first
+    # tribhaga period lord Moon scores. Solar noon: Sun Nathonnata peaks.
+    from jhora.calc.muhurta import sunrise_sunset_hours
+    from jhora.calc.shadbala import ShadbalaComputer
+    from jhora.charts.chart import ChartBuilder
+    from jhora.types.graha import Graha
+    sr, ss = sunrise_sunset_hours(datetime(2026, 7, 7), 13.08, 80.27, 5.5)
+    b = ChartBuilder()
+    dawn = b.build(2026, 7, 7, sr + 0.3, lat=13.08, lon=80.27, tz="+0530")
+    noon = b.build(2026, 7, 7, (sr + ss) / 2.0, lat=13.08, lon=80.27,
+                   tz="+0530")
+    assert ShadbalaComputer(dawn).compute_one(
+        Graha.SUN).kala["hora"].virupa == 60
+    assert ShadbalaComputer(dawn).compute_one(
+        Graha.MOON).kala["tribhaga"].virupa == 60
+    assert ShadbalaComputer(noon).compute_one(
+        Graha.SUN).kala["nathonnatha"].virupa == pytest.approx(60)
+
+
+def test_gui_save_load_tz_round_trip(main_window, tmp_path):
+    """GUI save stores east-positive tz; refilling the form shows +5.5."""
+    from PyQt6.QtCore import QDate, QTime
+    from jhora.core import database as db
+    from jhora.io.jhd_parser import JhdData, JhdFormat
+    old_db = db._db_path
+    db.set_db_path(str(tmp_path / "gui-tz.db"))
+    try:
+        main_window.date_input.setDate(QDate(2026, 7, 7))
+        main_window.time_input.setTime(QTime(10, 30))
+        main_window.tz_input.setText("+0530")
+        main_window.lat_input.setText("13.08")
+        main_window.lon_input.setText("80.27")
+        main_window.city_input.setText("Chennai")
+        main_window._on_file_save()
+        row = db.get_db().execute(
+            "SELECT time_hours, tz_offset FROM charts ORDER BY id DESC "
+            "LIMIT 1").fetchone()
+        assert abs(row["time_hours"] - 10.5) < 1e-9
+        assert abs(row["tz_offset"] - 5.5) < 1e-9
+        main_window._fill_form_from_jhd(JhdData(
+            filename="x.jhd", format=JhdFormat.BIRTH_CITY,
+            day=7, month=7, year=2026, time_hours=row["time_hours"],
+            tz_offset=row["tz_offset"], longitude=80.27, latitude=13.08,
+            city="Chennai", country=""))
+        assert main_window.tz_input.text() == "+5.5"
+    finally:
+        db.close_all()
+        db._db_path = old_db
 
 
 def test_pranapada_vighati_use_true_birth_time():
     # Definition conformance against the true local time, plus a shift check:
     # same day/place 8.5 h apart must differ markedly (the old midnight code
     # kept them within a degree of each other).
-    from jhora.calc.special_lagnas import (
-        pranapada_lagna, vighati_lagna, _sunrise_approx)
+    from jhora.calc.special_lagnas import pranapada_lagna, vighati_lagna
+    from jhora.calc.muhurta import sunrise_sunset_hours
+    from jhora.charts.chart import ChartBuilder
     day_cd, night_cd = _chart(10.5), _chart(2.0)
     for cd in (day_cd, night_cd):
         sun = cd.planet(Graha.SUN).longitude
-        from_sr = (cd.time_of_day_hours - _sunrise_approx(cd) + 24) % 24
+        sr, _ss = sunrise_sunset_hours(
+            cd.birth_date, cd.latitude, cd.longitude,
+            -ChartBuilder._parse_tz(cd.timezone))
+        from_sr = (cd.time_of_day_hours - sr + 24) % 24
         assert abs(pranapada_lagna(cd)
                    - (sun + from_sr / 0.4 * 6) % 360) < 1e-6
         assert abs(vighati_lagna(cd)
