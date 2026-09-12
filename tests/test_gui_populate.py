@@ -111,7 +111,17 @@ def test_ai_settings_provider_defaults(main_window):
 def test_ai_settings_provider_change(main_window):
     """Changing provider updates model."""
     main_window.ai_provider.setCurrentText("ollama")
-    assert main_window.ai_model.text() != ""
+    assert main_window.ai_model.currentText() != ""
+
+
+def test_ai_model_combo_has_loaded_fallback(main_window):
+    """Model combo offers the safe 'loaded' fallback first, then slate."""
+    from jhora.ai.engine import SUPPORTED_MODELS
+    items = [main_window.ai_model.itemText(i)
+             for i in range(main_window.ai_model.count())]
+    assert items[0] == "loaded"
+    for preset in SUPPORTED_MODELS:
+        assert preset["match"] in items
 
 
 def test_ai_chat_status_exists(main_window):
