@@ -309,14 +309,14 @@ class TestModelResolution:
         r = engine.resolve_model()
         assert r["status"] == "no_model"
         assert r["model"] == ""
-        assert "9GB" in r["message"]
+        assert "Ministral" in r["message"]
 
     def test_no_chat_model_load_failed_suggests(self, monkeypatch):
         items = [{"id": "hf.co/x/qwen3-8b", "loaded": False, "type": "chat"}]
         engine = self._lm(monkeypatch, items, load_ok=False)
         r = engine.resolve_model()
         assert r["status"] == "no_model"
-        assert "9GB" in r["message"]
+        assert "Ministral" in r["message"]
 
     def test_offline_server(self, monkeypatch):
         import requests
@@ -370,7 +370,7 @@ class TestModelResolution:
         engine = self._lm(monkeypatch, items)
         out = engine._ensure_chat_model()
         assert out is not None
-        assert "9GB" in out
+        assert "Ministral" in out
 
     def test_chat_completion_retries_once_on_model_error(self, monkeypatch):
         import requests
@@ -397,10 +397,23 @@ class TestModelResolution:
 
     def test_download_suggestion_is_under_9gb(self):
         from jhora.ai.engine import _download_suggestion
-        for prov in ("ollama", "lmstudio", "unsloth", "custom"):
+        for prov in ("ollama", "unsloth", "custom"):
             msg = _download_suggestion(prov)
             assert "9GB" in msg, prov
             assert prov in msg or "chat" in msg
+
+    def test_lmstudio_suggestion_names_slate(self):
+        from jhora.ai.engine import _download_suggestion
+        msg = _download_suggestion("lmstudio")
+        assert "Ministral" in msg and "Qwen3.5 9B" in msg
+
+    def test_supported_models_matchable(self):
+        import jhora.ai.engine as eng
+        items = [{"id": "mistralai/ministral-3-14b-reasoning",
+                  "display": "Ministral"},
+                 {"id": "qwen/qwen3.5-9b", "display": "Qwen"}]
+        for preset in eng.SUPPORTED_MODELS:
+            assert eng._match_preferred(items, preset["match"]), preset
 
 
 class TestMessageRolesAlternate:
