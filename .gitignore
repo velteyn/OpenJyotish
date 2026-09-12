@@ -32,3 +32,7 @@ Thumbs.db
 PATH.txt
 settings.txt
 AGENTS.md
+
+# Local AI-eval config + transcripts (birth data, never commit)
+tools/eval/local_chart.json
+tools/eval/results/
