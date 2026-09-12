@@ -2625,7 +2625,21 @@ class MainWindow(QMainWindow):
         self.ai_vdb_rebuild.setEnabled(False)
 
         provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "ollama"
-        self.ai_vdb_progress.setPlainText(f"Provider: {provider}\nStarting...\n")
+        from jhora.ai.embeddings import embedding_model_status
+        status = embedding_model_status(provider=provider)
+        if not status["ok"]:
+            self.ai_vdb_progress.setPlainText(
+                f"Provider: {provider}\n{status['message']}\n")
+            QMessageBox.warning(
+                self, "Embedding Model Missing",
+                f"{status['message']}\n\n{status['howto']}")
+            self.ai_vdb_build.setEnabled(True)
+            self.ai_vdb_rebuild.setEnabled(True)
+            return
+
+        self.ai_vdb_progress.setPlainText(
+            f"Provider: {provider}\nEmbedding model: {status['model']}\n"
+            f"Starting...\n")
 
         self._vdb_worker = _VdbWorker(provider)
         self._vdb_worker.progress.connect(lambda t: self.ai_vdb_progress.append(t))
@@ -4305,7 +4319,7 @@ class _VdbWorker(QThread):
             store = EmbeddingStore(provider=self.provider)
             self.progress.emit(f"Server: {store.provider} at {store.base_url}")
             self.progress.emit(f"Model: {store._detect_embedding_model()}")
-            self.progress.emit("Starting (batch=5, 1s throttle)...")
+            self.progress.emit("Starting (batch=5, 1s throttle, 4 books in parallel)...")
             self.progress.emit("")
 
             def _cb(name, done_chunks, total_chunks):
@@ -4313,7 +4327,8 @@ class _VdbWorker(QThread):
                 gc.collect()
 
             t0 = time.time()
-            count = store.build(batch_size=5, throttle_ms=1000, progress_cb=_cb)
+            count = store.build(batch_size=5, throttle_ms=1000,
+                                progress_cb=_cb, jobs=4)
             elapsed = time.time() - t0
 
             self.progress.emit("")
