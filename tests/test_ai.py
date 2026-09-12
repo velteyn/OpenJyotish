@@ -403,6 +403,51 @@ class TestModelResolution:
             assert prov in msg or "chat" in msg
 
 
+class TestMessageRolesAlternate:
+    """Strict chat templates (Ministral-3 500s) require user/assistant
+    alternation after a single system message — no consecutive users."""
+
+    @staticmethod
+    def _assert_alternates(messages):
+        roles = [m["role"] for m in messages]
+        assert roles[0] == "system"
+        assert roles.count("system") == 1
+        for a, b in zip(roles[1:], roles[2:]):
+            assert not (a == b == "user"), roles
+
+    def test_first_turn(self):
+        msgs = AiEngine._chat_messages("ANCHOR", "q?", [])
+        self._assert_alternates(msgs)
+        assert "ANCHOR" in msgs[0]["content"]
+        assert msgs[-1] == {"role": "user", "content": "q?"}
+
+    def test_history_and_lead_in(self):
+        hist = [{"role": "user", "content": "q1"},
+                {"role": "assistant", "content": "a1"}]
+        msgs = AiEngine._chat_messages("ANCHOR", "q2?", hist,
+                                       lead_in="SUMMARY")
+        self._assert_alternates(msgs)
+        assert "SUMMARY" in msgs[0]["content"]
+
+    def test_teacher_compaction_single_user(self, monkeypatch):
+        from jhora.ai.teacher import AiTeacher
+        t = AiTeacher(provider="lmstudio", base_url="http://x:1234/v1",
+                      model="m", max_context_tokens=50)
+        hist = [{"role": "user", "content": "q1 " * 50},
+                {"role": "assistant", "content": "a1 " * 50}]
+        captured = {}
+
+        def fake_stream(messages, on_token=None):
+            captured["messages"] = messages
+            return "done"
+        monkeypatch.setattr(t, "_stream", fake_stream)
+        ans, new_hist, reset = t.chat("Tell me about Saturn periods",
+                                      chart=None, history=hist)
+        assert reset is True
+        assert ans == "done"
+        self._assert_alternates(captured["messages"])
+
+
 class TestThinkingCapGating:
     """Neither engine nor teacher may send max_thinking_tokens (proven live
     to end completions instead of answering); Ollama keeps reasoning_effort,
@@ -849,9 +894,12 @@ class TestStreamHonesty:
         assert new_hist[0] == {"role": "user", "content": "new question"}
         assert new_hist[1] == {"role": "assistant", "content": "after-reset answer"}
         assert "old question" not in str(new_hist)
-        # The summary appears as the lead-in message (index 2, after system + anchor)
-        lead_in = captured["messages"][2].get("content", "")
-        assert "Earlier in this conversation" in lead_in
+        # The summary rides inside the system message (index 0, fused with
+        # the anchor — strict templates forbid consecutive user messages)
+        system_text = captured["messages"][0].get("content", "")
+        assert "Earlier in this conversation" in system_text
+        assert captured["messages"][-1] == {"role": "user",
+                                            "content": "new question"}
 
     def test_compact_not_triggered_on_first_turn(self, monkeypatch):
         enginst = self._engine()
