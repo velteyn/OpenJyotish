@@ -171,11 +171,17 @@ def score(answer, case):
     return hits, miss, bad
 
 
-def ask_guru(base_v1, model, question, cd, ctx, timeout=1500):
+def ask_guru(base_v1, model, question, cd, ctx, embed_server="",
+             timeout=1500):
     """Teacher (Guru) turn with chart + RAG passages, mirroring the app."""
     from jhora.ai.teacher import AiTeacher
     t = AiTeacher(provider="lmstudio", base_url=base_v1, model=model,
                   max_context_tokens=ctx)
+    if embed_server:
+        # Use the dedicated embedding backend (e.g. LM Studio nomic) even
+        # when chatting elsewhere — dimensions must match the built vectors.
+        t.store.base_url = embed_server.rstrip("/")
+        t.store.provider = "lmstudio"
     ans, _hist, _reset = t.chat(question, chart=cd, history=[])
     return ans, list(getattr(t, "last_sources", []))
 
@@ -194,6 +200,10 @@ def main():
     ap.add_argument("--preset", default="",
                     help="supported-slate preset: quality (=ministral-3-14b) "
                          "or speed (=qwen/qwen3.5-9b); sets --load/--ctx")
+    ap.add_argument("--embed-server", default="",
+                    help="embedding backend base URL (defaults to --server); "
+                         "needed when chatting on a server without an "
+                         "embedding model")
     ap.add_argument("--ctx", type=int, default=8192)
     ap.add_argument("--keep-loaded", action="store_true")
     ap.add_argument("--tag", default=datetime.datetime.now().strftime("%Y%m%d-%H%M"))
@@ -272,7 +282,9 @@ def main():
                           lat=chart_cfg["lat"], lon=chart_cfg["lon"],
                           tz=chart_cfg["tz"])
             answer, sources = ask_guru(args.server + "/v1", model, q,
-                                       cd, ctx)
+                                       cd, ctx,
+                                       embed_server=args.embed_server or
+                                       args.server)
             finish = "stop"
         else:
             if case.get("follows") or case.get("seed"):
