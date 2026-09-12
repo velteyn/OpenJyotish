@@ -61,6 +61,16 @@ def _fmt_planet(g: Graha, cd: ChartData) -> str:
     )
 
 
+def _birth_line(cd: ChartData) -> str:
+    """One-line birth data, quotable verbatim (also sent in lean anchors)."""
+    return (
+        f"BIRTH DATA (quote this line verbatim when asked for birth details): "
+        f"{cd.birth_date.strftime('%Y-%m-%d %H:%M')} "
+        f"at {cd.latitude:.1f}°{'N' if cd.latitude >= 0 else 'S'} "
+        f"{abs(cd.longitude):.1f}°{'E' if cd.longitude >= 0 else 'W'}"
+    )
+
+
 def _chart_compact(cd: ChartData) -> str:
     """Minimal chart: one line per planet, one line for houses."""
     l = Rasi.from_longitude(cd.ascendant)
@@ -78,9 +88,7 @@ def _chart_detailed(cd: ChartData) -> str:
     """Full chart with sign names, lords, nakshatras."""
     lagna_rasi = Rasi.from_longitude(cd.ascendant)
     lines = [
-        f"Birth: {cd.birth_date.strftime('%Y-%m-%d %H:%M')} "
-        f"at {cd.latitude:.1f}°{'N' if cd.latitude>=0 else 'S'} "
-        f"{abs(cd.longitude):.1f}°{'E' if cd.longitude>=0 else 'W'}",
+        _birth_line(cd),
         f"Lagna: {cd.ascendant:.1f}° {lagna_rasi.full_name}",
         "",
         "Planets:",
@@ -280,6 +288,9 @@ def conversation_anchor(cd: ChartData, max_context: int = 4096) -> str:
     passage (fits every turn and is reused, not recomputed).
     """
     sections = {}
+    # Priority 0: birth line — 15 tokens that answer "when/where was I born"
+    # verbatim. Must survive even the tiniest budgets.
+    sections["birth"] = _birth_line(cd)
     # Priority 1: computed analysis (compact — numbers, not prose)
     analysis = build_analysis_text(cd)
     if analysis:
@@ -291,10 +302,10 @@ def conversation_anchor(cd: ChartData, max_context: int = 4096) -> str:
     if kb:
         sections["knowledge"] = f"--- TEXTBOOK ---\n{kb}"
     budget = anchor_budget(max_context)
-    # Grounding first: chart line survives even the tiniest budgets, the
-    # analysis tail trims instead.
+    # Grounding first: birth line, then chart line, survive even the tiniest
+    # budgets; the analysis tail trims instead.
     return _truncate_sections(sections, budget,
-                              order=["chart_compact", "analysis",
+                              order=["birth", "chart_compact", "analysis",
                                      "knowledge"])
 
 
