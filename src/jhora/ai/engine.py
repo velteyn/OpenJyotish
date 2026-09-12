@@ -640,12 +640,15 @@ class AiEngine:
     def _chat_messages(anchor: str, question: str,
                        history: List[dict],
                        lead_in: Optional[str] = None) -> List[dict]:
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": anchor},
-        ]
+        # The anchor rides inside the single system message: strict chat
+        # templates (e.g. Ministral-3) 500 on consecutive user messages, so
+        # [system, anchor(user), question(user)] is not portable.
+        system = SYSTEM_PROMPT + "\n\n" + anchor
         if lead_in:
-            messages.append({"role": "user", "content": lead_in})
+            system += "\n\n" + lead_in
+        messages = [
+            {"role": "system", "content": system},
+        ]
         messages.extend(history)
         messages.append({"role": "user", "content": question})
         return messages
