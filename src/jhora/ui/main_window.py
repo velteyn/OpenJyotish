@@ -2470,7 +2470,7 @@ class MainWindow(QMainWindow):
                     if hasattr(self, "ai_base_url") else "")
         config = AiConfig(
             provider=provider,
-            model=self.ai_model.text().strip(),
+            model=self.ai_model.currentText().strip(),
             base_url=base_url or PROVIDERS.get(provider, {}).get("base_url", ""),
             preferred_model=self.ai_preferred.text().strip() if hasattr(self, "ai_preferred") else "",
             ensure_context=self.ai_ctx.value() if hasattr(self, "ai_ctx") else 8192,
@@ -2480,7 +2480,7 @@ class MainWindow(QMainWindow):
 
     def _on_ai_provider_changed(self, provider: str):
         preset = PROVIDERS.get(provider, {})
-        self.ai_model.setText(preset.get("default_model", ""))
+        self._refresh_ai_model_items(select=preset.get("default_model", ""))
         if hasattr(self, "ai_base_url"):
             self.ai_base_url.setText(preset.get("base_url", ""))
         self._ai_history.clear()
@@ -2525,9 +2525,9 @@ class MainWindow(QMainWindow):
             elif result.get("model"):
                 # Resolved to a real chat model — overwrite placeholder values
                 # with the actual model id ("loaded"/"model" are not portable).
-                current = self.ai_model.text().strip()
+                current = self.ai_model.currentText().strip()
                 if current in ["", "loaded", "model", "auto"]:
-                    self.ai_model.setText(result["model"])
+                    self.ai_model.setCurrentText(result["model"])
                 else:
                     # Keep the user's concrete choice, but surface the resolved one.
                     self.ai_status.setToolTip(
@@ -2557,8 +2557,15 @@ class MainWindow(QMainWindow):
         cfg.addWidget(self.ai_provider)
 
         cfg.addWidget(QLabel("Model:"))
-        self.ai_model = QLineEdit("llama3.2")
-        self.ai_model.setFixedWidth(140)
+        self.ai_model = QComboBox()
+        self.ai_model.setEditable(True)
+        self.ai_model.setToolTip(
+            "Supported slate + safe fallback. 'loaded' follows whatever "
+            "model is resident (safest). The slate entries resolve on the "
+            "server, auto-loading when missing. Free text still accepted "
+            "but not guaranteed.")
+        self.ai_model.setFixedWidth(260)
+        self._refresh_ai_model_items(select="llama3.2")
         cfg.addWidget(self.ai_model)
 
         cfg.addWidget(QLabel("URL:"))
@@ -3084,6 +3091,23 @@ class MainWindow(QMainWindow):
         self._refresh_teach_threads()
         return w
 
+    def _refresh_ai_model_items(self, select: str = ""):
+        """Rebuild the Model combo: safe 'loaded' fallback first, then the
+        supported slate. Partial keys resolve server-side (see engine)."""
+        from jhora.ai.engine import SUPPORTED_MODELS
+        self.ai_model.blockSignals(True)
+        self.ai_model.clear()
+        self.ai_model.addItem("loaded")
+        for preset in SUPPORTED_MODELS:
+            if preset["match"] not in ("loaded",):
+                self.ai_model.addItem(preset["match"])
+        if select:
+            self.ai_model.setCurrentText(select)
+        self.ai_model.blockSignals(False)
+
+
+
+
     def _on_build_teacher_index(self):
         from jhora.ai.embeddings import EmbeddingStore
         self._teach_transcript.append(
@@ -3121,7 +3145,7 @@ class MainWindow(QMainWindow):
         self._set_teach_buttons_enabled(False)
 
         provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "ollama"
-        model = self.ai_model.text().strip() if hasattr(self, 'ai_model') else ""
+        model = self.ai_model.currentText().strip() if hasattr(self, 'ai_model') else ""
         if hasattr(self, 'ai_base_url') and self.ai_base_url.text().strip():
             base_url = self.ai_base_url.text().strip()
         else:

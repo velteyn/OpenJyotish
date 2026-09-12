@@ -975,6 +975,16 @@ class AiEngine:
                 return {"status": "ok", "model": current,
                         "message": f"Using {current}",
                         "available": chat_ids, "loaded": loaded_ids}
+            # Partial ids from the slate combo ("ministral-3-14b") resolve
+            # against the catalog, preferring a loaded instance.
+            matched = _match_preferred(chat, current)
+            if matched:
+                use = next((m for m in matched if m.get("loaded")),
+                           matched[0])
+                self.config.model = use.get("instance_id") or use["id"]
+                return {"status": "ok", "model": self.config.model,
+                        "message": f"Resolved '{current}' to {use['id']}",
+                        "available": chat_ids, "loaded": loaded_ids}
 
         return self._resolve_auto(chat, chat_ids, loaded_ids, base)
 
