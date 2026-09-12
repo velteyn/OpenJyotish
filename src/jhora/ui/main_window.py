@@ -2570,11 +2570,12 @@ class MainWindow(QMainWindow):
         pref = QHBoxLayout()
         pref.addWidget(QLabel("Prefer:"))
         self.ai_preferred = QLineEdit("")
-        self.ai_preferred.setPlaceholderText("model key, e.g. qwen/qwen3.5-9b")
+        self.ai_preferred.setPlaceholderText("ministral-3-14b or qwen/qwen3.5-9b")
         self.ai_preferred.setToolTip(
-            "LM Studio model key to auto-load when missing (per-machine "
-            "choice). Governs over the Model field above. Empty = use "
-            "whatever suitable model is already loaded.")
+            "Supported slate only — other models are not guaranteed:\n"
+            "• ministral-3-14b — quality pick (slow on small GPUs)\n"
+            "• qwen/qwen3.5-9b — speed/VRAM pick (clean instruct release)\n"
+            "Empty = use whatever suitable model is already loaded.")
         self.ai_preferred.setFixedWidth(220)
         pref.addWidget(self.ai_preferred)
         pref.addWidget(QLabel("Ctx:"))
