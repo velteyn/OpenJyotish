@@ -67,6 +67,24 @@ NON_CHAT_TYPES = ("embeddings", "embedding", "embed", "reranker", "rerank",
 # Model types reported by LM Studio / Ollama that can chat.
 CHAT_TYPES = ("chat", "llm", "reason", "reasoning", "vlm", "vl", "complete")
 
+# Supported-model slate: the only setups the eval harness verifies and the
+# project guarantees. Everything else may work but is not QA'd — prompt
+# templates, thinking behavior and context needs are per-model, and chasing
+# them all would stall the program forever.
+SUPPORTED_MODELS = (
+    {"match": "ministral-3-14b",
+     "label": "Ministral 3 14B Reasoning — quality pick",
+     "ctx": 8192,
+     "note": "Best entities and faithfulness in audits; slow on small "
+             "GPUs (partial CPU offload under ~10GB VRAM)."},
+    {"match": "qwen/qwen3.5-9b",
+     "label": "Qwen3.5 9B instruct — speed/VRAM pick",
+     "ctx": 8192,
+     "note": "Superb number fidelity, fits 8GB VRAM comfortably, fast. "
+             "Use the clean instruct release, never roleplay/abliterated "
+             "merges (they confabulate lore)."},
+)
+
 # Known chat families, ordered by preference for automatic selection.
 CHAT_FAMILIES = ("qwen", "llama", "mistral", "ministral", "gemma", "phi",
                  "deepseek", "zaya")
@@ -408,10 +426,11 @@ def _download_suggestion(provider: str) -> str:
         )
     if provider == "lmstudio":
         return (
-            "No usable chat model loaded. In LM Studio use a model ≤9GB:\n"
-            "  Download 'Qwen 3 8B' (Q4_K_M, ~4.9GB)\n"
-            "  or 'Llama 3.2 3B' (~2GB)\n"
-            "Open the model's chat page so it loads, then retry."
+            "No usable chat model loaded. The supported slate is:\n"
+            "  Ministral 3 14B Reasoning (quality) or Qwen3.5 9B instruct "
+            "(speed, fits 8GB VRAM)\n"
+            "Load one in LM Studio (or set the app's Prefer field), then retry. "
+            "Other models are not QA'd and not guaranteed."
         )
     if provider == "unsloth":
         return (
