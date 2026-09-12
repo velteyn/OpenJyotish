@@ -485,6 +485,65 @@ class TestModelResolution:
         assert engine.config.model == "stale-model"  # kept, not swapped
         assert not any("instead" in n for n in notes)
 
+    def test_generic_catalog_keeps_loaded_flags(self, monkeypatch):
+        import requests as _requests
+        import jhora.ai.engine as eng
+
+        class _FakeResp:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"object": "list", "data": [
+                    {"id": "unsloth/Qwen3.8-27B-GGUF", "loaded": True},
+                    {"id": "mythos-9b", "loaded": False},
+                ]}
+        monkeypatch.setattr(_requests, "get", lambda *a, **k: _FakeResp())
+        items = eng._generic_catalog("http://x:8888/v1")
+        by_id = {m["id"]: m for m in items}
+        assert by_id["unsloth/Qwen3.8-27B-GGUF"]["loaded"] is True
+        assert by_id["mythos-9b"]["loaded"] is False
+
+    def test_unsloth_refusal_falls_back_to_loaded(self, monkeypatch):
+        import requests
+        import jhora.ai.engine as eng
+
+        class _FakeResp:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"object": "list", "data": [
+                    {"id": "unsloth/Qwen3.8-27B-GGUF", "loaded": True},
+                    {"id": "mythos-9b", "loaded": False},
+                ]}
+        import requests as _requests
+        monkeypatch.setattr(_requests, "get", lambda *a, **k: _FakeResp())
+        engine = AiEngine(AiConfig(
+            provider="unsloth", base_url="http://x:8888/v1",
+            model="mythos-9b"))
+        calls = {"n": 0}
+
+        def fake_call(messages, stream=False):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                e = requests.exceptions.HTTPError("404 Not Found")
+                e.response = type(
+                    "R", (), {"status_code": 404,
+                              "text": "downloaded but not loaded"})()
+                raise e
+            return {"dummy": True}
+
+        monkeypatch.setattr(engine, "_call", fake_call)
+        monkeypatch.setattr(engine, "_stream_response",
+                            lambda resp, on_token=None: "qwen answer")
+        notes = []
+        text = engine._chat_completion([{"role": "user", "content": "hi"}],
+                                       on_token=notes.append)
+        assert text == "qwen answer"
+        assert engine.config.model == "unsloth/Qwen3.8-27B-GGUF"
+        assert any("instead" in n for n in notes)
+
     def test_partial_combo_id_resolves_to_loaded(self, monkeypatch):
         import jhora.ai.engine as eng
         monkeypatch.setattr(eng, "_generic_catalog",
