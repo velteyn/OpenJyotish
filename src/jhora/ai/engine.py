@@ -448,7 +448,7 @@ class AiConfig:
     provider: str = "ollama"
     base_url: str = ""
     model: str = ""
-    temperature: float = 0.7
+    temperature: float = 0.2  # low: factual readings, minimal creativity
     max_tokens: int = 16384  # total budget; must exceed reasoning + answer length
     max_context_tokens: int = 4096  # total prompt budget (truncates if exceeded)
     timeout: int = 120
