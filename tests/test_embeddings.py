@@ -159,6 +159,17 @@ def test_ai_base_url_follows_provider(_qapp):
     assert engine.config.base_url == "http://192.0.2.10:8888/v1"
 
 
+def test_ai_status_readable(_qapp):
+    """Status errors must be visible: wrapped, multi-line, selectable."""
+    from PyQt6.QtCore import Qt
+    from jhora.ui.main_window import MainWindow
+    window = MainWindow()
+    assert window.ai_status.wordWrap() is True
+    assert window.ai_status.minimumHeight() >= 40
+    assert bool(window.ai_status.textInteractionFlags()
+                & Qt.TextInteractionFlag.TextSelectableByMouse)
+
+
 def test_check_populates_model_combo(_qapp, monkeypatch):
     import jhora.ui.main_window as mw
     from jhora.ui.main_window import MainWindow

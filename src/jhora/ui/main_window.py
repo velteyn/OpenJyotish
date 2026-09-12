@@ -10,8 +10,8 @@ from PyQt6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, Q
                              QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QGridLayout, QGroupBox, QHBoxLayout,
                              QHeaderView, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
-                             QPushButton, QRadioButton, QScrollArea, QSplitter,
-                             QSpinBox,
+                             QPushButton, QRadioButton, QScrollArea, QSizePolicy,
+                             QSpinBox, QSplitter,
                              QStackedWidget, QTableWidget, QTableWidgetItem,
                              QTabWidget, QTextEdit,
                              QTimeEdit, QVBoxLayout, QWidget)
@@ -2603,9 +2603,17 @@ class MainWindow(QMainWindow):
 
         self.ai_status = QLabel("")
         self.ai_status.setStyleSheet("color: #888888;")
-        cfg.addWidget(self.ai_status)
+        self.ai_status.setWordWrap(True)
+        self.ai_status.setMinimumHeight(44)
+        self.ai_status.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.ai_status.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse)
         cfg.addStretch()
         layout.addLayout(cfg)
+        status_row = QHBoxLayout()
+        status_row.addWidget(self.ai_status)
+        layout.addLayout(status_row)
 
         # Preferred-model row (LM Studio auto-setup; empty = accept loaded)
         pref = QHBoxLayout()
