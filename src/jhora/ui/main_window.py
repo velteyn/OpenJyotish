@@ -2513,8 +2513,39 @@ class MainWindow(QMainWindow):
         result = engine.health_check()
         if result["ok"]:
             self._provider_ok = True
+            # Refresh the Model combo from the live server catalogue:
+            # safe "loaded" fallback first, then what is really there.
+            # The previous selection survives when still present; selecting
+            # an entry applies it (widgets are the live config).
+            try:
+                detail = engine.catalog_detail()
+            except Exception:
+                detail = []
+            previous = self.ai_model.currentText().strip()
+            self.ai_model.blockSignals(True)
+            self.ai_model.clear()
+            self.ai_model.addItem("loaded")
+            for m in detail:
+                if m["id"] and m["id"] != "loaded":
+                    self.ai_model.addItem(m["id"])
+            items = [self.ai_model.itemText(i)
+                     for i in range(self.ai_model.count())]
+            if previous in items:
+                self.ai_model.setCurrentText(previous)
+            elif result.get("model") in items:
+                self.ai_model.setCurrentText(result["model"])
+            else:
+                self.ai_model.setCurrentText("loaded")
+            self.ai_model.blockSignals(False)
+
             status = f"OK — {len(result['models'])} models"
-            if result.get("model"):
+            live = [m for m in detail if m["loaded"]]
+            if live:
+                status += " · loaded: " + ", ".join(
+                    f"{m['id'][:26]}"
+                    + (f" ({m['ctx']} ctx)" if m["ctx"] else "")
+                    for m in live[:3])
+            elif result.get("model"):
                 status += f" · {result['model'][:26]}"
             self.ai_status.setText(status)
             self.ai_status.setToolTip(result.get("message", ""))
@@ -2522,17 +2553,6 @@ class MainWindow(QMainWindow):
 
             if result.get("status") == "no_model":
                 self.ai_status.setText(f"Model needed: {result['message'][:70]}")
-            elif result.get("model"):
-                # Resolved to a real chat model — overwrite placeholder values
-                # with the actual model id ("loaded"/"model" are not portable).
-                current = self.ai_model.currentText().strip()
-                if current in ["", "loaded", "model", "auto"]:
-                    self.ai_model.setCurrentText(result["model"])
-                else:
-                    # Keep the user's concrete choice, but surface the resolved one.
-                    self.ai_status.setToolTip(
-                        f"Resolved: {result['model']}\n\n{result.get('message', '')}"
-                    )
         else:
             self.ai_status.setText(f"Error: {result['error'][:60]}")
             self._provider_ok = False
