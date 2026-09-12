@@ -1190,11 +1190,19 @@ class AiEngine:
                 try:
                     data = resp.json()
                 except ValueError:
-                    return {"ok": False, "error":
-                            "Server answered but returned no model list. "
-                            "Check the provider matches this server (LM "
-                            "Studio vs Unsloth vs Ollama) and the URL ends "
-                            "with /v1."}
+                    # A half-started server sometimes answers 200 with an
+                    # empty body; one retry rides out the startup race.
+                    import time as _time
+                    _time.sleep(3)
+                    resp = requests.get(url, timeout=5)
+                    try:
+                        data = resp.json()
+                    except ValueError:
+                        return {"ok": False, "error":
+                                f"Server at {url} answered but returned no "
+                                f"model list. Check the provider matches "
+                                f"this server (LM Studio vs Unsloth vs "
+                                f"Ollama) and the URL ends with /v1."}
                 models = data if isinstance(data, list) else (data.get("data") or [])
                 model_names = [m.get("id", m.get("name", str(m))) for m in models]
                 info = {"ok": True, "models": model_names[:20]}
