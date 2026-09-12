@@ -401,6 +401,27 @@ _THINKING_FAMILIES = ("qwen3", "deepseek-r1", "deepseek-v3", "gpt-oss",
                       "kimi", "glm-4", "glm-5", "r1")
 
 
+def _is_model_refusal(error: Exception) -> bool:
+    """True when the server rejected the requested model itself (404, or a
+    body saying not-loaded / not-found / no-such-model).
+
+    Unsloth answers this way for downloaded-but-unloaded models when
+    per-request switching is off; LM Studio answers 404 for unknown ids.
+    """
+    resp = getattr(error, "response", None)
+    status = getattr(resp, "status_code", 0) or 0
+    text = ""
+    try:
+        text = (getattr(resp, "text", "") or "")[:300].lower()
+    except Exception:
+        pass
+    if status == 404:
+        return True
+    return any(h in text for h in ("not loaded", "not found",
+                                   "no such model", "unknown model",
+                                   "switch model"))
+
+
 def _is_thinking_model(model_id: str) -> bool:
     """True for reasoning-capable chat models (they stream reasoning_content)."""
     name = _bare_name(model_id)
@@ -899,7 +920,8 @@ class AiEngine:
                 "message": f"Will auto-load {best['id']} on first request",
                 "available": chat_ids, "loaded": loaded_ids}
 
-    def resolve_model(self, timeout: float = 8.0) -> dict:
+    def resolve_model(self, timeout: float = 8.0,
+                      force: bool = False) -> dict:
         """Pick a usable chat model for the configured provider.
 
         Returns ``{"status", "model", "message", "available", "loaded"}`` where
@@ -907,6 +929,10 @@ class AiEngine:
         ``"no_model"`` (``message`` holds a ≤9GB download suggestion) or
         ``"offline"`` (server unreachable). ``available``/``loaded`` list the
         chat-capable model ids found on the server.
+
+        With ``force=True`` a concrete ``config.model`` is NOT trusted: the
+        server already refused it once (e.g. downloaded-but-unloaded with
+        switching off), so a loaded model wins.
         """
         prov = self.config.provider
         base = (self.config.base_url
@@ -940,8 +966,11 @@ class AiEngine:
             return self.ensure_setup(timeout=timeout)
 
         current = (self.config.model or "").strip()
-        # A concrete, chat-capable model the user chose is kept as-is.
-        if current and current not in PLACEHOLDER_MODELS and not _looks_embedding(current):
+        # A concrete, chat-capable model the user chose is kept as-is —
+        # unless the server just refused it (force), since "in the catalog"
+        # is not "servable" (downloaded-but-unloaded with switching off).
+        if (not force and current and current not in PLACEHOLDER_MODELS
+                and not _looks_embedding(current)):
             if current in chat_ids:
                 return {"status": "ok", "model": current,
                         "message": f"Using {current}",
@@ -1057,11 +1086,18 @@ class AiEngine:
             if self._retried_model:
                 return self._model_error(e, on_token)
             self._retried_model = True
-            retry = self.resolve_model()
+            requested = (self.config.model or "").strip()
+            retry = self.resolve_model(force=_is_model_refusal(e))
             if retry["status"] != "ok":
                 if on_token:
                     on_token(retry["message"])
                 return retry["message"]
+            if retry.get("model") and retry["model"] != requested:
+                notice = (f"\n\n[Note: '{requested}' was refused by the "
+                          f"server; using loaded '{retry['model']}' "
+                          f"instead.]\n\n")
+                if on_token:
+                    on_token(notice)
             try:
                 self._sync_context_length()
                 resp = self._call(messages, stream=True)
