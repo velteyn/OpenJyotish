@@ -157,3 +157,33 @@ def test_ai_base_url_follows_provider(_qapp):
     window.ai_base_url.setText("http://192.0.2.10:8888/v1")
     engine = window._get_ai_engine()
     assert engine.config.base_url == "http://192.0.2.10:8888/v1"
+
+
+def test_check_populates_model_combo(_qapp, monkeypatch):
+    import jhora.ui.main_window as mw
+    from jhora.ui.main_window import MainWindow
+
+    class _FakeEngine:
+        def __init__(self, *a, **k):
+            pass
+
+        def health_check(self):
+            return {"ok": True, "models": ["a", "b"],
+                    "status": "ok", "model": "b",
+                    "message": "Using b", "available": ["a", "b"]}
+
+        def catalog_detail(self):
+            return [{"id": "a", "display": "a", "loaded": False,
+                     "ctx": 0},
+                    {"id": "b", "display": "b", "loaded": True,
+                     "ctx": 8448}]
+
+    monkeypatch.setattr(mw, "AiEngine", _FakeEngine)
+    window = MainWindow()
+    window._on_ai_health_check()
+    items = [window.ai_model.itemText(i)
+             for i in range(window.ai_model.count())]
+    assert items[0] == "loaded"
+    assert "a" in items and "b" in items
+    assert "8448" in window.ai_status.text()
+    assert "b" in window.ai_status.text()
