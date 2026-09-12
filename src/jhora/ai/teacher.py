@@ -79,9 +79,11 @@ class AiTeacher:
     def __init__(self, provider: str = "ollama",
                  base_url: str = "http://localhost:11434/v1",
                  model: str = "llama3.2",
-                 max_context_tokens: int = _DEFAULT_CONTEXT_TOKENS):
+                 max_context_tokens: int = _DEFAULT_CONTEXT_TOKENS,
+                 temperature: float = 0.2):
         self.base_url = base_url.rstrip("/")
         self.model = model
+        self.temperature = temperature
         self.store = EmbeddingStore(base_url=base_url.replace("/v1", ""))
         self.provider = provider
         self.max_context_tokens = max_context_tokens
@@ -95,6 +97,12 @@ class AiTeacher:
 
         # Search textbook corpus for relevant passages
         passages = self.store.search(question, top_k=4)
+        self._last_passages = [
+            {"source": p.get("source", "textbook"),
+             "excerpt": str(p.get("content", ""))[:400]}
+            for p in (passages or [])
+        ]
+        self.last_sources = list(self._last_passages)
         context = ""
         if passages:
             context = "Relevant textbook passages:\n\n"
@@ -152,7 +160,7 @@ class AiTeacher:
         payload = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.7,
+            "temperature": self.temperature,
             "max_tokens": 16384,
             "stream": True,
         }
