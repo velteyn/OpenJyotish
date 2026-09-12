@@ -52,8 +52,9 @@ def _expected_sahama_lons(cd, day):
 def test_time_of_day_hours_matches_birth_time():
     assert abs(_chart(10.5).time_of_day_hours - 10.5) < 1e-6
     assert abs(_chart(2.0).time_of_day_hours - 2.0) < 1e-6
-    # The raw birth_date field stays date-only (midnight) by design.
-    assert _chart(10.5).birth_date.hour == 0
+    # The birth_date field carries the wall-clock birth time.
+    assert _chart(10.5).birth_date.hour == 10
+    assert _chart(10.5).birth_date.minute == 30
 
 
 def test_json_export_sahamas_follow_true_day_night():
