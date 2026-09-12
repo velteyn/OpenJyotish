@@ -139,3 +139,21 @@ def test_build_button_blocked_without_embed_model(_qapp, monkeypatch):
     assert "Download X" in shown.get("msg", "")
     assert not hasattr(window, "_vdb_worker")
     assert window.ai_vdb_build.isEnabled()
+
+
+def test_vector_search_skips_dim_mismatch():
+    """A query vector from another embedding model must not crash search."""
+    from jhora.ai.embeddings import EmbeddingStore
+    store = EmbeddingStore(provider="lmstudio", base_url="http://x:1234")
+    res = store._vector_search([0.1] * 384, top_k=3)
+    assert res == []
+
+
+def test_ai_base_url_follows_provider(_qapp):
+    from jhora.ui.main_window import MainWindow
+    window = MainWindow()
+    window.ai_provider.setCurrentText("unsloth")
+    assert "8000" in window.ai_base_url.text()
+    window.ai_base_url.setText("http://192.0.2.10:8888/v1")
+    engine = window._get_ai_engine()
+    assert engine.config.base_url == "http://192.0.2.10:8888/v1"

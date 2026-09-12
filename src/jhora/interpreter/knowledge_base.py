@@ -59,6 +59,15 @@ class KnowledgeBase:
         q = query.strip()
         if not q or len(q) < 2:
             return []
+        # FTS5 MATCH is a query language (: " * ( ) ? ... crash or
+        # misbehave). Reduce to plain word tokens (implicit AND) so any
+        # user question is safe — a Guru question with a colon must never
+        # take down the whole answer.
+        import re
+        tokens = re.findall(r"[A-Za-z0-9\u0080-\uffff]{2,}", q)[:12]
+        if not tokens:
+            return []
+        q = " ".join(tokens)
         rows = self._db.execute(
             "SELECT k.source_name, k.content, "
             "snippet(knowledge_fts, 1, '', '', '...', 32) AS snippet, "

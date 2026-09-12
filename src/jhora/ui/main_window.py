@@ -2465,10 +2465,13 @@ class MainWindow(QMainWindow):
         return w
 
     def _get_ai_engine(self) -> AiEngine:
+        provider = self.ai_provider.currentText()
+        base_url = (self.ai_base_url.text().strip()
+                    if hasattr(self, "ai_base_url") else "")
         config = AiConfig(
-            provider=self.ai_provider.currentText(),
+            provider=provider,
             model=self.ai_model.text().strip(),
-            base_url=PROVIDERS.get(self.ai_provider.currentText(), {}).get("base_url", ""),
+            base_url=base_url or PROVIDERS.get(provider, {}).get("base_url", ""),
             preferred_model=self.ai_preferred.text().strip() if hasattr(self, "ai_preferred") else "",
             ensure_context=self.ai_ctx.value() if hasattr(self, "ai_ctx") else 8192,
             temperature=self.ai_temp.value() if hasattr(self, "ai_temp") else 0.2,
@@ -2478,6 +2481,8 @@ class MainWindow(QMainWindow):
     def _on_ai_provider_changed(self, provider: str):
         preset = PROVIDERS.get(provider, {})
         self.ai_model.setText(preset.get("default_model", ""))
+        if hasattr(self, "ai_base_url"):
+            self.ai_base_url.setText(preset.get("base_url", ""))
         self._ai_history.clear()
         self._ai_transcript.clear()
         self._ai_stream = ""
@@ -2555,6 +2560,14 @@ class MainWindow(QMainWindow):
         self.ai_model = QLineEdit("llama3.2")
         self.ai_model.setFixedWidth(140)
         cfg.addWidget(self.ai_model)
+
+        cfg.addWidget(QLabel("URL:"))
+        self.ai_base_url = QLineEdit("http://localhost:11434/v1")
+        self.ai_base_url.setFixedWidth(220)
+        self.ai_base_url.setToolTip(
+            "API base URL, preset per provider — edit for remote servers "
+            "(e.g. Unsloth on another host/port).")
+        cfg.addWidget(self.ai_base_url)
 
         self.ai_check_btn = QPushButton("Check Provider")
         self.ai_check_btn.setFixedWidth(140)
@@ -3109,10 +3122,13 @@ class MainWindow(QMainWindow):
 
         provider = self.ai_provider.currentText() if hasattr(self, 'ai_provider') else "ollama"
         model = self.ai_model.text().strip() if hasattr(self, 'ai_model') else ""
-        base_url = {"ollama": "http://localhost:11434/v1",
-                     "lmstudio": "http://localhost:1234/v1",
-                     "unsloth": "http://localhost:8000/v1"}.get(provider,
-                                                               "http://localhost:11434/v1")
+        if hasattr(self, 'ai_base_url') and self.ai_base_url.text().strip():
+            base_url = self.ai_base_url.text().strip()
+        else:
+            base_url = {"ollama": "http://localhost:11434/v1",
+                        "lmstudio": "http://localhost:1234/v1",
+                        "unsloth": "http://localhost:8000/v1"}.get(provider,
+                                                                   "http://localhost:11434/v1")
         chart = self.chart_data if hasattr(self, "chart_data") else None
 
         self._teacher_worker = _TeacherWorker(
