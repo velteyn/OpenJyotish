@@ -67,7 +67,7 @@ class TestChartBuilder:
             assert isinstance(p.dignity, str)
 
     def test_birth_date_stored(self, ref_chart):
-        assert ref_chart.birth_date == datetime(1970, 4, 4)
+        assert ref_chart.birth_date == datetime(1970, 4, 4, 23, 18, 20)
 
     def test_ayanamsa_stored(self, ref_chart):
         assert ref_chart.ayanamsa_name == "lahiri"
@@ -194,7 +194,7 @@ class TestChartBuilderCustomInput:
         cd = builder.build(year=2099, month=1, day=1, hour=12.0,
                            lat=28.61, lon=77.23, tz="+0530")
         assert isinstance(cd, ChartData)
-        assert cd.birth_date == datetime(2099, 1, 1)
+        assert cd.birth_date == datetime(2099, 1, 1, 12, 0)
 
     def test_build_southern_hemisphere(self):
         builder = ChartBuilder()

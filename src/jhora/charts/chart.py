@@ -3,7 +3,7 @@ ChartData — immutable data structure holding all computed chart information.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
 from jhora.types.graha import Graha
@@ -109,6 +109,26 @@ def house_rasi_index(ascendant_lon: float, house_num: int) -> int:
     house 7 → 9 (Capricorn).
     """
     return (int(ascendant_lon / 30) + house_num - 1) % 12
+
+
+def _wall_datetime(year: int, month: int, day: int, hour: float) -> datetime:
+    """Local wall-clock datetime from decimal hours (midnight bug guard).
+
+    ChartData.birth_date must carry the birth TIME — downstream readers
+    (anchor Birth line, reports, weekday, sunrise-day logic) all use it.
+    """
+    h = int(hour)
+    m = int((hour - h) * 60)
+    s = int(round((((hour - h) * 60) - m) * 60))
+    if s >= 60:
+        s, m = 0, m + 1
+    if m >= 60:
+        m, h = 0, h + 1
+    if h >= 24:
+        # past midnight: roll into the next civil day
+        base = datetime(year, month, day) + timedelta(days=1)
+        return base.replace(hour=0, minute=m, second=s)
+    return datetime(year, month, day, h, m, s)
 
 
 class ChartBuilder:
@@ -245,7 +265,7 @@ class ChartBuilder:
         )
 
         cd = ChartData(
-            birth_date=datetime(year, month, day),
+            birth_date=_wall_datetime(year, month, day, hour),
             julian_day=jd, latitude=lat, longitude=lon,
             timezone=tz, ayanamsa_name=ayanamsa,
             ayanamsa_value=ayanamsa_val,

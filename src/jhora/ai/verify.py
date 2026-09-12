@@ -253,30 +253,57 @@ def verify_answer(answer: str, cd: ChartData,
                             "strength", f"{sm.group(1)} {val} bindus",
                             f"SAV {sm.group(1)} is {actual}"))
 
-        # dates: each must match a computed event (dasa boundary or birth).
-        # Full dates match exactly; month precision matches (year, month).
-        for dm in re.finditer(
-                r"\d{4}-\d{2}-\d{2}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+"
-                r"[A-Za-z]+\s+\d{4}", s):
-            parsed = _parse_date(dm.group(0))
-            if not parsed:
-                continue
-            v.checked += 1
-            if parsed not in known_dates:
-                v.flags.append(Flag(
-                    "date", dm.group(0),
-                    "no computed dasa boundary or birth date matches"))
-        for dm in re.finditer(
-                r"\b([A-Za-z]+)\s+(\d{4})\b", s):
-            mon = dm.group(1).lower()[:3]
-            if mon not in _MONTH_ABBR or _parse_date(dm.group(0)):
-                continue
-            y, m = int(dm.group(2)), _MONTH_ABBR[mon]
-            v.checked += 1
-            if not any(k[0] == y and k[1] == m for k in known_dates):
-                v.flags.append(Flag(
-                    "date", dm.group(0),
-                    "no computed dasa boundary falls in this month"))
+        # birth time: a stated clock time next to birth/born words, or an
+        # ISO datetime on the birth date, must match the computed chart.
+        # (Catches "00:00" midnight-defaulting on a 13:55 chart.)
+        # Other people's times AND dates are unknowable — only yours verify;
+        # strengths, signs and quotes below still check regardless.
+        bt = cd.birth_date
+        other_person = bool(re.search(
+            r"spouse|partner|\bwife\b|\bhusband\b|marriage|married",
+            s, re.IGNORECASE))
+        if not other_person:
+            for m in re.finditer(
+                    r"\b(?:birth|born)\b[^.!?\n]{0,80}?(\d{1,2}):(\d{2})\b"
+                    r"|(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})", s,
+                    re.IGNORECASE):
+                if m.group(1) is not None:
+                    hh, mm = int(m.group(1)), int(m.group(2))
+                else:
+                    y, mo, d = (int(m.group(3)), int(m.group(4)),
+                                int(m.group(5)))
+                    if (y, mo, d) != (bt.year, bt.month, bt.day):
+                        continue
+                    hh, mm = int(m.group(6)), int(m.group(7))
+                if 0 <= hh <= 23 and 0 <= mm <= 59:
+                    v.checked += 1
+                    if (hh, mm) != (bt.hour, bt.minute):
+                        v.flags.append(Flag(
+                            "birth-time", f"birth time {hh:02d}:{mm:02d}",
+                            f"chart birth time is "
+                            f"{bt.hour:02d}:{bt.minute:02d}"))
+            for dm in re.finditer(
+                    r"\d{4}-\d{2}-\d{2}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+"
+                    r"[A-Za-z]+\s+\d{4}", s):
+                parsed = _parse_date(dm.group(0))
+                if not parsed:
+                    continue
+                v.checked += 1
+                if parsed not in known_dates:
+                    v.flags.append(Flag(
+                        "date", dm.group(0),
+                        "no computed dasa boundary or birth date matches"))
+            for dm in re.finditer(
+                    r"\b([A-Za-z]+)\s+(\d{4})\b", s):
+                mon = dm.group(1).lower()[:3]
+                if mon not in _MONTH_ABBR or _parse_date(dm.group(0)):
+                    continue
+                y, m = int(dm.group(2)), _MONTH_ABBR[mon]
+                v.checked += 1
+                if not any(k[0] == y and k[1] == m for k in known_dates):
+                    v.flags.append(Flag(
+                        "date", dm.group(0),
+                        "no computed dasa boundary falls in this month"))
 
     # quoted passages must exist in the provided texts. Skipped: questions,
     # code spans and mantras (quoted for use, not as classical authority).
