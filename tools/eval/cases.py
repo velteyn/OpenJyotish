@@ -17,7 +17,7 @@ def _spouse(chart_cfg):
 CASES = [
     {
         "id": "dasa-now",
-        "max_tokens": 1024,
+        "max_tokens": 4096,
         "question": lambda c: (
             "What mahadasha and antardasha am I in right now, and on what "
             "exact date does the current antardasha end? "
@@ -27,8 +27,34 @@ CASES = [
                              "Mars Antardasha ends", "2027"],
     },
     {
+        "id": "dasa-followup",
+        "follows": "dasa-now",
+        "max_tokens": 4096,
+        "question": lambda c: (
+            "And when does the antardasha after that one begin and end? "
+            "Just give the planet and the two dates."),
+        "must_contain": ["Mars", "2027"],
+        "must_not_contain": ["Gemini Ascendant", "Moon in Aquarius",
+                             "Venus Antardasha"],
+    },
+    {
+        "id": "dasa-followup-seeded",
+        "max_tokens": 4096,
+        "seed": {
+            "q": "What mahadasha and antardasha am I in right now?",
+            "a": "You are in Ketu Mahadasha with Moon Antardasha, "
+                 "which ends on 2026-10-15.",
+        },
+        "question": lambda c: (
+            "And when does the antardasha after that one begin and end? "
+            "Just give the planet and the two dates."),
+        "must_contain": ["Mars", "2027"],
+        "must_not_contain": ["Gemini Ascendant", "Moon in Aquarius",
+                             "Venus Antardasha"],
+    },
+    {
         "id": "karaka-identity",
-        "max_tokens": 1024,
+        "max_tokens": 4096,
         "question": lambda c: (
             "Who is my Dara Karaka and who is my Amatya Karaka? "
             "Name each planet and the sign it occupies. "
@@ -39,7 +65,7 @@ CASES = [
     },
     {
         "id": "lagna-moon",
-        "max_tokens": 1024,
+        "max_tokens": 4096,
         "question": lambda c: (
             "What is my lagna (ascendant sign) and in which sign and "
             "nakshatra is my natal Moon? Answer in one sentence."),
@@ -61,5 +87,16 @@ CASES = [
                              "born 26-08-1982 and I am",
                              "Emerald is the gemstone of Venus",
                              "ruby is the gemstone of Mars"],
+    },
+    {
+        "id": "guru-dara",
+        "guru": True,
+        "max_tokens": 8192,
+        "question": lambda c: (
+            "Teach me about Dara Karaka: how is it determined, what is "
+            "mine in this chart, and what does it indicate for marriage?"),
+        "must_contain": ["spouse", "Jupiter"],
+        "must_not_contain": ["Dara = Enemy", "Dara Karaka) (enemy",
+                             "enemy significator", "Moon in Aquarius"],
     },
 ]

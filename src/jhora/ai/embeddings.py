@@ -15,6 +15,11 @@ from jhora.core.database import get_db
 
 
 EMBEDDING_DIM = 768  # Typical for nomic-embed-text / all-minilm
+
+
+def _looks_like_embedding(model_id: str) -> bool:
+    low = (model_id or "").lower()
+    return any(h in low for h in ("embed", "nomic", "bge", "gte-", "e5-"))
 CHUNK_SIZE = 500     # Characters per chunk
 CHUNK_OVERLAP = 100  # Overlap between chunks
 
@@ -107,6 +112,25 @@ def _detect_provider(provider: str, base_url: str) -> tuple:
     import requests
 
     if provider == "auto":
+        if base_url:
+            # An explicit URL wins: probe it instead of localhost so remote
+            # servers (LAN, Tailscale) work instead of silently dropping to
+            # ("none", "") and failing later with a bare '/api/embed'.
+            try:
+                r = requests.get(f"{base_url.rstrip('/')}/v1/models",
+                                 timeout=3)
+                if r.status_code == 200:
+                    return ("lmstudio", base_url)
+            except Exception:
+                pass
+            try:
+                r = requests.get(f"{base_url.rstrip('/')}/api/tags",
+                                 timeout=3)
+                if r.status_code == 200:
+                    return ("ollama", base_url)
+            except Exception:
+                pass
+            return ("none", base_url)
         # Try Ollama first
         try:
             r = requests.get("http://localhost:11434/api/tags", timeout=2)
@@ -128,6 +152,73 @@ def _detect_provider(provider: str, base_url: str) -> tuple:
     urls = {"ollama": "http://localhost:11434",
             "lmstudio": "http://localhost:1234"}
     return (provider, base_url or urls.get(provider, "http://localhost:11434"))
+
+
+def embedding_model_status(base_url: str = "",
+                           provider: str = "auto") -> dict:
+    """Pre-flight check: is a text-embedding model available to use?
+
+    Returns {"ok", "provider", "base_url", "model", "message", "howto"}.
+    Callers must refuse to build (with a popup telling the user what to
+    download) when ok is False instead of failing mid-build.
+    """
+    import requests
+    prov, base = _detect_provider(provider, base_url)
+    if prov == "none" or not base:
+        return {
+            "ok": False, "provider": prov, "base_url": base, "model": "",
+            "message": "No AI server reachable.",
+            "howto": ("Start one first:\n"
+                      "  LM Studio: start the local server (Developer tab)\n"
+                      "  Ollama: ollama serve"),
+        }
+    found = ""
+    server_up = False
+    try:
+        if prov == "lmstudio":
+            r = requests.get(f"{base.rstrip('/')}/v1/models", timeout=5)
+            server_up = r.status_code == 200
+            if server_up:
+                for m in r.json().get("data", []):
+                    if _looks_like_embedding(str(m.get("id", ""))):
+                        found = str(m.get("id", ""))
+                        break
+        else:
+            r = requests.get(f"{base.rstrip('/')}/api/tags", timeout=5)
+            server_up = r.status_code == 200
+            if server_up:
+                for m in r.json().get("models", []):
+                    name = str(m.get("name", ""))
+                    if _looks_like_embedding(name):
+                        found = name
+                        break
+    except Exception:
+        pass
+    if not server_up:
+        return {
+            "ok": False, "provider": prov, "base_url": base, "model": "",
+            "message": "No AI server reachable.",
+            "howto": ("Start one first:\n"
+                      "  LM Studio: start the local server (Developer tab)\n"
+                      "  Ollama: ollama serve"),
+        }
+    if found:
+        return {"ok": True, "provider": prov, "base_url": base,
+                "model": found,
+                "message": f"Embedding model available: {found}",
+                "howto": ""}
+    if prov == "lmstudio":
+        howto = ("LM Studio: open the Models tab and search for:\n"
+                 "  text-embedding-nomic-embed-text-v1.5\n"
+                 "Download it (it loads automatically when used),\n"
+                 "then press Build Vector DB again.")
+    else:
+        howto = ("Ollama: install an embedding model with:\n"
+                 "  ollama pull nomic-embed-text\n"
+                 "then press Build Vector DB again.")
+    return {"ok": False, "provider": prov, "base_url": base, "model": "",
+            "message": "No text-embedding model found on your AI server.",
+            "howto": howto}
 
 
 class EmbeddingStore:
@@ -153,9 +244,15 @@ class EmbeddingStore:
                 r = requests.get(f"{self.base_url}/v1/models", timeout=3)
                 if r.status_code == 200:
                     models = r.json().get("data", [])
-                    if models:
-                        self._embedding_model = models[0].get("id", "loaded")
-                        return self._embedding_model
+                    # Prefer a dedicated embedding model; never blindly take
+                    # index 0 (usually an LLM, which cannot embed).
+                    for m in models:
+                        mid = str(m.get("id", ""))
+                        if _looks_like_embedding(mid):
+                            self._embedding_model = mid
+                            return mid
+                    self._embedding_model = "loaded"
+                    return "loaded"
             else:
                 r = requests.get(f"{self.base_url}/api/tags", timeout=3)
                 if r.status_code == 200:
@@ -189,77 +286,92 @@ class EmbeddingStore:
         """)
         self.db.commit()
 
+    def _embed_source(self, name: str, content: str, batch_size: int,
+                      throttle_ms: int, model: str, progress_cb=None,
+                      _lock=None) -> list:
+        """Chunk one book and embed every batch. No DB access (thread-safe).
+
+        Returns [(chunk_index, chunk_text, blob_or_None), ...].
+        """
+        import time
+        chunks = self._chunk_text(content)
+        if progress_cb:
+            with _lock:
+                progress_cb(name, 0, len(chunks))
+        out = []
+        for batch_start in range(0, len(chunks), batch_size):
+            batch = chunks[batch_start:batch_start + batch_size]
+            embs = _get_embeddings_batch(
+                batch, self.base_url, self.provider, model=model)
+            for i, (chunk, emb) in enumerate(zip(batch, embs)):
+                out.append((batch_start + i, chunk,
+                            _pack_vector(emb) if emb else None))
+            if batch_start + batch_size < len(chunks):
+                time.sleep(throttle_ms / 1000.0)
+            if progress_cb:
+                with _lock:
+                    progress_cb(name, min(batch_start + batch_size,
+                                          len(chunks)), len(chunks))
+        return out
+
     def build(self, batch_size: int = 10, throttle_ms: int = 500,
-              progress_cb=None) -> int:
+              progress_cb=None, jobs: int = 4) -> int:
         """Chunk all books, embed in batches, store in DB.
 
         Args:
             batch_size: texts per API call (default 10)
             throttle_ms: delay between batches (default 500ms)
             progress_cb: callback(source_name, chunks_done, total_chunks)
-                         called at most once per source (not per batch)
+            jobs: books embedded in parallel (default 4). Workers never
+                  touch the DB — one serial writer inserts everything.
         """
-        import time
+        import threading
+        from concurrent.futures import ThreadPoolExecutor
         count = self.db.execute("SELECT COUNT(*) FROM textbook_chunks WHERE embedding IS NOT NULL").fetchone()[0]
         if count > 0:
             print(f"Already have {count} chunks with embeddings — skipping")
             return count
-            
+
         # Clean up any incomplete chunks (e.g., from failed runs)
         self.db.execute("DELETE FROM textbook_chunks")
         self.db.commit()
 
-        total = 0
-        source_names = [r["source_name"] for r in self.db.execute(
+        model = self._detect_embedding_model()
+        sources = [(r["source_name"], None) for r in self.db.execute(
             "SELECT source_name FROM knowledge_texts ORDER BY source_name"
         ).fetchall()]
-
-        for name in source_names:
+        texts = {}
+        for name, _ in sources:
             row = self.db.execute(
                 "SELECT content FROM knowledge_texts WHERE source_name = ?", (name,)
             ).fetchone()
-            if not row:
-                continue
-            text = row["content"]
-            chunks = self._chunk_text(text)
-            del text  # free memory for large source string
-            print(f"  {name}: {len(chunks)} chunks")
-            if progress_cb:
-                progress_cb(name, 0, len(chunks))
+            if row:
+                texts[name] = row["content"]
 
-            for batch_start in range(0, len(chunks), batch_size):
-                batch = chunks[batch_start:batch_start + batch_size]
-                embs = _get_embeddings_batch(
-                    batch, self.base_url, self.provider,
-                    model=self._detect_embedding_model(),
-                )
+        lock = threading.Lock()
 
-                for i, (chunk, emb) in enumerate(zip(batch, embs)):
-                    blob = _pack_vector(emb) if emb else None
+        def _work(name):
+            return name, self._embed_source(
+                name, texts[name], batch_size, throttle_ms, model,
+                progress_cb=progress_cb, _lock=lock)
+
+        total = 0
+        with ThreadPoolExecutor(max_workers=max(1, jobs)) as pool:
+            for name, embedded in pool.map(_work, list(texts)):
+                print(f"  {name}: {len(embedded)} chunks")
+                for idx, chunk, blob in embedded:
                     self.db.execute(
                         "INSERT INTO textbook_chunks (source_name, chunk_index, content, embedding) "
                         "VALUES (?, ?, ?, ?)",
-                        (name, batch_start + i, chunk, blob),
+                        (name, idx, chunk, blob),
                     )
                     total += 1
-
-                # Commit and WAL checkpoint every 50 chunks
-                if total % 50 == 0:
-                    self.db.commit()
-                    self.db.execute("PRAGMA wal_checkpoint(PASSIVE)")
-
-                # Throttle between batches
-                if batch_start + batch_size < len(chunks):
-                    time.sleep(throttle_ms / 1000.0)
-
-                # Progress per batch to prevent UI from hanging and show step-by-step progress
-                if progress_cb:
-                    progress_cb(name, min(batch_start + batch_size, len(chunks)), len(chunks))
+                self.db.commit()
+                self.db.execute("PRAGMA wal_checkpoint(PASSIVE)")
 
         self.db.commit()
         self.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         print(f"\n  Done: {total} chunks stored")
-        return total
         return total
 
     def _chunk_text(self, text: str) -> List[str]:
