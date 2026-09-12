@@ -1,5 +1,6 @@
 import unittest
 from jhora.types.graha import Graha
+from jhora.charts.chart import ChartBuilder
 from jhora.calc.karaka import compute_chara_karakas, get_atma_karaka, CharaKaraka
 
 
@@ -21,21 +22,24 @@ class TestCharaKaraka(unittest.TestCase):
         k = compute_chara_karakas(self.planets)
         self.assertEqual(len(k), 8)
 
-    def test_ak_is_highest_longitude(self):
+    def test_ak_is_highest_in_sign(self):
+        """Atma Karaka = most degrees traversed within its sign (Me 25°)."""
         k = compute_chara_karakas(self.planets)
-        self.assertEqual(k[0].graha, Graha.SATURN)
+        self.assertEqual(k[0].graha, Graha.MERCURY)
         self.assertEqual(k[0].short_name, "AK")
 
-    def test_stk_is_lowest_longitude(self):
+    def test_dk_is_lowest_in_sign(self):
+        """Dara Karaka = fewest in-sign degrees (Ma 5°, after Su 5% tie
+        resolved by input order)."""
         k = compute_chara_karakas(self.planets)
-        self.assertEqual(k[-1].graha, Graha.SUN)
-        self.assertEqual(k[-1].short_name, "StK")
+        self.assertEqual(k[-1].graha, Graha.MARS)
+        self.assertEqual(k[-1].short_name, "DK")
 
-    def test_sorted_descending(self):
+    def test_sorted_descending_in_sign(self):
         k = compute_chara_karakas(self.planets)
-        lons = [p.longitude for p in k]
-        for i in range(len(lons) - 1):
-            self.assertGreaterEqual(lons[i], lons[i + 1])
+        degs = [p.longitude % 30 for p in k]
+        for i in range(len(degs) - 1):
+            self.assertGreaterEqual(degs[i], degs[i + 1])
 
     def test_karaka_rank_property(self):
         k = compute_chara_karakas(self.planets)
@@ -44,9 +48,17 @@ class TestCharaKaraka(unittest.TestCase):
 
     def test_karaka_names(self):
         k = compute_chara_karakas(self.planets)
-        expected = ["AK", "AmK", "BK", "MK", "PiK", "GK", "DK", "StK"]
+        expected = ["AK", "AmK", "BK", "MK", "PiK", "PutK", "GnK", "DK"]
         for karaka, exp in zip(k, expected):
             self.assertEqual(karaka.short_name, exp)
+
+    def test_putra_before_gnati_before_dara(self):
+        """8-karaka order: PutK(6th) Ra, GnK(7th) Su, DK(8th) Ma."""
+        k = compute_chara_karakas(self.planets)
+        by_name = {karaka.short_name: karaka.graha for karaka in k}
+        self.assertEqual(by_name["PutK"], Graha.RAHU)
+        self.assertEqual(by_name["GnK"], Graha.SUN)
+        self.assertEqual(by_name["DK"], Graha.MARS)
 
     def test_karaka_meaning_not_empty(self):
         k = compute_chara_karakas(self.planets)
@@ -56,8 +68,22 @@ class TestCharaKaraka(unittest.TestCase):
 
     def test_get_atma_karaka(self):
         ak = get_atma_karaka(self.planets)
-        self.assertEqual(ak.graha, Graha.SATURN)
+        self.assertEqual(ak.graha, Graha.MERCURY)
         self.assertEqual(ak.short_name, "AK")
+
+    def test_user_chart_dara_is_jupiter(self):
+        """Regression: 1973-03-13 Padua must yield DK Jupiter (lowest
+        in-sign degrees), not Moon — the old absolute-longitude sort fed
+        every AI answer a wrong Dara Karaka."""
+        builder = ChartBuilder()
+        cd = builder.build(1973, 3, 13, 13 + 55 / 60,
+                           lat=45.4130, lon=11.8806, tz="+0100")
+        planets = {g: {"longitude": p.longitude}
+                   for g, p in cd.planets.items()}
+        by_name = {k.short_name: k.graha
+                   for k in compute_chara_karakas(planets)}
+        self.assertEqual(by_name["DK"], Graha.JUPITER)
+        self.assertEqual(by_name["AmK"], Graha.SUN)
 
     def test_excludes_ketu(self):
         planets_with_ketu = dict(self.planets)
