@@ -603,6 +603,38 @@ class TestModelResolution:
         r = engine.health_check()
         assert r["ok"] is False
         assert "provider" in r["error"] and "/v1" in r["error"]
+        assert "http://x:8888/v1/models" in r["error"]
+
+    def test_health_retries_empty_body_once(self, monkeypatch):
+        import requests as _requests
+        import jhora.ai.engine as eng
+
+        calls = {"n": 0}
+
+        class _Empty:
+            status_code = 200
+
+            def json(self):
+                raise ValueError("empty")
+
+        class _Full:
+            status_code = 200
+
+            def json(self):
+                return {"object": "list", "data": []}
+
+        def fake_get(*a, **k):
+            calls["n"] += 1
+            return _Empty() if calls["n"] == 1 else _Full()
+
+        monkeypatch.setattr(_requests, "get", fake_get)
+        monkeypatch.setattr("time.sleep", lambda s: None)
+        engine = AiEngine(AiConfig(provider="unsloth",
+                                   base_url="http://x:8888/v1"))
+        r = engine.health_check()
+        # health GET, retried GET, then resolve refetches the catalogue
+        assert calls["n"] == 3
+        assert r["ok"] is True
 
     def test_normalize_base_url(self):
         from jhora.ai.engine import normalize_base_url
