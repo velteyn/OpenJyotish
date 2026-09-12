@@ -402,6 +402,89 @@ class TestModelResolution:
             assert "9GB" in msg, prov
             assert prov in msg or "chat" in msg
 
+    def test_is_model_refusal(self):
+        import requests
+        from jhora.ai.engine import _is_model_refusal
+
+        def err(status, text=""):
+            e = requests.exceptions.HTTPError(f"HTTP {status}")
+            e.response = type("R", (), {"status_code": status,
+                                        "text": text})()
+            return e
+        assert _is_model_refusal(err(404)) is True
+        assert _is_model_refusal(err(400, "not loaded, switch model")) is True
+        assert _is_model_refusal(err(500, "boom")) is False
+        assert _is_model_refusal(Exception("x")) is False
+
+    def test_404_falls_back_to_loaded_model(self, monkeypatch):
+        import requests
+        import jhora.ai.engine as eng
+        monkeypatch.setattr(eng, "_generic_catalog",
+                            lambda base_url, timeout=8.0: [
+            {"id": "stale-model", "loaded": False, "type": "llm"},
+            {"id": "live-model", "loaded": True, "type": "llm"},
+        ])
+        engine = AiEngine(AiConfig(provider="unsloth",
+                                   base_url="http://x:8888/v1",
+                                   model="stale-model"))
+        calls = {"n": 0}
+        seen = {}
+
+        def fake_call(messages, stream=False):
+            calls["n"] += 1
+            seen[calls["n"]] = engine.config.model
+            if calls["n"] == 1:
+                e = requests.exceptions.HTTPError("404 Not Found")
+                e.response = type(
+                    "R", (), {"status_code": 404,
+                              "text": "not loaded, switch model by request"})()
+                raise e
+            return {"dummy": True}
+
+        monkeypatch.setattr(engine, "_call", fake_call)
+        monkeypatch.setattr(engine, "_stream_response",
+                            lambda resp, on_token=None: "recovered reply")
+        notes = []
+        text = engine._chat_completion([{"role": "user", "content": "hi"}],
+                                       on_token=notes.append)
+        assert calls["n"] == 2
+        assert seen[1] == "stale-model"
+        assert seen[2] == "live-model"
+        assert text == "recovered reply"
+        assert any("stale-model" in n and "live-model" in n for n in notes)
+
+    def test_500_does_not_swap_model(self, monkeypatch):
+        import requests
+        import jhora.ai.engine as eng
+        monkeypatch.setattr(eng, "_generic_catalog",
+                            lambda base_url, timeout=8.0: [
+            {"id": "stale-model", "loaded": False, "type": "llm"},
+            {"id": "live-model", "loaded": True, "type": "llm"},
+        ])
+        engine = AiEngine(AiConfig(provider="unsloth",
+                                   base_url="http://x:8888/v1",
+                                   model="stale-model"))
+        calls = {"n": 0}
+
+        def fake_call(messages, stream=False):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                e = requests.exceptions.HTTPError("500 boom")
+                e.response = type("R", (), {"status_code": 500,
+                                            "text": "boom"})()
+                raise e
+            return {"dummy": True}
+
+        monkeypatch.setattr(engine, "_call", fake_call)
+        monkeypatch.setattr(engine, "_stream_response",
+                            lambda resp, on_token=None: "second try")
+        notes = []
+        engine._chat_completion([{"role": "user", "content": "hi"}],
+                                on_token=notes.append)
+        assert calls["n"] == 2
+        assert engine.config.model == "stale-model"  # kept, not swapped
+        assert not any("instead" in n for n in notes)
+
     def test_unsloth_ctx_from_catalog(self, monkeypatch):
         import requests as _requests
         import jhora.ai.engine as eng
