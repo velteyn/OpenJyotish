@@ -115,3 +115,24 @@ def test_quotes_skipped_without_passages():
     cd = _chart()
     v = verify_answer('He said "something unverifiable here at all".', cd)
     assert v.flags == []
+
+
+def test_birth_datetime_carries_time():
+    """Regression: ChartData.birth_date dropped the clock time (midnight),
+    so every Birth line read 00:00."""
+    from jhora.charts.chart import ChartBuilder
+    cd = ChartBuilder().build(1973, 3, 13, 13 + 55 / 60,
+                              lat=45.41, lon=11.88, tz="+0100")
+    assert (cd.birth_date.hour, cd.birth_date.minute) == (13, 55)
+
+
+def test_birth_time_flagged():
+    cd = _chart()
+    v = verify_answer("Birth line: 1990-01-15 00:00 here.", cd)
+    assert any(f.kind == "birth-time" for f in v.flags)
+
+
+def test_spouse_dates_not_flagged():
+    cd = _chart()
+    v = verify_answer("Spouse born 1982-08-26 06:00.", cd)
+    assert v.flags == []
