@@ -132,3 +132,16 @@ harness before promoting any new model.
   invents flags like `--karaka-dasa` otherwise).
 - The corpus itself is a correctness oracle: it confirmed the 8-karaka
   order (Putra 6th, Jnaati 7th, Dara 8th) behind the karaka fix.
+
+## 9. Mechanical verification (reputation guarantee)
+
+- Prompts don't converge: free prose from 9–14B models swaps ~30% of
+  attached signs and invents provenance. `jhora/ai/verify.py` parses each
+  answer for checkable claims (planet-in-sign, houses, lagna, dasa/birth
+  dates, strength numbers, karaka roles, quoted passages) and checks them
+  against engine truth before display — ✓ when clean, ⚠ with corrections.
+- Precision rules that mattered: skip transit sentences (moving sky),
+  examples/hypotheticals, questions, code spans and mantras in quote
+  checks; whole-sign houses from lagna as the house convention.
+- Live result on a real bad answer: 24 of 36 claims flagged, zero false
+  positives on review. Temperature 0.2 default everywhere.
