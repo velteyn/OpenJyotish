@@ -113,6 +113,8 @@ Roleplay/abliterated merges and ultra-low quants (IQ1_S) confabulate lore —
 avoid them for readings. Anything outside the slate may work but is **not
 guaranteed**.
 
+Full audit trail, per-model scorecards and setup laws: `docs/AI_LESSONS.md`.
+
 ## TUI
 
 `jhora tui` — interactive terminal app with the same 9-category structure.  

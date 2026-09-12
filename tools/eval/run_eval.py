@@ -33,7 +33,9 @@ import datetime
 import json
 import os
 import sys
-import urllib.request
+import time
+
+import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
@@ -45,19 +47,45 @@ RESULTS = os.path.join(HERE, "results")
 LOCAL_CHART = os.path.join(HERE, "local_chart.json")
 
 
+def _open_with_retry(method, url, payload, timeout, tries=12):
+    """Same HTTP layer as the app itself (requests, not urllib: LM Studio's
+    server intermittently refuses urllib POSTs while curl/requests pass).
+
+    Retries only connect-level failures. A stalled transfer or HTTP error
+    is returned as-is — resending a chat request would pile orphaned
+    generations onto a strained server.
+    """
+    delay = 10
+    last = None
+    for attempt in range(tries):
+        try:
+            if method == "GET":
+                resp = requests.get(url, timeout=timeout)
+            else:
+                resp = requests.post(url, json=payload, timeout=timeout)
+            return resp.status_code, resp.text
+        except requests.exceptions.ConnectionError as e:
+            last = e
+            if attempt == tries - 1:
+                raise
+            print(f"  transient ({str(e)[:60]}), retry in {delay}s ...")
+            time.sleep(delay)
+            delay = min(delay * 2, 120)
+        except requests.exceptions.Timeout as e:
+            raise TimeoutError(str(e))
+    raise last
+
+
 def _post(base, path, payload, timeout):
-    req = urllib.request.Request(
-        base.rstrip("/") + path,
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json"}, method="POST")
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.status, json.loads(resp.read().decode() or "{}")
+    status, body = _open_with_retry("POST", base.rstrip("/") + path,
+                                    payload, timeout)
+    return status, json.loads(body or "{}")
 
 
 def _get(base, path, timeout=20):
-    with urllib.request.urlopen(base.rstrip("/") + path,
-                                timeout=timeout) as resp:
-        return json.loads(resp.read().decode())
+    status, body = _open_with_retry("GET", base.rstrip("/") + path,
+                                    None, timeout)
+    return json.loads(body)
 
 
 def load_model(base, key, ctx):
@@ -86,19 +114,43 @@ def unload_model(base, instance_id):
 
 
 def ask(base, model, messages, max_tokens, timeout=1500):
-    """Non-streaming chat completion (long generations need long timeouts)."""
-    status, data = _post(base, "/v1/chat/completions",
-                         {"model": model, "messages": messages,
-                          "temperature": 0.7, "max_tokens": max_tokens,
-                          "stream": False}, timeout=timeout)
+    """Streaming chat completion (mirrors the app).
+
+    One committed stream: the initial connect is retried briefly, but a
+    mid-stream break is recorded as-is — never auto-resent, so orphaned
+    generations cannot pile up on a strained server.
+    """
+    try:
+        status, raw = _open_with_retry(
+            "POST", base.rstrip("/") + "/v1/chat/completions",
+            {"model": model, "messages": messages,
+             "temperature": 0.7, "max_tokens": max_tokens,
+             "stream": True}, timeout, tries=3)
+    except (requests.exceptions.RequestException, TimeoutError) as e:
+        return f"[connection failed: {e}]", "error"
     if status != 200:
-        return f"[HTTP {status}]", "error"
-    choice = (data.get("choices") or [{}])[0]
-    text = (choice.get("message") or {}).get("content", "")
-    finish = choice.get("finish_reason", "")
+        return f"[HTTP {status}] {raw[:200]}", "error"
+    text, reasoning, finish = [], [], None
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line.startswith("data: "):
+            continue
+        data = line[6:]
+        if data == "[DONE]":
+            break
+        try:
+            choice = (json.loads(data).get("choices") or [{}])[0]
+        except ValueError:
+            continue
+        delta = choice.get("delta", {})
+        if choice.get("finish_reason"):
+            finish = choice["finish_reason"]
+        if delta.get("content"):
+            text.append(delta["content"])
+    answer = "".join(text).strip()
     if finish == "length":
-        text += "\n\n[truncated — output budget exhausted]"
-    return text, finish or "stop"
+        answer += "\n\n[truncated — output budget exhausted]"
+    return answer, finish or "stop"
 
 
 def build_messages(question, chart_cfg, max_ctx):
@@ -119,11 +171,22 @@ def score(answer, case):
     return hits, miss, bad
 
 
+def ask_guru(base_v1, model, question, cd, ctx, timeout=1500):
+    """Teacher (Guru) turn with chart + RAG passages, mirroring the app."""
+    from jhora.ai.teacher import AiTeacher
+    t = AiTeacher(provider="lmstudio", base_url=base_v1, model=model,
+                  max_context_tokens=ctx)
+    ans, _hist, _reset = t.chat(question, chart=cd, history=[])
+    return ans, list(getattr(t, "last_sources", []))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--server", default="http://localhost:1234",
                     help="LM Studio base URL (remote e.g. http://LAN-IP:1234)")
     ap.add_argument("--probes", default="short", help="short|full|all")
+    ap.add_argument("--only", default="",
+                    help="run a single case id only (e.g. dasa-now)")
     ap.add_argument("--model", default="",
                     help="instance id/key to ask (default: resident chat model)")
     ap.add_argument("--load", default="",
@@ -154,6 +217,10 @@ def main():
         cases = [c for c in CASES if c.get("long") == True]
     else:
         cases = list(CASES)
+    if args.only:
+        cases = [c for c in cases if c["id"] == args.only]
+        if not cases:
+            sys.exit(f"unknown case id: {args.only}")
 
     with open(LOCAL_CHART) as f:
         chart_cfg = json.load(f)
@@ -183,16 +250,43 @@ def main():
 
     eng = AiEngine(AiConfig(provider="lmstudio",
                             base_url=args.server + "/v1", model=model))
-    ctx = eng.detect_context_length(model) or 8192
+    try:
+        ctx = eng.detect_context_length(model) or 8192
+    except Exception as e:
+        print(f"  ctx detect failed ({e}); assuming 8192")
+        ctx = 8192
     print("detected ctx:", ctx)
 
     os.makedirs(RESULTS, exist_ok=True)
     report = {"model": model, "ctx": ctx, "tag": args.tag, "cases": {}}
     for case in cases:
         print(f"\n=== {case['id']} ===")
-        messages, _cd = build_messages(case["question"](chart_cfg),
-                                       chart_cfg, ctx)
-        answer, finish = ask(args.server, model, messages,
+        q = case["question"](chart_cfg)
+        messages, _cd = build_messages(q, chart_cfg, ctx)
+        sources = []
+        if case.get("guru"):
+            from jhora.charts.chart import ChartBuilder as _CB
+            _b = _CB()
+            cd = _b.build(chart_cfg["year"], chart_cfg["month"],
+                          chart_cfg["day"], chart_cfg["hour"],
+                          lat=chart_cfg["lat"], lon=chart_cfg["lon"],
+                          tz=chart_cfg["tz"])
+            answer, sources = ask_guru(args.server + "/v1", model, q,
+                                       cd, ctx)
+            finish = "stop"
+        else:
+            if case.get("seed"):
+                prev_q, prev_a = case["seed"]["q"], case["seed"]["a"]
+            else:
+                prev = report["cases"].get(case["follows"], {})
+                prev_q, prev_a = prev.get("question", ""), prev.get("answer", "")
+            if prev_q and prev_a:
+                # splice prior turn before the new question, like the app
+                messages = (messages[:1]
+                            + [{"role": "user", "content": prev_q},
+                               {"role": "assistant", "content": prev_a}]
+                            + messages[1:])
+            answer, finish = ask(args.server, model, messages,
                              case.get("max_tokens", 2048))
         hits, miss, bad = score(answer, case)
         print(f"  finish={finish} len={len(answer)} "
@@ -202,6 +296,7 @@ def main():
         report["cases"][case["id"]] = {
             "finish": finish, "hits": hits, "miss": miss, "bad": bad,
             "answer": answer, "question": case["question"](chart_cfg),
+            "sources": sources,
         }
         with open(os.path.join(RESULTS, f"{args.tag}-{case['id']}.json"),
                   "w") as f:
