@@ -311,8 +311,35 @@ def _ollama_catalog(base_url: str, timeout: float = 5.0) -> List[dict]:
 _DEFAULT_CONTEXT_TOKENS = 4096  # conservative fallback when the server says nothing
 
 
+def _unsloth_context_length(base_url: str, model_id: str,
+                            timeout: float = 5.0) -> int:
+    """Context window from Unsloth's /v1/models catalogue.
+
+    Entries carry ``context_length`` (actually serving) and
+    ``max_context_length``; loaded flags mark the resident model.
+    Returns 0 when nothing usable is reported.
+    """
+    try:
+        resp = requests.get(f"{base_url.rstrip('/')}/models", timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        models = data if isinstance(data, list) else (data.get("data") or [])
+        for m in models:
+            if not isinstance(m, dict):
+                continue
+            if (m.get("id") == model_id
+                    or (model_id in ("", "loaded") and m.get("loaded"))):
+                ctx = m.get("context_length") or m.get("max_context_length")
+                try:
+                    if int(ctx or 0) > 0:
+                        return int(ctx)
+                except (TypeError, ValueError):
+                    continue
+    except requests.exceptions.RequestException:
+        pass
+    return 0
 def _ollama_context_length(base_url: str, model_id: str,
-                           timeout: float = 5.0) -> int:
+                            timeout: float = 5.0) -> int:
     """Best-effort context window for an Ollama model via ``/api/show``.
 
     Ollama exposes the model's GGUF metadata under ``model_info`` with a
@@ -977,6 +1004,8 @@ class AiEngine:
                 return 0
             if prov == "ollama" and model_id:
                 return _ollama_context_length(base, model_id)
+            if prov == "unsloth":
+                return _unsloth_context_length(base, model_id or "loaded")
         except requests.exceptions.RequestException:
             pass
         return 0
