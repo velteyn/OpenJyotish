@@ -275,17 +275,19 @@ def main():
                                        cd, ctx)
             finish = "stop"
         else:
-            if case.get("seed"):
-                prev_q, prev_a = case["seed"]["q"], case["seed"]["a"]
-            else:
-                prev = report["cases"].get(case["follows"], {})
-                prev_q, prev_a = prev.get("question", ""), prev.get("answer", "")
-            if prev_q and prev_a:
-                # splice prior turn before the new question, like the app
-                messages = (messages[:1]
-                            + [{"role": "user", "content": prev_q},
-                               {"role": "assistant", "content": prev_a}]
-                            + messages[1:])
+            if case.get("follows") or case.get("seed"):
+                if case.get("seed"):
+                    prev_q, prev_a = case["seed"]["q"], case["seed"]["a"]
+                else:
+                    prev = report["cases"].get(case["follows"], {})
+                    prev_q, prev_a = (prev.get("question", ""),
+                                      prev.get("answer", ""))
+                if prev_q and prev_a:
+                    # splice prior turn before the new question, like the app
+                    messages = (messages[:1]
+                                + [{"role": "user", "content": prev_q},
+                                   {"role": "assistant", "content": prev_a}]
+                                + messages[1:])
             answer, finish = ask(args.server, model, messages,
                              case.get("max_tokens", 2048))
         hits, miss, bad = score(answer, case)
