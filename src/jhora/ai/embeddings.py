@@ -415,6 +415,10 @@ class EmbeddingStore:
             if row["embedding"] is None:
                 continue
             vec = _unpack_vector(row["embedding"])
+            if vec.shape != q.shape:
+                # Mixed-dimension rows (built by a different embedding
+                # model) can never match — skip instead of crashing.
+                continue
             sim = _cosine_similarity(q, vec)
             results.append({
                 "id": row["id"],
