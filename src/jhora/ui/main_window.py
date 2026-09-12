@@ -2471,6 +2471,7 @@ class MainWindow(QMainWindow):
             base_url=PROVIDERS.get(self.ai_provider.currentText(), {}).get("base_url", ""),
             preferred_model=self.ai_preferred.text().strip() if hasattr(self, "ai_preferred") else "",
             ensure_context=self.ai_ctx.value() if hasattr(self, "ai_ctx") else 8192,
+            temperature=self.ai_temp.value() if hasattr(self, "ai_temp") else 0.2,
         )
         return AiEngine(config)
 
@@ -2588,6 +2589,16 @@ class MainWindow(QMainWindow):
             "(halved automatically if the server refuses — VRAM-safe). "
             "Keep modest on small GPUs.")
         pref.addWidget(self.ai_ctx)
+        pref.addWidget(QLabel("Temp:"))
+        self.ai_temp = QDoubleSpinBox()
+        self.ai_temp.setRange(0.0, 2.0)
+        self.ai_temp.setSingleStep(0.1)
+        self.ai_temp.setValue(0.2)
+        self.ai_temp.setToolTip(
+            "Sampling temperature for every AI request (0.2 factual). "
+            "Applies no matter who loaded the model — temperature travels "
+            "with each request, not with the load.")
+        pref.addWidget(self.ai_temp)
         pref.addStretch()
         layout.addLayout(pref)
 
@@ -2915,10 +2926,27 @@ class MainWindow(QMainWindow):
             self._render_ai_output()
             self._ai_last_render = now
 
+    def _append_verification(self, transcript: list, answer: str,
+                               cd, passages=None):
+        """Mechanical fact-check of an answer against computed chart data.
+
+        Appends a ✓/⚠ notice; never alters the answer. Failures are silent
+        (verification must never break a conversation).
+        """
+        try:
+            from jhora.ai.verify import verify_answer, format_report
+            report = format_report(
+                verify_answer(answer, cd, passages or []))
+            if report:
+                transcript.append({"role": "notice", "content": report})
+        except Exception:
+            pass
+
     def _on_ai_done(self):
         self._ai_thinking = False
         w = self._ai_worker
         mode = getattr(w, "mode", "ask")
+        final = ""
         if mode == "ask" and hasattr(w, "result_history"):
             # Canonical model history wins over the streamed tail text.
             self._ai_history = w.result_history
@@ -2928,6 +2956,7 @@ class MainWindow(QMainWindow):
             if w.result_history:
                 tail = w.result_history[-1].get("content", "")
                 if tail:
+                    final = tail
                     self._ai_transcript.append(
                         {"role": "assistant", "content": tail})
         else:
@@ -2936,12 +2965,16 @@ class MainWindow(QMainWindow):
             # thread so follow-ups see the exchange.
             text = getattr(w, "result_text", "") or self._ai_stream
             if text:
+                final = text
                 self._ai_transcript.append(
                     {"role": "assistant", "content": text})
                 self._ai_history.append(
                     {"role": "user", "content": self._ai_pending_user})
                 self._ai_history.append(
                     {"role": "assistant", "content": text})
+        if final and self.chart_data is not None:
+            self._append_verification(self._ai_transcript, final,
+                                      self.chart_data)
         self._ai_stream = ""
         self._render_ai_output()
         self._persist_ai_thread()
@@ -3086,7 +3119,8 @@ class MainWindow(QMainWindow):
             question, chart, provider, base_url, model,
             history=list(self._teach_history),
             preferred_model=self.ai_preferred.text().strip() if hasattr(self, "ai_preferred") else "",
-            ensure_context=self.ai_ctx.value() if hasattr(self, "ai_ctx") else 8192)
+            ensure_context=self.ai_ctx.value() if hasattr(self, "ai_ctx") else 8192,
+            temperature=self.ai_temp.value() if hasattr(self, "ai_temp") else 0.2)
         self._teacher_worker.token.connect(self._on_teach_token)
         self._teacher_worker.done.connect(self._on_teach_done)
         self._teacher_worker.start()
@@ -3108,6 +3142,13 @@ class MainWindow(QMainWindow):
                     if sources:
                         block["sources"] = sources
                     self._teach_transcript.append(block)
+                    if self.chart_data is not None:
+                        passages = [
+                            s.get("excerpt", "") for s in sources
+                            if isinstance(s, dict) and s.get("excerpt")]
+                        self._append_verification(
+                            self._teach_transcript, tail,
+                            self.chart_data, passages)
         self._teach_stream = ""
         self._render_teach_output()
         self._persist_teach_thread()
@@ -4259,7 +4300,8 @@ class _TeacherWorker(QThread):
 
     def __init__(self, question, chart, provider, base_url, model,
                  history=None, max_context_tokens=4096,
-                 preferred_model="", ensure_context=8192):
+                 preferred_model="", ensure_context=8192,
+                 temperature=0.2):
         super().__init__()
         self.question = question
         self.chart = chart
@@ -4270,6 +4312,7 @@ class _TeacherWorker(QThread):
         self.max_context_tokens = max_context_tokens
         self.preferred_model = preferred_model
         self.ensure_context = ensure_context
+        self.temperature = temperature
         self.result_history: list = []
         self.result_reset: bool = False
         self.result_sources: list = []
@@ -4288,7 +4331,8 @@ class _TeacherWorker(QThread):
             from jhora.ai.teacher import AiTeacher
             teacher = AiTeacher(resolver.config.provider,
                                 resolver.config.base_url, resolver.config.model,
-                                max_context_tokens=self.max_context_tokens)
+                                max_context_tokens=self.max_context_tokens,
+                                temperature=self.temperature)
             ans, hist, reset = teacher.chat(
                 self.question, chart=self.chart,
                 history=self.history, on_token=self.token.emit)
