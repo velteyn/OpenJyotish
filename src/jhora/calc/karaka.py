@@ -14,9 +14,9 @@ _KARAKA_NAMES = [
     ("BK", "Bhratru Karaka", "Siblings, courage"),
     ("MK", "Matru Karaka", "Mother, home, emotions"),
     ("PiK", "Pitru Karaka", "Father, authority, past karma"),
-    ("GK", "Gnati Karaka", "Cousins, clan, disputes"),
+    ("PutK", "Putra Karaka", "Children, creativity, intellect"),
+    ("GnK", "Gnati Karaka", "Cousins, clan, disputes"),
     ("DK", "Dara Karaka", "Spouse, relationships"),
-    ("StK", "Sthira Karaka", "Longevity, death, endurance"),
 ]
 
 
@@ -31,12 +31,18 @@ class CharaKaraka:
 
 
 def compute_chara_karakas(planets: Dict[Graha, Dict]) -> List[CharaKaraka]:
+    """Rank planets by degrees traversed within their sign (highest first).
+
+    Classical Chara Karaka rule: only the position inside the rasi counts
+    (longitude % 30), never the absolute longitude. Exact ties keep input
+    order (real ephemeris longitudes essentially never tie).
+    """
     graha_data = []
     for g in _CHARA_PLANETS:
         if g in planets:
             graha_data.append((g, planets[g]["longitude"]))
 
-    graha_data.sort(key=lambda x: x[1], reverse=True)
+    graha_data.sort(key=lambda x: x[1] % 30, reverse=True)
 
     karakas = []
     for rank, (g, lon) in enumerate(graha_data):
