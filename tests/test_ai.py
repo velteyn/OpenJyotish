@@ -402,6 +402,28 @@ class TestModelResolution:
             assert "9GB" in msg, prov
             assert prov in msg or "chat" in msg
 
+    def test_unsloth_ctx_from_catalog(self, monkeypatch):
+        import requests as _requests
+        import jhora.ai.engine as eng
+
+        class _FakeResp:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"object": "list", "data": [
+                    {"id": "unsloth/Qwen3.8-27B-GGUF", "loaded": True,
+                     "context_length": 8448,
+                     "max_context_length": 8448},
+                    {"id": "other", "loaded": False,
+                     "context_length": 4096},
+                ]}
+        monkeypatch.setattr(_requests, "get", lambda *a, **k: _FakeResp())
+        assert eng._unsloth_context_length("http://x:8888/v1", "whatever") == 0
+        assert eng._unsloth_context_length("http://x:8888/v1", "loaded") == 8448
+        assert eng._unsloth_context_length(
+            "http://x:8888/v1", "unsloth/Qwen3.8-27B-GGUF") == 8448
+
     def test_lmstudio_suggestion_names_slate(self):
         from jhora.ai.engine import _download_suggestion
         msg = _download_suggestion("lmstudio")
