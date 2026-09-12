@@ -296,12 +296,12 @@ class AiTeacher:
             summary = self._compact_history(history)
             reset = True
             history = []
+            # Single user message: strict templates 500 on consecutive users.
             messages = [
                 {"role": "system", "content": TEACHER_SYSTEM_PROMPT},
                 {"role": "user", "content":
                  f"Earlier in this conversation:\n{summary}\n\n"
-                 f"Continuing a follow-up conversation."},
-                {"role": "user", "content": user_msg},
+                 f"Continuing a follow-up conversation.\n\n{user_msg}"},
             ]
 
         answer = self._stream(messages, on_token=on_token)
