@@ -382,7 +382,9 @@ def _generic_catalog(base_url: str, timeout: float = 5.0) -> List[dict]:
         if isinstance(m, str):
             out.append({"id": m, "type": "chat"})
         else:
-            out.append({"id": m.get("id") or m.get("name") or "", "type": "chat"})
+            out.append({"id": m.get("id") or m.get("name") or "",
+                        "type": "chat",
+                        "loaded": bool(m.get("loaded", False))})
     return out
 
 
