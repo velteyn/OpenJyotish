@@ -587,6 +587,34 @@ class TestModelResolution:
         msg = _download_suggestion("lmstudio")
         assert "Ministral" in msg and "Qwen3.5 9B" in msg
 
+    def test_health_mismatch_message(self, monkeypatch):
+        import requests as _requests
+        import jhora.ai.engine as eng
+
+        class _FakeResp:
+            status_code = 200
+
+            def json(self):
+                raise ValueError("Expecting value: line 1 column 1")
+
+        monkeypatch.setattr(_requests, "get", lambda *a, **k: _FakeResp())
+        engine = AiEngine(AiConfig(provider="unsloth",
+                                   base_url="http://x:8888/v1"))
+        r = engine.health_check()
+        assert r["ok"] is False
+        assert "provider" in r["error"] and "/v1" in r["error"]
+
+    def test_normalize_base_url(self):
+        from jhora.ai.engine import normalize_base_url
+        assert normalize_base_url("http://h:8888",
+                                  "unsloth") == "http://h:8888/v1"
+        assert normalize_base_url("http://h:8888/v1",
+                                  "unsloth") == "http://h:8888/v1"
+        assert normalize_base_url("http://h:8888/custom",
+                                  "custom") == "http://h:8888/custom"
+        assert normalize_base_url("http://h:8888/openai",
+                                  "lmstudio") == "http://h:8888/openai"
+
     def test_supported_models_matchable(self):
         import jhora.ai.engine as eng
         items = [{"id": "mistralai/ministral-3-14b-reasoning",

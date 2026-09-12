@@ -96,6 +96,21 @@ def _root_url(base_url: str) -> str:
     return b[: -len("/v1")] if b.endswith("/v1") else b
 
 
+def normalize_base_url(base_url: str, provider: str = "") -> str:
+    """Tidy an API base URL: strip trailing slashes, append /v1 when the
+    provider is known and the URL is a bare host:port (the classic
+    'connection refused / 404' misconfiguration)."""
+    b = (base_url or "").strip().rstrip("/")
+    if provider in PROVIDERS and provider != "custom":
+        from urllib.parse import urlsplit
+        try:
+            if b and not urlsplit(b).path:
+                b += "/v1"
+        except Exception:
+            pass
+    return b
+
+
 def _bare_name(model_id: str) -> str:
     """Last path segment of a model id, lowercased (e.g. 'qwen3.5-9b')."""
     return model_id.split("/")[-1].split("\\")[-1].lower()
@@ -384,7 +399,9 @@ def _generic_catalog(base_url: str, timeout: float = 5.0) -> List[dict]:
         else:
             out.append({"id": m.get("id") or m.get("name") or "",
                         "type": "chat",
-                        "loaded": bool(m.get("loaded", False))})
+                        "loaded": bool(m.get("loaded", False)),
+                        "ctx": (m.get("context_length")
+                                or m.get("max_context_length") or 0)})
     return out
 
 
@@ -521,6 +538,8 @@ class AiEngine:
             self.config.base_url = preset["base_url"]
             if not self.config.model:
                 self.config.model = preset["default_model"]
+        self.config.base_url = normalize_base_url(self.config.base_url,
+                                                  self.config.provider)
         self._resolved = False
         self._retried_model = False
         self._ctx_detected_for: Optional[str] = None  # model context was detected for
@@ -1132,13 +1151,50 @@ class AiEngine:
             on_token(msg)
         return msg
 
+    def catalog_detail(self, timeout: float = 8.0) -> List[dict]:
+        """Normalized server catalogue for UI population.
+
+        Returns [{id, display, loaded, ctx}] (chat-capable entries only),
+        loaded first. Empty list when unreachable — never raises.
+        """
+        prov = self.config.provider
+        base = (self.config.base_url
+                or PROVIDERS.get(prov, {}).get("base_url", "")).rstrip("/")
+        try:
+            if prov == "lmstudio":
+                catalog = _lmstudio_catalog(base, timeout=timeout)
+            elif prov == "ollama":
+                catalog = _ollama_catalog(base, timeout=timeout)
+            else:
+                catalog = _generic_catalog(base, timeout=timeout)
+        except requests.exceptions.RequestException:
+            return []
+        items = []
+        for m in catalog:
+            if not _is_chat_model(m):
+                continue
+            disp = m.get("display") or m.get("id") or ""
+            items.append({"id": m.get("id") or "",
+                          "display": disp,
+                          "loaded": bool(m.get("loaded")),
+                          "ctx": int(m.get("ctx") or 0)})
+        items.sort(key=lambda m: (not m["loaded"], m["id"]))
+        return items
+
     def health_check(self) -> dict:
         """Check if the configured provider is reachable (and resolve a model)."""
         try:
             url = f"{self.config.base_url.rstrip('/')}/models"
             resp = requests.get(url, timeout=5)
             if resp.status_code == 200:
-                data = resp.json()
+                try:
+                    data = resp.json()
+                except ValueError:
+                    return {"ok": False, "error":
+                            "Server answered but returned no model list. "
+                            "Check the provider matches this server (LM "
+                            "Studio vs Unsloth vs Ollama) and the URL ends "
+                            "with /v1."}
                 models = data if isinstance(data, list) else (data.get("data") or [])
                 model_names = [m.get("id", m.get("name", str(m))) for m in models]
                 info = {"ok": True, "models": model_names[:20]}
