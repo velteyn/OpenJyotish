@@ -1706,6 +1706,23 @@ def tui(
     app.run()
 
 
+def _verify_and_print(answer: str, cd, passages=None, disable=False):
+    """Mechanical fact-check of an answer against computed chart data.
+
+    Prints a ✓/⚠ verification report. Never alters the answer; failures
+    are silent so verification can never break a reading.
+    """
+    if disable or not answer or cd is None:
+        return
+    try:
+        from jhora.ai.verify import verify_answer, format_report
+        report = format_report(verify_answer(answer, cd, passages or []))
+        if report:
+            console.print(f"[dim]{report}[/dim]")
+    except Exception:
+        pass
+
+
 @app.command()
 def ai(
     birthdata: str = typer.Argument(None, help="Birth data"),
@@ -1730,6 +1747,10 @@ def ai(
                                         help="LM Studio model key to auto-load when missing"),
     ensure_context: int = typer.Option(8192, "--ensure-context",
                                        help="Context requested when auto-loading (halved on refusal)"),
+    temperature: float = typer.Option(0.2, "--temperature",
+                                      help="Sampling temperature (0.2 factual)"),
+    no_verify: bool = typer.Option(False, "--no-verify",
+                                   help="Skip mechanical answer verification"),
 ):
     """AI-powered chart interpretation via local LLM (Ollama/LM Studio/Unsloth)."""
     if not birthdata:
@@ -1746,7 +1767,8 @@ def ai(
     )
 
     config = AiConfig(provider=provider, base_url=base_url, max_context_tokens=context,
-                      preferred_model=preferred_model, ensure_context=ensure_context)
+                      preferred_model=preferred_model, ensure_context=ensure_context,
+                      temperature=temperature)
     if model:
         config.model = model
     engine = AiEngine(config)
@@ -1780,6 +1802,7 @@ def ai(
                 answer, history, reset = engine.chat(
                     cd, question, history=history, on_token=_on_token)
                 console.print()
+                _verify_and_print(answer, cd, disable=no_verify)
                 if reset:
                     console.print("[dim][context compacted][/dim]")
                 question = Prompt.ask("[bold green]You[/bold green]")
@@ -1795,13 +1818,16 @@ def ai(
         raise typer.Exit(1)
 
     if mode == "interpret":
-        engine.interpret(cd, style, topic, on_token=_on_token)
+        text = engine.interpret(cd, style, topic, on_token=_on_token)
     elif mode == "ask":
-        engine.ask(cd, question, on_token=_on_token)
+        text = engine.ask(cd, question, on_token=_on_token)
     elif mode == "remedies":
-        engine.remedies(cd, on_token=_on_token)
+        text = engine.remedies(cd, on_token=_on_token)
     else:
         console.print(f"[red]Unknown mode: {mode}[/red]")
+    console.print()
+    if mode in ("interpret", "ask", "remedies"):
+        _verify_and_print(text, cd, disable=no_verify)
     console.print()
 
 
@@ -1818,6 +1844,10 @@ def teach(
                                         help="LM Studio model key to auto-load when missing"),
     ensure_context: int = typer.Option(8192, "--ensure-context",
                                        help="Context requested when auto-loading (halved on refusal)"),
+    temperature: float = typer.Option(0.2, "--temperature",
+                                      help="Sampling temperature (0.2 factual)"),
+    no_verify: bool = typer.Option(False, "--no-verify",
+                                   help="Skip mechanical answer verification"),
 ):
     """AI Teacher — learn Vedic astrology from the textbook corpus."""
     chart = None
@@ -1838,12 +1868,14 @@ def teach(
         "unsloth": "http://localhost:8000/v1",
     }.get(provider, "http://localhost:11434/v1")
 
-    teacher = AiTeacher(provider=provider, base_url=base_url, model=model or "")
+    teacher = AiTeacher(provider=provider, base_url=base_url, model=model or "",
+                        temperature=temperature)
 
     from jhora.ai.engine import AiEngine, AiConfig
     resolver = AiEngine(AiConfig(provider=provider, base_url=base_url, model=model,
                                  preferred_model=preferred_model,
-                                 ensure_context=ensure_context))
+                                 ensure_context=ensure_context,
+                                 temperature=temperature))
     health = resolver.health_check()
     if not health["ok"]:
         console.print(f"[red]AI server unreachable: {health['error']}[/red]")
@@ -1868,6 +1900,10 @@ def teach(
                 answer, history, reset = teacher.chat(
                     question, chart=chart, history=history, on_token=_print)
                 console.print()
+                _verify_and_print(
+                    answer, chart,
+                    [s.get("excerpt", "") for s in teacher.last_sources
+                     if isinstance(s, dict)], disable=no_verify)
                 if reset:
                     console.print("[dim][context compacted — fresh conversation][/dim]")
                 question = Prompt.ask("[bold green]You[/bold green]")
@@ -1878,7 +1914,12 @@ def teach(
             console.print("\n[dim]Chat ended.[/dim]")
         return
 
-    teacher.ask(question, chart=chart, on_token=_print)
+    text = teacher.ask(question, chart=chart, on_token=_print)
+    console.print()
+    _verify_and_print(
+        text, chart,
+        [s.get("excerpt", "") for s in teacher.last_sources
+         if isinstance(s, dict)], disable=no_verify)
     console.print()
 
 
