@@ -89,6 +89,15 @@ CASES = [
                              "ruby is the gemstone of Mars"],
     },
     {
+        "id": "birth-recall",
+        "max_tokens": 4096,
+        "question": lambda c: (
+            "What is my birth date, time and place? "
+            "Copy it exactly from the chart data."),
+        "must_contain": ["1973", "13:55"],
+        "must_not_contain": ["2026", "April 14", "moment of birth"],
+    },
+    {
         "id": "guru-dara",
         "guru": True,
         "max_tokens": 8192,
