@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 35 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1041 tests  |  AGPL v3.0
+21-section JSON API for AI agents  |  1043 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -96,6 +96,22 @@ All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 | **Tools** | Ephemeris |
 
 **Getting started**: Fill form → "Find" city → "Now" button → "Calculate"
+
+### Supported AI Models
+
+Prompt templates, thinking behavior and context needs differ per model, so
+only this slate is verified (eval harness) and guaranteed:
+
+| Pick | Model (LM Studio key) | For |
+|------|----------------------|-----|
+| Quality | `mistralai/ministral-3-14b-reasoning` | Best entities/faithfulness; slow on small GPUs |
+| Speed/VRAM | `qwen/qwen3.5-9b` (clean instruct release) | Fits 8GB VRAM, fast; weaker entity tracking |
+
+Set it in the AI tab's **Prefer** field (or CLI `--preferred-model`); the app
+auto-loads it with a VRAM-safe context and never unloads your own models.
+Roleplay/abliterated merges and ultra-low quants (IQ1_S) confabulate lore —
+avoid them for readings. Anything outside the slate may work but is **not
+guaranteed**.
 
 ## TUI
 
