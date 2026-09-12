@@ -485,6 +485,22 @@ class TestModelResolution:
         assert engine.config.model == "stale-model"  # kept, not swapped
         assert not any("instead" in n for n in notes)
 
+    def test_partial_combo_id_resolves_to_loaded(self, monkeypatch):
+        import jhora.ai.engine as eng
+        monkeypatch.setattr(eng, "_generic_catalog",
+                            lambda base_url, timeout=8.0: [
+            {"id": "mistralai/ministral-3-14b-reasoning",
+             "loaded": True, "instance_id": "inst-min", "type": "llm"},
+            {"id": "qwen/qwen3.5-9b", "loaded": False, "type": "llm"},
+        ])
+        engine = AiEngine(AiConfig(provider="unsloth",
+                                   base_url="http://x:8888/v1",
+                                   model="ministral-3-14b"))
+        r = engine.resolve_model()
+        assert r["status"] == "ok"
+        assert r["model"] == "inst-min"
+        assert "Resolved" in r["message"]
+
     def test_unsloth_ctx_from_catalog(self, monkeypatch):
         import requests as _requests
         import jhora.ai.engine as eng
