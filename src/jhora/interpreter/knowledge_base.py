@@ -26,6 +26,34 @@ class KnowledgeBase:
             except Exception:
                 pass
 
+    def import_files(self, paths) -> dict:
+        """Copy user-supplied .txt books into the personal library and load.
+
+        Only plain text is accepted — copyright stays the user's own files.
+        Returns {"added": [...], "skipped": [...]} of source names.
+        """
+        from jhora.paths import user_books_dir
+        dest = user_books_dir()
+        dest.mkdir(parents=True, exist_ok=True)
+        added, skipped = [], []
+        for raw in paths:
+            src = Path(raw)
+            if src.suffix.lower() != ".txt" or not src.is_file():
+                skipped.append(f"{src.name} (not a .txt file)")
+                continue
+            target = dest / src.name
+            if target.exists():
+                skipped.append(f"{src.name} (already imported)")
+                continue
+            try:
+                target.write_bytes(src.read_bytes())
+                added.append(target.stem)
+            except Exception as e:
+                skipped.append(f"{src.name} ({e})")
+        if added:
+            self._load_on_demand(dest)
+        return {"added": added, "skipped": skipped}
+
     def _load_on_demand(self, books_dir: Path):
         """Import text files into the database if not already loaded.
 
