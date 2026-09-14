@@ -1,8 +1,8 @@
 name: Binaries
 
-# Frozen executables must be built on their own OS: Windows .exe +
-# installer, macOS .app + DMG, Linux bundle. Tags attach everything to
-# the GitHub release; PRs only smoke-test the spec on Ubuntu.
+# Frozen executables must be built on their own OS: Windows installer and
+# Linux bundle. Tags attach everything to the GitHub release; PRs only
+# smoke-test the spec on Ubuntu.
 on:
   push:
     tags:
@@ -29,7 +29,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        # Windows installer + Linux bundle only (macOS pulled: Gatekeeper
+        # friction, unsigned builds not viable there yet).
+        os: [windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +78,6 @@ jobs:
           # NOTE: no pipes here — `| head` SIGPIPEs the frozen binary into
           # a false failure.
           if [ "$RUNNER_OS" = "Windows" ]; then ./dist/OpenJyotish/openjyotish.exe --help > /dev/null
-          elif [ "$RUNNER_OS" = "macOS" ]; then ./dist/OpenJyotish.app/Contents/MacOS/jhora --help > /dev/null
           else ./dist/OpenJyotish/jhora --help > /dev/null
           fi
 
@@ -88,32 +89,51 @@ jobs:
         run: |
           choco install innosetup -y
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\OpenJyotish.iss
-          Compress-Archive -Path dist\OpenJyotish -DestinationPath "OpenJyotish-${{ steps.ver.outputs.version }}-Windows-portable.zip"
-
-      - name: macOS DMG
-        if: runner.os == 'macOS'
-        run: |
-          STAGE="dmg-stage"
-          rm -rf "$STAGE" && mkdir -p "$STAGE"
-          cp -R dist/OpenJyotish.app "$STAGE/"
-          ln -s /Applications "$STAGE/Applications"
-          hdiutil create -volname "OpenJyotish" -srcfolder "$STAGE" \
-            -ov -format UDZO "OpenJyotish-${{ steps.ver.outputs.version }}-macOS-arm64.dmg"
 
       - name: Linux tarball
         if: runner.os == 'Linux'
         run: |
           tar -czf "OpenJyotish-${{ steps.ver.outputs.version }}-Linux-x86_64.tar.gz" -C dist OpenJyotish
 
+      - name: Debian package
+        if: runner.os == 'Linux'
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          PKG="pkgroot"
+          rm -rf "$PKG"
+          mkdir -p "$PKG/opt/openjyotish" "$PKG/usr/bin" \
+            "$PKG/usr/share/applications" "$PKG/DEBIAN"
+          cp -R dist/OpenJyotish/. "$PKG/opt/openjyotish/"
+          ln -s /opt/openjyotish/jhora "$PKG/usr/bin/jhora"
+          cat > "$PKG/usr/share/applications/openjyotish.desktop" <<EOF
+          [Desktop Entry]
+          Name=OpenJyotish
+          Comment=Free Vedic astrology toolkit
+          Exec=/opt/openjyotish/OpenJyotish
+          Terminal=false
+          Type=Application
+          Categories=Education;Science;
+          EOF
+          cat > "$PKG/DEBIAN/control" <<EOF
+          Package: openjyotish
+          Version: $V
+          Section: science
+          Priority: optional
+          Architecture: amd64
+          Maintainer: OpenJyotish Contributors <https://github.com/velteyn/OpenJyotish>
+          Description: Free open-source Vedic astrology toolkit
+           GUI, TUI and CLI for Jyotish charts, dasas, transits and AI readings.
+          EOF
+          dpkg-deb --build "$PKG" "OpenJyotish-${V}-Linux-amd64.deb"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: binaries-${{ runner.os }}
           path: |
-            OpenJyotish-*.zip
             dist-installer/*.exe
-            OpenJyotish-*.dmg
             OpenJyotish-*.tar.gz
+            OpenJyotish-*.deb
 
   attach-release:
     needs: build

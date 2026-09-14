@@ -1,0 +1,38 @@
+name: Publish PyPI
+
+# Publishes the sdist + wheel to PyPI on release tags using Trusted
+# Publishing (OIDC) — no API token stored. One-time setup by the owner:
+#   1. Create an account at https://pypi.org, log in.
+#   2. Register the project name `openjyotish`
+#      (https://pypi.org/manage/projects/ → Create).
+#   3. In the project: Settings → Publishing → Add a pending publisher:
+#      GitHub repository velteyn/OpenJyotish,
+#      workflow filename publish-pypi.yml (tag-constrained to v*).
+# Afterwards every pushed v* tag publishes automatically.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build sdist + wheel
+        run: |
+          pip install build
+          python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
