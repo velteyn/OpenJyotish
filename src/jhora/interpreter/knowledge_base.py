@@ -12,7 +12,19 @@ BOOKS_DIR = Path(__file__).resolve().parents[3] / "docs" / "books" / "extracted"
 class KnowledgeBase:
     def __init__(self, books_dir: Optional[Path] = None):
         self._db = get_db()
-        self._load_on_demand(books_dir or BOOKS_DIR)
+        if books_dir is not None:
+            self._load_on_demand(books_dir)
+        else:
+            # Repo extracts first, then the user's own books folder so
+            # pip/frozen installs can grow a library too.
+            self._load_on_demand(BOOKS_DIR)
+            try:
+                from jhora.paths import user_books_dir
+                user_dir = user_books_dir()
+                if user_dir.is_dir():
+                    self._load_on_demand(user_dir)
+            except Exception:
+                pass
 
     def _load_on_demand(self, books_dir: Path):
         """Import text files into the database if not already loaded.

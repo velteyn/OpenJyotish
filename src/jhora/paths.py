@@ -43,3 +43,62 @@ def default_ephe_path() -> Path | None:
         return None
     cand = resource_path("jhcore", "ephe")
     return cand if cand.is_dir() else None
+
+
+EPHE_FILES = ("sepl_18.se1", "semo_18.se1")
+EPHE_MIRROR = "https://raw.githubusercontent.com/aloistr/swisseph/master/ephe"
+
+
+def ephe_search_paths() -> list:
+    """Where Swiss .se1 files may live, best first (user dir wins)."""
+    seen = []
+    for p in (user_data_dir() / "ephe",
+              Path(__file__).resolve().parents[2] / "jhcore" / "ephe",
+              Path.cwd() / "jhcore" / "ephe"):
+        if p not in seen:
+            seen.append(p)
+    if is_frozen():
+        bundled = resource_path("jhcore", "ephe")
+        if bundled not in seen:
+            seen.append(bundled)
+    return seen
+
+
+def ephe_available() -> Path | None:
+    """First directory holding the ephemeris files, else None."""
+    for p in ephe_search_paths():
+        if (p / EPHE_FILES[0]).is_file():
+            return p
+    return None
+
+
+def user_books_dir() -> Path:
+    """Writable folder for user-supplied textbook .txt files."""
+    return user_data_dir() / "books"
+
+
+def download_ephemeris(dest: Path | None = None,
+                       progress_cb=None) -> tuple:
+    """Fetch the Swiss .se1 files into a user-writable directory.
+
+    Returns (ok, message). Network errors return False, never raise.
+    """
+    import urllib.request
+    target = Path(dest) if dest else user_data_dir() / "ephe"
+    try:
+        target.mkdir(parents=True, exist_ok=True)
+        for i, name in enumerate(EPHE_FILES):
+            out = target / name
+            if out.is_file() and out.stat().st_size > 100_000:
+                continue
+            def _hook(done, total, _total=0, _name=name, _i=i):
+                if progress_cb:
+                    progress_cb(_name, done, total or 1)
+            urllib.request.urlretrieve(f"{EPHE_MIRROR}/{name}", out, _hook)
+            if not out.is_file() or out.stat().st_size < 100_000:
+                return False, f"downloaded {name} looks corrupt"
+        if progress_cb:
+            progress_cb("done", 1, 1)
+        return True, f"Swiss ephemeris ready in {target}"
+    except Exception as e:
+        return False, f"download failed: {e}"
