@@ -104,6 +104,16 @@ class SweEngine:
     """Wrapper around Swiss Ephemeris with caching."""
 
     def __init__(self, ephe_path: Optional[str] = None):
+        if ephe_path is None:
+            # Frozen bundles ship jhcore/ephe; use it when present so the
+            # packaged app never depends on cwd or Moshier fallback.
+            try:
+                from jhora.paths import default_ephe_path
+                bundled = default_ephe_path()
+                if bundled is not None:
+                    ephe_path = str(bundled)
+            except Exception:
+                pass
         if ephe_path:
             swe.set_ephe_path(ephe_path)
         self._ayanamsa_name: str = "lahiri"

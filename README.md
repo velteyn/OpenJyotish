@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 35 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1076 tests  |  AGPL v3.0
+21-section JSON API for AI agents  |  1082 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -33,6 +33,23 @@ run.bat
 **Requires**: Python 3.11+
 
 Ephemeris data is auto-downloaded by `install.sh` / `install.bat` (2 files, ~1MB).
+
+### No-Python downloads (Windows & macOS)
+
+Each [release](https://github.com/velteyn/OpenJyotish/releases) ships
+ready-to-run binaries — no Python, pip or terminal needed:
+
+| Platform | Files |
+|----------|-------|
+| Windows | `OpenJyotish-<ver>-Windows-Setup.exe` (installer: wizard, Start menu, uninstaller) or `-Windows-portable.zip` |
+| macOS (Apple Silicon) | `OpenJyotish-<ver>-macOS-arm64.dmg` (drag to Applications) |
+| Linux | `OpenJyotish-<ver>-Linux-x86_64.tar.gz` |
+
+Notes: the apps are unsigned, so Windows SmartScreen will ask once
+("More info" → Run) and macOS Gatekeeper needs a first-launch
+right-click → Open. Your charts live per-user (`%APPDATA%\OpenJyotish`
+on Windows, `~/Library/Application Support/OpenJyotish` on Mac).
+Intel Macs: use Rosetta 2.
 
 ## One-Minute Examples
 
