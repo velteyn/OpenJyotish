@@ -137,6 +137,15 @@ redistribution. Those stay in the user's private books folder only.
 - Distinct value: the only transit text whose every score is
   engine-reproducible for a stated date.
 
+## 11. primer-07-muhurta.txt (original work, not public domain)
+
+- Original synthesis by the OpenJyotish contributors, same AGPL-3.0
+  license as the program. Task list, score semantics and both worked
+  evaluations computed live; the draft's own what-if claims were
+  re-checked and corrected to verified scores.
+- Distinct value: the only muhurta text where the examples carry the
+  engine's actual reasons, Panchaka objections included.
+
 ## 10. primer-06-afflictions.txt (original work, not public domain)
 
 - Original synthesis by the OpenJyotish contributors, same AGPL-3.0
