@@ -1,0 +1,113 @@
+OPENJYOTISH PRIMER, CHAPTER 3: YOGAS AS DETECTED
+================================================
+Original synthesis by the OpenJyotish contributors (AGPL-3.0, like the
+program). Doctrine restated from the public-domain texts in this folder;
+formation rules describe this program's detector exactly
+(`jhora yogas`, Yogas tab) — run it on the reference chart below and
+compare line by line before trusting a word.
+
+A yoga ("union") is a combination whose whole exceeds its parts: a
+placement pattern with a promised outcome. This program detects
+families, never single-planet dignities; every result carries a
+category and a strength (medium/strong). Houses below are whole-sign
+from lagna, matching the detector.
+
+
+1. PANCHA MAHAPURUSHA (FIVE GREAT COMBINATIONS)
+----------------------------------------------
+Mars, Mercury, Jupiter, Venus or Saturn — in its own or exalted sign —
+placed in a kendra (houses 1, 4, 7, 10) from lagna forms Ruchaka,
+Bhadra, Hamsa, Malavya or Shasha respectively. The native rises in the
+planet's field: commanders, scholars, counselors, artists, organizers.
+Conditions are strict on purpose: the same planet elsewhere gives
+talent without eminence. The detector requires own-or-exalted sign AND
+kendra placement together; either alone yields nothing.
+
+
+2. GAJA KESARI (ELEPHANT-LION)
+------------------------------
+Jupiter angular from the Moon (kendra houses 1, 4, 7, 10 counted from
+the Moon's sign) forms Gaja Kesari: intelligence allied with fortune,
+respect late in life, resilience after falls. The wider the angular
+separation within kendra limits, the cleaner the effect; combustion or
+debility of either planet muddies it. The detector measures
+Moon-to-Jupiter house distance and reports only kendra placements.
+
+
+3. DHANA YOGAS (WEALTH COMBINATIONS)
+------------------------------------
+Lords of the wealth houses (this detector scores houses 2, 5, 9 and 11
+as wealth anchors) placed in beneficial houses form Dhana Yoga: money
+through the affairs of the occupied house. A 9th lord in the 7th, for
+example, links fortune with partnership. Strength follows the lord's
+dignity (Primer Chapter 1): an exalted Dhana lord enriches, a
+debilitated one promises and delays.
+
+
+4. RAJA YOGAS (ROYAL COMBINATIONS)
+----------------------------------
+Kendra lords (1, 4, 7, 10) and trikona lords (1, 5, 9) in mutual
+conjunction, exchange (parivartana) or aspect form Raja Yoga: status,
+authority, rise in career. The detector reports the participating lords
+and houses; parivartana (mutual exchange of signs) is graded strong,
+conjunction medium. A Raja Yoga with both lords well-placed dominates a
+chart; the same pattern involving dusthana lords (3, 6, 11) gives rank
+without peace.
+
+
+5. VIPARITA RAJA YOGAS (REVERSAL COMBINATIONS)
+---------------------------------------------
+Lords of the trik houses (6, 8, 12) placed in their own sign, or two
+trik lords conjoined, form Viparita Raja Yoga: success through
+adversity — inheritance after litigation, promotion after demotion,
+recovery after illness. The detector reports both formations: single
+lords in own sign, and every qualifying pair in conjunction. These are
+the most commonly listed yogas in real charts and the least understood:
+they promise nothing without a preceding difficulty.
+
+
+6. MOON- AND SUN-FLANKING YOGAS
+-------------------------------
+Planets (other than the luminaries) in the 2nd from the Moon form
+Sunapha, in the 12th Anapha, in both Durudhara; from the Sun the same
+positions form Vesi, Vasi and Ubhayachari. They describe the company a
+luminary keeps: flanked luminaries act supported, isolated ones act
+alone. Caveat: several classical schools exclude Rahu and Ketu from
+these yogas; this program's detector lists whichever planets occupy
+the flanking houses, nodes included — read node entries as emphasis
+markers rather than classical formations.
+
+
+7. WORKED EXAMPLE
+-----------------
+Reference chart: 1990-01-15, 17:30 IST, Bangalore (Gemini lagna). The
+detector reports, verbatim:
+
+Dhana Yoga [medium] — Saturn as lord of house 9 in house 7.
+Viparita Raja Yoga [medium] — Mars as lord of trik house 6 in own sign.
+Viparita Raja Yoga [medium] — two trik lords (Sun, Venus) in conjunction.
+Viparita Raja Yoga [medium] — two trik lords (Sun, Rahu) in conjunction.
+Viparita Raja Yoga [medium] — two trik lords (Venus, Rahu) in conjunction.
+Parivartana Yoga [strong] — exchange between Mercury in Sagittarius
+and Jupiter in Gemini.
+Anapha Yoga [medium] — planets in 12th from Moon: Ketu.
+Vosi Yoga [Sun-based/medium] — planets in 12th from Sun: Mercury, Saturn.
+
+Read them: Saturn (9th lord) in the 7th promises fortune through
+partnership, delivered during Saturn periods. Mars owns Scorpio, the
+6th from Gemini, and sits in it — Viparita through conflict won.
+Mercury (lagna lord) and Jupiter exchange Gemini and Sagittarius: the
+chart's single strong Raja Yoga, intellect trading places with wisdom.
+The node conjunctions (Sun–Rahu, Venus–Rahu, Moon–Ketu) mark where
+unconventional disruption enters wealth, love and mind respectively.
+
+
+8. YOGAS IN TIME AND IN THE PROGRAM
+-----------------------------------
+A yoga sleeps until a period lord involved in it runs its dasha
+(Primer Chapter 2): Saturn's Dhana Yoga pays during Saturn antardasas,
+the Mercury–Jupiter exchange during either planet's periods. Slow
+transits over the yoga's planets trigger months, never years.
+Findings live in the Yogas tab, `jhora yogas`, the Dashboard strengths
+panel and the AI anchor; every yoga an AI answer names is verified
+against this detector before display.
