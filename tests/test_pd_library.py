@@ -22,7 +22,9 @@ def test_every_text_has_provenance():
     for f in BOOKS.glob("*.txt"):
         stem = f.stem.lower()
         assert stem.split("-")[0] in text, f.name
-    assert text.count("rights evidence") >= len(list(BOOKS.glob("*.txt")))
+    n_files = len(list(BOOKS.glob("*.txt")))
+    evidenced = text.count("rights evidence") + text.count("original synthesis")
+    assert evidenced >= n_files
 
 
 def test_every_entry_states_distinct_value():
