@@ -131,6 +131,21 @@ def download_ephe(
         raise typer.Exit(1)
 
 
+@app.command("knowledge-import")
+def knowledge_import(
+    files: list[str] = typer.Argument(..., help=".txt book files to import"),
+):
+    """Import your own textbook .txt files into the personal library."""
+    from jhora.interpreter.knowledge_base import KnowledgeBase
+    res = KnowledgeBase().import_files(files)
+    for name in res["added"]:
+        console.print(f"[green]Added: {name}[/green]")
+    for note in res["skipped"]:
+        console.print(f"[dim]Skipped: {note}[/dim]")
+    if res["added"]:
+        console.print("[dim]Rebuild vectors (AI tab) for semantic search.[/dim]")
+
+
 @app.command()
 def analyze(
     birthdata: str = typer.Argument(..., help="Birth data"),

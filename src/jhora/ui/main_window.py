@@ -2168,6 +2168,12 @@ class MainWindow(QMainWindow):
         self.kb_search_btn.clicked.connect(self._on_kb_search)
         row.addWidget(self.kb_search_btn)
 
+        self.kb_import_btn = QPushButton("Import books…")
+        self.kb_import_btn.setToolTip(
+            "Copy your own .txt textbooks into the personal library")
+        self.kb_import_btn.clicked.connect(self._on_kb_import)
+        row.addWidget(self.kb_import_btn)
+
         self.kb_max_spin = QComboBox()
         self.kb_max_spin.addItems(["5", "10", "20"])
         self.kb_max_spin.setCurrentIndex(0)
@@ -2214,6 +2220,22 @@ class MainWindow(QMainWindow):
             lines.append(f"    {r['excerpt'][:400]}")
             lines.append("")
         self.kb_results.setText("\n".join(lines))
+
+    def _on_kb_import(self):
+        from PyQt6.QtWidgets import QFileDialog
+        from jhora.interpreter.knowledge_base import KnowledgeBase
+        paths, _ = QFileDialog.getOpenFileNames(
+            self, "Import textbook files", "", "Text files (*.txt)")
+        if not paths:
+            return
+        res = KnowledgeBase().import_files(paths)
+        QMessageBox.information(
+            self, "Import books",
+            f"Added {len(res['added'])}, skipped {len(res['skipped'])}.\n"
+            f"Rebuild the Vector DB (AI tab) to make them searchable "
+            f"by meaning.")
+        self.kb_source_label.setText(
+            f"Loaded {KnowledgeBase().loaded} sources")
 
     def _build_interpreter_tab(self):
         w = QWidget()
