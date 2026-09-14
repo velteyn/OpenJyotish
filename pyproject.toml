@@ -51,6 +51,9 @@ Issues = "https://github.com/velteyn/OpenJyotish/issues"
 where = ["src"]
 include = ["jhora*"]
 
+[tool.setuptools.package-data]
+jhora = ["data/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
