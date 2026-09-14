@@ -14,17 +14,24 @@ class KnowledgeBase:
         self._db = get_db()
         if books_dir is not None:
             self._load_on_demand(books_dir)
-        else:
-            # Repo extracts first, then the user's own books folder so
-            # pip/frozen installs can grow a library too.
-            self._load_on_demand(BOOKS_DIR)
-            try:
-                from jhora.paths import user_books_dir
-                user_dir = user_books_dir()
-                if user_dir.is_dir():
-                    self._load_on_demand(user_dir)
-            except Exception:
-                pass
+            return
+        # Shipped public-domain seeds first (every install has them),
+        # then repo extracts (dev), then the user's own books folder.
+        try:
+            from jhora.paths import pd_books_dir
+            pd_dir = pd_books_dir()
+            if pd_dir is not None:
+                self._load_on_demand(pd_dir)
+        except Exception:
+            pass
+        self._load_on_demand(BOOKS_DIR)
+        try:
+            from jhora.paths import user_books_dir
+            user_dir = user_books_dir()
+            if user_dir.is_dir():
+                self._load_on_demand(user_dir)
+        except Exception:
+            pass
 
     def import_files(self, paths) -> dict:
         """Copy user-supplied .txt books into the personal library and load.
@@ -68,7 +75,7 @@ class KnowledgeBase:
         }
         added = False
         for f in sorted(books_dir.glob("*.txt")):
-            name = f.stem.replace("_", " ").replace(".pdf", "").title()
+            name = f.stem.replace("_", " ").replace("-", " ").replace(".pdf", "").title()
             if name in existing:
                 continue
             content = f.read_text(encoding="utf-8", errors="replace")
