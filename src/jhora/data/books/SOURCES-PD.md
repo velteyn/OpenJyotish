@@ -117,3 +117,12 @@ redistribution. Those stay in the user's private books folder only.
 - Distinct value: the only yoga text where every listed formation is
   detector-reproducible, including stated caveats where the engine is
   looser than some schools (nodes in flanking yogas).
+
+## 8. primer-04-strengths.txt (original work, not public domain)
+
+- Original synthesis by the OpenJyotish contributors, same AGPL-3.0
+  license as the program. Component definitions describe this program's
+  calculators; every number computed live on the public 1990 fixture
+  (including the Mercury-below-minimum catch the draft itself missed).
+- Distinct value: the only strengths text with engine-exact component
+  semantics instead of generic shadbala lore.

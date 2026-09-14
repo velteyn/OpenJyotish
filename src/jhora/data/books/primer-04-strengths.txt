@@ -1,0 +1,98 @@
+OPENJYOTISH PRIMER, CHAPTER 4: STRENGTHS — SHADBALA, VIMSOPAKA, BHAVA
+======================================================================
+Original synthesis by the OpenJyotish contributors (AGPL-3.0, like the
+program). Component definitions describe this program's calculators
+exactly; every number below is live engine output on the reference
+chart (1990-01-15, 17:30 IST, Bangalore) — reproduce with
+`jhora shadbala "1990-01-15 17:30:00 +0530 12.9716 77.5946"`.
+
+
+1. SHADBALA (SIXFOLD STRENGTH)
+------------------------------
+One rupa equals 60 virupas; all six components sum to the total. The
+program reports both. Classical minimum rupas for a planet to deliver
+its significations fully: Sun 5, Moon 6, Mars 5, Mercury 7, Jupiter
+6.5, Venus 5.5, Saturn 5. Below its minimum, a planet gives its results
+late, partially, or through the significations of stronger planets.
+
+STHANA (positional): dignity in rasi and vargas — exalted, moolatrikona
+and own-sign placements score highest (see Primer Chapter 1 for the
+ladder this program uses).
+DIG (directional): full strength on one axis — Sun and Mars strongest
+in the 10th, Moon and Venus in the 4th, Mercury and Jupiter in the 1st,
+Saturn in the 7th. Directional strength shows where a planet acts
+without resistance.
+KALA (temporal, a set of sub-strengths): weekday lordship, month, year
+and hora lordships, day/night strength (Paksha, Tribhaga and Naisargika
+day-night rules), and Abda/varsha components. Kala answers WHEN a
+planet is strong, not where.
+CHESTA (motional, also a set): speed and retrogression state, solar
+proximity (combustion weakens, exact retrograde midpoints strengthen),
+bright/dark fortnight placement. Chesta answers HOW a planet moves.
+NAISARGIKA (natural): fixed inherent potency — Sun strongest, then
+Moon, Venus, Jupiter, Mercury, Mars, Saturn weakest. Independent of
+any chart; the baseline every planet carries.
+DRIK (aspectual): benefic and malefic special aspects received,
+computed from the program's aspect model.
+
+Reference values, computed: Sun 487.1 virupas (8.12 rupas), Moon 372.5
+(6.21), Mars 340.5 (5.67), Mercury 319.4 (5.32), Jupiter 412.2 (6.87),
+Venus 343.9 (5.73), Saturn 520.8 (8.68). Saturn leads. Note Mercury at
+5.32 rupas stands BELOW its classical minimum of 7 — the one genuinely
+weak planet here (speech, nerves and commerce significations suffer
+regardless of its Gemini/Virgo rulerships); the rest clear their minima,
+so their weakness is relative, never absolute.
+
+
+2. VIMSOPAKA (VARGAS STRENGTH OUT OF 20)
+----------------------------------------
+Each divisional chart (varga) awards a planet a share of its weight
+according to dignity in that varga: full weight for exalted or
+moolatrikona, scaled fractions down through own, friendly and neutral
+to zero for debilitated or inimical. Four schemes weight the vargas
+differently (this program's exact weights):
+
+Shadvarga (6 vargas, total 20): D-1: 6, D-2: 2, D-3: 4, D-7: 5, D-9: 3.
+Saptavarga (7 vargas, total 20): D-1: 5, D-2: 2, D-3: 3, D-7: 2.5,
+D-9: 4.5, D-30: 3.
+Dashavarga and Shodasavarga extend the same principle to 10 and 16
+vargas (see `jhora shadbala --scheme`).
+
+Reference values, Shadvarga scheme, computed: Sun 10, Moon 10, Mars 13,
+Mercury 10, Jupiter 10, Venus 12.5, Saturn 13 (all of 20). Read them as
+divisional consistency: Mars and Saturn hold dignity across charts
+(13/20), while Sun, Moon, Mercury and Jupiter at 10/20 are average —
+competent in rasi, undistinguished in vargas.
+
+
+3. BHAVA BALA (HOUSE STRENGTH)
+------------------------------
+Five components per house: Sthana (occupants' positional strength),
+Drishti (aspects received), Dig (directional — houses 1, 4, 7, 10 at
+full value), Adhipati (the house lord's own strength), Drig (special
+planetary aspects). Reference totals, computed: H1 and H8 tie at 203,
+H4 at 201. Houses near 200 are robust; houses far below the chart's own
+average deserve caution when their affairs are promised in dashas.
+
+
+4. READING STRENGTH
+-------------------
+Strong planet, weak house: talent without opportunity — the native can
+but circumstances withhold. Weak planet, strong house: opportunity
+without talent — doors open that the native cannot yet walk through.
+Both strong: the period lords of Primer Chapter 2 deliver cleanly.
+Both weak: even favorable dashas underperform; remedies (Primer
+Chapter 8) aim here first.
+Never compare raw virupas across planets: each graha has its own
+minimum and its own natural baseline. Compare a planet against its own
+minimum, a house against the chart's average, a vimsopaka against 20.
+
+
+5. WHERE STRENGTHS LIVE IN THE PROGRAM
+--------------------------------------
+Strengths tab (Shadbala table with component breakdown, Bhava Bala,
+Vimsopaka per scheme), Dashboard strengths panel (ranked bars),
+`jhora shadbala` (add `--bhava --vimsopaka --scheme saptavarga`),
+conversation anchor (totals the AI reads), and the verification note
+(every strength number in an AI answer is checked against these
+computations before display).
