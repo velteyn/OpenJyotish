@@ -10,9 +10,10 @@ import sys
 
 from PyInstaller.utils.hooks import collect_data_files
 
-# Spec-relative paths: PyInstaller resolves bare relative paths against the
-# spec file's own directory, so anchor everything at the repo root.
-ROOT = os.path.dirname(os.path.abspath(__file__))
+# Spec-relative paths: bare relative paths resolve against the spec file's
+# own directory, so anchor everything at the repo root (SPECPATH is the
+# spec file's directory, provided by PyInstaller — __file__ is undefined).
+ROOT = os.path.dirname(os.path.abspath(SPECPATH))
 
 block_cipher = None
 
