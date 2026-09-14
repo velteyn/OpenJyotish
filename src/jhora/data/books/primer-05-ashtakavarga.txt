@@ -1,0 +1,86 @@
+OPENJYOTISH PRIMER, CHAPTER 5: ASHTAKAVARGA AND GOCHARA
+==========================================================
+Original synthesis by the OpenJyotish contributors (AGPL-3.0, like the
+program). Ashtakavarga rules describe this program's engine exactly
+(SAV 337 invariant, verified house-for-house against an independent
+implementation); gochara doctrine is classical; the transit table is
+live engine output for 2026-09-11 on the reference chart (1990-01-15,
+17:30 IST, Bangalore) — reproduce with `jhora transit` on that data.
+
+
+1. BINNA AND SARVA ASHTAKAVARGA
+-------------------------------
+Eight references (Sun through Saturn plus Lagna) each drop bindus into
+their benefic houses, counted from their own positions, per a fixed
+(subject, contributor) matrix. Summing one planet's eight rows gives
+its Bhinna Ashtakavarga (BAV); summing all seven BAVs gives the Sarva
+Ashtakavarga (SAV). No occupancy condition enters: totals are
+chart-invariant — Sun 48, Moon 49, Mars 39, Mercury 54, Jupiter 56,
+Venus 52, Saturn 39, SAV 337 in every chart ever cast. Only the
+DISTRIBUTION across signs varies, and distribution is the whole art.
+
+Reference SAV for the fixture chart (Aries to Pisces):
+35, 27, 29, 21, 31, 33, 33, 33, 21, 22, 25, 27 (total 337).
+
+
+2. READING SAV AND BAV
+----------------------
+A sign with SAV above 30 is strong: even malefics transiting it give
+favorable results. Below 25 is weak: even benefics struggle there.
+Between 25 and 30 is neutral ground. This program marks the same
+cutoffs (30 good, 25 weak) when scoring transits.
+
+BAV reads per planet: Jupiter transiting a sign where its BAV holds 5+
+bindus (of 8) prospers; 0–2 bindus starves it. Combine both: a transit
+is favorable only with SAV above 30 AND BAV 4 or more — this program's
+exact rule. One strong number never rescues the other.
+
+
+3. GOCHARA (TRANSITS) FROM THE MOON
+-----------------------------------
+Classical gochara judges transits from the natal Moon's sign. Benefic
+transit houses by planet: Sun 3, 6, 10, 11; Moon 1, 3, 6, 7, 10, 11;
+Mars 3, 6, 11; Mercury 2, 4, 6, 8, 10, 11; Jupiter 2, 5, 7, 9, 11;
+Venus 1, 2, 3, 4, 5, 8, 9, 11, 12; Saturn 3, 6, 11; Rahu and Ketu 3,
+6, 11. The 11th from the Moon favors every planet without exception.
+
+Reference transits, 2026-09-11, natal Moon in Leo:
+Sun in Leo (H3/H1-from-Moon, SAV 31, BAV 5) — favorable.
+Moon in Leo (H3/H1, SAV 31, BAV 4) — favorable.
+Mars in Virgo (H4/H2, SAV 33, BAV 2) — strong sign, starved planet:
+mixed, leaning difficult.
+Mercury in Libra (H5/H3, SAV 33, BAV 2) — same pattern: good ground,
+weak planet.
+Jupiter in Gemini (H1/H11, SAV 29, BAV 5) — excellent 11th-from-Moon
+placement spoiled by sub-30 SAV: help that arrives late.
+Venus in Cancer (H2/H12, SAV 21, BAV 4) — weak sign despite decent
+BAV: comforts cost more than usual.
+Saturn in Pisces (H10/H8, SAV 27, BAV 2) — 8th from Moon and weak on
+both counts: the month's heaviest transit, demanding patience.
+
+Read the pattern, not isolated planets: September 2026 gives this chart
+luminaries supported, outer planets starved — act through visibility
+and routine, postpone Saturn-ruled commitments (property, elders,
+long-term contracts).
+
+
+4. SADE SATI AND DHAIYA
+-----------------------
+Transit Saturn in the 12th, 1st or 2nd from the natal Moon is Sade
+Sati: seven and a half years of Saturnine pressure in three phases
+(12th: expense and displacement; 1st/peak: health and self; 2nd:
+family and income). Transits through the 4th and 8th from the Moon
+(Dhaiya, the small panoti, two and a half years each) are classically
+difficult in a lesser key. Here Saturn in Pisces stands 8th from natal
+Leo — not Sade Sati (this program reports the verdict explicitly on
+the Dashboard), but squarely inside Dhaiya territory: the heaviness
+above has a name and an expiry date.
+
+
+5. WHERE THIS LIVES IN THE PROGRAM
+----------------------------------
+Ashtakavarga tab (BAV grids, SAV bar, kakshya tables), Transits tab
+and `jhora transit` (positions with SAV/BAV scores and favorability),
+Tajaka for solar returns, Dashboard transits panel, conversation anchor
+(transit snapshot the AI reads), and the verification note (every SAV,
+BAV and transit house in an AI answer is checked before display).
