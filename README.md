@@ -195,7 +195,7 @@ data = json.loads(subprocess.run(
 | `compare` | Natal vs transit or two-chart comparison |
 | `interpret` | Rule-based chart reading |
 | `traditional-report` | Formatted traditional-style chart report |
-| `knowledge` | Search 16 Vedic textbooks (FTS5) |
+| `knowledge` | Search Vedic textbooks provided by you in txt format |
 | `ai` | LLM chart reading (Ollama/LM Studio/Unsloth) |
 | `teach` | AI Teacher — learn Vedic astrology |
 | `export` | HTML report (printable to PDF) |
