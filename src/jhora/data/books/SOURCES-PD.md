@@ -6,7 +6,17 @@ with independently checkable rights evidence. NEVER add a text here
 without extending this file: title, translator, year, publisher, source
 URL and the exact rights statement found.
 
+## Admission policy: new content only
+
+A text is admitted only if it contributes what no entry provides: a new
+work, a different translation tradition, or a new subject. Reprints,
+re-scans, overlapping editions and same-text variants are rejected even
+when public domain — repetition bloats every install without teaching
+the Guru anything new. Each entry states its distinct value, enforced
+by test.
+
 ## 1. brihat-jataka-iyer-1885.txt
+- Distinct value: the core predictive (phala) classic — houses, yogas, dasas.
 
 - Work: Brihat Jataka of Varahamihira (Sanskrit original c. 6th century)
 - Translation: N. Chidambaram Iyer
@@ -24,6 +34,7 @@ URL and the exact rights statement found.
     public domain."
 
 ## 2. brihat-samhita-iyer-1884.txt
+- Distinct value: the mundane encyclopedia — transits, eclipses, rainfall, gems, matrimony; nothing in entry 1 covers it.
 
 - Work: Brihat Samhita of Varahamihira (Sanskrit original c. 6th century)
 - Translation: N. Chidambaram Iyer (same translator as above; title page
@@ -40,6 +51,7 @@ URL and the exact rights statement found.
   https://www.rarebooksocietyofindia.org/postDetail.php?id=196174216674_10153566519651675
 
 ## 3. surya-siddhanta-burgess-1860.txt
+- Distinct value: mathematical astronomy — mean/true places, time reckoning, eclipse computation.
 
 - Work: Surya Siddhanta (Sanskrit siddhanta literature, ancient)
 - Translation: Rev. Ebenezer Burgess, "Translation of the Surya-Siddhanta,
@@ -54,6 +66,7 @@ URL and the exact rights statement found.
   which only hosts public-domain texts.
 
 ## 4. siddhanta-siromani-sastri-1861.txt
+- Distinct value: Bhaskara II's spheres and planetary computation (Grahaganita/Goladhyaya); Surya half of the volume excluded as duplicating entry 3.
 
 - Work: Siddhanta Siromani of Bhaskaracharya (12th century) — Goladhyaya
   (spheres) and Grahaganita (planetary computation)
