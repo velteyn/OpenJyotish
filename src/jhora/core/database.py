@@ -6,6 +6,7 @@ access and supports schema migrations.
 
 import json
 import sqlite3
+import sys
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +22,13 @@ _lock = threading.Lock()
 
 def _find_db() -> Path:
     """Locate or create the database file path."""
+    if getattr(sys, "frozen", False):
+        # Installed apps cannot write beside the executable: use the
+        # per-user data directory (APPDATA / Application Support / XDG).
+        from jhora.paths import user_data_dir
+        p = user_data_dir() / DB_NAME
+        p.parent.mkdir(parents=True, exist_ok=True)
+        return p
     candidates = [
         Path.cwd() / "data" / DB_NAME,
         Path(__file__).resolve().parents[4] / "data" / DB_NAME,
