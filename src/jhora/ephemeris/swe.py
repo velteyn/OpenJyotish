@@ -105,13 +105,13 @@ class SweEngine:
 
     def __init__(self, ephe_path: Optional[str] = None):
         if ephe_path is None:
-            # Frozen bundles ship jhcore/ephe; use it when present so the
-            # packaged app never depends on cwd or Moshier fallback.
+            # Prefer real .se1 files wherever they live (user download,
+            # repo checkout, frozen bundle) over silent Moshier fallback.
             try:
-                from jhora.paths import default_ephe_path
-                bundled = default_ephe_path()
-                if bundled is not None:
-                    ephe_path = str(bundled)
+                from jhora.paths import ephe_available
+                found = ephe_available()
+                if found is not None:
+                    ephe_path = str(found)
             except Exception:
                 pass
         if ephe_path:

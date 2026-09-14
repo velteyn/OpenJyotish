@@ -107,6 +107,29 @@ def _redact_sensitive_fields(value):
         return [_redact_sensitive_fields(item) for item in value]
     return value
 
+@app.command("download-ephe")
+def download_ephe(
+    dest: str = typer.Option("", "--dest",
+                             help="Target directory (default: per-user data dir)"),
+):
+    """Download Swiss precision ephemeris files (~1.8 MB, once)."""
+    from jhora.paths import download_ephemeris, ephe_available
+    before = ephe_available()
+    if before is not None:
+        console.print(f"[green]Already present: {before}[/green]")
+        return
+    console.print("Downloading Swiss ephemeris (sepl_18 + semo_18)...")
+
+    def _prog(name, done, total):
+        console.print(f"  {name}: {done}/{total} bytes", end="\r",
+                      highlight=False)
+
+    ok, msg = download_ephemeris(dest or None, progress_cb=_prog)
+    console.print()
+    console.print(f"[green]{msg}[/green]" if ok else f"[red]{msg}[/red]")
+    if not ok:
+        raise typer.Exit(1)
+
 
 @app.command()
 def analyze(

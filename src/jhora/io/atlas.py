@@ -132,4 +132,14 @@ def open_default_atlas(base_dir: str | Path | None = None) -> AtlasReader | Stat
         if sample_path.exists():
             return StaticAtlasReader.from_jhd_samples(sample_path)
 
+    # Shipped package data (pip installs have no repo data/ dir).
+    try:
+        from importlib import resources
+        ref = resources.files("jhora") / "data" / "jhd_samples.json"
+        with resources.as_file(ref) as sample_path:
+            if sample_path.is_file():
+                return StaticAtlasReader.from_jhd_samples(sample_path)
+    except Exception:
+        pass
+
     raise FileNotFoundError("No atlas available — cities table empty or missing")
