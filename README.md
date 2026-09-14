@@ -41,15 +41,12 @@ ready-to-run binaries — no Python, pip or terminal needed:
 
 | Platform | Files |
 |----------|-------|
-| Windows | `OpenJyotish-<ver>-Windows-Setup.exe` (installer: wizard, Start menu, uninstaller) or `-Windows-portable.zip` |
-| macOS (Apple Silicon) | `OpenJyotish-<ver>-macOS-arm64.dmg` (drag to Applications) |
-| Linux | `OpenJyotish-<ver>-Linux-x86_64.tar.gz` |
+| Windows | `OpenJyotish-<ver>-Windows-Setup.exe` (installer: wizard, Start menu, uninstaller) |
+| Linux | `OpenJyotish-<ver>-Linux-amd64.deb` (`sudo dpkg -i`, menu entry + `jhora` CLI) or `-Linux-x86_64.tar.gz` |
 
 Notes: the apps are unsigned, so Windows SmartScreen will ask once
-("More info" → Run) and macOS Gatekeeper needs a first-launch
-right-click → Open. Your charts live per-user (`%APPDATA%\OpenJyotish`
-on Windows, `~/Library/Application Support/OpenJyotish` on Mac).
-Intel Macs: use Rosetta 2.
+("More info" → Run). Your charts live per-user (`%APPDATA%\OpenJyotish`
+on Windows).
 
 ## One-Minute Examples
 
