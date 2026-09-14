@@ -136,3 +136,12 @@ redistribution. Those stay in the user's private books folder only.
   fixture.
 - Distinct value: the only transit text whose every score is
   engine-reproducible for a stated date.
+
+## 10. primer-06-afflictions.txt (original work, not public domain)
+
+- Original synthesis by the OpenJyotish contributors, same AGPL-3.0
+  license as the program. Kuja rules describe this program's detector
+  (three views, three cancellations) verified live on the public 1990
+  fixture; Kalasarpa honestly marked as not auto-detected.
+- Distinct value: the only afflictions text that separates engine
+  verdicts from consultation judgment — and says which is which.
