@@ -35,8 +35,10 @@ run.bat
 Ephemeris data is auto-downloaded by `install.sh` / `install.bat` (2 files, ~1MB).
 pip installs: the app offers the one-time download on first Calculate
 (or Tools → Ephemeris → Download, or `jhora download-ephe`). Textbook
-`.txt` files go in the books folder inside your per-user data directory,
-then Rebuild the Vector DB.
+`.txt` files go in the books folder inside your per-user data directory
+(Knowledge tab → "Import books…" or `jhora knowledge-import f.txt`),
+then Rebuild the Vector DB. The public repo ships a clean database
+(schema + city atlas, no book texts): your library stays yours.
 
 ### No-Python downloads (Windows & macOS)
 
