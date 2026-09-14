@@ -107,3 +107,13 @@ redistribution. Those stay in the user's private books folder only.
   Vimsottari engine on the public 1990 test fixture.
 - Distinct value: the only dasha text whose every date is
   engine-reproducible (`jhora dasa` on the fixture).
+
+## 7. primer-03-yogas.txt (original work, not public domain)
+
+- Original synthesis by the OpenJyotish contributors, same AGPL-3.0
+  license as the program. Family rules describe this program's detector
+  exactly; the worked example transcribes live `jhora yogas` output on
+  the public 1990 fixture.
+- Distinct value: the only yoga text where every listed formation is
+  detector-reproducible, including stated caveats where the engine is
+  looser than some schools (nodes in flanking yogas).
