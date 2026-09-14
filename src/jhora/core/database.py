@@ -56,6 +56,30 @@ def set_db_path(path: str | Path):
         _connections.clear()
 
 
+def get_preference(key: str, default: str = "") -> str:
+    """Read a user preference (empty string when unset)."""
+    try:
+        row = get_db().execute(
+            "SELECT value FROM preferences WHERE key = ?", (key,)
+        ).fetchone()
+        return row["value"] if row else default
+    except Exception:
+        return default
+
+
+def set_preference(key: str, value: str) -> None:
+    """Persist a user preference (best-effort, never raises)."""
+    try:
+        get_db().execute(
+            "INSERT INTO preferences (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
+        get_db().commit()
+    except Exception:
+        pass
+
+
 def get_db() -> sqlite3.Connection:
     """Return a thread-local database connection (auto-creates tables)."""
     global _db_path
