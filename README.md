@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 35 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1082 tests  |  AGPL v3.0
+21-section JSON API for AI agents  |  1090 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -33,6 +33,10 @@ run.bat
 **Requires**: Python 3.11+
 
 Ephemeris data is auto-downloaded by `install.sh` / `install.bat` (2 files, ~1MB).
+pip installs: the app offers the one-time download on first Calculate
+(or Tools → Ephemeris → Download, or `jhora download-ephe`). Textbook
+`.txt` files go in the books folder inside your per-user data directory,
+then Rebuild the Vector DB.
 
 ### No-Python downloads (Windows & macOS)
 
