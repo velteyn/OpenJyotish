@@ -10,25 +10,30 @@ import sys
 
 from PyInstaller.utils.hooks import collect_data_files
 
+# Spec-relative paths: PyInstaller resolves bare relative paths against the
+# spec file's own directory, so anchor everything at the repo root.
+ROOT = os.path.dirname(os.path.abspath(__file__))
+
 block_cipher = None
 
 # tzdata ships zoneinfo on Windows (no system database there).
 datas = [
-    ("jhcore/ephe", "jhcore/ephe"),
-    ("data/jhd_samples.json", "data"),
+    (os.path.join(ROOT, "jhcore", "ephe"), "jhcore/ephe"),
+    (os.path.join(ROOT, "data", "jhd_samples.json"), "data"),
 ]
-try:
-    datas += collect_data_files("tzdata")
-except Exception:
-    pass
+if sys.platform == "win32":
+    try:
+        datas += collect_data_files("tzdata")
+    except Exception:
+        pass
 
 binaries = []
 hiddenimports = []
 excludes = ["tests", "tkinter", "unittest", "pydoc", "doctest"]
 
 gui_analysis = Analysis(
-    ["packaging/gui_main.py"],
-    pathex=[os.path.abspath("src")],
+    [os.path.join(ROOT, "packaging", "gui_main.py")],
+    pathex=[os.path.join(ROOT, "src")],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
@@ -37,8 +42,8 @@ gui_analysis = Analysis(
     noarchive=False,
 )
 cli_analysis = Analysis(
-    ["src/jhora/__main__.py"],
-    pathex=[os.path.abspath("src")],
+    [os.path.join(ROOT, "src", "jhora", "__main__.py")],
+    pathex=[os.path.join(ROOT, "src")],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
