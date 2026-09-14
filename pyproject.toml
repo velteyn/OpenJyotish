@@ -52,7 +52,7 @@ where = ["src"]
 include = ["jhora*"]
 
 [tool.setuptools.package-data]
-jhora = ["data/*"]
+jhora = ["data/*", "data/books/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

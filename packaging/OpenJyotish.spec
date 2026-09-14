@@ -20,7 +20,7 @@ block_cipher = None
 # tzdata ships zoneinfo on Windows (no system database there).
 _wanted_datas = [
     (os.path.join(ROOT, "jhcore", "ephe"), "jhcore/ephe"),
-    (os.path.join(ROOT, "data", "jhd_samples.json"), "data"),
+    (os.path.join(ROOT, "src", "jhora", "data"), "jhora/data"),
 ]
 datas = []
 for _src, _dst in _wanted_datas:
