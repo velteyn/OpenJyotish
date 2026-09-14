@@ -53,6 +53,22 @@ URL and the exact rights statement found.
   edition (Bapu Deva Sastri) hosted proofread on en.wikisource.org,
   which only hosts public-domain texts.
 
+## 4. siddhanta-siromani-sastri-1861.txt
+
+- Work: Siddhanta Siromani of Bhaskaracharya (12th century) — Goladhyaya
+  (spheres) and Grahaganita (planetary computation)
+- Translation: Lancelot Wilkinson, revised by Pandit Bapu Deva Sastri
+  (1821–1900)
+- Published: 1861, Baptist Mission Press, Calcutta (C.B. Lewis)
+- Source: second half of `2015.46927.Translation-Of-The-Surya-Siddhanta`
+  (split at its "TRANSLATION OF THE SIDDHANTA SIROMANI, CONTENTS" page),
+  https://archive.org/details/in.ernet.dli.2015.46927 — Surya portion
+  omitted as duplicating entry 3
+- Rights evidence: 1861 publication is pre-1929; edition documented by
+  the Rare Books Society of India,
+  https://rarebooksocietyofindia.org/postDetail.php?id=196174216674_10155589553366675
+  ("Printed by C.B.Lewis at The Baptist Mission Press, Calcutta - 1861")
+
 ## What is deliberately NOT here
 
 Modern translations and commentaries (Santhanam, Raman, Rao, Rath and
