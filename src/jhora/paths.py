@@ -77,6 +77,23 @@ def user_books_dir() -> Path:
     return user_data_dir() / "books"
 
 
+def pd_books_dir() -> Path | None:
+    """Shipped public-domain seed library (always distributable).
+
+    Resolves in repo layout, installed wheels and frozen bundles.
+    """
+    cands = [Path(__file__).resolve().parent / "data" / "books"]
+    if is_frozen():
+        cands.append(resource_path("jhora", "data", "books"))
+    for c in cands:
+        try:
+            if c.is_dir() and any(c.glob("*.txt")):
+                return c
+        except Exception:
+            pass
+    return None
+
+
 def download_ephemeris(dest: Path | None = None,
                        progress_cb=None) -> tuple:
     """Fetch the Swiss .se1 files into a user-writable directory.
