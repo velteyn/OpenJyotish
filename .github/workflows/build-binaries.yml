@@ -73,9 +73,11 @@ jobs:
       - name: Smoke test (CLI boots)
         shell: bash
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then ./dist/OpenJyotish/jhora.exe --help | head -3
-          elif [ "$RUNNER_OS" = "macOS" ]; then ./dist/OpenJyotish.app/Contents/MacOS/jhora --help | head -3
-          else ./dist/OpenJyotish/jhora --help | head -3
+          # NOTE: no pipes here — `| head` SIGPIPEs the frozen binary into
+          # a false failure.
+          if [ "$RUNNER_OS" = "Windows" ]; then ./dist/OpenJyotish/jhora.exe --help > /dev/null
+          elif [ "$RUNNER_OS" = "macOS" ]; then ./dist/OpenJyotish.app/Contents/MacOS/jhora --help > /dev/null
+          else ./dist/OpenJyotish/jhora --help > /dev/null
           fi
 
       - name: Windows installer (Inno Setup)
