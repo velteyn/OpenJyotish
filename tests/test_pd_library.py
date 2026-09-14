@@ -1,5 +1,6 @@
 """Public-domain seed library: provenance record stays consistent."""
 
+import re
 from pathlib import Path
 
 BOOKS = Path(__file__).resolve().parents[1] / "src" / "jhora" / "data" / "books"
@@ -22,6 +23,15 @@ def test_every_text_has_provenance():
         stem = f.stem.lower()
         assert stem.split("-")[0] in text, f.name
     assert text.count("rights evidence") >= len(list(BOOKS.glob("*.txt")))
+
+
+def test_every_entry_states_distinct_value():
+    text = _sources_text()
+    entries = re.findall(r"^## \d+\. .*?$", text, re.MULTILINE)
+    assert len(entries) == len(list(BOOKS.glob("*.txt")))
+    for entry in entries:
+        section = text.split(entry, 1)[1].split("## ", 1)[0]
+        assert "Distinct value:" in section, entry
 
 
 def test_no_modern_editions():
