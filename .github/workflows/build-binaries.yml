@@ -42,6 +42,16 @@ jobs:
       - name: Install app + PyInstaller
         run: pip install . pyinstaller
 
+      - name: Download ephemeris (not in git)
+        shell: bash
+        run: |
+          mkdir -p jhcore/ephe
+          base="https://www.astro.com/ftp/swisseph/ephe"
+          for f in sepl_18.se1 semo_18.se1 fixstars.cat; do
+            [ -f "jhcore/ephe/$f" ] || curl -sSf -o "jhcore/ephe/$f" "$base/$f"
+          done
+          ls -la jhcore/ephe/
+
       - name: Resolve version
         id: ver
         shell: bash
