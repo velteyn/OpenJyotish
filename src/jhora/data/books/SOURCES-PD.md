@@ -98,3 +98,12 @@ redistribution. Those stay in the user's private books folder only.
   engine tables and a computed fixture chart before shipping).
 - Distinct value: the only text written to this program's vocabulary —
   RAG precision over any classic.
+
+## 6. primer-02-dashas.txt (original work, not public domain)
+
+- Original synthesis by the OpenJyotish contributors, same AGPL-3.0
+  license as the program. Cycle doctrine restated from the
+  public-domain texts above; every date computed live by this program's
+  Vimsottari engine on the public 1990 test fixture.
+- Distinct value: the only dasha text whose every date is
+  engine-reproducible (`jhora dasa` on the fixture).

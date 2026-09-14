@@ -1,0 +1,97 @@
+OPENJYOTISH PRIMER, CHAPTER 2: VIMSHOTTARI DASHA READING
+=========================================================
+Original synthesis by the OpenJyotish contributors (AGPL-3.0, like the
+program). Doctrine restated from the public-domain texts in this folder;
+all dates below computed live by this program's Vimsottari engine —
+reproduce them with `jhora dasa "1990-01-15 17:30:00 +0530 12.9716
+77.5946"` before trusting a word.
+
+
+1. THE 120-YEAR CYCLE
+---------------------
+Vimshottari ("120") unfolds life as nine planetary periods in fixed
+order, always starting from Ketu:
+
+Ketu 7, Venus 20, Sun 6, Moon 10, Mars 7, Rahu 18, Jupiter 16,
+Saturn 19, Mercury 17. Total: 120 years (7+20+6+10+7+18+16+19+17).
+
+At birth you enter the Mahadasha of the Moon's nakshatra lord — not at
+its start but with the remaining balance (sesham): the untraversed
+fraction of the nakshatra times the lord's full years. From there the
+sequence runs forward through the cycle, wrapping from Mercury back to
+Ketu if life is long. This program computes the balance from the exact
+Moon longitude, never from rounded tables.
+
+
+2. ANTARDASAS (SUB-PERIODS)
+---------------------------
+Each Mahadasha subdivides into nine antardasas in the same lord order,
+durations proportional to the sub-lord's years: within a Mahadasha of M
+years, the antardasha of lord L lasts M × (L's years) / 120. So a
+7-year Ketu Mahadasha contains a Ketu antardasha of 7×7/120 years
+(about five months), while a 20-year Venus Mahadasha contains a
+Venus–Venus portion of 20×20/120 years (about three years four months).
+
+Rotation rule this program implements: antardasas begin from the
+Mahadasha lord itself (Ketu Mahadasha opens with Ketu antardasha),
+then follow cycle order. Deeper levels (pratyantardasa and below)
+subdivide by the same proportion.
+
+
+3. HOW TO READ A PERIOD
+-----------------------
+Mahadasha is climate, antardasha is weather. Judge every period by its
+lords, in this order:
+
+1. House placement from lagna: angular houses (1, 4, 7, 10) empower,
+   dusthana houses (6, 8, 12) afflict, trines (1, 5, 9) bless.
+2. Sign dignity: exalted, moolatrikona and own-sign lords deliver
+   cleanly (see Primer Chapter 1); debilitated and inimical lords
+   deliver late, partially, or through difficulty.
+3. Yogas involving the lords: Dhana, Raja and Viparita combinations
+   from Chapters 3 manifest most strongly when one of their planets
+   runs its period.
+4. The antardasha lord modifies the Mahadasha lord: friendly lords
+   cooperate, inimical lords obstruct, malefics accelerate, benefics
+   stabilize. Never read an antardasha alone — it always speaks inside
+   its Mahadasha's sentence.
+5. Transits trigger: a period's promise typically materializes when a
+   slow transit (Saturn, Jupiter) aspects or joins the period lords
+   (see Chapter 5).
+
+What dashas do NOT do: they do not override the natal chart. A weak
+house gives weak results even in its lord's best period; dashas time
+the ripening, they do not plant the seed.
+
+
+4. WORKED EXAMPLE
+-----------------
+Reference chart: 1990-01-15, 17:30 IST, Bangalore. Moon in Purva
+Phalguni-4, whose lord is Venus — so life opens inside Venus Mahadasha
+with the untraversed balance, computed by the engine as:
+
+Venus 1990-01-15 → 1994-05-16 (birth balance, ~4.3 of 20 years)
+Sun 1994-05-16 → 2000-05-15
+Moon 2000-05-15 → 2010-05-16
+Mars 2010-05-16 → 2017-05-15
+Rahu 2017-05-15 → 2035-05-16 (18 full years)
+Jupiter → 2035-05-16 → 2051 (follows Rahu)
+
+Read Rahu Mahadasha for this Gemini lagna: Rahu's sign placement and
+its dispositor's strength set an 18-year climate of ambition,
+foreignness and unconventional rise, delivered through its
+antardasas — Rahu–Rahu (2017-05-15 → 2020-01-26) rawest, Rahu–Jupiter
+(2020-01-26 → 2022-06-21) guided, Rahu–Saturn (2022-06-21 →
+2025-04-27) grinding, Rahu–Mercury (2025-04-27 → 2027-11-14)
+intellectual and commercial, Rahu–Ketu (2027-11-14 → 2028-12-02)
+severing. Each sub-period name, span and order above is engine output,
+not illustration.
+
+
+5. WHERE DASAS LIVE IN THE PROGRAM
+----------------------------------
+Dasas tab (interactive bar chart with current-period marker), `jhora
+dasa` (full Mahadasha/antardasha tree), Dashboard (current MD/AD with
+days remaining), conversation anchor (timeline the AI reads), and the
+verification note (every dasa date in an AI answer is checked against
+this engine before display).
