@@ -1,0 +1,191 @@
+OPENJYOTISH PRIMER, CHAPTER 1: GRAHAS, RASIS, BHAVAS, NAKSHATRAS
+================================================================
+Original synthesis by the OpenJyotish contributors (AGPL-3.0, like the
+program). Not copied from any book: every rule below is either classical
+doctrine traceable to the public-domain texts in this folder (Iyer's
+Brihat Jataka 1885 / Brihat Samhita 1884, Burgess's Surya Siddhanta
+1860, Sastri's Siddhanta Siromani 1861) or a description of this
+program's own computations (dignities, lords and nakshatra mapping match
+the engine exactly — check them with `jhora dignities` style outputs,
+the Planets tab, or the verification notes under AI answers).
+
+Conventions used everywhere in this program: longitudes are sidereal
+(Lahiri ayanamsa); signs are numbered Aries 0 to Pisces 11; houses
+H1..H12 count whole signs forward from the lagna.
+
+
+1. THE NINE GRAHAS
+------------------
+A graha ("seizer") is a significator: each planet signifies outer topics
+and inner faculties at once. Rahu and Ketu are shadow points (the lunar
+nodes), treated as full grahas except that they own no sign and never
+retrograde in the usual sense. Saturn, Jupiter and Mars are natural
+malefics; Venus, Mercury (when joined to benefics), Jupiter and the
+waxing Moon are natural benefics; Sun is a mild malefic, Rahu/Ketu are
+malefic by nature.
+
+SUN (Surya) — soul, father, authority, vitality, profession. Rules Leo.
+Exalted Aries 10°, debilitated Libra 10°, moolatrikona Leo 0–20°.
+Strong Sun: self-direction, command, immunity. Weak Sun: fragile
+authority, conflict with father figures and governments.
+
+MOON (Chandra) — mind, mother, emotions, fluids, public. Rules Cancer.
+Exalted Taurus 3°, debilitated Scorpio 3°, moolatrikona Taurus 3–30°.
+Strong Moon: emotional stability, memory, popularity. Weak or waning
+Moon: restlessness, anxiety, variable fortune. The Moon's nakshatra
+fixes the Vimshottari dasha sequence at birth.
+
+MARS (Mangala) — energy, siblings, courage, property, blood. Rules
+Aries and Scorpio. Exalted Capricorn 28°, debilitated Cancer 28°,
+moolatrikona Aries 0–12°. Strong Mars: initiative, athleticism,
+engineering skill. Afflicted Mars: accidents, quarrels, surgical
+events; its affliction of Moon or lagna is Kuja Dosha.
+
+MERCURY (Budha) — speech, intellect, commerce, skin, nerves. Rules
+Gemini and Virgo. Exalted Virgo 15° (also its own and moolatrikona
+Virgo 15–30°), debilitated Pisces 15°. Strong Mercury: analysis,
+languages, trade. Weak Mercury: nervous disorders, confused speech,
+unreliable agreements.
+
+JUPITER (Guru) — wisdom, children, dharma, wealth, counsel. Rules
+Sagittarius and Pisces. Exalted Cancer 5°, debilitated Capricorn 5°,
+moolatrikona Sagittarius 0–5°. Strong Jupiter: judgment, progeny,
+fortune through counsel. Weak Jupiter: poor advice, liver complaints,
+losses through misplaced trust.
+
+VENUS (Shukra) — love, spouse, luxury, vehicles, arts, semen. Rules
+Taurus and Libra. Exalted Pisces 27°, debilitated Virgo 27°,
+moolatrikona Libra 0–15°. Strong Venus: comfort, artistic taste,
+harmonious marriage. Weak Venus: indulgence, renal/venereal complaints,
+vehicle troubles.
+
+SATURN (Shani) — discipline, longevity, sorrow, service, lands. Rules
+Capricorn and Aquarius. Exalted Libra 20°, debilitated Aries 20°,
+moolatrikona Aquarius 0–20°. Strong Saturn: endurance, organization,
+gains through persistence. Weak Saturn: chronic delay, melancholy,
+servitude, bone and joint complaints.
+
+RAHU — obsession, foreigners, technology, smoke, sudden events. Owns no
+sign (co-lords Aquarius in some schools, which this program does not
+use for dignity). Exaltation debated between Taurus and Scorpio; the
+engine assigns no exaltation dignity to the nodes. Strong Rahu:
+worldly rise, technical skill. Afflicted Rahu: confusion, poisoning,
+scandal, breaks in routine.
+
+KETU — detachment, spirituality, moksha, past karma, flags and wounds.
+Owns no sign. Strong Ketu: insight, renunciation, research ability.
+Afflicted Ketu: aimlessness, mysterious ailments, severances. Ketu
+Mahadasha spiritualizes whatever house it occupies.
+
+Dignity ladder used by this program, strongest to weakest: exalted,
+moolatrikona, own sign, friendly sign, neutral, inimical sign,
+debilitated. Declared dignities are always positional facts, never
+moral judgments.
+
+
+2. THE TWELVE RASIS
+-------------------
+Each rasi is 30°. Lord, element and rhythm never change:
+
+Aries (Mesha) — Mars — fire — movable (chara) — odd.
+Taurus (Vrishabha) — Venus — earth — fixed (sthira) — even.
+Gemini (Mithuna) — Mercury — air — dual (dvisva) — odd.
+Cancer (Karka) — Moon — water — movable — even.
+Leo (Simha) — Sun — fire — fixed — odd.
+Virgo (Kanya) — Mercury — earth — dual — even.
+Libra (Tula) — Venus — air — movable — odd.
+Scorpio (Vrishchika) — Mars — water — fixed — even.
+Sagittarius (Dhanus) — Jupiter — fire — dual — odd.
+Capricorn (Makara) — Saturn — earth — movable — even.
+Aquarius (Kumbha) — Saturn — air — fixed — odd.
+Pisces (Meena) — Jupiter — water — dual — even.
+
+Fire signs act, earth signs build, air signs connect, water signs feel.
+Movable signs initiate, fixed signs sustain, dual signs adapt. Odd signs
+are assertive (positively polarized), even signs receptive.
+
+
+3. THE TWELVE BHAVAS
+--------------------
+Houses count whole signs forward from the lagna: H1 is the lagna's sign,
+H2 the next, and so on. Each bhava signifies:
+
+H1 Tanu — self, body, temperament, overall vitality.
+H2 Dhana — wealth, speech, family, food.
+H3 Sahaja — siblings, courage, short journeys, hands.
+H4 Bandhu — mother, home, vehicles, education foundations.
+H5 Putra — children, intellect, romance, speculation, mantra.
+H6 Shatru — enemies, disease, debt, service, litigation.
+H7 Kalatra — spouse, partnerships, contracts, travel abroad.
+H8 Randhra — longevity, obstacles, inheritance, occult, surgery.
+H9 Bhagya — fortune, dharma, father, guru, long journeys.
+H10 Karma — profession, status, authority, public acts.
+H11 Labha — gains, elder siblings, networks, ambitions.
+H12 Vyaya — loss, expenses, foreign residence, bed pleasures, moksha.
+
+The lord of each house carries its affairs wherever it sits: the 9th
+lord in the 7th, for example, links fortune with partnership (a Dhana
+Yoga pattern the program detects automatically).
+
+
+4. THE 27 NAKSHATRAS
+--------------------
+The zodiac is also divided into 27 lunar mansions of 13°20' each,
+starting Ashwini at Aries 0°. Each has four padas (quarters) of 3°20'
+and a Vimshottari lord cycling Ketu, Venus, Sun, Moon, Mars, Rahu,
+Jupiter, Saturn, Mercury — three full cycles. Order with lords:
+
+Ashwini (Ketu), Bharani (Venus), Krittika (Sun), Rohini (Moon),
+Mrigashira (Mars), Ardra (Rahu), Punarvasu (Jupiter), Pushya (Saturn),
+Ashlesha (Mercury), Magha (Ketu), Purva Phalguni (Venus),
+Uttara Phalguni (Sun), Hasta (Moon), Chitra (Mars), Swati (Rahu),
+Vishakha (Jupiter), Anuradha (Saturn), Jyeshtha (Mercury), Mula (Ketu),
+Purva Shadha (Venus), Uttara Shadha (Sun), Shravana (Moon),
+Dhanishta (Mars), Shatabhisha (Rahu), Purva Bhadrapada (Jupiter),
+Uttara Bhadrapada (Saturn), Revati (Mercury).
+
+The Moon's nakshatra at birth selects the running Vimshottari Mahadasha
+and the balance remaining in it; the program computes both exactly
+(`dasa` command, Dasas tab). Nakshatra placement refines every graha
+reading: a planet acts through its sign for gross results and through
+its nakshatra lord for subtle ones.
+
+
+5. READING THEM TOGETHER (WORKED EXAMPLE)
+-----------------------------------------
+Reference chart used across the test suite: 1990-01-15, 17:30 IST,
+Bangalore (12.97N 77.59E). Computed positions (Lahiri):
+
+Lagna Gemini 82.6°. Sun Capricorn (Uttara Shadha-2). Moon Leo
+(Purva Phalguni-4). Mars Scorpio (Jyeshtha-3). Mercury Sagittarius
+(Purva Shadha-2). Jupiter Gemini (Ardra-1). Venus Capricorn
+(Uttara Shadha-4). Saturn Sagittarius (Purva Shadha-4).
+
+Read it mechanically:
+- Lagna lord Mercury sits in H7 (Sagittarius) — self-definition through
+  partnership; Mercury in a dual fire sign: adaptive, outspoken.
+- Moon in Leo H3 (Purva Phalguni, Venus-ruled quarter): mind seeking
+  recognition among siblings/peers; Venus colors the emotions.
+- Mars in Scorpio H6 (Jyeshtha): own sign in the house of conflict —
+  fights and wins disputes; watch accidents.
+- Jupiter in Gemini H1 (Ardra): wisdom placed in self, but Ardra's Rahu
+  lordship gives unconventional, storm-tested intellect.
+- Sun and Venus both in Capricorn H8 (Uttara Shadha): identity and love
+  operating through other people's resources, crises and research.
+- Saturn in Sagittarius H7: discipline demanded inside partnership.
+
+Every sentence above is checkable: reproduce this chart with
+`jhora chart "1990-01-15 17:30:00 +0530 12.9716 77.5946"` and compare
+each longitude, sign, house and nakshatra against the program's Planets
+table. Where this chapter and the program ever disagree, the program's
+computed values win — report it as a bug.
+
+
+6. WHERE EACH FACT LIVES IN THE PROGRAM
+---------------------------------------
+Graha positions/signs/nakshatras: Planets tab, `jhora chart`, `analyze`.
+Dignities: Strengths tab, Shadbala/Vimsopaka tables. Houses: Houses tab
+(`H1..H12` whole-sign from lagna). Nakshatra lords and dasha balance:
+Dasas tab, `jhora dasa`. Karaka roles: Arudha & Karaka tab. Lords of
+houses: Houses tab lord column. AI answers rephrase exactly these
+numbers; the verification note under each answer confirms them.
