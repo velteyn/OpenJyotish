@@ -1,0 +1,92 @@
+OPENJYOTISH PRIMER, CHAPTER 7: MUHURTA AND CHOGHADIYA
+==========================================================
+Original synthesis by the OpenJyotish contributors (AGPL-3.0, like the
+program). Electional doctrine restated from the public-domain texts in
+this folder; every score, slot and reason below is live engine output
+for Bangalore on 2026-09-15 — reproduce with `jhora muhurta` and
+`jhora choghadiya` before trusting a word.
+
+
+1. ELECTION (CHOOSING THE MOMENT)
+---------------------------------
+Muhurta asks the reverse question of prediction: not "what will this
+moment bring?" but "which moment should carry this undertaking?"
+Eleven undertakings are scored separately in this program — general,
+wedding, new job, housewarming, naming a child, first rice feeding,
+teaching the alphabet, sacred thread, new vehicle, placing idols,
+house construction — because each task favors different limbs: weddings
+demand a strong 7th and Venus, house construction a strong 4th and
+Mars, sacred thread a strong Jupiter and Sun.
+
+
+2. THE FIVE LIMBS CHECKED
+-------------------------
+Every evaluation examines the panchanga of the moment:
+
+TITHI: bright-half tithis favor growth undertakings; Rikta tithis
+(4th, 9th, 14th) and Amavasya/Purnima extremes are avoided for most
+tasks. The engine grades tithi_ok per task.
+VARA (weekday): each weekday has a lord whose nature must suit the
+task — Tuesday (Mars) is bad for general beginnings, good for martial
+ones. The engine grades weekday_ok per task.
+NAKSHATRA: fixed (Rohini, the Uttaras, Hasta), movable and cruel stars
+suit different works; Tara Bala (the Moon's nakshatra counted from the
+native's birth star: Janma/Vipat/Pratyari/Nidhana inauspicious) and
+Chandra Bala (Moon in 1st/3rd/6th/7th/10th/11th from the native's sign
+is good) personalize the moment.
+YOGA and KARANA: the 27 yogas and 11 karanas each carry task-specific
+suitability the engine scores.
+LAGNA of the moment: the ascendant at the elected time should be
+strong, unafflicted, and well-connected to the task's houses.
+
+
+3. PERIODS TO AVOID
+-------------------
+Rahu Kalam, Yama Gandam and Gulika Kalam — weekday-dependent inauspicious
+stretches computed from sunrise — void any election they cover.
+Abhijit (the victorious midday window around local noon) redeems
+ordinary moments but never overrides a Kalam overlap. Durmuhurta and
+Varjyam spans, where computed, are likewise excluded.
+
+
+4. READING THE SCORE
+--------------------
+The engine returns 0 to 1 with reasons, never a bare verdict. Worked
+example — general undertaking, 2026-09-15 10:30 IST, Bangalore:
+
+Score 0.45: "weekday(Tuesday) bad; Yama Gandam!" Panchami Shukla
+(tithi_ok), Swati nakshatra (nakshatra_ok), Scorpio lagna (lagna_ok) —
+but Tuesday fails general tasks and 10:30 falls inside Yama Gandam.
+Read it as the engine intends: three limbs pass, two fail, the two
+that fail are disqualifying for beginnings. Move the same task to
+15:30 and the score stays 0.45 — Yama Gandam passes but a Chora
+Panchaka takes its place. Move it to Wednesday 10:30 and it rises
+only to 0.6, Panchaka still objecting. Elections are won by clearing
+every limb, never by fixing one.
+
+
+5. CHOGHADIYA (DAY AND NIGHT WATCHES)
+-------------------------------------
+The daylight (sunrise to sunset) and the night each divide into eight
+watches ruled in Chaldaean order from the day lord. Tuesday daylight,
+Bangalore 2026-09-15 (sunrise 06:08), computed:
+
+Rog (Mars) Bad 06:08–07:40, Udveg (Sun) Bad 07:40–09:11,
+Char (Venus) Neutral 09:11–10:43, Labh (Mercury) Good 10:43–12:14,
+Amrit (Moon) Good 12:14–13:46, Kaal (Saturn) Bad 13:46–15:17,
+Shubh (Jupiter) Good 15:17–16:49, Rog (Mars) Bad 16:49–18:21.
+
+Rule of thumb: Labh, Amrit and Shubh for beginnings; Char for movement
+and travel; Rog, Udveg and Kaal never. Night watches follow the same
+order from the fifth lord of the day sequence. Choghadiya is the quick
+answer, muhurta scoring the thorough one — when they disagree, the
+full election wins.
+
+
+6. WHERE THIS LIVES IN THE PROGRAM
+----------------------------------
+Muhurta tab (task picker, day table with scores and reasons),
+`jhora muhurta --adjuncts` (daily table with Tara/Chandra Bala grades),
+Choghadiya tab and `jhora choghadiya` (day/night watches), Dashboard
+Rahu Kalam line, conversation anchor (adjuncts the AI reads), and the
+verification note (AI muhurta claims are checked before display).
