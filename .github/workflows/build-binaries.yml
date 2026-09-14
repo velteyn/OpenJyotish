@@ -1,0 +1,130 @@
+name: Binaries
+
+# Frozen executables must be built on their own OS: Windows .exe +
+# installer, macOS .app + DMG, Linux bundle. Tags attach everything to
+# the GitHub release; PRs only smoke-test the spec on Ubuntu.
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - 'packaging/**'
+      - 'src/jhora/paths.py'
+      - 'src/jhora/__init__.py'
+      - 'pyproject.toml'
+      - '.github/workflows/build-binaries.yml'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to attach binaries to'
+        default: 'v1.6.0'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install app + PyInstaller
+        run: pip install . pyinstaller
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            RAW="${GITHUB_REF_NAME}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RAW="${{ inputs.release_tag }}"
+          else
+            RAW="v$(python -c 'import jhora; print(jhora.__version__)')"
+          fi
+          echo "version=${RAW#v}" >> "$GITHUB_OUTPUT"
+
+      - name: PyInstaller bundle
+        run: pyinstaller packaging/OpenJyotish.spec --noconfirm
+
+      - name: Smoke test (CLI boots)
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then ./dist/OpenJyotish/openjyotish.exe --help | head -3
+          elif [ "$RUNNER_OS" = "macOS" ]; then ./dist/OpenJyotish.app/Contents/MacOS/jhora --help | head -3
+          else ./dist/OpenJyotish/jhora --help | head -3
+          fi
+
+      - name: Windows installer (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          choco install innosetup -y
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\OpenJyotish.iss
+          Compress-Archive -Path dist\OpenJyotish -DestinationPath "OpenJyotish-${{ steps.ver.outputs.version }}-Windows-portable.zip"
+
+      - name: macOS DMG
+        if: runner.os == 'macOS'
+        run: |
+          STAGE="dmg-stage"
+          rm -rf "$STAGE" && mkdir -p "$STAGE"
+          cp -R dist/OpenJyotish.app "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "OpenJyotish" -srcfolder "$STAGE" \
+            -ov -format UDZO "OpenJyotish-${{ steps.ver.outputs.version }}-macOS-arm64.dmg"
+
+      - name: Linux tarball
+        if: runner.os == 'Linux'
+        run: |
+          tar -czf "OpenJyotish-${{ steps.ver.outputs.version }}-Linux-x86_64.tar.gz" -C dist OpenJyotish
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ runner.os }}
+          path: |
+            OpenJyotish-*.zip
+            dist-installer/*.exe
+            OpenJyotish-*.dmg
+            OpenJyotish-*.tar.gz
+
+  attach-release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pick tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.release_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binaries-*
+          merge-multiple: true
+          path: to-release
+
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ls to-release/
+          gh release upload "${{ steps.tag.outputs.tag }}" to-release/* \
+            --repo "${{ github.repository }}" --clobber
