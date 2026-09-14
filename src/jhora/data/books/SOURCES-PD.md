@@ -88,3 +88,13 @@ Modern translations and commentaries (Santhanam, Raman, Rao, Rath and
 all post-1928 editions): still under copyright regardless of the age of
 the Sanskrit original. "Free download" pages grant personal reading, not
 redistribution. Those stay in the user's private books folder only.
+
+## 5. primer-01-foundations.txt (original work, not public domain)
+
+- Original synthesis by the OpenJyotish contributors, same AGPL-3.0
+  license as the program. No sentences copied from any book: every rule
+  is classical doctrine restated from the public-domain texts above, or
+  a description of this program's own computations (verified against
+  engine tables and a computed fixture chart before shipping).
+- Distinct value: the only text written to this program's vocabulary —
+  RAG precision over any classic.
