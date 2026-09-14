@@ -126,3 +126,13 @@ redistribution. Those stay in the user's private books folder only.
   (including the Mercury-below-minimum catch the draft itself missed).
 - Distinct value: the only strengths text with engine-exact component
   semantics instead of generic shadbala lore.
+
+## 9. primer-05-ashtakavarga.txt (original work, not public domain)
+
+- Original synthesis by the OpenJyotish contributors, same AGPL-3.0
+  license as the program. Ashtakavarga rules describe this program's
+  validated engine; gochara sets are classical doctrine; the transit
+  table is live engine output for a fixed date on the public 1990
+  fixture.
+- Distinct value: the only transit text whose every score is
+  engine-reproducible for a stated date.
