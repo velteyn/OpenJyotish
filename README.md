@@ -39,6 +39,9 @@ pip installs: the app offers the one-time download on first Calculate
 (Knowledge tab → "Import books…" or `jhora knowledge-import f.txt`),
 then Rebuild the Vector DB. The public repo ships a clean database
 (schema + city atlas, no book texts): your library stays yours.
+Three public-domain classics ship built-in (Iyer's Brihat Jataka 1885
+and Brihat Samhita 1884, Burgess's Surya Siddhanta 1860 — provenance in
+src/jhora/data/books/SOURCES-PD.md), so the Guru works out of the box.
 
 ### No-Python downloads (Windows & macOS)
 
