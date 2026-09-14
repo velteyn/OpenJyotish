@@ -46,8 +46,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p jhcore/ephe
-          base="https://www.astro.com/ftp/swisseph/ephe"
-          for f in sepl_18.se1 semo_18.se1 fixstars.cat; do
+          # Astrodienst retired their FTP file hosting; the files now live
+          # in the aloistr/swisseph mirror (verified bit-identical to 1e-6°).
+          base="https://raw.githubusercontent.com/aloistr/swisseph/master/ephe"
+          for f in sepl_18.se1 semo_18.se1; do
             [ -f "jhcore/ephe/$f" ] || curl -sSf -o "jhcore/ephe/$f" "$base/$f"
           done
           ls -la jhcore/ephe/
