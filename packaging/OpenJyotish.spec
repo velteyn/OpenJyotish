@@ -18,10 +18,17 @@ ROOT = os.path.dirname(os.path.abspath(SPECPATH))
 block_cipher = None
 
 # tzdata ships zoneinfo on Windows (no system database there).
-datas = [
+_wanted_datas = [
     (os.path.join(ROOT, "jhcore", "ephe"), "jhcore/ephe"),
     (os.path.join(ROOT, "data", "jhd_samples.json"), "data"),
 ]
+datas = []
+for _src, _dst in _wanted_datas:
+    if os.path.exists(_src):
+        datas.append((_src, _dst))
+    else:
+        print(f"WARNING: bundle data missing, skipping: {_src} "
+              f"(ephemeris is downloaded in CI; see download_ephe.sh)")
 if sys.platform == "win32":
     try:
         datas += collect_data_files("tzdata")
