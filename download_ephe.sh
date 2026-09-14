@@ -6,7 +6,7 @@ set -e
 DEST="jhcore/ephe"
 mkdir -p "$DEST"
 
-BASE="https://www.astro.com/ftp/swisseph/ephe"
+BASE="https://raw.githubusercontent.com/aloistr/swisseph/master/ephe"
 
 # Files needed for 1900-2100 (minimum set)
 FILES=(
