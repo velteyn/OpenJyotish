@@ -1,0 +1,93 @@
+OPENJYOTISH PRIMER, CHAPTER 6: AFFLICTIONS — KUJA, SADE SATI, KALASARPA
+==========================================================================
+Original synthesis by the OpenJyotish contributors (AGPL-3.0, like the
+program). Kuja rules describe this program's detector exactly (verified
+live on the reference chart below); Sade Sati doctrine extends Primer
+Chapter 5; Kalasarpa is classical doctrine the program does not
+auto-detect — stated plainly as such.
+
+
+1. KUJA DOSHA (MARS AFFLICTION)
+-------------------------------
+Mars in the 1st, 2nd, 4th, 7th, 8th or 12th house forms Kuja Dosha,
+read from three points: lagna (the native's body and temperament),
+Moon (mind and married life) and Venus (love and comfort). Affliction
+from lagna strikes conduct, from Moon strikes the marriage itself,
+from Venus strikes affection. Any one of the three counts; all three
+together is severe.
+
+This program reports all three views separately — from_lagna,
+from_moon, from_venus — with Mars's house counted from each. Read the
+strongest afflicted point as the battlefield and the clean points as
+reserves.
+
+
+2. CANCELLATIONS (ENGINE RULES)
+-------------------------------
+Not every placement burns. This program weakens or cancels the dosha
+when:
+
+- Mars sits in its own sign (Aries, Scorpio) or exalted (Capricorn):
+  a dignified Mars fights fair.
+- Jupiter aspects or conjoins the affliction (jupiter_cancels): wisdom
+  supervises energy.
+- Mars rules good houses for the lagna (lagna_cancels): for Cancer and
+  Leo ascendants Mars rules trine/quadrant houses (5th/10th, 4th/9th)
+  and the dosha reads as drive, not damage. For Gemini and Virgo
+  ascendants Mars rules dusthana houses and no such relief applies —
+  check the lagna table in the program's own calculator.
+
+Classical tradition lists further cancellations (Mars in certain
+houses from Venus, mutual dosha in both partners' charts, age and
+remedy based). The detector implements the three above; the rest
+belongs to consultation, and an honest reading says which is which.
+
+
+3. WORKED EXAMPLE
+-----------------
+Reference chart: 1990-01-15, 17:30 IST, Bangalore (Gemini lagna, Mars
+in Scorpio). The detector reports: dosha present from the Moon,
+weakened by Mars in its own sign Scorpio — overall verdict: no full
+Kuja Dosha. Read it: the Moon (mind, marriage) takes Martian fire, but
+a dignified Mars converts the affliction into managed intensity rather
+than damage. Gemini lagna gives no lagna-cancellation (Mars rules the
+dusthana 6th), so the relief comes entirely from dignity, not from
+lordship. Reproduce with `jhora kuja-dosha` style outputs, the
+Kuja/Mangal panel, or the Dashboard dosha line.
+
+
+4. SADE SATI (SUMMARY — SEE CHAPTER 5)
+--------------------------------------
+Transit Saturn through the 12th, 1st and 2nd from natal Moon:
+expense and displacement, then the peak of self and health, then
+family and income — seven and a half years total. The 4th and 8th
+transits (Dhaiya) press for two and a half years each in a lesser key.
+Never predict Sade Sati from the natal chart alone; it is purely a
+transit condition, and this program reports the live verdict on the
+Dashboard from current Saturn against natal Moon.
+
+
+5. KALASARPA YOGA (DOCTRINE, NOT AUTO-DETECTED)
+-----------------------------------------------
+All seven grahas hemmed on one side of the Rahu–Ketu axis, with no
+planet outside their arc, forms Kalasarpa Yoga: life organized around
+unfinished karmic themes, breakthroughs delayed then sudden, foreign
+and unconventional elements prominent. Twelve named varieties exist
+(Ananta through Shankachuda) according to which house the serpent's
+head occupies. This program does not auto-detect it — check manually:
+list all seven longitudes and confirm every one falls within a single
+180-degree arc from Ketu to Rahu. Treat internet-era fatalism about
+this yoga with skepticism; classical texts give it weight, not doom,
+and a strong lagna lord overrules much of it.
+
+
+6. READING AFFLICTIONS
+----------------------
+Afflictions describe friction, never fate. Always state all three
+together: the affliction, its cancellation status, and the dasha that
+would activate it (Primer Chapter 2) — Mars periods light Kuja Dosha,
+Saturn transits light Sade Sati. An unafflicted chart needs no remedy;
+an afflicted one needs the right remedy (Primer Chapter 8), not fear.
+Astrologers lose their reputation fastest here: never predict marital
+disaster from Kuja Dosha alone, never predict ruin from Sade Sati
+alone, and say plainly when the engine finds nothing.
