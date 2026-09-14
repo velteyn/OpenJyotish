@@ -773,6 +773,7 @@ class MainWindow(QMainWindow):
 
     def _on_calculate(self):
         try:
+            self._maybe_offer_ephemeris()
             qd = self.date_input.date()
             qt = self.time_input.time()
             tz = self.tz_input.text().strip()
@@ -3616,6 +3617,15 @@ class MainWindow(QMainWindow):
         self.eph_go = QPushButton("Generate")
         self.eph_go.clicked.connect(self._on_ephemeris_generate)
         ctrl.addWidget(self.eph_go)
+        from jhora.paths import ephe_available
+        self.eph_data_status = QLabel(
+            "Swiss files: found" if ephe_available() else "Swiss files: missing")
+        self.eph_data_status.setStyleSheet("color: #888888;")
+        ctrl.addWidget(self.eph_data_status)
+        self.eph_dl_btn = QPushButton("Download Swiss files")
+        self.eph_dl_btn.setToolTip("Fetch 1.8 MB precision ephemeris once")
+        self.eph_dl_btn.clicked.connect(self._on_ephemeris_download)
+        ctrl.addWidget(self.eph_dl_btn)
         ctrl.addStretch()
         layout.addLayout(ctrl)
 
@@ -3623,6 +3633,44 @@ class MainWindow(QMainWindow):
         self.eph_table.setAlternatingRowColors(True)
         layout.addWidget(self.eph_table)
         return w
+
+    def _on_ephemeris_download(self):
+        from jhora.paths import download_ephemeris, ephe_available
+        from PyQt6.QtWidgets import QApplication
+        self.eph_data_status.setText("Swiss files: downloading…")
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            ok, msg = download_ephemeris()
+        finally:
+            QApplication.restoreOverrideCursor()
+        self.eph_data_status.setText(
+            "Swiss files: found" if ephe_available() else "Swiss files: missing")
+        if ok:
+            QMessageBox.information(self, "Ephemeris", msg)
+        else:
+            QMessageBox.warning(self, "Ephemeris", msg)
+
+    def _maybe_offer_ephemeris(self) -> None:
+        """One-time offer to fetch precision ephemeris (never nags)."""
+        from jhora.paths import ephe_available, download_ephemeris
+        from jhora.core.database import get_preference, set_preference
+        if ephe_available() is not None:
+            return
+        if get_preference("ephe_offered") == "1":
+            return
+        set_preference("ephe_offered", "1")
+        ans = QMessageBox.question(
+            self, "Ephemeris data",
+            "Swiss precision files (1.8 MB) are missing — calculations "
+            "fall back to built-in tables. Download now for full accuracy?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if ans != QMessageBox.StandardButton.Yes:
+            return
+        ok, msg = download_ephemeris()
+        if ok:
+            QMessageBox.information(self, "Ephemeris", msg)
+        else:
+            QMessageBox.warning(self, "Ephemeris", msg)
 
     def _on_ephemeris_generate(self):
         from jhora.calc.ephemeris import generate_ephemeris
