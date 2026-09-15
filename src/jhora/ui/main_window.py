@@ -916,6 +916,11 @@ class MainWindow(QMainWindow):
                             for g, p in self.chart_data.planets.items()},
                 "lagna_lon": self.chart_data.ascendant,
             }
+            if self.chart_data.hora_lagna is not None:
+                # True Hora Lagna for Varnada dasa (Sun-sign fallback
+                # when absent).
+                chart_dict["hora_lagna_lon"] = \
+                    self.chart_data.hora_lagna.longitude
 
             engine = self._get_dasa_engine(system, self._dasa_options())
 

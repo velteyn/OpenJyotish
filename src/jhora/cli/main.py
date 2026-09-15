@@ -363,7 +363,12 @@ def _chart_to_dict(cd: ChartData) -> dict:
     planets = {}
     for g, p in cd.planets.items():
         planets[g] = {"longitude": p.longitude, "speed": p.speed}
-    return {"planets": planets, "lagna_lon": cd.ascendant}
+    d = {"planets": planets, "lagna_lon": cd.ascendant}
+    if cd.hora_lagna is not None:
+        # True Hora Lagna for Varnada dasa; engines fall back to the
+        # Sun's sign when the key is absent.
+        d["hora_lagna_lon"] = cd.hora_lagna.longitude
+    return d
 
 
 def _get_dasa_engine(system: str, options=None):

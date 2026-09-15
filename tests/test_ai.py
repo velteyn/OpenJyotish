@@ -821,7 +821,8 @@ class TestDasaSystemsPropagation:
         result = chart_to_json(cd)
         systems = result["dasa"]["systems"]
         for sys in ("ashtottari", "yogini", "sudasa", "chara",
-                    "narayana", "kalachakra"):
+                    "narayana", "kalachakra", "brahma", "karaka",
+                    "moola", "shoola", "trikona", "varnada"):
             assert sys in systems, f"{sys} missing from dasa systems"
             assert "current_mahadasha_lord" in systems[sys], \
                 f"{sys} has no current mahadasha"
@@ -832,6 +833,7 @@ class TestDasaSystemsPropagation:
         assert "Other Dasa Systems" in text
         assert "Ashtottari" in text
         assert "Kalachakra" in text
+        assert "Varnada" in text
 
 
 # ---- Tasks 1.1–1.3: context detection ---------------------------------
