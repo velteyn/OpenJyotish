@@ -88,7 +88,8 @@ class TestVarnada:
         assert _varnada_sign(30.0, 30.0, 0.0) == 0  # Taurus − Taurus → Aries
 
     def test_sequence_and_durations(self):
-        # Varnada Capricorn (even) → backward; Scorpio runs 5 via Ketu
+        # Varnada Capricorn (even) → backward; footed counts minus one
+        # (cross-checked against PyJHora); Scorpio runs 8 via Ketu
         # (Rao own-sign exception: Mars in Scorpio, Ketu elsewhere).
         cd = _chart_1990()
         periods = VarnadaDasa().compute(cd.julian_day, _dict_with_hora(cd))
@@ -96,7 +97,7 @@ class TestVarnada:
             "Capricorn", "Sagittarius", "Scorpio", "Libra",
             "Virgo", "Leo", "Cancer", "Gemini",
             "Taurus", "Aries", "Pisces", "Aquarius"]
-        assert _durs(periods) == [2, 7, 5, 4, 10, 6, 11, 7, 5, 8, 10, 11]
+        assert _durs(periods) == [1, 6, 8, 3, 9, 7, 11, 6, 8, 7, 9, 1]
 
     def test_contiguous_from_birth(self):
         cd = _chart_1990()

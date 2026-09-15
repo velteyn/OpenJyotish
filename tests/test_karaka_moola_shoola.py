@@ -87,15 +87,16 @@ class TestKaraka:
         # In-sign degrees: Ma 26.19 > Mo 23.78 > Sa 23.59 > Ra 19.98 >
         # Me 17.62 > Ju 9.64 > Ve 6.96 > Su 1.36 → Dara is Sun (Capricorn).
         # Scorpio resolves to Ketu (Rao own-sign exception: Mars in
-        # Scorpio, Ketu elsewhere), so its MD runs 5 years.
+        # Scorpio, Ketu elsewhere); footed counts minus one throughout
+        # (cross-checked against PyJHora).
         cd = _chart_1990()
         periods = KarakaDasa().compute(cd.julian_day, _dict(cd))
         assert _lords(periods) == [
             "Capricorn", "Aquarius", "Pisces", "Aries",
             "Taurus", "Gemini", "Cancer", "Leo",
             "Virgo", "Libra", "Scorpio", "Sagittarius"]
-        assert _durs(periods) == [2, 11, 10, 8, 5, 7, 11, 6, 10, 4, 5, 7]
-        assert sum(_durs(periods)) == 86
+        assert _durs(periods) == [1, 1, 9, 7, 8, 6, 11, 7, 9, 3, 8, 6]
+        assert sum(_durs(periods)) == 76
 
     def test_putra_starts_at_jupiters_sign(self):
         # Putra Karaka is Jupiter (6th) in Gemini.
