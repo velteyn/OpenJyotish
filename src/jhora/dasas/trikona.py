@@ -8,10 +8,12 @@ lord-distance rule (inclusive sign-to-lord count minus one, footed
 directions, own sign 12, full circle 11, dual Scorpio/Aquarius lords
 under the Rao own-sign exception; no exaltation adjustment) —
 reproducing the tradition exactly, including the Rao-exception Scorpio.
-Antardasas cycle forward proportionally (house convention; the standard AD
-method uncompared). An alternative school seeds at the Atmakaraka
-with fixed 7/8/9 years; this engine documents that variant without
-implementing it.
+Antardasas cycle forward proportionally (house convention; the tradition shows
+equal splits in kendra-group order — e.g. Vi MD [Vi,Ge,Pi,Sg,Ta,Aq,
+Sc,Le,Cp,Li,Cn,Ar], Ge MD [Sg,Pi,Ge,Vi,Ar,Cn,Li,Cp,Le,Sc,Aq,Ta] —
+grouping rule uninduced, needs one more MD sample). An alternative
+school seeds at the Atmakaraka with fixed 7/8/9 years; this engine
+documents that variant without implementing it.
 """
 
 from typing import Dict, List, Optional
