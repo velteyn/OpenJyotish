@@ -156,6 +156,15 @@ redistribution. Those stay in the user's private books folder only.
 - Distinct value: the only remedies text that refuses gem prescriptions
   for dusthana malefics and omits disputed details instead of guessing.
 
+## 13. primer-09-matchmaking.txt (original work, not public domain)
+
+- Original synthesis by the OpenJyotish contributors, same AGPL-3.0
+  license as the program. Factor weights and the worked comparison are
+  live engine output (Ashta Koota 17/36, Porutham 5.5/19 on a
+  hypothetical nakshatra pair — no personal data).
+- Distinct value: teaches doshas-first reading against a passing total,
+  the exact error naive score-reading makes.
+
 ## 10. primer-06-afflictions.txt (original work, not public domain)
 
 - Original synthesis by the OpenJyotish contributors, same AGPL-3.0
