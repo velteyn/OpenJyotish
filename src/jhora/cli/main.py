@@ -172,7 +172,8 @@ def dasa(
 
     system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
     kalachakra, brahma, karaka, moola, shoola, trikona, varnada,
-    sthira, navamsa, yogardha, niryana-shoola.
+    sthira, navamsa, yogardha, niryana-shoola, lagna-kendradi,
+    ak-kendradi.
     Seed/sesham/year options apply
     to the nakshatra dasas (vimsottari, ashtottari, yogini); --karaka-role
     selects the Karaka Dasa seed.
@@ -375,7 +376,8 @@ def _chart_to_dict(cd: ChartData) -> dict:
 def _get_dasa_engine(system: str, options=None):
     """Return a dasa engine for the given system name (vimsottari/ashtottari/
     yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola/
-    trikona/varnada/sthira/navamsa/yogardha/niryana-shoola)."""
+    trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/
+    lagna-kendradi/ak-kendradi)."""
     s = system.lower()
     if s == "vimsottari":
         from jhora.dasas.vimsottari import VimsottariDasa
@@ -428,6 +430,12 @@ def _get_dasa_engine(system: str, options=None):
     if s == "niryana-shoola":
         from jhora.dasas.niryana_shoola import NiryanaShoolaDasa
         return NiryanaShoolaDasa(options)
+    if s == "lagna-kendradi":
+        from jhora.dasas.kendradi import LagnaKendradiDasa
+        return LagnaKendradiDasa(options)
+    if s == "ak-kendradi":
+        from jhora.dasas.kendradi import AKKendradiDasa
+        return AKKendradiDasa(options)
     from jhora.dasas.vimsottari import VimsottariDasa
     return VimsottariDasa(options)
 
