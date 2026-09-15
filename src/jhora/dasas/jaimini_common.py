@@ -120,20 +120,38 @@ def stronger_lord(sign: int, planet_sigs: Dict[Graha, int]) -> Graha:
     return l1 if s1 > s2 else l2
 
 
+#: Odd-footed signs (Jaimini footedness, not index parity): Aries,
+#: Taurus, Gemini, Libra, Scorpio, Sagittarius. Counting runs forward
+#: from these signs, backward from even-footed ones.
+ODD_FOOTED = frozenset({0, 1, 2, 6, 7, 8})
+
+
 def _count_years(sign: int, lord_si: int, own_years: int = 12) -> int:
-    """Sign-to-lord count for one sign (1..12 years)."""
+    """Sign-to-lord count for one sign (1..12 years).
+
+    Classical rule (PVR, BV-Raman school, standard): count signs
+    from the sign to its lord, both inclusive — forward from odd-footed
+    signs (Aries, Taurus, Gemini, Libra, Scorpio, Sagittarius; see
+    ``ODD_FOOTED``), backward from even-footed ones — and subtract one.
+    Lord in own sign gives ``own_years`` (12); a full-circle inclusive
+    count of 12 gives 11. No exaltation / debilitation adjustment
+    (the author's preset leaves ``CharaDasaExaltationException`` off).
+    """
     if lord_si == sign:
         return own_years
-    direction = 1 if sign % 2 == 0 else -1  # odd-footed forward
+    direction = 1 if sign in ODD_FOOTED else -1
     count, s = 1, sign
     while s != lord_si:
         s = (s + direction) % 12
         count += 1
         if count > 12:
             break
+    years = count - 1
+    if years <= 0:
+        return own_years
     if count == 12:
-        count = 11  # full-circle traverses 11 years, not 12
-    return max(1, min(12, count))
+        years = 11  # full-circle traverses 11 years, not 12
+    return max(1, min(12, years))
 
 
 def sign_years(sign: int, planet_sigs: Dict[Graha, int],
@@ -184,11 +202,6 @@ def chara_years(sign: int, planet_sigs: Dict[Graha, int]) -> int:
 def chara_cycle_years(planet_sigs: Dict[Graha, int]) -> List[int]:
     """Chara durations (Rao exception) for all 12 signs, zodiacal order."""
     return [chara_years(s, planet_sigs) for s in range(12)]
-
-
-#: Odd-footed signs (Jaimini footedness, not index parity): Aries,
-#: Taurus, Gemini, Libra, Scorpio, Sagittarius.
-ODD_FOOTED = frozenset({0, 1, 2, 6, 7, 8})
 
 
 def chara_direction(lagna: int) -> int:

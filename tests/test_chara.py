@@ -55,11 +55,12 @@ class TestFixture:
         assert len(set(_lords(periods))) == 12
 
     def test_durations_and_total(self):
-        # Scorpio runs 5 via Ketu (Rao own-sign exception).
+        # Scorpio runs 8 via Ketu (Rao own-sign exception, forward
+        # footed count minus one); cross-checked against Pythe tradition.
         cd = _chart_1990()
         periods = CharaDasa().compute(cd.julian_day, _dict(cd))
-        assert _durs(periods) == [7, 5, 8, 10, 11, 2, 7, 5, 4, 10, 6, 11]
-        assert sum(_durs(periods)) == 86
+        assert _durs(periods) == [6, 8, 7, 9, 1, 1, 6, 8, 3, 9, 7, 11]
+        assert sum(_durs(periods)) == 76
 
     def test_contiguous_from_birth(self):
         cd = _chart_1990()
