@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 35 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1134 tests  |  AGPL v3.0
+21-section JSON API for AI agents  |  1142 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -185,7 +185,7 @@ data = json.loads(subprocess.run(
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
 | `ashtakavarga` | BAV, SAV, Sodhya Pinda, Kakshya bindu |
-| `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola/trikona/varnada (MD/AD; system positional, `--karaka-role` for karaka) |
+| `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola/trikona/varnada/sthira/navamsa/yogardha (MD/AD; system positional, `--karaka-role` for karaka) |
 | `dasa-timeline` | Text bar chart with now-marker |
 | `conditional-dasas` | List additional dasa systems that apply |
 | `transit` | Current transits with SAV scores |
@@ -219,7 +219,7 @@ data = json.loads(subprocess.run(
 
 ### Calculation Engine
 Rasi chart (D-1) with South/North/East styles · 23 varga charts (D-2 to D-150) ·
-13 dasa systems · 5 conditional dasas · Shadbala · Bhava Bala · Vimsopaka Bala (4 schemes) ·
+16 dasa systems · 5 conditional dasas · Shadbala · Bhava Bala · Vimsopaka Bala (4 schemes) ·
 200+ yogas · Ashtakavarga (BAV/SAV/Kakshya) · Arudha Padas · Chara Karakas ·
 36 Sahamas · 20 ayanamsa modes (Lahiri/Raman/KP/Fagan/Tropical/etc.) ·
 Outer planets (Uranus/Neptune/Pluto) · Upagrahas (5 solar + Gulika/Mandi) ·
