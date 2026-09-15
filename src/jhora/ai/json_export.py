@@ -187,7 +187,8 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
         from jhora.ai.analysis import _dasa_engine
         result["dasa"]["systems"] = {}
         for sys in ("ashtottari", "yogini", "sudasa", "chara",
-                    "narayana", "kalachakra", "brahma"):
+                    "narayana", "kalachakra", "brahma", "karaka",
+                    "moola", "shoola", "trikona", "varnada"):
             try:
                 periods = _dasa_engine(sys).compute(cd.julian_day, cd_dict)
                 for p in periods:
