@@ -1,0 +1,89 @@
+OPENJYOTISH PRIMER, CHAPTER 10: SYNTHESIS — READING A WHOLE CHART
+======================================================================
+Original synthesis by the OpenJyotish contributors (AGPL-3.0, like the
+program). Every fact below was established in Chapters 1–9 or computed
+live on the reference chart (1990-01-15, 17:30 IST, Bangalore); the
+synthesis judgments are weighed readings of those fixed facts, stated
+as judgment calls rather than computations.
+
+
+1. THE ORDER OF ANALYSIS
+------------------------
+Read every chart in the same order, never skipping steps:
+
+1. Lagna and Moon (temperament and mind — Chapter 1).
+2. Planets by dignity (who is strong — Chapters 1, 4).
+3. Houses and their lords (which life areas are equipped — Ch 1, 4).
+4. Yogas present (which combinations operate — Chapter 3).
+5. Afflictions and cancellations (what fights back — Chapter 6).
+6. Mahadasha/antardasha now running (what time it is — Chapter 2).
+7. Transits now passing (what knocks — Chapter 5).
+8. Strengths cross-check (Shadbala, Vimsopaka, Bhava, SAV — Ch 4, 5).
+9. Remedies matched to weakness (Chapter 8).
+10. Compatibility only when asked, doshas first (Chapter 9).
+
+Skipping ahead causes every classic error: yogas without dashas
+promise timelessly, transits without natal context alarm falsely,
+remedies without weakness waste money.
+
+
+2. FULL WORKED READING
+----------------------
+Gemini lagna (lord Mercury in Sagittarius H7): self-definition through
+partnership and debate; adaptive fire. Moon in Leo H3 (Purva Phalguni):
+mind seeking recognition, Venus-colored emotions. Mars in Scorpio H6
+(own sign): conflict won, accidents watched. Jupiter in Gemini H1
+(Ardra): self-placed wisdom with unconventional edge. Sun and Venus in
+Capricorn H8: identity and love through crises, research, other
+people's resources. Saturn in Sagittarius H7: partnership demands
+discipline.
+
+Strengths: Saturn strongest (520.8 virupas), Mercury weakest (319.4,
+below its minimum of 7 rupas) — intellect needs support although
+Mercury rules the lagna. Houses H1/H8 tie at 203. Mars and Saturn lead
+Vimsopaka at 13/20.
+
+Yogas operating: Saturn's Dhana (9th lord in 7th), Mars's Viparita
+(own 6th), Mercury–Jupiter parivartana (the strong Raja Yoga),
+five Viparita pairs, Anapha/Vosi flanks.
+
+Afflictions: Kuja from Moon, weakened by own-sign Mars — managed
+intensity, no full dosha. Saturn in Pisces is 8th from natal Leo:
+Dhaiya pressure, not Sade Sati.
+
+Time: Rahu Mahadasha 2017-05-15 → 2035-05-16 — ambition, foreignness,
+unconventional rise; currently inside Rahu–Mercury (2025-04-27 →
+2027-11-14), the intellectual-commercial antardasha. September 2026
+transits give supported luminaries and starved outer planets: act
+through visibility and routine.
+
+Synthesis judgment: a debater's chart — lagna lord and Jupiter both
+angular and exchanged, Mercury weak but placed in partnership:
+influence through argument, teaching and counsel, provided the native
+borrows discipline (Saturn, strongest planet) to compensate the weak
+Mercury. Wealth through partnership (Dhana) timed by Saturn periods;
+health watched in Mars periods; marriage workable with the managed
+Kuja noted above. Remedies in priority order: Emerald-path support
+for Mercury (gem only by scholar's sanction), Mars mantra on Tuesdays,
+Saturn service throughout Dhaiya.
+
+
+3. WHAT NEVER TO PREDICT
+------------------------
+No death timing, no marital doom from single factors, no medical
+diagnosis, no financial guarantees, no exact-event certainties. Give
+periods and tendencies with the engine's dates, mark judgment calls as
+judgment calls, and say plainly when factors conflict instead of
+forcing a verdict. Reputation lost here is never recovered — this
+program's verification note exists so that every checkable claim in an
+AI-assisted reading survives an astrologer's inspection.
+
+
+4. THE BOOK AS A WHOLE
+----------------------
+Chapters 1–2: the alphabet (planets, signs, houses, stars, time).
+Chapters 3–6: combinations, strengths, transits, afflictions. Chapters
+7–9: election, remediation, matching. Chapter 10: the method binding
+them. The Guru answers from these pages plus the classics; the engine
+computes beneath them; the verifier stands guard over both. That is the
+complete OpenJyotish reading discipline in ten chapters.
