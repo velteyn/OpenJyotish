@@ -35,9 +35,12 @@ class TestCharaKaraka(unittest.TestCase):
         self.assertEqual(k[-1].graha, Graha.MARS)
         self.assertEqual(k[-1].short_name, "DK")
 
-    def test_sorted_descending_in_sign(self):
+    def test_sorted_descending_effective_degrees(self):
+        # Ranking uses effective degrees (Rahu mirrored); raw in-sign
+        # order is NOT monotonic. Fixture: Ra 10 → 20.0 mirrored.
+        from jhora.calc.karaka import _ranking_degrees
         k = compute_chara_karakas(self.planets)
-        degs = [p.longitude % 30 for p in k]
+        degs = [_ranking_degrees(p.graha, p.longitude) for p in k]
         for i in range(len(degs) - 1):
             self.assertGreaterEqual(degs[i], degs[i + 1])
 
@@ -53,10 +56,11 @@ class TestCharaKaraka(unittest.TestCase):
             self.assertEqual(karaka.short_name, exp)
 
     def test_putra_before_gnati_before_dara(self):
-        """8-karaka order: PutK(6th) Ra, GnK(7th) Su, DK(8th) Ma."""
+        """8-karaka order with mirrored Rahu (Ra 10 → 20.0):
+        PutK(6th) Sa, GnK(7th) Su, DK(8th) Ma."""
         k = compute_chara_karakas(self.planets)
         by_name = {karaka.short_name: karaka.graha for karaka in k}
-        self.assertEqual(by_name["PutK"], Graha.RAHU)
+        self.assertEqual(by_name["PutK"], Graha.SATURN)
         self.assertEqual(by_name["GnK"], Graha.SUN)
         self.assertEqual(by_name["DK"], Graha.MARS)
 
@@ -71,10 +75,11 @@ class TestCharaKaraka(unittest.TestCase):
         self.assertEqual(ak.graha, Graha.MERCURY)
         self.assertEqual(ak.short_name, "AK")
 
-    def test_user_chart_dara_is_jupiter(self):
-        """Regression: 1973-03-13 Padua must yield DK Jupiter (lowest
-        in-sign degrees), not Moon — the old absolute-longitude sort fed
-        every AI answer a wrong Dara Karaka."""
+    def test_user_chart_dara_is_rahu(self):
+        """Regression: 1973-03-13 Padua must yield DK Rahu (mirrored
+        10.02, lowest effective), not Moon — the old absolute-longitude
+        sort fed every AI answer a wrong Dara Karaka. (Pre-mirror this
+        chart gave DK Jupiter.)"""
         builder = ChartBuilder()
         cd = builder.build(1973, 3, 13, 13 + 55 / 60,
                            lat=45.4130, lon=11.8806, tz="+0100")
@@ -82,7 +87,7 @@ class TestCharaKaraka(unittest.TestCase):
                    for g, p in cd.planets.items()}
         by_name = {k.short_name: k.graha
                    for k in compute_chara_karakas(planets)}
-        self.assertEqual(by_name["DK"], Graha.JUPITER)
+        self.assertEqual(by_name["DK"], Graha.RAHU)
         self.assertEqual(by_name["AmK"], Graha.SUN)
 
     def test_excludes_ketu(self):
@@ -110,8 +115,9 @@ class TestCharaKaraka(unittest.TestCase):
             Graha.RAHU:    {"longitude": 100.0},
         }
         k = compute_chara_karakas(planets)
-        self.assertEqual(k[0].graha, Graha.SUN)
-        self.assertEqual(k[-1].graha, Graha.RAHU)
+        # All non-Rahu share in-sign 10; mirrored Rahu (20.0) tops them.
+        self.assertEqual(k[0].graha, Graha.RAHU)
+        self.assertEqual(k[-1].graha, Graha.SATURN)
 
     def test_missing_planet_returns_fewer(self):
         incomplete = {Graha.SUN: {"longitude": 10.0}}

@@ -84,8 +84,9 @@ class TestMoola:
 
 class TestKaraka:
     def test_dara_sequence_and_durations(self):
-        # In-sign degrees: Ma 26.19 > Mo 23.78 > Sa 23.59 > Ra 19.98 >
-        # Me 17.62 > Ju 9.64 > Ve 6.96 > Su 1.36 → Dara is Sun (Capricorn).
+        # Effective degrees (Rahu mirrored): Ma 26.19 > Mo 23.78 >
+        # Sa 23.59 > Me 17.62 > Ju 9.64 > Ve 6.96 > Ra 6.03 >
+        # Su 1.36 → Dara is Sun (Capricorn).
         # Scorpio resolves to Ketu (Rao own-sign exception: Mars in
         # Scorpio, Ketu elsewhere); footed counts minus one throughout
         # (cross-checked against Pythe tradition).
@@ -98,12 +99,12 @@ class TestKaraka:
         assert _durs(periods) == [1, 1, 9, 7, 8, 6, 11, 7, 9, 3, 8, 6]
         assert sum(_durs(periods)) == 76
 
-    def test_putra_starts_at_jupiters_sign(self):
-        # Putra Karaka is Jupiter (6th) in Gemini.
+    def test_putra_starts_at_venuss_sign(self):
+        # Putra Karaka is Venus (6th; mirrored Rahu sits 7th) in Capricorn.
         cd = _chart_1990()
         opts = DasaOptions(karaka_role="Putra")
         periods = KarakaDasa(opts).compute(cd.julian_day, _dict(cd), opts)
-        assert periods[0].lord_name == "Gemini"
+        assert periods[0].lord_name == "Capricorn"
 
     def test_bad_role_rejected(self):
         cd = _chart_1990()
