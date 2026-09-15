@@ -43,16 +43,16 @@ def _durs(periods):
 
 class TestTrikona:
     def test_sequence_and_durations(self):
-        # Atmakaraka Mars in Scorpio → forward from Scorpio; house-nature
-        # years by absolute index (7→8, 8→9, 9→7, ...).
+        # Strongest lagna trine is Gemini itself → forward from Gemini;
+        # Chara-counted durations reproduce the tradition exactly.
         cd = _chart_1990()
         periods = TrikonaDasa().compute(cd.julian_day, _dict(cd))
         assert _lords(periods) == [
-            "Scorpio", "Sagittarius", "Capricorn", "Aquarius",
-            "Pisces", "Aries", "Taurus", "Gemini",
-            "Cancer", "Leo", "Virgo", "Libra"]
-        assert _durs(periods) == [8, 9, 7, 8, 9, 7, 8, 9, 7, 8, 9, 7]
-        assert sum(_durs(periods)) == 96
+            "Gemini", "Cancer", "Leo", "Virgo",
+            "Libra", "Scorpio", "Sagittarius", "Capricorn",
+            "Aquarius", "Pisces", "Aries", "Taurus"]
+        assert _durs(periods) == [6, 11, 7, 9, 3, 8, 6, 1, 1, 9, 7, 8]
+        assert sum(_durs(periods)) == 76
 
     def test_contiguous_from_birth(self):
         cd = _chart_1990()
@@ -165,10 +165,15 @@ class TestVarnadaSurfaces:
 class TestRefChartStructural:
     """Second chart (1970 Chennai): invariants, not hardcoded sequences."""
 
-    def test_trikona_always_96(self, ref_chart):
+    def test_trikona_matches_cycle_totals(self, ref_chart):
+        from jhora.dasas.jaimini_common import (
+            chara_cycle_years, normalize_planets, planet_signs)
         cd, d = ref_chart, _dict(ref_chart)
         periods = TrikonaDasa().compute(cd.julian_day, d)
-        assert sum(_durs(periods)) == 96
+        planets = normalize_planets(d["planets"])
+        assert sum(_durs(periods)) == sum(
+            chara_cycle_years(planet_signs(planets)))
+        assert len(set(_lords(periods))) == 12
         assert periods[0].start_jd == cd.julian_day
         for a, b in zip(periods, periods[1:]):
             assert a.end_jd == b.start_jd
