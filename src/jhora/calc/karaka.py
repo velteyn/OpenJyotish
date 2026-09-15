@@ -30,19 +30,35 @@ class CharaKaraka:
     meaning: str
 
 
+def _ranking_degrees(graha: Graha, longitude: float) -> float:
+    """Effective degrees for karaka ranking (in-sign position).
+
+    Rahu moves retrograde, so it is ranked by mirrored degrees
+    (30° minus in-sign longitude) — the mainstream JHora/PVR reading,
+    verified against JHora labels 16/16 on two charts and PVR-book
+    examples. Ketu is excluded from the ranking entirely.
+    """
+    in_sign = longitude % 30
+    if graha == Graha.RAHU:
+        return 30.0 - in_sign
+    return in_sign
+
+
 def compute_chara_karakas(planets: Dict[Graha, Dict]) -> List[CharaKaraka]:
     """Rank planets by degrees traversed within their sign (highest first).
 
     Classical Chara Karaka rule: only the position inside the rasi counts
-    (longitude % 30), never the absolute longitude. Exact ties keep input
-    order (real ephemeris longitudes essentially never tie).
+    (longitude % 30), never the absolute longitude — except Rahu, ranked
+    mirrored (see ``_ranking_degrees``). Exact ties keep input order
+    (real ephemeris longitudes essentially never tie).
     """
     graha_data = []
     for g in _CHARA_PLANETS:
         if g in planets:
             graha_data.append((g, planets[g]["longitude"]))
 
-    graha_data.sort(key=lambda x: x[1] % 30, reverse=True)
+    graha_data.sort(key=lambda x: _ranking_degrees(x[0], x[1]),
+                    reverse=True)
 
     karakas = []
     for rank, (g, lon) in enumerate(graha_data):
