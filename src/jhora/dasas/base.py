@@ -41,6 +41,10 @@ class DasaOptions:
     #: "Dara"); other systems ignore it.
     karaka_role: str = "Dara"
 
+    #: Which house seeds Shoola Dasa (1 = self/lagna, 9 = Pitri/father,
+    #: 7 = Dara/spouse, 5 = Putra/children); other systems ignore it.
+    seed_house: int = 1
+
 
 class DasaBase(ABC):
     """Abstract base for all dasa system implementations."""
