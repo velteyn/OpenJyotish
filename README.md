@@ -4,7 +4,7 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-35 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+37 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
 21-section JSON API for AI agents  |  1142 tests  |  AGPL v3.0
 ```
 
@@ -247,13 +247,13 @@ src/jhora/
 ├── ephemeris/      Swiss Ephemeris wrapper (18 API functions)
 ├── charts/         ChartBuilder, ChartData (frozen), VargaChartComputer
 ├── calc/           29 modules: strengths, yogas, dasas, transits, chakras...
-├── dasas/          9 dasa system modules
+├── dasas/          16 dasa systems (+ shared Jaimini core)
 ├── ai/             AI engine, RAG pipeline, JSON export, teacher
 ├── interpreter/    Chart reading, knowledge base
 ├── export/         HTML report generator
 ├── io/             Atlas (SQLite/FTS5), JHD parser
 ├── core/           Unified database
-├── cli/            Typer CLI (34 commands)
+├── cli/            Typer CLI (37 commands)
 ├── tui/            prompt_toolkit menu system
 └── ui/             PyQt6 GUI (8-category tabs, chart widget, dasa timeline)
 ```
