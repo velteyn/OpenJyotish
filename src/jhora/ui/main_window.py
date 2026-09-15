@@ -911,16 +911,7 @@ class MainWindow(QMainWindow):
             return
         try:
             system = self.dasa_system_combo.currentText()
-            chart_dict = {
-                "planets": {g: {"longitude": p.longitude, "speed": p.speed}
-                            for g, p in self.chart_data.planets.items()},
-                "lagna_lon": self.chart_data.ascendant,
-            }
-            if self.chart_data.hora_lagna is not None:
-                # True Hora Lagna for Varnada dasa (Sun-sign fallback
-                # when absent).
-                chart_dict["hora_lagna_lon"] = \
-                    self.chart_data.hora_lagna.longitude
+            chart_dict = self._dasa_chart_dict(self.chart_data)
 
             engine = self._get_dasa_engine(system, self._dasa_options())
 
@@ -965,6 +956,20 @@ class MainWindow(QMainWindow):
             for sp in period.sub_periods:
                 result.extend(MainWindow._render_period_tree(sp, se, depth + 1))
         return result
+
+    @staticmethod
+    def _dasa_chart_dict(chart_data) -> dict:
+        """Chart dict for dasa engines (true Hora Lagna when known)."""
+        chart_dict = {
+            "planets": {g: {"longitude": p.longitude, "speed": p.speed}
+                        for g, p in chart_data.planets.items()},
+            "lagna_lon": chart_data.ascendant,
+        }
+        if chart_data.hora_lagna is not None:
+            # True Hora Lagna for Varnada dasa (Sun-sign fallback
+            # when absent).
+            chart_dict["hora_lagna_lon"] = chart_data.hora_lagna.longitude
+        return chart_dict
 
     def _get_dasa_engine(self, system: str, options=None):
         if system == "Vimsottari":

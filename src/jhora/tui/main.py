@@ -40,6 +40,18 @@ STYLE = Style.from_dict({
 })
 
 
+def _chart_to_dict(chart) -> dict:
+    """Chart dict for dasa engines (true Hora Lagna when known)."""
+    cd = {"planets": {g.value: {"longitude": p.longitude}
+                      for g, p in chart.planets.items()},
+          "lagna_lon": chart.ascendant}
+    if chart.hora_lagna is not None:
+        # True Hora Lagna for Varnada dasa (Sun-sign fallback
+        # when absent).
+        cd["hora_lagna_lon"] = chart.hora_lagna.longitude
+    return cd
+
+
 class JhoraTui:
     def __init__(self):
         self.chart: Optional[ChartData] = None
@@ -445,9 +457,11 @@ class JhoraTui:
             self._dasa_system = sys_val.strip().lower()
         system = self._dasa_system
         engine = self._get_dasa_engine(system)
-        cd = {"planets": {g.value: {"longitude": p.longitude}
-                          for g, p in self.chart.planets.items()},
-              "lagna_lon": self.chart.ascendant}
+        cd = _chart_to_dict(self.chart)
+        if self.chart.hora_lagna is not None:
+            # True Hora Lagna for Varnada dasa (Sun-sign fallback
+            # when absent).
+            cd["hora_lagna_lon"] = self.chart.hora_lagna.longitude
         with rich.capture() as cap:
             periods = engine.compute(self.chart.julian_day, cd)
             now = datetime.now()
