@@ -1,0 +1,83 @@
+OPENJYOTISH PRIMER, CHAPTER 9: MATCHMAKING — KOOTA AND PORUTHAM
+===================================================================
+Original synthesis by the OpenJyotish contributors (AGPL-3.0, like the
+program). Factor definitions describe this program's Kuta engine
+exactly; the worked comparison is live output (`jhora kuta`,
+Matchmaking tab) for Moon in Purva Phalguni against Moon in Ardra —
+reproduce before trusting.
+
+
+1. WHAT MATCHING MEASURES (AND WHAT IT DOESN'T)
+-----------------------------------------------
+Kuta matching compares two Moon positions: emotional natures,
+conyugal compatibility, progeny promise. It never judges character,
+longevity or love — those belong to the individual charts (Primer
+Chapters 1–6) and their dashas (Chapter 2). A high score with
+afflicted individual 7th houses still struggles; a moderate score
+between two clean charts often thrives. Read matching last, never
+first.
+
+
+2. ASHTA KOOTA (NORTH INDIAN, 36 POINTS)
+----------------------------------------
+Eight factors, weights 1 through 8:
+
+Varna (1): Moon-sign caste compatibility — Brahmin, Kshatriya, Vaishya,
+Shudra in order; groom's equal or higher scores.
+Vashya (2): mutual attraction and control between signs — movable,
+fixed and dual signs attract in set patterns; same nature scores full.
+Tara/Dina (3): count the bride's nakshatra from the groom's; remainders
+3, 5, 7 (Vipata, Pratyari, Vadha) score zero.
+Yoni (4): animal symbols of the two nakshatras — same animal and
+compatible sex score high, predator-prey pairs score zero.
+Graha Maitri (5): friendship between the two Moon-sign lords — mutual
+friends score full, mutual enemies zero.
+Gana (6): temperaments Deva (divine), Manushya (human), Rakshasa
+(demonic) — same gana full, Deva–Rakshasa zero.
+Bhakoota (7): Moon signs in 2/12, 6/8 or 5/9 mutual positions score
+zero (with narrow classical exceptions); all other pairs score full.
+Nadi (8): the three humors Adya, Madhya, Antya — different Nadis score
+full; same Nadi scores zero and traditionally vetoes the match
+regardless of total.
+
+Totals: 18 of 36 is the commonly cited minimum, higher is easier. But
+totals never override doshas: Nadi 0/8 or Bhakoota 0/7 sinks readings
+that the arithmetic calls acceptable.
+
+
+3. PORUTHAM (10 FACTORS, 19 POINTS)
+-----------------------------------
+The Kerala/Tamil system: Dina, Gana, Yoni, Rasi, Rasyadhipati, Nadi,
+Rajju, Vedha, Vashya and Mahendra. Rajju (the rope — five body-part
+groups shared between nakshatras must differ) and Vedha (mutual
+affliction between specific nakshatra pairs) carry veto weight like
+Nadi. Rasi and Rasyadhipati judge the Moon signs and their lords;
+Mahendra rewards certain benefic nakshatra distances. Higher of 19 is
+better; any zero on Nadi, Rajju or Vedha demands the remedies and
+counsel of Primer Chapter 8, or walking away.
+
+
+4. WORKED COMPARISON
+--------------------
+Moon in Purva Phalguni against Moon in Ardra, Ashta Koota computed:
+
+Varna 1/1, Vashya 2/2, Tara 0/3, Yoni 3/4, Graha Maitri 5/5, Gana 6/6,
+Bhakoota 0/7, Nadi 0/8. Total 17/36.
+
+Porutham on the same pair: 5.5/19, with Nadi 0/8 and Rajju 0/1.
+
+Read it as the engine intends: temperaments align beautifully (Gana
+6/6, Maitri 5/5, Vashya full) and the physical match is good (Yoni
+3/4) — but Tara fails, Bhakoota fails, and Nadi fails in BOTH systems.
+Seventeen of thirty-six with all three veto factors red is a declined
+match wearing a passing total. This is the chapter's central lesson:
+read the doshas first, the total last.
+
+
+5. WHERE THIS LIVES IN THE PROGRAM
+----------------------------------
+Matchmaking tab (enter two birth data sets, both systems side by side),
+`jhora kuta` (factor table with scores and reasons), conversation
+anchor (the AI reads computed compatibility, never improvises Kuta),
+and the verification note (every Kuta number in an AI answer is checked
+before display).
