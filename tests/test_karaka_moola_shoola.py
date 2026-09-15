@@ -37,16 +37,16 @@ def _durs(periods):
 
 class TestShoola:
     def test_sequence_and_durations(self):
-        # Lagna trines Ge(Ke)/Li(-)/Aq(-): counts 1/0/0 → start Gemini.
-        # Third group from Aquarius runs Aq,Pi,Ar,Ta (mod-12 stepping).
+        # 7th Sagittarius (2 occupants) beats lagna Gemini (1) →
+        # forward from Sagittarius, 9 fixed years (PVR answers).
         cd = _chart_1990()
         periods = ShoolaDasa().compute(cd.julian_day, _dict(cd))
         assert _lords(periods) == [
-            "Gemini", "Cancer", "Leo", "Virgo",
-            "Libra", "Scorpio", "Sagittarius", "Capricorn",
-            "Aquarius", "Pisces", "Aries", "Taurus"]
-        assert _durs(periods) == [9, 7, 8, 9, 7, 8, 9, 7, 8, 9, 7, 8]
-        assert sum(_durs(periods)) == 96
+            "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+            "Aries", "Taurus", "Gemini", "Cancer",
+            "Leo", "Virgo", "Libra", "Scorpio"]
+        assert _durs(periods) == [9] * 12
+        assert sum(_durs(periods)) == 108
 
     def test_contiguous_from_birth(self):
         cd = _chart_1990()
@@ -128,10 +128,10 @@ class TestKaraka:
 class TestRefChartStructural:
     """Second chart (1970 Chennai): invariants, not hardcoded sequences."""
 
-    def test_shoola_total_in_range_and_contiguous(self, ref_chart):
+    def test_shoola_always_108(self, ref_chart):
         cd, d = ref_chart, _dict(ref_chart)
         periods = ShoolaDasa().compute(cd.julian_day, d)
-        assert 93 <= sum(_durs(periods)) <= 99
+        assert sum(_durs(periods)) == 108
         assert periods[0].start_jd == cd.julian_day
         for a, b in zip(periods, periods[1:]):
             assert a.end_jd == b.start_jd
