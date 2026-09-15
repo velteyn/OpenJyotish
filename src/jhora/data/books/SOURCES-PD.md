@@ -146,6 +146,16 @@ redistribution. Those stay in the user's private books folder only.
 - Distinct value: the only muhurta text where the examples carry the
   engine's actual reasons, Panchaka objections included.
 
+## 12. primer-08-remedies.txt (original work, not public domain)
+
+- Original synthesis by the OpenJyotish contributors, same AGPL-3.0
+  license as the program. Every gem/metal/day/mantra/daan pairing
+  checked against classical correspondences (the lore class models
+  mangle most); application rules keyed to this program's strength
+  engine and the fixture's verified weakest planet.
+- Distinct value: the only remedies text that refuses gem prescriptions
+  for dusthana malefics and omits disputed details instead of guessing.
+
 ## 10. primer-06-afflictions.txt (original work, not public domain)
 
 - Original synthesis by the OpenJyotish contributors, same AGPL-3.0

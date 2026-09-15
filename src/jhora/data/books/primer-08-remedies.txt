@@ -1,0 +1,97 @@
+OPENJYOTISH PRIMER, CHAPTER 8: REMEDIES — GEMS, MANTRAS, DAAN
+=============================================================
+Original synthesis by the OpenJyotish contributors (AGPL-3.0, like the
+program). Classical correspondences restated from the public-domain
+texts in this folder; application rules describe this program's
+strength engine (Primer Chapter 4). This is the lore class language
+models mangle most (emerald is Mercury's, never Venus's; ruby is the
+Sun's, never Mars's) — every pairing below was checked twice.
+
+
+1. THE THREE REMEDY CLASSES
+---------------------------
+GEMSTONES strengthen a planet: appropriate only for weak but
+well-placed benefics and yogakaraka lords. Never strengthen a malefic
+lord of dusthana houses (6, 8, 12) with its gem — you would be funding
+the enemy. When in doubt, skip the stone; mantras and daan cannot
+backfire.
+MANTRAS propitiate a planet: safe for every planet including malefics
+and nodes. Recite 108 times daily, mornings facing east (except Saturn
+remedies, evenings facing west). Count on fingers or a rudraksha mala;
+regularity outweighs volume.
+DAAN (charity) and SERVICE discharge planetary debt outward: safe for
+everything, strongest for Saturn, Rahu and Ketu. Give the planet's
+items on its weekday, or serve the people it signifies (elderly and
+laborers for Saturn, students for Jupiter, young girls for Venus and
+Mercury).
+
+
+2. PLANET CORRESPONDENCES (CHECKED)
+-----------------------------------
+SUN — Ruby (Manikya), gold, Sunday. Mantra: Om Suryaya Namah; beeja Om
+Hram Hreem Hroum Sah Suryaya Namah. Daan: wheat, jaggery, copper, red
+flowers on Sundays. Water offering to the rising Sun.
+MOON — Pearl (Moti), silver, Monday. Mantra: Om Chandraya Namah; beeja
+Om Shram Shreem Shroum Sah Chandraya Namah. Daan: rice, milk, white
+cloth on Mondays. Respect for the mother is the living remedy.
+MARS — Red Coral (Moonga), copper, Tuesday. Mantra: Om Mangalaya
+Namah; beeja Om Kram Kreem Kroum Sah Bhaumaya Namah. Daan: red lentils
+(masoor), jaggery, red cloth on Tuesdays. Exercise and blood donation
+discharge excess Martian heat.
+MERCURY — Emerald (Panna), bronze, Wednesday. Mantra: Om Budhaya
+Namah; beeja Om Bram Breem Broum Sah Budhaya Namah. Daan: green moong,
+green cloth, books to students on Wednesdays.
+JUPITER — Yellow Sapphire (Pukhraj), gold, Thursday. Mantra: Om Gurave
+Namah; beeja Om Gram Greem Graum Sah Gurave Namah. Daan: turmeric,
+chickpeas, yellow cloth; serve teachers and temples on Thursdays.
+VENUS — Diamond (Heera; white sapphire as substitute), silver, Friday.
+Mantra: Om Shukraya Namah; beeja Om Dram Dreem Droum Sah Shukraya
+Namah. Daan: white items, rice, sugar, perfumes on Fridays; Lakshmi
+worship.
+SATURN — Blue Sapphire (Neelam), iron and steel, Saturday. Mantra: Om
+Shanicharaya Namah; beeja Om Sham Shanicharaya Namah. Daan: black
+sesame, mustard oil, black cloth, iron on Saturdays; serve the elderly,
+the disabled and laborers. Saturday Hanuman worship is the classical
+crown remedy.
+RAHU — Hessonite (Gomed), Saturday. Mantra: Om Rahave Namah; beeja Om
+Bhram Bhreem Bhroum Sah Rahave Namah. Daan: black gram (urad), coconut
+in flowing water, blankets on Saturdays.
+KETU — Cat's Eye (Lehsunia). Mantra: Om Ketave Namah; beeja Om Stram
+Streem Stroum Sah Ketave Namah. Daan: brown sesame, blankets; feed
+dogs; Ganesha worship. Ketu remedies aim at detachment, not acquisition.
+
+Finger and weight prescriptions vary by region and school and are
+deliberately omitted here — a jeweler-astrologer sets those in person.
+Never wear a gem for a planet the engine marks malefic-dusthana without
+a human scholar's explicit sanction.
+
+
+3. MATCHING REMEDY TO AFFLICTION (ENGINE-MAPPED)
+------------------------------------------------
+Reference chart strengths (Primer Chapter 4): Mercury weakest at 319.4
+virupas, below its classical minimum of 7 rupas — the chart's remedy
+priority. Mercury rules Gemini (lagna) and Virgo: emerald in bronze on
+Wednesday, green moong daan, Om Budhaya Namah 108 times daily, books to
+students. Because Mercury is lagna lord (not a dusthana malefic), its
+gem is safe to strengthen.
+
+General mapping this program supports:
+- Weakest Shadbala planet (below its minimum) → its gem + mantra + daan.
+- Afflicted house (low Bhava Bala) → daan of the house lord's items;
+  never the lord's gem if that lord rules dusthanas.
+- Running Mahadasha/antardasha lord (Primer Chapter 2) → that lord's
+  mantra daily through the period; daan on its weekday.
+- Sade Sati / Dhaiya (Primer Chapters 5–6) → Saturn remedies regardless
+  of Saturn's natal strength.
+- Kuja Dosha (Primer Chapter 6) → Mars mantra and red-lentil daan on
+  Tuesdays; Hanuman worship covers Mars and Saturn together.
+
+
+4. WHAT REMEDIES CANNOT DO
+--------------------------
+Remedies adjust the native's conduct and receptivity; they do not edit
+the chart. A remedy performed without the corresponding behavior change
+(charity without generosity, mantra without attention) is theater.
+Promise relief, never reversal — and never prescribe high-value gems
+without telling the native to verify independently. Reputation lost
+over remedies is never recovered.
