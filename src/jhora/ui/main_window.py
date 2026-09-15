@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
         self.dasa_system_combo.addItems([
             "Vimsottari", "Ashtottari", "Yogini", "Sudasa",
             "Chara", "Narayana", "Kalachakra", "Brahma",
-            "Karaka", "Moola", "Shoola",
+            "Karaka", "Moola", "Shoola", "Trikona", "Varnada",
         ])
         self.dasa_system_combo.currentTextChanged.connect(self._update_dasa_text)
         dl.addWidget(self.dasa_system_combo)
@@ -995,6 +995,12 @@ class MainWindow(QMainWindow):
         elif system == "Shoola":
             from jhora.dasas.shoola import ShoolaDasa
             return ShoolaDasa(options)
+        elif system == "Trikona":
+            from jhora.dasas.trikona import TrikonaDasa
+            return TrikonaDasa(options)
+        elif system == "Varnada":
+            from jhora.dasas.varnada import VarnadaDasa
+            return VarnadaDasa(options)
         from jhora.dasas.vimsottari import VimsottariDasa
         return VimsottariDasa(options)
 

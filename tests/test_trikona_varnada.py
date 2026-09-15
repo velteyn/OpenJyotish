@@ -1,0 +1,146 @@
+"""Tests for Trikona and Varnada dasas.
+
+Mahadasha sequences below were hand-derived from the classical rules
+(see module docstrings) for the 1990 Bangalore fixture and checked
+twice; the ref_chart cases assert structural invariants instead.
+"""
+
+import pytest
+
+from jhora.charts.chart import ChartBuilder
+from jhora.dasas.trikona import TrikonaDasa
+from jhora.dasas.varnada import VarnadaDasa, _varnada_sign
+
+
+def _chart_1990():
+    b = ChartBuilder()
+    return b.build(1990, 1, 15, 17.5, 12.9716, 77.5946, tz="-5.5")
+
+
+def _dict(cd, extra=None):
+    d = {"planets": {g: {"longitude": p.longitude}
+                     for g, p in cd.planets.items()},
+         "lagna_lon": cd.ascendant}
+    if extra:
+        d.update(extra)
+    return d
+
+
+def _dict_with_hora(cd):
+    from jhora.calc.special_lagnas import hora_lagna
+    hl = hora_lagna(cd)
+    assert hl is not None
+    return _dict(cd, {"hora_lagna_lon": hl})
+
+
+def _lords(periods):
+    return [p.lord_name for p in periods]
+
+
+def _durs(periods):
+    return [p.duration_years for p in periods]
+
+
+class TestTrikona:
+    def test_sequence_and_durations(self):
+        # Atmakaraka Mars in Scorpio → forward from Scorpio; house-nature
+        # years by absolute index (7→8, 8→9, 9→7, ...).
+        cd = _chart_1990()
+        periods = TrikonaDasa().compute(cd.julian_day, _dict(cd))
+        assert _lords(periods) == [
+            "Scorpio", "Sagittarius", "Capricorn", "Aquarius",
+            "Pisces", "Aries", "Taurus", "Gemini",
+            "Cancer", "Leo", "Virgo", "Libra"]
+        assert _durs(periods) == [8, 9, 7, 8, 9, 7, 8, 9, 7, 8, 9, 7]
+        assert sum(_durs(periods)) == 96
+
+    def test_contiguous_from_birth(self):
+        cd = _chart_1990()
+        periods = TrikonaDasa().compute(cd.julian_day, _dict(cd))
+        assert periods[0].start_jd == cd.julian_day
+        for a, b in zip(periods, periods[1:]):
+            assert a.end_jd == b.start_jd
+
+    def test_antardasas_sum_to_md(self):
+        cd = _chart_1990()
+        periods = TrikonaDasa().compute(cd.julian_day, _dict(cd))
+        for md in periods[:3]:
+            total = sum(ad.duration_years for ad in md.sub_periods)
+            assert total == pytest.approx(md.duration_years)
+        assert md.sub_periods[0].lord_name == md.lord_name
+
+
+class TestVarnada:
+    def test_varnada_sign_fixture(self):
+        # Gemini lagna (odd) + Hora Lagna Scorpio → Capricorn.
+        from jhora.calc.special_lagnas import hora_lagna
+        cd = _chart_1990()
+        hl = hora_lagna(cd)
+        assert hl is not None
+        assert int(hl // 30) % 12 == 7  # Scorpio
+        from jhora.types.graha import Graha
+        assert _varnada_sign(cd.ascendant, hl,
+                             cd.planets[Graha.SUN].longitude) == 9
+
+    def test_sign_rule_branches(self):
+        # Odd lagna adds, even lagna subtracts (pure function, no ephemeris).
+        assert _varnada_sign(0.0, 30.0, 0.0) == 1  # Aries + Taurus → Taurus
+        assert _varnada_sign(30.0, 30.0, 0.0) == 0  # Taurus − Taurus → Aries
+
+    def test_sequence_and_durations(self):
+        # Varnada Capricorn (even) → backward; Scorpio runs 5 via Ketu
+        # (Rao own-sign exception: Mars in Scorpio, Ketu elsewhere).
+        cd = _chart_1990()
+        periods = VarnadaDasa().compute(cd.julian_day, _dict_with_hora(cd))
+        assert _lords(periods) == [
+            "Capricorn", "Sagittarius", "Scorpio", "Libra",
+            "Virgo", "Leo", "Cancer", "Gemini",
+            "Taurus", "Aries", "Pisces", "Aquarius"]
+        assert _durs(periods) == [2, 7, 5, 4, 10, 6, 11, 7, 5, 8, 10, 11]
+
+    def test_contiguous_from_birth(self):
+        cd = _chart_1990()
+        periods = VarnadaDasa().compute(cd.julian_day, _dict_with_hora(cd))
+        assert periods[0].start_jd == cd.julian_day
+        for a, b in zip(periods, periods[1:]):
+            assert a.end_jd == b.start_jd
+
+    def test_antardasas_sum_to_md(self):
+        cd = _chart_1990()
+        periods = VarnadaDasa().compute(cd.julian_day, _dict_with_hora(cd))
+        for md in periods[:3]:
+            total = sum(ad.duration_years for ad in md.sub_periods)
+            assert total == pytest.approx(md.duration_years)
+        assert md.sub_periods[0].lord_name == md.lord_name
+
+    def test_sun_fallback_completes(self):
+        # Without hora_lagna_lon the Sun's sign seeds VL; still 12 MDs.
+        cd = _chart_1990()
+        periods = VarnadaDasa().compute(cd.julian_day, _dict(cd))
+        assert len(periods) == 12
+        assert periods[0].start_jd == cd.julian_day
+        for a, b in zip(periods, periods[1:]):
+            assert a.end_jd == b.start_jd
+
+
+class TestRefChartStructural:
+    """Second chart (1970 Chennai): invariants, not hardcoded sequences."""
+
+    def test_trikona_always_96(self, ref_chart):
+        cd, d = ref_chart, _dict(ref_chart)
+        periods = TrikonaDasa().compute(cd.julian_day, d)
+        assert sum(_durs(periods)) == 96
+        assert periods[0].start_jd == cd.julian_day
+        for a, b in zip(periods, periods[1:]):
+            assert a.end_jd == b.start_jd
+
+    def test_varnada_contiguous(self, ref_chart):
+        from jhora.calc.special_lagnas import hora_lagna
+        cd = ref_chart
+        hl = hora_lagna(cd)
+        d = _dict(cd, {"hora_lagna_lon": hl} if hl is not None else None)
+        periods = VarnadaDasa().compute(cd.julian_day, d)
+        assert len(periods) == 12
+        assert periods[0].start_jd == cd.julian_day
+        for a, b in zip(periods, periods[1:]):
+            assert a.end_jd == b.start_jd
