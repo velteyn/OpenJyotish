@@ -434,12 +434,14 @@ class JhoraTui:
         sys_val = input_dialog(
             "Dasa System",
             "System:\n  vimsottari, ashtottari, yogini, sudasa, chara,\n"
-            "  narayana, kalachakra, brahma\n"
+            "  narayana, kalachakra, brahma, karaka, moola, shoola,\n"
+            "  trikona, varnada\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
                 "vimsottari", "ashtottari", "yogini", "sudasa", "chara",
-                "narayana", "kalachakra", "brahma"):
+                "narayana", "kalachakra", "brahma", "karaka", "moola",
+                "shoola", "trikona", "varnada"):
             self._dasa_system = sys_val.strip().lower()
         system = self._dasa_system
         engine = self._get_dasa_engine(system)
@@ -485,6 +487,11 @@ class JhoraTui:
         from jhora.dasas.narayana import NarayanaDasa
         from jhora.dasas.kalachakra import KalachakraDasa
         from jhora.dasas.brahma import BrahmaDasa
+        from jhora.dasas.karaka_dasa import KarakaDasa
+        from jhora.dasas.moola import MoolaDasa
+        from jhora.dasas.shoola import ShoolaDasa
+        from jhora.dasas.trikona import TrikonaDasa
+        from jhora.dasas.varnada import VarnadaDasa
         from jhora.dasas.ashtottari import AshtottariDasa
         from jhora.dasas.yogini import YoginiDasa
         from jhora.dasas.vimsottari import VimsottariDasa
@@ -504,6 +511,16 @@ class JhoraTui:
             return KalachakraDasa()
         if system == "brahma":
             return BrahmaDasa()
+        if system == "karaka":
+            return KarakaDasa(opts)
+        if system == "moola":
+            return MoolaDasa(opts)
+        if system == "shoola":
+            return ShoolaDasa(opts)
+        if system == "trikona":
+            return TrikonaDasa(opts)
+        if system == "varnada":
+            return VarnadaDasa(opts)
         return VimsottariDasa(opts)
 
     def _action_dasa_settings(self):
@@ -512,12 +529,14 @@ class JhoraTui:
         sys_val = input_dialog(
             "Dasa System",
             "System:\n  vimsottari, ashtottari, yogini, sudasa, chara,\n"
-            "  narayana, kalachakra, brahma\n"
+            "  narayana, kalachakra, brahma, karaka, moola, shoola,\n"
+            "  trikona, varnada\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
                 "vimsottari", "ashtottari", "yogini", "sudasa", "chara",
-                "narayana", "kalachakra", "brahma"):
+                "narayana", "kalachakra", "brahma", "karaka", "moola",
+                "shoola", "trikona", "varnada"):
             self._dasa_system = sys_val.strip().lower()
         seed_map = {
             "moon": "Moon (default)", "lagna": "Lagna", "sun": "Sun",
