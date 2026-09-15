@@ -171,7 +171,8 @@ def dasa(
     """Compute dasa periods for a chart.
 
     system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
-    kalachakra, brahma, karaka, moola, shoola, trikona, varnada.
+    kalachakra, brahma, karaka, moola, shoola, trikona, varnada,
+    sthira, navamsa, yogardha.
     Seed/sesham/year options apply
     to the nakshatra dasas (vimsottari, ashtottari, yogini); --karaka-role
     selects the Karaka Dasa seed.
@@ -374,7 +375,7 @@ def _chart_to_dict(cd: ChartData) -> dict:
 def _get_dasa_engine(system: str, options=None):
     """Return a dasa engine for the given system name (vimsottari/ashtottari/
     yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola/
-    trikona/varnada)."""
+    trikona/varnada/sthira/navamsa/yogardha)."""
     s = system.lower()
     if s == "vimsottari":
         from jhora.dasas.vimsottari import VimsottariDasa
@@ -415,6 +416,15 @@ def _get_dasa_engine(system: str, options=None):
     if s == "varnada":
         from jhora.dasas.varnada import VarnadaDasa
         return VarnadaDasa(options)
+    if s == "sthira":
+        from jhora.dasas.sthira import SthiraDasa
+        return SthiraDasa(options)
+    if s == "navamsa":
+        from jhora.dasas.navamsa import NavamsaDasa
+        return NavamsaDasa(options)
+    if s == "yogardha":
+        from jhora.dasas.yogardha import YogardhaDasa
+        return YogardhaDasa(options)
     from jhora.dasas.vimsottari import VimsottariDasa
     return VimsottariDasa(options)
 
