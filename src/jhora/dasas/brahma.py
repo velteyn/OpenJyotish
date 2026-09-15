@@ -90,8 +90,10 @@ def _stronger_rasi(r1: Rasi, r2: Rasi, planets: Dict) -> Rasi:
     if cc1 != cc2:
         return r1 if cc1 > cc2 else r2
 
-    # Higher advancement of the rasi lord's longitude.
-    return _stronger_planet(_rasi_lord(r1), _rasi_lord(r2), planets)
+    # Higher advancement of the rasi lord's longitude (returns the
+    # RASI whose lord wins — never the planet itself).
+    l1, l2 = _rasi_lord(r1), _rasi_lord(r2)
+    return r1 if _stronger_planet(l1, l2, planets) == l1 else r2
 
 
 def _brahma_planet(lagna_rasi: Rasi, planets: Dict) -> Graha:

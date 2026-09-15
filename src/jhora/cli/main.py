@@ -167,6 +167,7 @@ def dasa(
     sesham: str = typer.Option("moon", "--sesham", help="Sesham handling: moon (reduce first MD), full (no reduction)"),
     year_def: str = typer.Option("solar", "--year-def", help="Year definition: solar, savana, tithi"),
     karaka_role: str = typer.Option("Dara", "--karaka-role", help="Karaka Dasa seed: Putra, Matri, Bhratri, Dara"),
+    house: int = typer.Option(1, "--house", help="Shoola Dasa seed house: 1 self, 9 Pitri, 7 Dara, 5 Putra"),
 ):
     """Compute dasa periods for a chart.
 
@@ -176,7 +177,8 @@ def dasa(
     ak-kendradi.
     Seed/sesham/year options apply
     to the nakshatra dasas (vimsottari, ashtottari, yogini); --karaka-role
-    selects the Karaka Dasa seed.
+    selects the Karaka Dasa seed; --house selects the Shoola Dasa seed
+    house (1, 5, 7, 9).
     """
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()
@@ -188,7 +190,7 @@ def dasa(
     chart_dict = _chart_to_dict(chart_data)
     from jhora.dasas.base import DasaOptions
     opts = DasaOptions(start_variation=start, sesham_method=sesham, year_definition=year_def,
-                       karaka_role=karaka_role)
+                       karaka_role=karaka_role, seed_house=house)
     engine = _get_dasa_engine(system, opts)
     periods = engine.compute(chart_data.julian_day, chart_dict, opts)
     _display_dasa_table(periods, f"{system.title()} Dasa Periods")

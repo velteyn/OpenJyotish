@@ -321,6 +321,18 @@ class MainWindow(QMainWindow):
         opt.addWidget(self.dasa_year_combo, 1)
         dl.addLayout(opt)
 
+        # Shoola seed-house row (self/Pitri/Dara/Putra); ignored otherwise.
+        shl = QHBoxLayout()
+        shl.setSpacing(8)
+        self.dasa_house_combo = QComboBox()
+        self.dasa_house_combo.addItems([
+            "Self (1)", "Putra (5)", "Dara (7)", "Pitri (9)",
+        ])
+        self.dasa_house_combo.currentTextChanged.connect(self._update_dasa_text)
+        shl.addWidget(QLabel("Shoola house:"))
+        shl.addWidget(self.dasa_house_combo, 1)
+        dl.addLayout(shl)
+
         self.dasa_text = QTextEdit()
         self.dasa_text.setReadOnly(True)
         apply_output_font(self.dasa_text)
@@ -935,10 +947,12 @@ class MainWindow(QMainWindow):
         }
         sesham = "moon" if self.dasa_sesham_combo.currentText().startswith("Moon") else "full"
         year = self.dasa_year_combo.currentText().lower()
+        house = int(self.dasa_house_combo.currentText().split("(")[1].rstrip(")"))
         return DasaOptions(
             start_variation=seed_map[self.dasa_seed_combo.currentText()],
             sesham_method=sesham,
             year_definition=year,
+            seed_house=house,
         )
 
     @staticmethod

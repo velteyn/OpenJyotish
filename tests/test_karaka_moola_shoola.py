@@ -63,6 +63,25 @@ class TestShoola:
             assert total == pytest.approx(md.duration_years)
         assert md.sub_periods[0].lord_name == md.lord_name
 
+    def test_relative_seed_houses(self):
+        from jhora.dasas.base import DasaOptions
+        cd = _chart_1990()
+        # Pitri (9th Aquarius vs 7th Leo holding Moon) → Leo.
+        opts = DasaOptions(seed_house=9)
+        assert ShoolaDasa(opts).compute(
+            cd.julian_day, _dict(cd), opts)[0].lord_name == "Leo"
+        # Dara (7th Sagittarius vs lagna Gemini) → Sagittarius.
+        opts = DasaOptions(seed_house=7)
+        assert ShoolaDasa(opts).compute(
+            cd.julian_day, _dict(cd), opts)[0].lord_name == "Sagittarius"
+        # Putra (5th Libra vs Aries, both empty; Venus outranks Mars).
+        opts = DasaOptions(seed_house=5)
+        assert ShoolaDasa(opts).compute(
+            cd.julian_day, _dict(cd), opts)[0].lord_name == "Libra"
+        # Default is self (house 1).
+        assert ShoolaDasa().compute(
+            cd.julian_day, _dict(cd))[0].lord_name == "Sagittarius"
+
 
 class TestMoola:
     def test_starts_at_strongest_planet_sign(self):
