@@ -824,7 +824,8 @@ class TestDasaSystemsPropagation:
                     "narayana", "kalachakra", "brahma", "karaka",
                     "moola", "shoola", "trikona", "varnada",
                     "sthira", "navamsa", "yogardha",
-                    "niryana-shoola"):
+                    "niryana-shoola",
+                    "lagna-kendradi", "ak-kendradi"):
             assert sys in systems, f"{sys} missing from dasa systems"
             assert "current_mahadasha_lord" in systems[sys], \
                 f"{sys} has no current mahadasha"
