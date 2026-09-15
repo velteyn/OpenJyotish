@@ -187,3 +187,9 @@ class TestDasaSystems:
         assert result.exit_code == 0
         out = result.stdout.to_plain() if hasattr(result.stdout, "to_plain") else result.stdout
         assert "Narayana Dasa Periods" in out
+
+    def test_dasa_shoola_house_runs(self):
+        result = runner.invoke(app, ["dasa", BD, "shoola", "--house", "9"])
+        assert result.exit_code == 0
+        out = result.stdout.to_plain() if hasattr(result.stdout, "to_plain") else result.stdout
+        assert "Shoola Dasa Periods" in out
