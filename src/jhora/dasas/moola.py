@@ -1,5 +1,9 @@
 """Moola Dasa — Jaimini rasi dasa of roots and past karma.
 
+Simplified implementation: fixed 12-year cycle, strongest-planet seed;
+the reference binary's corrections (D-60 involvement, Moola-trikona /
+Moon / Sun / Lagna options) are pending.
+
 Classical method: the 12 rasi Mahadashas run in zodiacal order starting
 from the sign of the STRONGEST planet — strength scored as occupant
 count × 100, plus exaltation (+2) or debilitation (−2) × 30, plus the

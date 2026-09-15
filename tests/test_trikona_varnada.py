@@ -123,6 +123,44 @@ class TestVarnada:
             assert a.end_jd == b.start_jd
 
 
+class TestVarnadaSurfaces:
+    """Every surface chart path carries the true Hora Lagna (Capricorn)."""
+
+    def _engine_first(self, d):
+        from jhora.charts.chart import ChartBuilder
+        cd = _chart_1990()
+        return VarnadaDasa().compute(cd.julian_day, d)[0].lord_name
+
+    def test_cli_dict(self):
+        from jhora.cli.main import _chart_to_dict
+        assert self._engine_first(_chart_to_dict(_chart_1990())) == "Capricorn"
+
+    def test_tui_dict(self):
+        from jhora.tui.main import _chart_to_dict
+        assert self._engine_first(_chart_to_dict(_chart_1990())) == "Capricorn"
+
+    def test_gui_dict(self):
+        from jhora.ui.main_window import MainWindow
+        assert self._engine_first(
+            MainWindow._dasa_chart_dict(_chart_1990())) == "Capricorn"
+
+    def test_ai_json_matches_engine(self):
+        from datetime import datetime
+        from jhora.ai.json_export import chart_to_json
+        cd = _chart_1990()
+        result = chart_to_json(cd)
+        now = datetime.now()
+        from jhora.cli.main import _chart_to_dict
+        for p in VarnadaDasa().compute(
+                cd.julian_day, _chart_to_dict(cd)):
+            if p.start_date <= now <= p.end_date:
+                assert result["dasa"]["systems"]["varnada"][
+                    "current_mahadasha_lord"] == p.lord_name
+                break
+        else:
+            raise AssertionError("no current Varnada MD found")
+
+
 class TestRefChartStructural:
     """Second chart (1970 Chennai): invariants, not hardcoded sequences."""
 
