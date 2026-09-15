@@ -447,13 +447,15 @@ class JhoraTui:
             "Dasa System",
             "System:\n  vimsottari, ashtottari, yogini, sudasa, chara,\n"
             "  narayana, kalachakra, brahma, karaka, moola, shoola,\n"
-            "  trikona, varnada\n"
+            "  trikona, varnada,\n"
+            "  sthira, navamsa, yogardha\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
                 "vimsottari", "ashtottari", "yogini", "sudasa", "chara",
                 "narayana", "kalachakra", "brahma", "karaka", "moola",
-                "shoola", "trikona", "varnada"):
+                "shoola", "trikona", "varnada",
+                "sthira", "navamsa", "yogardha"):
             self._dasa_system = sys_val.strip().lower()
         system = self._dasa_system
         engine = self._get_dasa_engine(system)
@@ -506,6 +508,9 @@ class JhoraTui:
         from jhora.dasas.shoola import ShoolaDasa
         from jhora.dasas.trikona import TrikonaDasa
         from jhora.dasas.varnada import VarnadaDasa
+        from jhora.dasas.sthira import SthiraDasa
+        from jhora.dasas.navamsa import NavamsaDasa
+        from jhora.dasas.yogardha import YogardhaDasa
         from jhora.dasas.ashtottari import AshtottariDasa
         from jhora.dasas.yogini import YoginiDasa
         from jhora.dasas.vimsottari import VimsottariDasa
@@ -535,6 +540,12 @@ class JhoraTui:
             return TrikonaDasa(opts)
         if system == "varnada":
             return VarnadaDasa(opts)
+        if system == "sthira":
+            return SthiraDasa(opts)
+        if system == "navamsa":
+            return NavamsaDasa(opts)
+        if system == "yogardha":
+            return YogardhaDasa(opts)
         return VimsottariDasa(opts)
 
     def _action_dasa_settings(self):
@@ -544,13 +555,15 @@ class JhoraTui:
             "Dasa System",
             "System:\n  vimsottari, ashtottari, yogini, sudasa, chara,\n"
             "  narayana, kalachakra, brahma, karaka, moola, shoola,\n"
-            "  trikona, varnada\n"
+            "  trikona, varnada,\n"
+            "  sthira, navamsa, yogardha\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
                 "vimsottari", "ashtottari", "yogini", "sudasa", "chara",
                 "narayana", "kalachakra", "brahma", "karaka", "moola",
-                "shoola", "trikona", "varnada"):
+                "shoola", "trikona", "varnada",
+                "sthira", "navamsa", "yogardha"):
             self._dasa_system = sys_val.strip().lower()
         seed_map = {
             "moon": "Moon (default)", "lagna": "Lagna", "sun": "Sun",

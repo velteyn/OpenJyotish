@@ -822,7 +822,8 @@ class TestDasaSystemsPropagation:
         systems = result["dasa"]["systems"]
         for sys in ("ashtottari", "yogini", "sudasa", "chara",
                     "narayana", "kalachakra", "brahma", "karaka",
-                    "moola", "shoola", "trikona", "varnada"):
+                    "moola", "shoola", "trikona", "varnada",
+                    "sthira", "navamsa", "yogardha"):
             assert sys in systems, f"{sys} missing from dasa systems"
             assert "current_mahadasha_lord" in systems[sys], \
                 f"{sys} has no current mahadasha"
