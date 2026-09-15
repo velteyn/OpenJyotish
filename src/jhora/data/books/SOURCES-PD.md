@@ -165,6 +165,15 @@ redistribution. Those stay in the user's private books folder only.
 - Distinct value: teaches doshas-first reading against a passing total,
   the exact error naive score-reading makes.
 
+## 14. primer-10-synthesis.txt (original work, not public domain)
+
+- Original synthesis by the OpenJyotish contributors, same AGPL-3.0
+  license as the program. Ten-step method plus a full worked reading
+  that reuses only facts established in Chapters 1–9; synthesis
+  judgments explicitly marked as judgment, never as computation.
+- Distinct value: the book's binding — the only place the whole
+  discipline reads as one procedure.
+
 ## 10. primer-06-afflictions.txt (original work, not public domain)
 
 - Original synthesis by the OpenJyotish contributors, same AGPL-3.0
