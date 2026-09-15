@@ -166,12 +166,14 @@ def dasa(
     start: str = typer.Option("moon", "--start", help="Nakshatra dasa seed: moon, lagna, sun, kshema, utpanna, adhana"),
     sesham: str = typer.Option("moon", "--sesham", help="Sesham handling: moon (reduce first MD), full (no reduction)"),
     year_def: str = typer.Option("solar", "--year-def", help="Year definition: solar, savana, tithi"),
+    karaka_role: str = typer.Option("Dara", "--karaka-role", help="Karaka Dasa seed: Putra, Matri, Bhratri, Dara"),
 ):
     """Compute dasa periods for a chart.
 
     system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
-    kalachakra, brahma. Seed/sesham/year options apply to the nakshatra da8sas
-    (vimsottari, ashtottari, yogini).
+    kalachakra, brahma, karaka, moola, shoola. Seed/sesham/year options apply
+    to the nakshatra dasas (vimsottari, ashtottari, yogini); --karaka-role
+    selects the Karaka Dasa seed.
     """
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()
@@ -182,7 +184,8 @@ def dasa(
     )
     chart_dict = _chart_to_dict(chart_data)
     from jhora.dasas.base import DasaOptions
-    opts = DasaOptions(start_variation=start, sesham_method=sesham, year_definition=year_def)
+    opts = DasaOptions(start_variation=start, sesham_method=sesham, year_definition=year_def,
+                       karaka_role=karaka_role)
     engine = _get_dasa_engine(system, opts)
     periods = engine.compute(chart_data.julian_day, chart_dict, opts)
     _display_dasa_table(periods, f"{system.title()} Dasa Periods")
@@ -390,6 +393,15 @@ def _get_dasa_engine(system: str, options=None):
     if s == "brahma":
         from jhora.dasas.brahma import BrahmaDasa
         return BrahmaDasa()
+    if s == "karaka":
+        from jhora.dasas.karaka_dasa import KarakaDasa
+        return KarakaDasa(options)
+    if s == "moola":
+        from jhora.dasas.moola import MoolaDasa
+        return MoolaDasa(options)
+    if s == "shoola":
+        from jhora.dasas.shoola import ShoolaDasa
+        return ShoolaDasa(options)
     from jhora.dasas.vimsottari import VimsottariDasa
     return VimsottariDasa(options)
 
