@@ -37,6 +37,10 @@ class DasaOptions:
     include_subperiods: bool = True
     custom_sequence: Optional[List[int]] = None
 
+    #: Which chara karaka seeds Karaka Dasa ("Putra", "Matri", "Bhratri",
+    #: "Dara"); other systems ignore it.
+    karaka_role: str = "Dara"
+
 
 class DasaBase(ABC):
     """Abstract base for all dasa system implementations."""
