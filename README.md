@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 35 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1100 tests  |  AGPL v3.0
+21-section JSON API for AI agents  |  1112 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -185,7 +185,7 @@ data = json.loads(subprocess.run(
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
 | `ashtakavarga` | BAV, SAV, Sodhya Pinda, Kakshya bindu |
-| `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra/brahma (MD/AD; system positional) |
+| `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola (MD/AD; system positional, `--karaka-role` for karaka) |
 | `dasa-timeline` | Text bar chart with now-marker |
 | `conditional-dasas` | List additional dasa systems that apply |
 | `transit` | Current transits with SAV scores |
