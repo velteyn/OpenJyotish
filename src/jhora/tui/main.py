@@ -449,7 +449,8 @@ class JhoraTui:
             "  narayana, kalachakra, brahma, karaka, moola, shoola,\n"
             "  trikona, varnada,\n"
             "  sthira, navamsa, yogardha,\n"
-            "  niryana-shoola\n"
+            "  niryana-shoola, lagna-kendradi,\n"
+            "  ak-kendradi\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
@@ -457,7 +458,8 @@ class JhoraTui:
                 "narayana", "kalachakra", "brahma", "karaka", "moola",
                 "shoola", "trikona", "varnada",
                 "sthira", "navamsa", "yogardha",
-                "niryana-shoola"):
+                "niryana-shoola", "lagna-kendradi",
+                "ak-kendradi"):
             self._dasa_system = sys_val.strip().lower()
         system = self._dasa_system
         engine = self._get_dasa_engine(system)
@@ -514,6 +516,7 @@ class JhoraTui:
         from jhora.dasas.navamsa import NavamsaDasa
         from jhora.dasas.yogardha import YogardhaDasa
         from jhora.dasas.niryana_shoola import NiryanaShoolaDasa
+        from jhora.dasas.kendradi import LagnaKendradiDasa, AKKendradiDasa
         from jhora.dasas.ashtottari import AshtottariDasa
         from jhora.dasas.yogini import YoginiDasa
         from jhora.dasas.vimsottari import VimsottariDasa
@@ -551,6 +554,10 @@ class JhoraTui:
             return YogardhaDasa(opts)
         if system == "niryana-shoola":
             return NiryanaShoolaDasa(opts)
+        if system == "lagna-kendradi":
+            return LagnaKendradiDasa(opts)
+        if system == "ak-kendradi":
+            return AKKendradiDasa(opts)
         return VimsottariDasa(opts)
 
     def _action_dasa_settings(self):
@@ -562,7 +569,8 @@ class JhoraTui:
             "  narayana, kalachakra, brahma, karaka, moola, shoola,\n"
             "  trikona, varnada,\n"
             "  sthira, navamsa, yogardha,\n"
-            "  niryana-shoola\n"
+            "  niryana-shoola, lagna-kendradi,\n"
+            "  ak-kendradi\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
@@ -570,7 +578,8 @@ class JhoraTui:
                 "narayana", "kalachakra", "brahma", "karaka", "moola",
                 "shoola", "trikona", "varnada",
                 "sthira", "navamsa", "yogardha",
-                "niryana-shoola"):
+                "niryana-shoola", "lagna-kendradi",
+                "ak-kendradi"):
             self._dasa_system = sys_val.strip().lower()
         seed_map = {
             "moon": "Moon (default)", "lagna": "Lagna", "sun": "Sun",

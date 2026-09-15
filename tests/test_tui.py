@@ -35,7 +35,7 @@ def test_usl_action_method_exists():
 
 
 def test_dasa_system_supported():
-    """TUI dasa supports all 17 systems via _get_dasa_engine."""
+    """TUI dasa supports all 19 systems via _get_dasa_engine."""
     tui = JhoraTui()
     tui._dasa_seed = "moon"
     tui._dasa_sesham = "moon"
@@ -44,7 +44,8 @@ def test_dasa_system_supported():
                 "chara", "narayana", "kalachakra", "brahma",
                 "karaka", "moola", "shoola", "trikona", "varnada",
                 "sthira", "navamsa", "yogardha",
-                "niryana-shoola"]:
+                "niryana-shoola",
+                "lagna-kendradi", "ak-kendradi"]:
         tui._dasa_system = sys
         assert tui._get_dasa_engine(sys) is not None
 
