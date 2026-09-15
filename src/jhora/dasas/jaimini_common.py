@@ -120,11 +120,8 @@ def stronger_lord(sign: int, planet_sigs: Dict[Graha, int]) -> Graha:
     return l1 if s1 > s2 else l2
 
 
-def sign_years(sign: int, planet_sigs: Dict[Graha, int],
-               own_years: int = 12) -> int:
-    """Chara duration rule for one sign (1..12 years)."""
-    lord = stronger_lord(sign, planet_sigs)
-    lord_si = planet_sigs.get(lord, sign)
+def _count_years(sign: int, lord_si: int, own_years: int = 12) -> int:
+    """Sign-to-lord count for one sign (1..12 years)."""
     if lord_si == sign:
         return own_years
     direction = 1 if sign % 2 == 0 else -1  # odd-footed forward
@@ -139,22 +136,84 @@ def sign_years(sign: int, planet_sigs: Dict[Graha, int],
     return max(1, min(12, count))
 
 
+def sign_years(sign: int, planet_sigs: Dict[Graha, int],
+               own_years: int = 12) -> int:
+    """Chara duration rule for one sign (1..12 years)."""
+    lord = stronger_lord(sign, planet_sigs)
+    return _count_years(sign, planet_sigs.get(lord, sign), own_years)
+
+
 def cycle_years(planet_sigs: Dict[Graha, int],
                 own_years: int = 12) -> List[int]:
     """Chara durations for all 12 signs in zodiacal order."""
     return [sign_years(s, planet_sigs, own_years) for s in range(12)]
 
 
+def rao_dual_lord(sign: int, planet_sigs: Dict[Graha, int]) -> Graha:
+    """Scorpio/Aquarius lord with the mainstream Rao own-sign exception.
+
+    A planet sitting in its own dual-ruled sign alone loses to its
+    co-lord (Mars in Scorpio with Ketu elsewhere → Ketu; Saturn in
+    Aquarius with Rahu elsewhere → Rahu, and vice versa); otherwise the
+    shared ``stronger_lord`` resolution applies. Standard SJC/K.N. Rao
+    reading (Gary Gomes following Rao).
+    """
+    if sign == 7:  # Scorpio: Mars / Ketu
+        mars_si = planet_sigs.get(Graha.MARS)
+        ketu_si = planet_sigs.get(Graha.KETU)
+        if mars_si == 7 and ketu_si != 7:
+            return Graha.KETU
+        if ketu_si == 7 and mars_si != 7:
+            return Graha.MARS
+    elif sign == 10:  # Aquarius: Saturn / Rahu
+        sat_si = planet_sigs.get(Graha.SATURN)
+        rahu_si = planet_sigs.get(Graha.RAHU)
+        if sat_si == 10 and rahu_si != 10:
+            return Graha.RAHU
+        if rahu_si == 10 and sat_si != 10:
+            return Graha.SATURN
+    return stronger_lord(sign, planet_sigs)
+
+
+def chara_years(sign: int, planet_sigs: Dict[Graha, int]) -> int:
+    """Chara duration for one sign with the Rao dual-lord exception."""
+    lord = rao_dual_lord(sign, planet_sigs)
+    return _count_years(sign, planet_sigs.get(lord, sign))
+
+
+def chara_cycle_years(planet_sigs: Dict[Graha, int]) -> List[int]:
+    """Chara durations (Rao exception) for all 12 signs, zodiacal order."""
+    return [chara_years(s, planet_sigs) for s in range(12)]
+
+
+#: Odd-footed signs (Jaimini footedness, not index parity): Aries,
+#: Taurus, Gemini, Libra, Scorpio, Sagittarius.
+ODD_FOOTED = frozenset({0, 1, 2, 6, 7, 8})
+
+
+def chara_direction(lagna: int) -> int:
+    """Whole-cycle direction for Chara dasa (+1 direct, -1 reverse).
+
+    K.N. Rao 9th-from-lagna rule: direct (savya) when the 9th sign from
+    lagna is odd-footed, reverse (apasavya) otherwise. Matches the
+    Savya/Apasavya lagna groups on all 12 lagnas.
+    """
+    ninth = (int(lagna) + 8) % 12
+    return 1 if ninth in ODD_FOOTED else -1
+
+
 def rasi_dasa_tree(birth_jd: float, sequence: List[Tuple[int, int]],
                    sign_durations: List[int], y_per_d: float = 365.2425,
                    max_level: PeriodLevel = PeriodLevel.PRATYANTARDASA,
-                   parity_ads: bool = False) -> List[DasaPeriod]:
+                   parity_ads: bool = False,
+                   ad_direction: Optional[int] = None) -> List[DasaPeriod]:
     """Build an MD tree for a rasi-dasa sign sequence.
 
     ``sequence`` is [(sign, years), ...] in MD order; ``sign_durations``
     holds each cycle sign's own MD-year value (for proportional ADs).
-    Antardasas run the 12 signs from the MD sign — forward, or in parity
-    direction (odd MD forward, even MD backward) when ``parity_ads``.
+    Antardasas run the 12 signs from the MD sign — forward, in parity
+    direction (odd MD forward, even MD backward) when ``parity_ads``,
+    or in a fixed cycle direction when ``ad_direction`` is given.
     """
     total = sum(sign_durations)
     periods: List[DasaPeriod] = []
@@ -171,7 +230,9 @@ def rasi_dasa_tree(birth_jd: float, sequence: List[Tuple[int, int]],
         )
         if max_level.value >= PeriodLevel.ANTARDASA.value and total > 0:
             direction = 1
-            if parity_ads and sign % 2 == 1:
+            if ad_direction is not None:
+                direction = 1 if ad_direction >= 0 else -1
+            elif parity_ads and sign % 2 == 1:
                 direction = -1
             order_signs = [(sign + direction * k) % 12 for k in range(12)]
             ratios = [float(sign_durations[s]) for s in order_signs]

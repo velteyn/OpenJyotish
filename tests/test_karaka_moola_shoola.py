@@ -86,16 +86,16 @@ class TestKaraka:
     def test_dara_sequence_and_durations(self):
         # In-sign degrees: Ma 26.19 > Mo 23.78 > Sa 23.59 > Ra 19.98 >
         # Me 17.62 > Ju 9.64 > Ve 6.96 > Su 1.36 → Dara is Sun (Capricorn).
-        # Scorpio resolves to Mars (tie with Ketu broken by longitude),
-        # so its MD runs 12 own-sign years.
+        # Scorpio resolves to Ketu (Rao own-sign exception: Mars in
+        # Scorpio, Ketu elsewhere), so its MD runs 5 years.
         cd = _chart_1990()
         periods = KarakaDasa().compute(cd.julian_day, _dict(cd))
         assert _lords(periods) == [
             "Capricorn", "Aquarius", "Pisces", "Aries",
             "Taurus", "Gemini", "Cancer", "Leo",
             "Virgo", "Libra", "Scorpio", "Sagittarius"]
-        assert _durs(periods) == [2, 11, 10, 8, 5, 7, 11, 6, 10, 4, 12, 7]
-        assert sum(_durs(periods)) == 93
+        assert _durs(periods) == [2, 11, 10, 8, 5, 7, 11, 6, 10, 4, 5, 7]
+        assert sum(_durs(periods)) == 86
 
     def test_putra_starts_at_jupiters_sign(self):
         # Putra Karaka is Jupiter (6th) in Gemini.
@@ -142,12 +142,13 @@ class TestRefChartStructural:
 
     def test_karaka_matches_cycle_totals(self, ref_chart):
         from jhora.dasas.jaimini_common import (
-            cycle_years, normalize_planets, planet_signs)
+            chara_cycle_years, normalize_planets, planet_signs)
         from jhora.calc.karaka import compute_chara_karakas, karaka_dict
         cd, d = ref_chart, _dict(ref_chart)
         periods = KarakaDasa().compute(cd.julian_day, d)
         planets = normalize_planets(d["planets"])
-        assert sum(_durs(periods)) == sum(cycle_years(planet_signs(planets)))
+        assert sum(_durs(periods)) == sum(
+            chara_cycle_years(planet_signs(planets)))
         full = {g: {"longitude": lon} for g, lon in planets.items()}
         dk = karaka_dict(compute_chara_karakas(full))["DK"].graha
         assert periods[0].lord_name == Rasi(
