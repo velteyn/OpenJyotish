@@ -33,6 +33,10 @@ def dasa_snapshot(cd: ChartData) -> str:
                         for g, p in cd.planets.items()},
             "lagna_lon": cd.ascendant,
         }
+        if cd.hora_lagna is not None:
+            # True Hora Lagna for Varnada dasa (Sun-sign fallback
+            # when absent).
+            chart_dict["hora_lagna_lon"] = cd.hora_lagna.longitude
         periods = dasa.compute(cd.julian_day, chart_dict)
         now = datetime.now()
 
