@@ -158,6 +158,10 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
         cd_dict = {"planets": {g.value: {"longitude": p.longitude}
                                for g, p in cd.planets.items()},
                    "lagna_lon": cd.ascendant}
+        if cd.hora_lagna is not None:
+            # True Hora Lagna for Varnada dasa (Sun-sign fallback
+            # when absent).
+            cd_dict["hora_lagna_lon"] = cd.hora_lagna.longitude
         periods = dasa.compute(cd.julian_day, cd_dict)
         result["dasa"] = {"system": "vimsottari",
                           "options": {"seed": "moon", "sesham": "moon",
