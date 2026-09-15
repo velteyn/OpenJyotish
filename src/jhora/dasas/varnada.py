@@ -13,20 +13,19 @@ from the MD sign, proportional to each cycle sign's own year value.
 Dual-lord note: Scorpio (Mars/Ketu) and Aquarius (Saturn/Rahu)
 follow the mainstream Rao exception — a planet sitting in its own
 dual-ruled sign alone loses to its co-lord (e.g. Mars in Scorpio
-with Ketu elsewhere → count to Ketu). Otherwise the shared
-``stronger_lord`` resolution applies. This matches the fixture
-(Scorpio → 5 years via Ketu in Cancer) and is documented here so
-readers can compare with the simplified rule.
+with Ketu elsewhere → count to Ketu); see ``rao_dual_lord`` in
+``jaimini_common``, shared with Karaka and Chara. This matches the
+fixture (Scorpio → 5 years via Ketu in Cancer).
 """
 
 from typing import Dict, List, Optional
 
 from jhora.dasas.base import DasaBase, DasaOptions
 from jhora.dasas.jaimini_common import (
+    chara_years,
     normalize_planets,
     planet_signs,
     rasi_dasa_tree,
-    stronger_lord,
 )
 from jhora.types.dasa import DasaPeriod
 from jhora.types.graha import Graha
@@ -49,41 +48,7 @@ def _varnada_sign(lagna_lon: float, hora_lagna_lon: Optional[float],
     return (lag_n - hl_n + 12) % 12
 
 
-def _dual_lord(sign: int, planet_sigs: Dict[Graha, int]) -> Graha:
-    """Scorpio/Aquarius lord with the Rao own-sign exception."""
-    if sign == 7:  # Scorpio: Mars / Ketu
-        mars_si = planet_sigs.get(Graha.MARS)
-        ketu_si = planet_sigs.get(Graha.KETU)
-        if mars_si == 7 and ketu_si != 7:
-            return Graha.KETU
-        if ketu_si == 7 and mars_si != 7:
-            return Graha.MARS
-    elif sign == 10:  # Aquarius: Saturn / Rahu
-        sat_si = planet_sigs.get(Graha.SATURN)
-        rahu_si = planet_sigs.get(Graha.RAHU)
-        if sat_si == 10 and rahu_si != 10:
-            return Graha.RAHU
-        if rahu_si == 10 and sat_si != 10:
-            return Graha.SATURN
-    return stronger_lord(sign, planet_sigs)
 
-
-def _varnada_years(sign: int, planet_sigs: Dict[Graha, int]) -> int:
-    """Chara duration for one sign with the Rao dual-lord exception."""
-    lord = _dual_lord(sign, planet_sigs)
-    lord_si = planet_sigs.get(lord, sign)
-    if lord_si == sign:
-        return 12
-    direction = 1 if sign % 2 == 0 else -1  # odd-footed forward
-    count, s = 1, sign
-    while s != lord_si:
-        s = (s + direction) % 12
-        count += 1
-        if count > 12:
-            break
-    if count == 12:
-        count = 11  # full-circle traverses 11 years, not 12
-    return max(1, min(12, count))
 
 
 class VarnadaDasa(DasaBase):
@@ -100,7 +65,7 @@ class VarnadaDasa(DasaBase):
         sun_lon = planets.get(Graha.SUN, 0.0)
         vl = _varnada_sign(chart["lagna_lon"], chart.get("hora_lagna_lon"),
                            sun_lon)
-        durations = [_varnada_years(s, sigs) for s in range(12)]
+        durations = [chara_years(s, sigs) for s in range(12)]
         direction = 1 if vl % 2 == 0 else -1
         sequence = [((vl + direction * i) % 12,
                      durations[(vl + direction * i) % 12])
