@@ -172,9 +172,14 @@ def _estimate_tokens(text: str) -> int:
 
 
 def _truncate_sections(sections: dict, budget: int, order=None) -> str:
-    """Merge sections in priority order until budget exhausted."""
-    priority = order or ["analysis", "chart_detail", "chart_compact",
-                         "knowledge", "instruction"]
+    """Merge sections in priority order until budget exhausted.
+
+    The instruction carries the reasoning-model guardrails and is the
+    most important section, so it merges first and is never the part
+    that gets truncated away when snapshots grow.
+    """
+    priority = order or ["instruction", "analysis", "chart_detail",
+                         "chart_compact", "knowledge"]
     parts = []
     used = _estimate_tokens("")  # baseline
     for key in priority:
