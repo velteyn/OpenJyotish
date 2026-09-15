@@ -169,7 +169,8 @@ class TestDasaSystems:
         opts = DasaOptions()
         for sys in ["vimsottari", "ashtottari", "yogini", "sudasa",
                     "chara", "narayana", "kalachakra", "brahma",
-                    "karaka", "moola", "shoola", "trikona", "varnada"]:
+                    "karaka", "moola", "shoola", "trikona", "varnada",
+                    "sthira", "navamsa", "yogardha"]:
             engine = _get_dasa_engine(sys, opts)
             assert engine is not None
 
