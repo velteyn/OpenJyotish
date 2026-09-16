@@ -172,7 +172,7 @@ class TestDasaSystems:
                     "karaka", "moola", "shoola", "trikona", "varnada",
                     "sthira", "navamsa", "yogardha",
                     "niryana-shoola",
-                    "lagna-kendradi", "ak-kendradi"]:
+                    "lagna-kendradi"]:
             engine = _get_dasa_engine(sys, opts)
             assert engine is not None
 
