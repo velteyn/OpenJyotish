@@ -100,7 +100,6 @@ def dasa_snapshot(cd: ChartData) -> str:
             "Yogardha": _dasa_engine("yogardha"),
             "Niryana-Shoola": _dasa_engine("niryana-shoola"),
             "Lagna-Kendradi": _dasa_engine("lagna-kendradi"),
-            "AK-Kendradi": _dasa_engine("ak-kendradi"),
         }
         extra = []
         for name, engine in systems.items():
@@ -128,7 +127,7 @@ def _dasa_engine(system: str):
     """Return a dasa engine for the given system (vimsottari/ashtottari/
     yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola/
     trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/
-    lagna-kendradi/ak-kendradi). Uses standard defaults;
+    lagna-kendradi). Uses standard defaults;
     the nakshatra dasas (vimsottari/ashtottari/yogini) use the documented
     defaults (Moon seed, Moon sesham, solar year) matching the GUI/CLI/TUI."""
     from jhora.dasas.base import DasaOptions
@@ -184,9 +183,6 @@ def _dasa_engine(system: str):
     if system == "lagna-kendradi":
         from jhora.dasas.kendradi import LagnaKendradiDasa
         return LagnaKendradiDasa(opts)
-    if system == "ak-kendradi":
-        from jhora.dasas.kendradi import AKKendradiDasa
-        return AKKendradiDasa(opts)
     from jhora.dasas.vimsottari import VimsottariDasa
     return VimsottariDasa(opts)
 
