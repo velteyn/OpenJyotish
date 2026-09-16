@@ -67,7 +67,35 @@ class TestTrikona:
         for md in periods[:3]:
             total = sum(ad.duration_years for ad in md.sub_periods)
             assert total == pytest.approx(md.duration_years)
-        assert md.sub_periods[0].lord_name == md.lord_name
+
+    def test_antardasa_orders_match_jhora(self):
+        # Four Wine-extracted JHora samples (Jan 1990 chart): equal
+        # splits in modality-gated order.
+        from jhora.types.rasi import Rasi
+        cd = _chart_1990()
+        by_lord = {p.lord_name: p
+                   for p in TrikonaDasa().compute(cd.julian_day, _dict(cd))}
+        expected = {
+            "Virgo": ["Virgo", "Gemini", "Pisces", "Sagittarius",
+                      "Taurus", "Aquarius", "Scorpio", "Leo",
+                      "Capricorn", "Libra", "Cancer", "Aries"],
+            "Gemini": ["Sagittarius", "Pisces", "Gemini", "Virgo",
+                       "Aries", "Cancer", "Libra", "Capricorn",
+                       "Leo", "Scorpio", "Aquarius", "Taurus"],
+            "Capricorn": ["Capricorn", "Sagittarius", "Scorpio", "Libra",
+                          "Virgo", "Leo", "Cancer", "Gemini",
+                          "Taurus", "Aries", "Pisces", "Aquarius"],
+            "Aquarius": ["Leo", "Capricorn", "Gemini", "Scorpio",
+                         "Aries", "Virgo", "Aquarius", "Cancer",
+                         "Sagittarius", "Taurus", "Libra", "Pisces"],
+        }
+        for lord, order in expected.items():
+            ads = by_lord[lord].sub_periods
+            assert [a.lord_name for a in ads] == order
+            first = ads[0].duration_years
+            for ad in ads:
+                assert ad.duration_years == pytest.approx(first)
+        assert Rasi(9).is_movable and Rasi(10).is_fixed
 
 
 class TestVarnada:
