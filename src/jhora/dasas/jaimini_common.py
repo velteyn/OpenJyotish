@@ -134,8 +134,10 @@ def _count_years(sign: int, lord_si: int, own_years: int = 12) -> int:
     signs (Aries, Taurus, Gemini, Libra, Scorpio, Sagittarius; see
     ``ODD_FOOTED``), backward from even-footed ones — and subtract one.
     Lord in own sign gives ``own_years`` (12); a full-circle inclusive
-    count of 12 gives 11. No exaltation / debilitation adjustment
-    (the author's preset leaves ``CharaDasaExaltationException`` off).
+    count of 12 gives 11. No exaltation / debilitation adjustment:
+    the author's preset leaves ``CharaDasaExaltationException`` off,
+    and published tables confirm no deduction (Capricorn runs 9 years
+    with debilitated Saturn as lord on the 1970 fixture).
     """
     if lord_si == sign:
         return own_years
