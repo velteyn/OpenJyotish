@@ -65,7 +65,11 @@ class TestLagnaKendradi:
                      cd.julian_day)
 
 
+@pytest.mark.skip(reason="AK Kendradi suspended: JHora extraction refutes "
+                        "seed/order/cycles; pending dedicated research")
 class TestAKKendradi:
+    """SUSPENDED — see module note. Skipped, not deleted."""
+
     def test_sequence_and_durations(self):
         # AK Mars in Scorpio beats Taurus; Scorpio odd index, no
         # Saturn/Ketu → backward kendra jumps.
@@ -89,7 +93,7 @@ class TestRefChartStructural:
 
     def test_both_cover_twelve(self, ref_chart):
         cd, d = ref_chart, _dict(ref_chart)
-        for engine in (LagnaKendradiDasa(), AKKendradiDasa()):
+        for engine in (LagnaKendradiDasa(),):
             periods = engine.compute(cd.julian_day, d)
             assert len(periods) == 12
             assert len({p.lord_name for p in periods}) == 12
