@@ -95,7 +95,13 @@ class LagnaKendradiDasa(DasaBase):
 
 
 class AKKendradiDasa(DasaBase):
-    """Kendradi cycle seeded at the stronger of AK-sign/7th-from-AK."""
+    """Kendradi cycle seeded at the stronger of AK-sign/7th-from-AK.
+
+    EXPERIMENTAL / SUSPENDED (2026-09-15): live reference tables
+    (Gandhi + 1990 charts) refutes this construction on seed, order
+    and cycles. Not wired to any surface. Do not re-enable without
+    the dedicated research change resolving the seed rule.
+    """
 
     system_name = "ak-kendradi"
 
