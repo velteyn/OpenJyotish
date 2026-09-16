@@ -62,14 +62,17 @@ class TestSthira:
 
 
 class TestNavamsa:
-    def test_starts_at_d9_lagna_and_covers_twelve(self):
-        from jhora.dasas.navamsa import _navamsa_sign
+    def test_sequence_and_durations(self):
+        # D1 lagna lord Mercury in Sagittarius → forward from
+        # Sagittarius, 9 fixed years (JHora-verified on 3 charts).
         cd = _chart_1990()
-        d9_lagna = _navamsa_sign(cd.ascendant)
         periods = NavamsaDasa().compute(cd.julian_day, _dict(cd))
-        assert len(periods) == 12
-        assert periods[0].lord_index == 100 + d9_lagna
-        assert len({p.lord_name for p in periods}) == 12
+        assert _lords(periods) == [
+            "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+            "Aries", "Taurus", "Gemini", "Cancer",
+            "Leo", "Virgo", "Libra", "Scorpio"]
+        assert _durs(periods) == [9] * 12
+        assert sum(_durs(periods)) == 108
 
     def test_tree_integrity(self):
         cd = _chart_1990()
