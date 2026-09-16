@@ -294,7 +294,7 @@ class MainWindow(QMainWindow):
             "Chara", "Narayana", "Kalachakra", "Brahma",
             "Karaka", "Moola", "Shoola", "Trikona", "Varnada",
             "Sthira", "Navamsa", "Yogardha", "Niryana-Shoola",
-            "Lagna-Kendradi", "AK-Kendradi",
+            "Lagna-Kendradi",
         ])
         self.dasa_system_combo.currentTextChanged.connect(self._update_dasa_text)
         dl.addWidget(self.dasa_system_combo)
@@ -1042,9 +1042,6 @@ class MainWindow(QMainWindow):
         elif system == "Lagna-Kendradi":
             from jhora.dasas.kendradi import LagnaKendradiDasa
             return LagnaKendradiDasa(options)
-        elif system == "AK-Kendradi":
-            from jhora.dasas.kendradi import AKKendradiDasa
-            return AKKendradiDasa(options)
         from jhora.dasas.vimsottari import VimsottariDasa
         return VimsottariDasa(options)
 
