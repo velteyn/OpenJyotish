@@ -149,6 +149,63 @@ def test_vector_search_skips_dim_mismatch():
     assert res == []
 
 
+class TestFreshInstallSeeding:
+    """Fresh downloads ship an empty knowledge_texts table — the vector
+    build must seed it from the bundled library (our Primer + PD classics)
+    instead of storing 0 chunks, and Learn must still cite books."""
+
+    @staticmethod
+    def _tmp_db(tmp_path, name):
+        from jhora.core import database as db
+        old = db._db_path
+        db.set_db_path(str(tmp_path / name))
+        return old
+
+    @staticmethod
+    def _restore(old):
+        from jhora.core import database as db
+        db.close_all()
+        db._db_path = old
+
+    def test_build_seeds_shipped_texts(self, tmp_path, monkeypatch):
+        import jhora.ai.embeddings as e
+        old = self._tmp_db(tmp_path, "fresh.db")
+        try:
+            monkeypatch.setattr(
+                e, "_get_embeddings_batch",
+                lambda texts, base_url, provider, model="":
+                    [[0.1] * 8 for _ in texts])
+            monkeypatch.setattr(e.EmbeddingStore, "_detect_embedding_model",
+                                lambda self: "fake")
+            store = e.EmbeddingStore(provider="lmstudio",
+                                     base_url="http://x:1234")
+            assert store.db.execute(
+                "SELECT COUNT(*) FROM knowledge_texts").fetchone()[0] == 0
+            n = store.build(batch_size=50, throttle_ms=0, jobs=1)
+            assert n > 0
+            names = {r[0] for r in store.db.execute(
+                "SELECT source_name FROM knowledge_texts").fetchall()}
+            assert "Primer 01 Foundations" in names
+        finally:
+            self._restore(old)
+
+    def test_search_falls_back_to_fts_when_chunks_empty(
+            self, tmp_path, monkeypatch):
+        import jhora.ai.embeddings as e
+        old = self._tmp_db(tmp_path, "fresh2.db")
+        try:
+            from jhora.interpreter.knowledge_base import KnowledgeBase
+            KnowledgeBase()  # seed texts, but no vector build
+            monkeypatch.setattr(e, "_get_embedding",
+                                lambda q, base, prov: [0.1] * 8)
+            store = e.EmbeddingStore(provider="lmstudio",
+                                     base_url="http://x:1234")
+            res = store.search("Jupiter dasha effects", top_k=3)
+            assert res, "Learn gets no textbook backing without a vector build"
+        finally:
+            self._restore(old)
+
+
 def test_ai_base_url_follows_provider(_qapp):
     from jhora.ui.main_window import MainWindow
     window = MainWindow()
