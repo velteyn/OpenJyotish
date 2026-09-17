@@ -1805,6 +1805,29 @@ def _verify_and_print(answer: str, cd, passages=None, disable=False):
         pass
 
 
+def _repair_tracker():
+    """Notify callback that records whether a repair round ran.
+
+    The streamed draft can differ from the repaired return text — callers
+    re-print the repaired text when ``state["repaired"]`` is set, then
+    reset it for the next turn.
+    """
+    state = {"repaired": False}
+
+    def _notify(msg: str):
+        state["repaired"] = True
+        console.print(f"[dim]{msg.strip()}[/dim]", highlight=False)
+
+    return state, _notify
+
+
+def _print_repaired(state, text: str):
+    if state["repaired"]:
+        console.print("\n[bold]Repaired reading:[/bold]\n")
+        console.print(text, highlight=False)
+        state["repaired"] = False
+
+
 @app.command()
 def ai(
     birthdata: str = typer.Argument(None, help="Birth data"),
@@ -1872,6 +1895,8 @@ def ai(
     def _on_token(tok: str):
         console.print(tok, end="", highlight=False)
 
+    tracker, _notify = _repair_tracker()
+
     if chat:
         if not question:
             console.print("[red]--question required as initial question in --chat mode[/red]")
@@ -1882,8 +1907,10 @@ def ai(
         try:
             while True:
                 answer, history, reset = engine.chat(
-                    cd, question, history=history, on_token=_on_token)
+                    cd, question, history=history, on_token=_on_token,
+                    notify=_notify)
                 console.print()
+                _print_repaired(tracker, answer)
                 _verify_and_print(answer, cd, disable=no_verify)
                 if reset:
                     console.print("[dim][context compacted][/dim]")
@@ -1900,15 +1927,17 @@ def ai(
         raise typer.Exit(1)
 
     if mode == "interpret":
-        text = engine.interpret(cd, style, topic, on_token=_on_token)
+        text = engine.interpret(cd, style, topic, on_token=_on_token,
+                                notify=_notify)
     elif mode == "ask":
-        text = engine.ask(cd, question, on_token=_on_token)
+        text = engine.ask(cd, question, on_token=_on_token, notify=_notify)
     elif mode == "remedies":
-        text = engine.remedies(cd, on_token=_on_token)
+        text = engine.remedies(cd, on_token=_on_token, notify=_notify)
     else:
         console.print(f"[red]Unknown mode: {mode}[/red]")
     console.print()
     if mode in ("interpret", "ask", "remedies"):
+        _print_repaired(tracker, text)
         _verify_and_print(text, cd, disable=no_verify)
     console.print()
 
@@ -1971,6 +2000,8 @@ def teach(
     def _print(tok):
         console.print(tok, end="", highlight=False)
 
+    tracker, _notify = _repair_tracker()
+
     console.print(f"[dim]Teacher ({provider} / {teacher.model}):[/dim]\n")
 
     if chat:
@@ -1980,8 +2011,10 @@ def teach(
         try:
             while True:
                 answer, history, reset = teacher.chat(
-                    question, chart=chart, history=history, on_token=_print)
+                    question, chart=chart, history=history, on_token=_print,
+                    notify=_notify)
                 console.print()
+                _print_repaired(tracker, answer)
                 _verify_and_print(
                     answer, chart,
                     [s.get("excerpt", "") for s in teacher.last_sources
@@ -1996,8 +2029,10 @@ def teach(
             console.print("\n[dim]Chat ended.[/dim]")
         return
 
-    text = teacher.ask(question, chart=chart, on_token=_print)
+    text = teacher.ask(question, chart=chart, on_token=_print,
+                       notify=_notify)
     console.print()
+    _print_repaired(tracker, text)
     _verify_and_print(
         text, chart,
         [s.get("excerpt", "") for s in teacher.last_sources
