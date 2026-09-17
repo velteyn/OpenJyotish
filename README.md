@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 37 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1153 tests  |  AGPL v3.0
+21-section JSON API for AI agents  |  1155 tests  |  AGPL v3.0
 ```
 
 ## Quick Install
@@ -34,14 +34,17 @@ run.bat
 
 Ephemeris data is auto-downloaded by `install.sh` / `install.bat` (2 files, ~1MB).
 pip installs: the app offers the one-time download on first Calculate
-(or Tools → Ephemeris → Download, or `jhora download-ephe`). Textbook
-`.txt` files go in the books folder inside your per-user data directory
-(Knowledge tab → "Import books…" or `jhora knowledge-import f.txt`),
-then Rebuild the Vector DB. The public repo ships a clean database
-(schema + city atlas, no book texts): your library stays yours.
-Three public-domain classics ship built-in (Iyer's Brihat Jataka 1885
-and Brihat Samhita 1884, Burgess's Surya Siddhanta 1860 — provenance in
-src/jhora/data/books/SOURCES-PD.md), so the Guru works out of the box.
+(or Tools → Ephemeris → Download, or `jhora download-ephe`). Your own
+textbook `.txt` files go in the books folder inside your per-user data
+directory (Knowledge tab → "Import books…" or `jhora knowledge-import
+f.txt`), then Build/Rebuild the Vector DB. The public repo ships a clean
+database (schema + city atlas, no book texts): your library stays yours.
+Out of the box you still get a working library: our 10-chapter OpenJyotish
+Primer plus four public-domain classics (Iyer's Brihat Jataka 1885 and
+Brihat Samhita 1884, Burgess's Surya Siddhanta 1860, Sastri's Siddhanta
+Siromani 1861 — provenance in src/jhora/data/books/SOURCES-PD.md). The
+vector build loads them automatically on first run, so the Guru and Learn
+cite real textbooks with zero setup.
 
 ### No-Python downloads (Windows & macOS)
 
