@@ -104,7 +104,8 @@ class AiTeacher:
         self.last_sources: list = []
 
     def ask(self, question: str, chart: Optional[ChartData] = None,
-            on_token: Optional[Callable[[str], None]] = None) -> str:
+            on_token: Optional[Callable[[str], None]] = None,
+            notify: Optional[Callable[[str], None]] = None) -> str:
         """Answer a teaching question with textbook references."""
 
         # Search textbook corpus for relevant passages
@@ -141,10 +142,24 @@ class AiTeacher:
                 f"Explain the relevant Vedic astrology concepts clearly."
             )
 
-        return self._stream(messages=[
+        return self._repair(self._stream(messages=[
             {"role": "system", "content": TEACHER_SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
-        ], on_token=on_token)
+        ], on_token=on_token), chart, notify)
+
+    def _repair(self, answer: str, chart: Optional[ChartData],
+                notify: Optional[Callable[[str], None]] = None) -> str:
+        """Automatic verify-and-repair (chart answers only; pure theory
+        questions have no chart to check against)."""
+        if chart is None:
+            return answer
+        from jhora.ai.repair import repair_answer
+        best, _v = repair_answer(
+            answer, chart,
+            [s.get("excerpt", "") for s in self._last_passages],
+            call_fn=lambda msgs: self._stream(msgs),
+            notify_fn=notify)
+        return best
 
     def explain_feature(self, feature: str,
                         on_token: Optional[Callable[[str], None]] = None) -> str:
@@ -308,7 +323,8 @@ class AiTeacher:
     def chat(self, question: str,
              chart: Optional[ChartData] = None,
              history: Optional[List[dict]] = None,
-             on_token: Optional[Callable[[str], None]] = None
+             on_token: Optional[Callable[[str], None]] = None,
+             notify: Optional[Callable[[str], None]] = None
              ) -> Tuple[str, List[dict], bool]:
         """Threaded teaching conversation with per-turn RAG.
 
@@ -336,7 +352,8 @@ class AiTeacher:
                  f"Continuing a follow-up conversation.\n\n{user_msg}"},
             ]
 
-        answer = self._stream(messages, on_token=on_token)
+        answer = self._repair(
+            self._stream(messages, on_token=on_token), chart, notify)
         history.append({"role": "user", "content": question})
         history.append({"role": "assistant", "content": answer})
         return answer, history, reset
