@@ -980,10 +980,10 @@ class TestConversationChat:
     def test_chat_includes_prior_history_in_request(self, monkeypatch):
         """The engine re-sends the full thread (history + new question) to the model."""
         enginst = self._engine()
-        captured = {}
+        calls = []
 
         def fake_chat_completion(messages, on_token=None):
-            captured["messages"] = messages
+            calls.append(messages)
             return "Moon in Aries answer"
 
         monkeypatch.setattr(enginst, "_chat_completion", fake_chat_completion)
@@ -992,7 +992,9 @@ class TestConversationChat:
                 {"role": "assistant", "content": "Mars in the 10th house."}]
         answer, new_hist, reset = enginst.chat(cd, "And marriage?",
                                                history=hist)
-        msgs = captured["messages"]
+        # First call is the original request (later calls are repair rounds
+        # for the deliberately wrong "Moon in Aries" answer).
+        msgs = calls[0]
         all_text = " ".join(m.get("content", "") for m in msgs)
         assert "What about my career?" in all_text
         assert "Mars in the 10th house." in all_text
