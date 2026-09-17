@@ -2,7 +2,9 @@
 """Build the Jhora database from source data.
 
 Downloads cities15000.zip from geonames.org (CC BY 4.0) and imports
-book extracts from docs/books/extracted/. Writes everything into the
+book texts — the shipped library from src/jhora/data/books/ (our Primer +
+public-domain classics) plus extracts from docs/books/extracted/ (dev only,
+copyrighted, never shipped). Writes everything into the
 unified database at data/jhora.db.
 
 Usage:
@@ -28,6 +30,7 @@ DB_PATH = Path("data/jhora.db")
 SRC_TXT = Path("data/cities15000.txt")
 SRC_ZIP = Path("data/cities15000.zip")
 BOOKS_DIR = Path("docs/books/extracted")
+PD_BOOKS_DIR = Path("src/jhora/data/books")
 
 
 def tz_offset(tzname: str) -> float:
@@ -107,23 +110,38 @@ def build_cities(db: sqlite3.Connection, src: Path):
     db.commit()
 
 
+def _source_name(f: Path) -> str:
+    # Same normalization as KnowledgeBase._load_on_demand.
+    return f.stem.replace("_", " ").replace("-", " ").replace(".pdf", "").title()
+
+
 def build_knowledge(db: sqlite3.Connection):
-    if not BOOKS_DIR.exists():
-        print(f"Books dir not found: {BOOKS_DIR} — skipping knowledge base")
+    # Shipped library first (Primer + public-domain classics — always
+    # distributable), then dev extracts (copyrighted, never shipped).
+    dirs = [d for d in (PD_BOOKS_DIR, BOOKS_DIR) if d.exists()]
+    for d in (PD_BOOKS_DIR, BOOKS_DIR):
+        if not d.exists():
+            print(f"Books dir not found: {d} — skipping")
+    if not dirs:
         return
     print("Building knowledge base ...")
     db.execute("DELETE FROM knowledge_fts")
     db.execute("DELETE FROM knowledge_texts")
     count = 0
-    for f in sorted(BOOKS_DIR.glob("*.txt")):
-        name = f.stem.replace("_", " ").replace(".pdf", "").title()
-        content = f.read_text(encoding="utf-8", errors="replace")
-        db.execute(
-            "INSERT INTO knowledge_texts (source_name, content, char_count) VALUES (?,?,?)",
-            (name, content, len(content)),
-        )
-        count += 1
-        print(f"  {name}: {len(content):,} chars")
+    seen = set()
+    for d in dirs:
+        for f in sorted(d.glob("*.txt")):
+            name = _source_name(f)
+            if name in seen:
+                continue
+            seen.add(name)
+            content = f.read_text(encoding="utf-8", errors="replace")
+            db.execute(
+                "INSERT INTO knowledge_texts (source_name, content, char_count) VALUES (?,?,?)",
+                (name, content, len(content)),
+            )
+            count += 1
+            print(f"  {name}: {len(content):,} chars")
     db.execute("INSERT INTO knowledge_fts(knowledge_fts) VALUES('rebuild')")
     db.commit()
     print(f"\n  {count} texts loaded, {db.execute('SELECT SUM(char_count) FROM knowledge_texts').fetchone()[0]:,} total chars")
