@@ -332,6 +332,16 @@ class EmbeddingStore:
             print(f"Already have {count} chunks with embeddings — skipping")
             return count
 
+        # Fresh installs ship an empty knowledge_texts table — seed it from
+        # the bundled library (our Primer + public-domain classics) so the
+        # build below finds sources instead of storing 0 chunks.
+        n_texts = self.db.execute("SELECT COUNT(*) FROM knowledge_texts").fetchone()[0]
+        if n_texts == 0:
+            from jhora.interpreter.knowledge_base import KnowledgeBase
+            kb = KnowledgeBase()
+            n_texts = kb.loaded
+            print(f"Seeded {n_texts} shipped texts into the knowledge base")
+
         # Clean up any incomplete chunks (e.g., from failed runs)
         self.db.execute("DELETE FROM textbook_chunks")
         self.db.commit()
@@ -401,7 +411,11 @@ class EmbeddingStore:
         # Try embedding search first
         query_emb = _get_embedding(query, self.base_url, self.provider)
         if query_emb is not None:
-            return self._vector_search(query_emb, top_k)
+            results = self._vector_search(query_emb, top_k)
+            if results:
+                return results
+            # Vector DB empty/not built yet — fall through to FTS so the
+            # shipped books still back the answer instead of silence.
         # Fallback to FTS5 full-text search
         return self._fts_search(query, top_k)
 
