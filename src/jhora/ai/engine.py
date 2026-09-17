@@ -643,7 +643,8 @@ class AiEngine:
 
     def interpret(self, cd: ChartData, style: str = "detailed",
                   topic: str = "general",
-                  on_token: Optional[Callable[[str], None]] = None) -> str:
+                  on_token: Optional[Callable[[str], None]] = None,
+                  notify: Optional[Callable[[str], None]] = None) -> str:
         """Generate a full chart interpretation."""
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -651,10 +652,12 @@ class AiEngine:
                 cd, style, topic, max_context=self.config.max_context_tokens,
             )},
         ]
-        return self._chat_completion(messages, on_token)
+        return self._repair(
+            self._chat_completion(messages, on_token), cd, notify)
 
     def ask(self, cd: ChartData, question: str,
-            on_token: Optional[Callable[[str], None]] = None) -> str:
+            on_token: Optional[Callable[[str], None]] = None,
+            notify: Optional[Callable[[str], None]] = None) -> str:
         """Answer a specific question about the chart."""
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -662,10 +665,12 @@ class AiEngine:
                 cd, question, max_context=self.config.max_context_tokens,
             )},
         ]
-        return self._chat_completion(messages, on_token)
+        return self._repair(
+            self._chat_completion(messages, on_token), cd, notify)
 
     def remedies(self, cd: ChartData,
-                 on_token: Optional[Callable[[str], None]] = None) -> str:
+                 on_token: Optional[Callable[[str], None]] = None,
+                 notify: Optional[Callable[[str], None]] = None) -> str:
         """Suggest Vedic remedies based on chart weaknesses."""
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -673,7 +678,19 @@ class AiEngine:
                 cd, max_context=self.config.max_context_tokens,
             )},
         ]
-        return self._chat_completion(messages, on_token)
+        return self._repair(
+            self._chat_completion(messages, on_token), cd, notify)
+
+    def _repair(self, answer: str, cd: ChartData,
+                notify: Optional[Callable[[str], None]] = None) -> str:
+        """Automatic verify-and-repair: flagged claims go back to the model
+        with engine corrections (extra delay, announced via notify)."""
+        from jhora.ai.repair import repair_answer
+        best, _v = repair_answer(
+            answer, cd, None,
+            call_fn=lambda msgs: self._chat_completion(msgs),
+            notify_fn=notify)
+        return best
 
     # --- Threaded conversation chat ----------------------------------------
 
@@ -682,7 +699,8 @@ class AiEngine:
 
     def chat(self, cd: ChartData, question: str,
              history: Optional[List[dict]] = None,
-             on_token: Optional[Callable[[str], None]] = None):
+             on_token: Optional[Callable[[str], None]] = None,
+             notify: Optional[Callable[[str], None]] = None):
         """Threaded multi-turn conversation.
 
         Builds the fixed conversation anchor once (cached per engine), appends
@@ -706,16 +724,19 @@ class AiEngine:
                 anchor, question, history,
                 lead_in=f"{summary}\n\nContinuing a follow-up conversation.",
             )
-        answer = self._chat_completion(messages, on_token)
+        answer = self._repair(
+            self._chat_completion(messages, on_token), cd, notify)
         history.append({"role": "user", "content": question})
         history.append({"role": "assistant", "content": answer})
         return answer, history, reset
 
     def continue_chat(self, cd: ChartData, question: str,
                       history: Optional[List[dict]] = None,
-                      on_token: Optional[Callable[[str], None]] = None):
+                      on_token: Optional[Callable[[str], None]] = None,
+                      notify: Optional[Callable[[str], None]] = None):
         """Alias for ``chat`` — the caller keeps a growing history list."""
-        return self.chat(cd, question, history=history, on_token=on_token)
+        return self.chat(cd, question, history=history, on_token=on_token,
+                         notify=notify)
 
     def _conversation_anchor(self, cd: ChartData) -> str:
         key = id(cd)
