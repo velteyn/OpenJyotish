@@ -4530,7 +4530,8 @@ class _TeacherWorker(QThread):
                                 temperature=self.temperature)
             ans, hist, reset = teacher.chat(
                 self.question, chart=self.chart,
-                history=self.history, on_token=self.token.emit)
+                history=self.history, on_token=self.token.emit,
+                notify=self.token.emit)
             self.result_history = hist
             self.result_reset = reset
             self.result_sources = list(getattr(teacher, "last_sources", []))
@@ -4604,14 +4605,16 @@ class _AiWorker(QThread):
             if self.mode == "interpret":
                 self.result_text = self.engine.interpret(
                     self.chart, self.style, self.topic,
-                    on_token=self.token.emit)
+                    on_token=self.token.emit, notify=self.token.emit)
             elif self.mode == "remedies":
                 self.result_text = self.engine.remedies(
-                    self.chart, on_token=self.token.emit)
+                    self.chart, on_token=self.token.emit,
+                    notify=self.token.emit)
             elif self.mode == "ask":
                 ans, hist, reset = self.engine.chat(
                     self.chart, self.question,
-                    history=self.history, on_token=self.token.emit)
+                    history=self.history, on_token=self.token.emit,
+                    notify=self.token.emit)
                 self.result_history = hist
                 self.result_reset = reset
             self.done.emit()
