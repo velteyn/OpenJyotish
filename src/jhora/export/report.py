@@ -46,15 +46,36 @@ def generate_chart_report(cd: ChartData, output_path: str,
 
 
 def _meta(cd: ChartData) -> str:
+    from jhora.export.traditional import (
+        _panchanga_fields, _sunrise_sunset, _dasa_balance)
     lagna = Rasi.from_longitude(cd.ascendant)
     lat_hemi = "N" if cd.latitude >= 0 else "S"
     lon_hemi = "E" if cd.longitude >= 0 else "W"
+    try:
+        pg = _panchanga_fields(cd)
+        panch = (f" | <strong>Tithi:</strong> {pg['tithi']} | "
+                 f"<strong>Yoga:</strong> {pg['yoga']} | "
+                 f"<strong>Karana:</strong> {pg['karana']}")
+    except Exception:
+        panch = ""
+    try:
+        sr, ss = _sunrise_sunset(cd)
+        sun = f" | <strong>Sunrise:</strong> {sr} | <strong>Sunset:</strong> {ss}"
+    except Exception:
+        sun = ""
+    try:
+        lord, bal = _dasa_balance(cd)
+        yrs, rem = int(bal), (bal - int(bal)) * 12
+        dasa = (f" | <strong>Dasa balance:</strong> {lord.full_name} "
+                f"{yrs}y {rem:.0f}m")
+    except Exception:
+        dasa = ""
     return f"""
 <div class="meta">
   <strong>Birth:</strong> {cd.birth_date.strftime('%Y-%m-%d %H:%M')} |
-  <strong>Location:</strong> {lat_hemi}, {lon_hemi} |
+  <strong>Location:</strong> {abs(cd.latitude):.2f}°{lat_hemi}, {abs(cd.longitude):.2f}°{lon_hemi} |
   <strong>Lagna:</strong> {lagna.full_name} {cd.ascendant:.1f}° |
-  <strong>Ayanamsa:</strong> {cd.ayanamsa_name.title()}
+  <strong>Ayanamsa:</strong> {cd.ayanamsa_name.title()}{panch}{sun}{dasa}
 </div>"""
 
 
@@ -113,6 +134,48 @@ def _shadbala_table(cd: ChartData) -> str:
         return f"""<h2>Shadbala (Planetary Strengths)</h2>
 <table><tr><th>Planet</th><th>Sthana</th><th>Dig</th><th>Kala</th>
 <th>Chesta</th><th>Naisarg</th><th>Drik</th><th>Total (V)</th></tr>
+{"".join(rows)}</table>"""
+    except Exception:
+        return ""
+
+
+def _bhava_bala_table(cd: ChartData) -> str:
+    try:
+        bc = BhavaBalaComputer(cd)
+        rows = []
+        for h in range(1, 13):
+            r = bc.compute(h)
+            rows.append(
+                f"<tr><td>{h}</td>"
+                f"<td>{r.sthana:.1f}</td>"
+                f"<td>{r.drishti:.1f}</td>"
+                f"<td>{r.dig:.1f}</td>"
+                f"<td>{r.adhipati:.1f}</td>"
+                f"<td>{r.drig:.1f}</td>"
+                f"<td>{r.total:.1f}</td></tr>"
+            )
+        return f"""<h2>Bhava Bala (House Strengths)</h2>
+<table><tr><th>House</th><th>Sthana</th><th>Drishti</th><th>Dig</th>
+<th>Adhipati</th><th>Drig</th><th>Total</th></tr>
+{"".join(rows)}</table>"""
+    except Exception:
+        return ""
+
+
+def _ashtakavarga_table(cd: ChartData) -> str:
+    try:
+        from jhora.export.traditional import _classical_bav
+        bavs, sav = _classical_bav(cd)
+        head = "".join(f"<th>{i}</th>" for i in range(1, 13))
+        rows = []
+        for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                  Graha.JUPITER, Graha.VENUS, Graha.SATURN]:
+            cells = "".join(f"<td>{v}</td>" for v in bavs[g])
+            rows.append(f"<tr><td>{g.full_name}</td>{cells}</tr>")
+        total = "".join(f"<td><strong>{v}</strong></td>" for v in sav)
+        rows.append(f"<tr><td><strong>Total</strong></td>{total}</tr>")
+        return f"""<h2>Ashtakavarga (SAV total {sum(sav)})</h2>
+<table><tr><th>Planet</th>{head}</tr>
 {"".join(rows)}</table>"""
     except Exception:
         return ""
@@ -225,19 +288,22 @@ def _transit_table(cd: ChartData) -> str:
 
 
 def _chart_images_html(cd: ChartData) -> str:
-    """Render Lagna (D-1) and Navamsa (D-9) charts to images and return HTML."""
+    """Render Lagna (D-1) and true Navamsa (D-9) charts and return HTML."""
     import base64
     from PyQt6.QtCore import QBuffer, QIODevice
-    from jhora.ui.chart_widget import ChartStyle, render_chart_image
+    from jhora.export.traditional import (
+        render_chart_card, _chart_occupants, _navamsa_occupants)
+    from jhora.types.rasi import Rasi
 
     pairs = [
-        ("Lagna (D-1)", ChartStyle.SOUTH_INDIAN),
-        ("Navamsa (D-9)", ChartStyle.SOUTH_INDIAN),
+        ("Lagna (D-1)", Rasi.from_longitude(cd.ascendant),
+         _chart_occupants(cd)),
+        ("Navamsa (D-9)", *_navamsa_occupants(cd)),
     ]
 
     imgs_html = []
-    for label, style in pairs:
-        img = render_chart_image(cd, style=style, size=420)
+    for label, lagna_rasi, houses in pairs:
+        img = render_chart_card(lagna_rasi, houses, size=420, dark=True)
         buf = QBuffer()
         buf.open(QIODevice.OpenModeFlag.WriteOnly)
         img.save(buf, "PNG")
@@ -258,7 +324,7 @@ def _chart_images_html(cd: ChartData) -> str:
 
 
 def _build_html(cd: ChartData, style: str) -> str:
-    title = f"Jhora Chart Report — {cd.birth_date.strftime('%Y-%m-%d %H:%M')}"
+    title = f"OpenJyotish Chart Report — {cd.birth_date.strftime('%Y-%m-%d %H:%M')}"
     sections = [
         f"<h1>{title}</h1>",
         _meta(cd),
@@ -269,6 +335,8 @@ def _build_html(cd: ChartData, style: str) -> str:
     if style in ("full", "detailed"):
         sections.extend([
             _shadbala_table(cd),
+            _bhava_bala_table(cd),
+            _ashtakavarga_table(cd),
             _vimsottari_table(cd),
             _yogas_list(cd),
             _vimsopaka_table(cd),
