@@ -573,6 +573,23 @@ def _draw_north_indian(painter, x: float, y: float, size: float,
                 ty += line_h
 
 
+def render_chart_card(lagna_rasi: Rasi, houses: Dict[int, List[str]],
+                      size: int = 420, dark: bool = True):
+    """North-Indian diamond chart as a QImage (for HTML embedding)."""
+    from PyQt6.QtGui import QImage, QPainter, QColor
+    _ensure_qapp()
+    bg = QColor("#151a28") if dark else QColor("#ffffff")
+    ink = QColor("#e8e9f2") if dark else QColor("#000000")
+    dim = QColor("#8b90a8") if dark else QColor("#444444")
+    image = QImage(size, size, QImage.Format.Format_RGB32)
+    image.fill(bg)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    _draw_north_indian(painter, 0, 0, size, lagna_rasi, houses, ink, dim)
+    painter.end()
+    return image
+
+
 def _draw_table(painter, x: float, y: float, title: str,
                 headers: List[str], rows: List[List[str]],
                 col_widths: List[float], row_h: float = 24,
