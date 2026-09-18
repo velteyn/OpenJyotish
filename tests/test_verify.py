@@ -162,6 +162,12 @@ def test_lordship_language_not_placement():
     v = verify_answer(f"H7 is ruled by {real}.", cd)
     assert not [f for f in v.flags if f.kind == "house"], \
         [f.claim for f in v.flags]
+    v2 = verify_answer(f"The lord of H7 is {real}.", cd)
+    assert not [f for f in v2.flags if f.kind in ("house", "lord")], \
+        [(f.kind, f.claim) for f in v2.flags]
+    impostor = "Jupiter" if real != "Jupiter" else "Saturn"
+    v3 = verify_answer(f"The lord of H7 is {impostor}.", cd)
+    assert [f.kind for f in v3.flags] == ["lord"]
 
 
 def test_dasa_level_confusion_flagged():
