@@ -137,12 +137,13 @@ def fact_recall_pairs(facts: Dict) -> List[Dict]:
 
 def lmstudio_call(base_url: str, model: str, temperature: float = 0.3,
                   timeout: int = 600) -> CallFn:
-    """Provider-agnostic OpenAI-compatible caller (LM Studio, Unsloth
-    Studio, or any chat-completions endpoint).
+    """Thin OpenAI-compatible caller (LM Studio, Unsloth Studio, or any
+    chat-completions endpoint).
 
     NOTE: LM Studio answers 200 with an error body on unknown endpoints,
     so the base URL MUST include /v1 (added automatically when missing)
-    and responses are validated for a real choice payload.
+    and responses are validated for a real choice payload. For bulk
+    drafting prefer engine_call() below (thinking caps, model resolution).
     """
     import requests
     root = base_url.rstrip("/")
@@ -165,4 +166,22 @@ def lmstudio_call(base_url: str, model: str, temperature: float = 0.3,
         if not content.strip():
             raise ValueError("empty completion content")
         return content
+    return _call
+
+
+def engine_call(base_url: str, model: str, provider: str = "lmstudio",
+                temperature: float = 0.2, timeout: int = 300) -> CallFn:
+    """Drafter calls through the app's AiEngine path (model resolution,
+    reasoning-model thinking caps, truncation notices). Never evicts the
+    user's loaded model (auto_ensure=False). Prefer this for bulk runs."""
+    from jhora.ai.engine import AiEngine, AiConfig
+    eng = AiEngine(AiConfig(
+        provider=provider, base_url=base_url, model=model,
+        temperature=temperature, timeout=timeout, auto_ensure=False))
+
+    def _call(messages: List[Dict]) -> str:
+        text = eng._chat_completion(messages) or ""
+        if not text.strip():
+            raise ValueError("empty completion content")
+        return text
     return _call
