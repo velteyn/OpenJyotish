@@ -61,7 +61,7 @@ def main() -> int:
 
     from jhora.charts.chart import ChartBuilder
     from tools.train.draft import (fact_recall_pairs, draft_reading,
-                                   fact_text, lmstudio_call)
+                                   engine_call)
     from tools.train.facts import chart_facts
     from tools.train.filter import filter_pairs
     from tools.train.sample import sample_charts
@@ -72,7 +72,7 @@ def main() -> int:
         (d["year"], d["month"], d["day"], d["hour"])
         for d in heldout_charts(args.seed)
     }
-    call_fn = (lmstudio_call(args.lmstudio, args.model)
+    call_fn = (engine_call(args.lmstudio, args.model)
                if args.lmstudio and args.model else None)
 
     charts, raw = {}, []
