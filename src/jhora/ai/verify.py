@@ -320,9 +320,12 @@ def verify_answer(answer: str, cd: ChartData,
                     rf"\b({planet_pat})\b[^.!?\n]{{0,80}}?\bH\s?(\d{{1,2}})\b"
                     rf"|\bH\s?(\d{{1,2}})\b[^.!?\n]{{0,20}}?\b({planet_pat})\b",
                     s):
-                house_hits.append((m.group(1) or m.group(4),
-                                   int(m.group(2) or m.group(3)),
-                                   m.start(), m.end()))
+                if m.group(1):
+                    house_hits.append((m.group(1), int(m.group(2)),
+                                       m.start(), m.end(), True))
+                else:
+                    house_hits.append((m.group(4), int(m.group(3)),
+                                       m.start(), m.end(), False))
             for m in re.finditer(
                     rf"\b({planet_pat})\b[^.!?\n]{{0,60}}?"
                     rf"(?:in\s+)?(?:the\s+)?(\d{{1,2}})(?:st|nd|rd|th)"
@@ -331,18 +334,20 @@ def verify_answer(answer: str, cd: ChartData,
                     rf"\b({planet_pat})\b", s, re.IGNORECASE):
                 if m.group(1):
                     house_hits.append((m.group(1), int(m.group(2)),
-                                       m.start(), m.end()))
+                                       m.start(), m.end(), True))
                 else:
                     house_hits.append((m.group(4), int(m.group(3)),
-                                       m.start(), m.end()))
-            for gname, house, ms, me in house_hits:
+                                       m.start(), m.end(), False))
+            for gname, house, ms, me, planet_first in house_hits:
                 if gname.lower() not in _PLANET_BY_NAME:
                     continue
                 if not 1 <= house <= 12:
                     continue
-                # Lordship language ("H7 ruled by Saturn") asserts rulership,
-                # not placement — the lord check below owns those.
-                if re.search(r"lord|ruler|ruled|lorded", s[ms:me],
+                # Lordship language ("H7 ruled by Saturn", "lord of H7
+                # is Saturn") asserts rulership, not placement — the lord
+                # check below owns those.
+                lord_zone = s[ms:me] if planet_first else s[max(0, ms - 25):me]
+                if re.search(r"lord|ruler|ruled|lorded", lord_zone,
                              re.IGNORECASE):
                     continue
                 g = _PLANET_BY_NAME[gname.lower()]
