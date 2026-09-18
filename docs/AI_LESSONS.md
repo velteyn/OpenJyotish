@@ -145,3 +145,67 @@ harness before promoting any new model.
   checks; whole-sign houses from lagna as the house convention.
 - Live result on a real bad answer: 24 of 36 claims flagged, zero false
   positives on review. Temperature 0.2 default everywhere.
+- Extended (v1.6.3+): house-lordship, Mahadasha/Antardasha level-vs-dates,
+  `[Source]`-vs-library citations, prose houses (`H7 (Cancer)`,
+  Nth-from-Moon), transit claims checked against `compute_transits`
+  (not skipped), today-date exempt. Placement-vs-rulership language
+  disambiguated by word order (planet-first vs number-first + 25-char
+  lordship lookbehind) — 57 false flags on our own deterministic pairs
+  caught this.
+- Reports from prior runs are stripped before verifying (their quoted
+  claims are not new assertions); sentences split on colon-newline so
+  section headers stand alone for transit-context tracking.
+
+## 10. Verify-and-repair loop (automatic, announced delay)
+
+- Flagged answers go back with engine corrections, max 2 rounds; then the
+  best version ships with its report. Unfixable claims are DELETED by
+  instruction, not reworded. Live: marriage reading 8 → 3 flags; repaired
+  text correct on lords, signs, houses, AD dates, citations.
+- Repair output must be DISPLAYED, never just the streamed draft: CLI
+  re-prints the repaired text labeled (the stream shows the draft);
+  GUI re-renders from the repaired result. Shipping a report about unseen
+  text is a real bug class — caught live.
+- `notify` channel carries the extra-delay warning; repair is silent
+  without it (TUI). Offline/timeout notices are never shipped as revisions.
+
+## 11. LM Studio API traps
+
+- Unknown endpoints return **HTTP 200 with an error body**
+  (`Unexpected endpoint or method`). Always validate the choice payload;
+  never treat empty content as success. Base URL must include `/v1`.
+- Model load: `POST /api/v1/models/load` with `{"model": key,
+  "context_length": N}` (our `_lmstudio_load_v1`); verify via
+  `/api/v0/models` state field. Never evict user-loaded instances.
+- Link-local server IPs change on DHCP (seen `.107` ↔ `.83`); ping first,
+  keep the address a runtime flag, never commit it (see §7).
+- Bulk drafting MUST go through the app's `AiEngine` call path
+  (thinking caps, reasoning handling), never raw `/v1/chat/completions`.
+
+## 12. Dataset drafting economics (train-astrologer-adapter)
+
+- **Fact-recall pairs: 100% yield, seconds, no GPU** — the dataset backbone.
+  245/245 deterministic pairs verify clean; they also caught a verifier
+  false-flag class (§9) for free.
+- **LLM readings: ~0/2 zero-flag yield raw.** Ministral-14B-reasoning:
+  structurally good drafts, wrong houses throughout, 30+ min per reading
+  with repair — not viable for bulk. Qwen3.5-9B via engine caps: fast,
+  same house-ignoring disease (systematic off-by-one: H3 for H4, H4 for
+  H5…), rejected cleanly. Prompt under test: RESTATE-only instruction
+  (copy facts verbatim, never compute); repair rounds help little when the
+  draft is pervasively wrong (20 → 19 flags).
+- Consequence: scale deterministic pairs + Primer Q&A first (thousands of
+  clean pairs today); treat LLM readings as low-yield bonus until prompt
+  or model changes. The filter, not the drafter, guarantees quality.
+
+## 13. Fine-tuning outlook (public tier only)
+
+- Train on: Primer (memorizable, 48KB) + PD classics + engine-verified
+  pairs. Never raw copyrighted extracts — facts aren't copyrightable,
+  expression is; small models memorize repeated text and adapters ship.
+- Fine-tuning teaches style, domain language and citation discipline —
+  never arithmetic. The engine + verify-repair stays mandatory; success =
+  fewer flags per answer, measured by the verifier itself (dataset filter
+  and eval judge are the same function).
+- Ship threshold: strictly fewer flags than base at equal-or-better
+  citation genuineness on held-out charts, or it doesn't release.
