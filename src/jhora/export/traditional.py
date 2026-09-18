@@ -576,8 +576,14 @@ def _draw_north_indian(painter, x: float, y: float, size: float,
 def _draw_table(painter, x: float, y: float, title: str,
                 headers: List[str], rows: List[List[str]],
                 col_widths: List[float], row_h: float = 24,
-                ink=None, shade=None) -> float:
-    """Draw a titled grid table; return total height consumed."""
+                ink=None, shade=None,
+                fill_w: Optional[float] = None) -> float:
+    """Draw a titled grid table; return total height consumed.
+
+    ``fill_w`` stretches columns proportionally so the table spans the
+    full allotted width (narrow fixed widths clip long sign/nakshatra
+    names instead).
+    """
     from PyQt6.QtCore import QRectF, Qt
     from PyQt6.QtGui import QPen, QFont, QBrush
 
@@ -590,7 +596,12 @@ def _draw_table(painter, x: float, y: float, title: str,
     painter.drawText(int(x), int(y + 20), title)
     ty = y + 28
 
+    col_widths = list(col_widths)
     total_w = sum(col_widths)
+    if fill_w and total_w < fill_w:
+        extra = fill_w - total_w
+        col_widths = [cw + extra * cw / total_w for cw in col_widths]
+        total_w = fill_w
 
     # Header row
     painter.fillRect(QRectF(x, ty, total_w, row_h), QBrush(shade))
@@ -647,8 +658,8 @@ def render_traditional_report(cd: ChartData, name: str = "", sex: str = "",
     right_w = CW - left_w - GAP  # ~490
     right_x = M + left_w + GAP
 
-    lagna_sz = 680
-    nav_sz = 560
+    lagna_sz = 560
+    nav_sz = right_w
 
     # Vimshottari — stretched to fill left column
     box_row_h = 29
@@ -738,16 +749,17 @@ def render_traditional_report(cd: ChartData, name: str = "", sex: str = "",
     # Planetary Positions (right 1/3, below Navamsa)
     planet_rows = _planet_rows(cd)
     y_pl = y + nav_sz + SGAP
-    _draw_table(painter, right_x, y_pl, "Planetary Positions",
-                ["Planets", "Sign", "Latitude", "Nakshatra", "Pada"],
-                planet_rows, [55, 70, 70, 120, 40], row_h=table_row_h,
-                ink=ink, shade=shade)
+    y_after_planets = y_pl + _draw_table(
+        painter, right_x, y_pl, "Planetary Positions",
+        ["Planets", "Sign", "Latitude", "Nakshatra", "Pada"],
+        planet_rows, [66, 80, 80, 140, 44], row_h=table_row_h,
+        ink=ink, shade=shade, fill_w=right_w)
 
     # Right column continues: Ashtakvarga → Chalit
-    y_right = y_pl + planets_h + SGAP
+    y_right = y_after_planets + SGAP
 
     av_header, av_rows = _ashtakavarga_rows(cd)
-    av_label_w = 50
+    av_label_w = 62
     av_col_w = (right_w - av_label_w) / 12.0
     y_av_end = y_right + _draw_table(painter, right_x, y_right,
                 "Ashtakvarga Table", av_header, av_rows,
@@ -757,8 +769,8 @@ def render_traditional_report(cd: ChartData, name: str = "", sex: str = "",
     chalit_rows = _chalit_rows(cd)
     _draw_table(painter, right_x, y_av_end + SGAP, "Chalit Table",
                 ["Bhav", "Sign", "Bhav Begin", "Sign", "Mid Bhav"],
-                chalit_rows, [40, 80, 80, 80, 80], row_h=table_row_h,
-                ink=ink, shade=shade)
+                chalit_rows, [48, 92, 92, 92, 92], row_h=table_row_h,
+                ink=ink, shade=shade, fill_w=right_w)
 
     # Left column: below Lagna chart
     y = chart_y + lagna_sz + GAP
