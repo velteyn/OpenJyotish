@@ -4,14 +4,14 @@
       lords × hemispheres), deterministic seed, N configurable (default 2000)
 - [x] 1.2 Fact emitter: engine ground truth per chart (placements, lords,
       strengths, dasa periods, yogas) in a fixed schema the drafter must use
-- [ ] 1.3 Drafter: frontier/teacher model writes readings and Primer Q&A
+- [x] 1.3 Drafter: frontier/teacher model writes readings and Primer Q&A
       from facts + passages; provenance recorded per pair
-- [ ] 1.4 Verifier filter: keep only zero-flag pairs (`verify_answer`
+- [x] 1.4 Verifier filter: keep only zero-flag pairs (`verify_answer`
       against the pair's own chart); log rejection reasons for tuning
-- [ ] 1.5 Manifest + provenance CI check: every pair tagged
+- [x] 1.5 Manifest + provenance CI check: every pair tagged
   primer/pd-classic/engine-generated; any non-allowlisted source fails
   the build
-- [ ] 1.6 Held-out split: fixed eval chart set excluded from training output
+- [x] 1.6 Held-out split: fixed eval chart set excluded from training output
       by construction (disjoint birth-data grid)
 
 ## 2. Training recipe (user hardware)
