@@ -64,3 +64,60 @@ def test_facts_schema():
 def test_facts_deterministic():
     cd = _chart0()
     assert chart_facts(cd) == chart_facts(cd)
+
+
+def test_heldout_disjoint_from_train():
+    from tools.train.build import heldout_charts
+    train = sample_charts(300, seed=42, split="train")
+    held = heldout_charts(42)
+    t = {(d["year"], d["month"], d["day"], d["hour"]) for d in train}
+    e = {(d["year"], d["month"], d["day"], d["hour"]) for d in held}
+    assert len(held) == 200 and t.isdisjoint(e)
+
+
+def test_manifest_gate():
+    import pytest
+    from tools.train.build import check_manifest
+    check_manifest({"provenance": {"primer": 3, "engine-generated": 5}})
+    with pytest.raises(ValueError):
+        check_manifest({"provenance": {"private-extract": 1}})
+
+
+def test_deterministic_pairs_verify_clean():
+    from tools.train.draft import fact_recall_pairs
+    from tools.train.filter import filter_pairs
+    cd = _chart0()
+    from tools.train.facts import chart_facts
+    pairs = fact_recall_pairs(chart_facts(cd))
+    for p in pairs:
+        p["chart_key"] = "k"
+    kept, rejected = filter_pairs(pairs, {"k": cd})
+    assert rejected == [] and len(kept) == len(pairs)
+
+
+def test_lmstudio_call_needs_v1(monkeypatch):
+    """LM Studio 200s unknown endpoints — caller must target /v1 and
+    surface error bodies instead of returning empty drafts."""
+    import requests
+    from tools.train.draft import lmstudio_call
+    seen = {}
+
+    class _Resp:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"error": "Unexpected endpoint or method."}
+
+    def fake_post(url, **kw):
+        seen["url"] = url
+        return _Resp()
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    import pytest
+    with pytest.raises(ValueError):
+        lmstudio_call("http://x:1234", "m")([{"role": "user",
+                                              "content": "hi"}])
+    assert seen["url"] == "http://x:1234/v1/chat/completions"
