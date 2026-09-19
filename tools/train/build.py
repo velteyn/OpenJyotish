@@ -7,8 +7,9 @@ Orchestrates the public-tier pipeline (spec tasks 1.5, 1.6):
 - every pair carries provenance in {primer, pd-classic, engine-generated};
   the manifest records counts + dataset hash, and ``check_manifest`` rejects
   anything else (CI gate).
-- without ``--lmstudio``, only deterministic fact-recall pairs are emitted
-  (no LLM needed); with it, readings are drafted live and filtered.
+- without ``--lmstudio``, deterministic pairs only: all Primer Q&A (once,
+  chart-independent) plus per-chart fact-recall (no LLM needed). With it,
+  readings are drafted live and filtered too.
 
 Usage:
   PYTHONPATH=. python3 tools/train/build.py --n 50 --seed 42 --out /tmp/ds
@@ -57,11 +58,16 @@ def main() -> int:
                     help="repair flagged drafts via the model before filtering")
     ap.add_argument("--rounds", type=int, default=2,
                     help="repair rounds per draft (offline: time is cheap)")
+    ap.add_argument("--no-primer", action="store_true",
+                    help="skip the deterministic Primer Q&A pairs")
+    ap.add_argument("--verify-facts", action="store_true",
+                    help="run verify_answer on every deterministic "
+                         "fact-recall pair (slow; audit only)")
     args = ap.parse_args()
 
     from jhora.charts.chart import ChartBuilder
-    from tools.train.draft import (fact_recall_pairs, draft_reading,
-                                   engine_call)
+    from tools.train.draft import (fact_recall_pairs, primer_qa_pairs,
+                                   draft_reading, engine_call)
     from tools.train.facts import chart_facts
     from tools.train.filter import filter_pairs
     from tools.train.sample import sample_charts
@@ -76,6 +82,8 @@ def main() -> int:
                if args.lmstudio and args.model else None)
 
     charts, raw = {}, []
+    if not args.no_primer:
+        raw.extend(primer_qa_pairs())
     drafted = 0
     for bd in sample_charts(args.n, seed=args.seed, split="train"):
         key = (bd["year"], bd["month"], bd["day"], bd["hour"])
@@ -105,7 +113,8 @@ def main() -> int:
                 drafted += 1
             except Exception as e:
                 print(f"  draft failed for {ckey}: {e}")
-    kept, rejected = filter_pairs(raw, charts, log=print)
+    kept, rejected = filter_pairs(raw, charts, log=print,
+                                  verify_facts=args.verify_facts)
 
     prov: dict = {}
     for p in kept:
@@ -117,6 +126,7 @@ def main() -> int:
         "n_rejected": len(rejected),
         "provenance": prov,
         "eval_charts": EVAL_N, "eval_seed": args.seed,
+        "fact_pairs_verified": bool(args.verify_facts),
         "dataset_hash": hashlib.sha256(blob.encode()).hexdigest()[:16],
     }
     check_manifest(manifest)

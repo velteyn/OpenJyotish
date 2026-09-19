@@ -500,7 +500,7 @@ def verify_answer(answer: str, cd: ChartData,
 
         # [Source] citations must name books actually in the local library.
         if library:
-            for m in re.finditer(r"\[([A-Za-z][A-Za-z .'\-&]{2,60})\]", s):
+            for m in re.finditer(r"\[([A-Za-z][A-Za-z0-9 .'\-&]{2,60})\]", s):
                 raw = m.group(1).strip()
                 low = raw.lower()
                 if any(k in low for k in _ENGINE_SUFFIXES):
