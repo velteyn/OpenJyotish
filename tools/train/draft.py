@@ -1,15 +1,22 @@
 """Drafter: turn engine facts into training pairs.
 
-Two pair families (spec tasks 1.3):
+Pair families (spec tasks 1.3):
 - fact-recall: deterministic Q&A generated from facts WITHOUT any LLM.
   Checkable claims verify clean by construction (same engine, same chart).
-- readings / primer-qa: drafted by an LLM through an injected ``call_fn``
+- primer-qa: deterministic Q&A extracted verbatim from the bundled Primer
+  chapters (``primer_sections`` / ``primer_qa_pairs``). Every answer is a
+  substring of a cited library source, so it cannot hallucinate; the filter
+  only has to check citations + grounding (see ``tools/train/filter.py``).
+- readings: drafted by an LLM through an injected ``call_fn``
   (provider-agnostic: LM Studio, Unsloth Studio, frontier API). Mock-tested
-  here; live drafting runs when an endpoint is reachable.
+  here; live drafting runs when an endpoint is reachable. Per the live
+  economics in docs/AI_LESSONS.md §12 this is a low-yield bonus source.
 
 Provenance of every pair: primer / pd-classic / engine-generated.
 """
 
+import re
+from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 CallFn = Callable[[List[Dict]], str]
@@ -132,6 +139,82 @@ def fact_recall_pairs(facts: Dict) -> List[Dict]:
     for md in facts["vimsottari"]:
         _add(f"When does {md['lord']} Mahadasha start and end?",
              f"{md['lord']} Mahadasha runs {md['start']} to {md['end']}.")
+    return pairs
+
+
+PRIMER_DIR = (Path(__file__).resolve().parents[2]
+              / "src" / "jhora" / "data" / "books")
+
+_HEADING = re.compile(r"^(\d+)\.\s+(.+?)\s*$")
+_RULE = re.compile(r"^-{3,}\s*$")
+
+_QA_TEMPLATES = (
+    "What does the OpenJyotish Primer teach about {topic}?",
+    "Explain {topic} as taught in the OpenJyotish Primer.",
+    "Summarize {topic} from the OpenJyotish Primer.",
+    "What is {topic}, according to the OpenJyotish Primer?",
+)
+
+
+def _source_name(stem: str) -> str:
+    """Library source name for a book file stem (matches KnowledgeBase)."""
+    return stem.replace("_", " ").replace("-", " ").replace(".pdf", "").title()
+
+
+def _topic(title: str) -> str:
+    """Title-case a section heading, preserving known acronyms."""
+    out = title.title()
+    for acr in ("Sav", "Bav", "D24"):
+        out = out.replace(acr, acr.upper())
+    return out
+
+
+def primer_sections(books_dir: Optional[Path] = None) -> List[Dict]:
+    """Parse bundled Primer chapters into ``{source,title,body}`` sections.
+
+    A section starts at a numbered heading (``N. TITLE``) underlined with a
+    run of dashes; the body is every line up to the next heading. Bodies are
+    verbatim source text, which is what makes the Q&A pairs unspoofable.
+    """
+    books_dir = Path(books_dir) if books_dir else PRIMER_DIR
+    out: List[Dict] = []
+    for path in sorted(books_dir.glob("primer-*.txt")):
+        source = _source_name(path.stem)
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        starts = [i for i in range(len(lines) - 1)
+                  if _HEADING.match(lines[i]) and _RULE.match(lines[i + 1])]
+        for n, i in enumerate(starts):
+            title = _HEADING.match(lines[i]).group(2).strip()
+            end = starts[n + 1] if n + 1 < len(starts) else len(lines)
+            body = "\n".join(lines[i + 2:end]).strip()
+            if body:
+                out.append({"source": source, "title": title, "body": body})
+    return out
+
+
+def primer_qa_pairs(books_dir: Optional[Path] = None) -> List[Dict]:
+    """Deterministic Primer Q&A pairs — verbatim, cited, no LLM.
+
+    Each answer ends with a ``[Source]`` citation naming the bundled library
+    book; the answer body is copied from that book, so the pair is grounded
+    by construction. Provenance: ``primer``.
+    """
+    pairs = []
+    for n, sec in enumerate(primer_sections(books_dir)):
+        topic = _topic(sec["title"])
+        question = _QA_TEMPLATES[n % len(_QA_TEMPLATES)].format(topic=topic)
+        answer = f"{sec['body']}\n\n[{sec['source']}]"
+        pairs.append({
+            "messages": [
+                {"role": "system", "content": READING_SYSTEM},
+                {"role": "user", "content": question},
+                {"role": "assistant", "content": answer},
+            ],
+            "provenance": "primer",
+            "kind": "qa",
+            "source": sec["source"],
+            "passage": sec["body"],
+        })
     return pairs
 
 

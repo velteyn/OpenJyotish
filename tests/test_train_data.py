@@ -121,3 +121,47 @@ def test_lmstudio_call_needs_v1(monkeypatch):
         lmstudio_call("http://x:1234", "m")([{"role": "user",
                                               "content": "hi"}])
     assert seen["url"] == "http://x:1234/v1/chat/completions"
+
+
+def test_primer_sections_parse():
+    from tools.train.draft import primer_sections
+    secs = primer_sections()
+    assert len(secs) >= 30
+    assert all(s["source"].startswith("Primer") for s in secs)
+    assert all(s["body"].strip() for s in secs)
+    assert any("NINE GRAHAS" in s["title"] for s in secs)
+
+
+def test_primer_qa_pairs_grounded_and_clean():
+    from tools.train.draft import primer_qa_pairs
+    from tools.train.filter import filter_pairs
+    pairs = primer_qa_pairs()
+    assert pairs and all(p["provenance"] == "primer" for p in pairs)
+    assert all(p["kind"] == "qa" and p["passage"] for p in pairs)
+    for p in pairs:
+        answer = p["messages"][-1]["content"]
+        assert answer.rstrip().endswith(f"[{p['source']}]")
+    kept, rejected = filter_pairs(pairs, {})
+    assert rejected == [] and len(kept) == len(pairs)
+
+
+def test_qa_filter_rejects_bad_citation():
+    from copy import deepcopy
+    from tools.train.draft import primer_qa_pairs
+    from tools.train.filter import filter_pair
+    pair = deepcopy(primer_qa_pairs()[0])
+    pair["messages"][-1]["content"] = "A confident but uncited claim."
+    ok, reasons = filter_pair(pair, None)
+    assert not ok and "citation" in reasons[0]
+
+
+def test_qa_filter_rejects_ungrounded_answer():
+    from copy import deepcopy
+    from tools.train.draft import primer_qa_pairs
+    from tools.train.filter import filter_pair
+    pair = deepcopy(primer_qa_pairs()[0])
+    pair["passage"] = "This sentence appears in no bundled book at all."
+    pair["messages"][-1]["content"] = (
+        pair["passage"] + f"\n\n[{pair['source']}]")
+    ok, reasons = filter_pair(pair, None)
+    assert not ok and "grounded" in reasons[0]
