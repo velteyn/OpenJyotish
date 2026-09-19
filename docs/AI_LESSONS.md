@@ -155,6 +155,9 @@ harness before promoting any new model.
 - Reports from prior runs are stripped before verifying (their quoted
   claims are not new assertions); sentences split on colon-newline so
   section headers stand alone for transit-context tracking.
+- Citation regex gap fixed: `[Source]` names containing digits were never
+  extracted, so "Brihat Jataka Iyer 1885" and "Primer 01 Foundations"
+  skipped the check entirely. The pattern now allows digits.
 
 ## 10. Verify-and-repair loop (automatic, announced delay)
 
@@ -197,6 +200,13 @@ harness before promoting any new model.
 - Consequence: scale deterministic pairs + Primer Q&A first (thousands of
   clean pairs today); treat LLM readings as low-yield bonus until prompt
   or model changes. The filter, not the drafter, guarantees quality.
+- Deterministic backbone scales: 2000 charts → 98,054 pairs (98,000
+  fact-recall + 54 Primer Q&A) in ~2 min, zero rejects. Primer Q&A is
+  extracted verbatim from the bundled chapters — the answer is a substring
+  of the cited book, so it cannot hallucinate; the gate is citation +
+  grounding, not chart claims. Full `verify_answer` on deterministic pairs
+  is an audit (`--verify-facts`: 544/544 clean on a 10-chart sample), never
+  a per-run cost (0.09 s/pair × 98k ≈ 2.5 h otherwise).
 
 ## 13. Fine-tuning outlook (public tier only)
 
