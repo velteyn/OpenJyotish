@@ -1,0 +1,19 @@
+# Training-only requirements (user hardware with one NVIDIA GPU).
+# NEVER installed in this repo or CI: no training runs here.
+#
+# Pins below match unsloth==2026.1.2's own compatible ranges
+# (transformers 4.51.3-4.57.3 excl. known-bad, trl 0.18.2-0.24.0 excl.
+# 0.19.0, peft >=0.18.0 excl. 0.11.0, datasets 3.4.1-<4.4.0 excl.
+# 4.0.*/4.1.0, bitsandbytes >=0.45.5 excl. 0.46.0/0.48.0).
+# Install torch FIRST per your CUDA from https://pytorch.org
+# (torch >=2.4,<2.13), then:  pip install -r requirements-train.txt
+# After a green run, re-pin exact versions with `pip freeze` into the
+# model card (train_unsloth.py records them automatically).
+
+unsloth==2026.1.2
+transformers>=4.51.3,<=4.57.3,!=4.52.0,!=4.52.1,!=4.52.2,!=4.52.3,!=4.53.0,!=4.54.0,!=4.55.0,!=4.55.1,!=4.57.0,!=4.57.4,!=4.57.5,!=5.0.0,!=5.1.0
+trl>=0.18.2,<=0.24.0,!=0.19.0
+peft>=0.18.0,!=0.11.0
+datasets>=3.4.1,<4.4.0,!=4.0.*,!=4.1.0
+accelerate>=0.34.1
+bitsandbytes>=0.45.5,!=0.46.0,!=0.48.0
