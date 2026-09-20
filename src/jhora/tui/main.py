@@ -44,7 +44,10 @@ def _chart_to_dict(chart) -> dict:
     """Chart dict for dasa engines (true Hora Lagna when known)."""
     cd = {"planets": {g.value: {"longitude": p.longitude}
                       for g, p in chart.planets.items()},
-          "lagna_lon": chart.ascendant}
+          "lagna_lon": chart.ascendant,
+          # Birth place/time for time-of-day dasas (Kaala, Chakra).
+          "lat": chart.latitude, "lon": chart.longitude,
+          "tz": chart.timezone}
     if chart.hora_lagna is not None:
         # True Hora Lagna for Varnada dasa (Sun-sign fallback
         # when absent).
@@ -449,7 +452,8 @@ class JhoraTui:
             "  narayana, kalachakra, brahma, karaka, moola, shoola,\n"
             "  trikona, varnada,\n"
             "  sthira, navamsa, yogardha,\n"
-            "  niryana-shoola, lagna-kendradi\n"
+            "  niryana-shoola, lagna-kendradi,\n"
+            "  kaala, chakra, mandooka\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
@@ -457,7 +461,8 @@ class JhoraTui:
                 "narayana", "kalachakra", "brahma", "karaka", "moola",
                 "shoola", "trikona", "varnada",
                 "sthira", "navamsa", "yogardha",
-                "niryana-shoola", "lagna-kendradi"):
+                "niryana-shoola", "lagna-kendradi",
+                "kaala", "chakra", "mandooka"):
             self._dasa_system = sys_val.strip().lower()
         system = self._dasa_system
         engine = self._get_dasa_engine(system)
@@ -554,6 +559,15 @@ class JhoraTui:
             return NiryanaShoolaDasa(opts)
         if system == "lagna-kendradi":
             return LagnaKendradiDasa(opts)
+        if system == "kaala":
+            from jhora.dasas.kaala import KaalaDasa
+            return KaalaDasa(opts)
+        if system == "chakra":
+            from jhora.dasas.chakra import ChakraDasa
+            return ChakraDasa(opts)
+        if system == "mandooka":
+            from jhora.dasas.mandooka import MandookaDasa
+            return MandookaDasa(opts)
         return VimsottariDasa(opts)
 
     def _action_dasa_settings(self):
@@ -565,7 +579,8 @@ class JhoraTui:
             "  narayana, kalachakra, brahma, karaka, moola, shoola,\n"
             "  trikona, varnada,\n"
             "  sthira, navamsa, yogardha,\n"
-            "  niryana-shoola, lagna-kendradi\n"
+            "  niryana-shoola, lagna-kendradi,\n"
+            "  kaala, chakra, mandooka\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
@@ -573,7 +588,8 @@ class JhoraTui:
                 "narayana", "kalachakra", "brahma", "karaka", "moola",
                 "shoola", "trikona", "varnada",
                 "sthira", "navamsa", "yogardha",
-                "niryana-shoola", "lagna-kendradi"):
+                "niryana-shoola", "lagna-kendradi",
+                "kaala", "chakra", "mandooka"):
             self._dasa_system = sys_val.strip().lower()
         seed_map = {
             "moon": "Moon (default)", "lagna": "Lagna", "sun": "Sun",

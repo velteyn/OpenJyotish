@@ -173,7 +173,8 @@ def dasa(
 
     system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
     kalachakra, brahma, karaka, moola, shoola, trikona, varnada,
-    sthira, navamsa, yogardha, niryana-shoola, lagna-kendradi.
+    sthira, navamsa, yogardha, niryana-shoola, lagna-kendradi,
+    kaala, chakra, mandooka.
     Seed/sesham/year options apply
     to the nakshatra dasas (vimsottari, ashtottari, yogini); --karaka-role
     selects the Karaka Dasa seed; --house selects the Shoola Dasa seed
@@ -367,6 +368,11 @@ def _chart_to_dict(cd: ChartData) -> dict:
     for g, p in cd.planets.items():
         planets[g] = {"longitude": p.longitude, "speed": p.speed}
     d = {"planets": planets, "lagna_lon": cd.ascendant}
+    # Birth place/time for time-of-day dasas (Kaala, Chakra); other
+    # engines ignore these keys.
+    d["lat"] = cd.latitude
+    d["lon"] = cd.longitude
+    d["tz"] = cd.timezone
     if cd.hora_lagna is not None:
         # True Hora Lagna for Varnada dasa; engines fall back to the
         # Sun's sign when the key is absent.
@@ -378,7 +384,7 @@ def _get_dasa_engine(system: str, options=None):
     """Return a dasa engine for the given system name (vimsottari/ashtottari/
     yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola/
     trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/
-    lagna-kendradi)."""
+    lagna-kendradi/kaala/chakra/mandooka)."""
     s = system.lower()
     if s == "vimsottari":
         from jhora.dasas.vimsottari import VimsottariDasa
@@ -434,6 +440,15 @@ def _get_dasa_engine(system: str, options=None):
     if s == "lagna-kendradi":
         from jhora.dasas.kendradi import LagnaKendradiDasa
         return LagnaKendradiDasa(options)
+    if s == "kaala":
+        from jhora.dasas.kaala import KaalaDasa
+        return KaalaDasa(options)
+    if s == "chakra":
+        from jhora.dasas.chakra import ChakraDasa
+        return ChakraDasa(options)
+    if s == "mandooka":
+        from jhora.dasas.mandooka import MandookaDasa
+        return MandookaDasa(options)
     from jhora.dasas.vimsottari import VimsottariDasa
     return VimsottariDasa(options)
 

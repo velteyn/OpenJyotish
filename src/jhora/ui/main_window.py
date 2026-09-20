@@ -294,7 +294,7 @@ class MainWindow(QMainWindow):
             "Chara", "Narayana", "Kalachakra", "Brahma",
             "Karaka", "Moola", "Shoola", "Trikona", "Varnada",
             "Sthira", "Navamsa", "Yogardha", "Niryana-Shoola",
-            "Lagna-Kendradi",
+            "Lagna-Kendradi", "Kaala", "Chakra", "Mandooka",
         ])
         self.dasa_system_combo.currentTextChanged.connect(self._update_dasa_text)
         dl.addWidget(self.dasa_system_combo)
@@ -980,6 +980,10 @@ class MainWindow(QMainWindow):
             "planets": {g: {"longitude": p.longitude, "speed": p.speed}
                         for g, p in chart_data.planets.items()},
             "lagna_lon": chart_data.ascendant,
+            # Birth place/time for time-of-day dasas (Kaala, Chakra).
+            "lat": chart_data.latitude,
+            "lon": chart_data.longitude,
+            "tz": chart_data.timezone,
         }
         if chart_data.hora_lagna is not None:
             # True Hora Lagna for Varnada dasa (Sun-sign fallback
@@ -1042,6 +1046,15 @@ class MainWindow(QMainWindow):
         elif system == "Lagna-Kendradi":
             from jhora.dasas.kendradi import LagnaKendradiDasa
             return LagnaKendradiDasa(options)
+        elif system == "Kaala":
+            from jhora.dasas.kaala import KaalaDasa
+            return KaalaDasa(options)
+        elif system == "Chakra":
+            from jhora.dasas.chakra import ChakraDasa
+            return ChakraDasa(options)
+        elif system == "Mandooka":
+            from jhora.dasas.mandooka import MandookaDasa
+            return MandookaDasa(options)
         from jhora.dasas.vimsottari import VimsottariDasa
         return VimsottariDasa(options)
 
