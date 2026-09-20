@@ -1395,8 +1395,8 @@ class MainWindow(QMainWindow):
             ])
         self._fill_table(self.karaka_table, headers, rows)
 
-        is_day = 6.0 <= cd.time_of_day_hours < 18.0
-        sahamas = compute_sahamas(cd.ascendant, planets, day=is_day)
+        from jhora.calc.sahama import is_day_birth
+        sahamas = compute_sahamas(cd.ascendant, planets, day=is_day_birth(cd))
         headers = ["Sahama", "Meaning", "Longitude", "Sign", "House"]
         rows = []
         for sah in sahamas:

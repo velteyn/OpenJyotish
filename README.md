@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-37 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1213 tests  |  GPL v3.0
+38 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+21-section JSON API for AI agents  |  1221 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -256,7 +256,7 @@ src/jhora/
 ├── export/         HTML report generator
 ├── io/             Atlas (SQLite/FTS5), JHD parser
 ├── core/           Unified database
-├── cli/            Typer CLI (37 commands)
+├── cli/            Typer CLI (38 commands)
 ├── tui/            prompt_toolkit menu system
 └── ui/             PyQt6 GUI (8-category tabs, chart widget, dasa timeline)
 ```

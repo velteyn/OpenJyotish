@@ -357,6 +357,32 @@ class JhoraTui:
             rich.print(t)
         self._content_lines = cap.get().split("\n")
 
+    def _action_sahamas(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.sahama import compute_sahamas, is_day_birth
+        from jhora.types.rasi import Rasi
+        with rich.capture() as cap:
+            day = is_day_birth(self.chart)
+            planets = {g: {"longitude": p.longitude}
+                       for g, p in self.chart.planets.items()}
+            rows = compute_sahamas(self.chart.ascendant, planets, day=day)
+            t = Table(title=f"Sahamas (36, {'day' if day else 'night'} "
+                            f"birth)", box=rich_box.SIMPLE)
+            t.add_column("Sahama")
+            t.add_column("Meaning")
+            t.add_column("Longitude")
+            t.add_column("Sign")
+            t.add_column("House")
+            asc_sign = int(self.chart.ascendant // 30) % 12
+            for s in rows:
+                sign = int(s.longitude // 30) % 12
+                house = (sign - asc_sign) % 12 + 1
+                t.add_row(s.name, s.meaning, f"{s.longitude:.2f}°",
+                          Rasi(sign).full_name, str(house))
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
     def _action_shadbala(self):
         if not self._check_chart():
             return
@@ -1043,7 +1069,8 @@ class JhoraTui:
             ("3", "Yogas Detection", self._action_yogas),
             ("4", "Varga Charts (8 levels)", self._action_varga),
             ("5", "Ashtakavarga SAV", self._action_ashtakavarga),
-            ("6", "User's Special Lagna (planet/factor/reverse)", self._action_usl),
+            ("6", "Sahamas (Sensitive Points)", self._action_sahamas),
+            ("7", "User's Special Lagna (planet/factor/reverse)", self._action_usl),
         ]
         self._sub_menu("Chart & Varga", items)
 
