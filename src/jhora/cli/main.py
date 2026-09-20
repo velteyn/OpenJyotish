@@ -601,6 +601,42 @@ def lagnas(
 
 
 @app.command()
+def sahamas(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Show the 36 Tajaka sahamas (sensitive points) for a chart.
+
+    Day/night formulas follow the true sunrise/sunset geometry at the
+    birth place (a note names the basis used).
+    """
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+    from jhora.calc.sahama import compute_sahamas, is_day_birth
+    day = is_day_birth(cd)
+    planets = {g: {"longitude": p.longitude} for g, p in cd.planets.items()}
+    rows = compute_sahamas(cd.ascendant, planets, day=day)
+    table = Table(title=f"Sahamas (36, {'day' if day else 'night'} birth "
+                        f"by sunrise/sunset)")
+    table.add_column("Sahama", style="cyan")
+    table.add_column("Meaning", style="white")
+    table.add_column("Longitude", style="green")
+    table.add_column("Sign", style="yellow")
+    table.add_column("House", style="magenta")
+    asc_sign = int(cd.ascendant // 30) % 12
+    for s in rows:
+        sign = int(s.longitude // 30) % 12
+        house = (sign - asc_sign) % 12 + 1
+        table.add_row(s.name, s.meaning, f"{s.longitude:.2f}°",
+                      Rasi(sign).full_name, str(house))
+    console.print(table)
+
+
+@app.command()
 def learning(
     birthdata: str = typer.Argument(..., help="Birth data"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
