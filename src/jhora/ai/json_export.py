@@ -157,7 +157,9 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
         dasa = VimsottariDasa()
         cd_dict = {"planets": {g.value: {"longitude": p.longitude}
                                for g, p in cd.planets.items()},
-                   "lagna_lon": cd.ascendant}
+                   "lagna_lon": cd.ascendant,
+                   "lat": cd.latitude, "lon": cd.longitude,
+                   "tz": cd.timezone}
         if cd.hora_lagna is not None:
             # True Hora Lagna for Varnada dasa (Sun-sign fallback
             # when absent).
@@ -194,7 +196,7 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
                     "narayana", "kalachakra", "brahma", "karaka",
                     "moola", "shoola", "trikona", "varnada",
                     "sthira", "navamsa", "yogardha", "niryana-shoola",
-                    "lagna-kendradi"):
+                    "lagna-kendradi", "kaala", "chakra", "mandooka"):
             try:
                 periods = _dasa_engine(sys).compute(cd.julian_day, cd_dict)
                 for p in periods:
