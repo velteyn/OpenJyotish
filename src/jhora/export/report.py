@@ -200,6 +200,32 @@ def _yogas_list(cd: ChartData) -> str:
         return ""
 
 
+def _sahamas_table(cd: ChartData) -> str:
+    try:
+        from jhora.calc.sahama import compute_sahamas, is_day_birth
+        from jhora.types.rasi import Rasi
+        day = is_day_birth(cd)
+        planets = {g: {"longitude": p.longitude}
+                   for g, p in cd.planets.items()}
+        rows = []
+        asc_sign = int(cd.ascendant // 30) % 12
+        for s in compute_sahamas(cd.ascendant, planets, day=day):
+            sign = int(s.longitude // 30) % 12
+            house = (sign - asc_sign) % 12 + 1
+            rows.append(
+                f"<tr><td>{s.name}</td><td>{s.meaning}</td>"
+                f"<td>{s.longitude:.2f}°</td>"
+                f"<td>{Rasi(sign).full_name}</td><td>{house}</td></tr>"
+            )
+        basis = "day" if day else "night"
+        return f"""<h2>Sahamas (36, {basis} birth)</h2>
+<table><tr><th>Sahama</th><th>Meaning</th><th>Longitude</th>
+<th>Sign</th><th>House</th></tr>
+{"".join(rows)}</table>"""
+    except Exception:
+        return ""
+
+
 def _vimsopaka_table(cd: ChartData) -> str:
     try:
         vc = VimsopakaComputer(cd)
@@ -339,6 +365,7 @@ def _build_html(cd: ChartData, style: str) -> str:
             _ashtakavarga_table(cd),
             _vimsottari_table(cd),
             _yogas_list(cd),
+            _sahamas_table(cd),
             _vimsopaka_table(cd),
             _transit_table(cd),
         ])
