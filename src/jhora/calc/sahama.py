@@ -1,3 +1,24 @@
+"""Sahamas — Tajaka sensitive points (36).
+
+Formula sources (day formulas; night handling below): B.V. Raman,
+Varshaphala ch. 8 (35 sahamas) and Balabhadra's Hayanaratna (Tajaka
+compendium). Both state the +30° rule identically: after A − B + C,
+add 30° when the ascendant does NOT fall between minuend and
+subtrahend. Both state night reversal (swap minuend/subtrahend, keep
+the additive third) as the default.
+
+Night-reversal scope decision (Tradition Rule): Raman marks only
+Bhratri and Vyapara as same day/night; Hayanaratna agrees on those
+two plus Roga/Mrityu ("at all times") but marks Bandhu, Vivaha,
+Paradara, Vanik, Preeti, Putra, Santapa and Sraddha same where our
+reference-consistent behavior reverses (the reference help vectors
+pin Vanik-night = reversed). The reference wins those: its tables
+are what working gurus cross-check. The single exception is Satru:
+BOTH Hayanaratna ("the reverse at night") and Raman (unmarked, so
+reversed) agree against a same-formula flag that cites no authority,
+so Satru reverses at night here.
+"""
+
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Callable, Union
 
@@ -154,7 +175,7 @@ _SAHAMA_DEFS: List[dict] = [
     {"name": "Vyapara",   "meaning": "Business, commerce",
      "a": ("planet", Graha.MARS), "b": ("planet", Graha.SATURN), "c": "lagna", "no_rev": True},
     {"name": "Satru",     "meaning": "Enemy, opposition",
-     "a": ("planet", Graha.MARS), "b": ("planet", Graha.SATURN), "c": "lagna", "no_rev": True},
+     "a": ("planet", Graha.MARS), "b": ("planet", Graha.SATURN), "c": "lagna"},
     {"name": "Jalapatana","meaning": "Crossing oceans, sea voyage",
      "a": ("fixed", 105.0), "b": ("planet", Graha.SATURN),       "c": "lagna"},
     {"name": "Bandhana",  "meaning": "Imprisonment, confinement",
@@ -204,3 +225,37 @@ def compute_sahamas(
 
 def compute_punya_sahama(lagna_lon: float, planets: Dict, day: bool = True) -> Sahama:
     return compute_sahamas(lagna_lon, planets, day)[0]
+
+
+def sahama_by_name(lagna_lon: float, planets: Dict, name: str,
+                   day: bool = True) -> Sahama:
+    """Look up one sahama by name (robust alternative to index [0])."""
+    for sah in compute_sahamas(lagna_lon, planets, day):
+        if sah.name.lower() == name.lower():
+            return sah
+    raise KeyError(f"unknown sahama: {name}")
+
+
+def is_day_birth(chart) -> bool:
+    """True day/night determination from sunrise/sunset geometry.
+
+    A birth counts as day when its local wall time falls between
+    sunrise and sunset at the birth place (single precise source),
+    replacing the crude 6:00–18:00 clock heuristic. Falls back to the
+    heuristic when ephemeris data is unavailable (never raises).
+    """
+    try:
+        from jhora.calc.muhurta import sunrise_sunset_hours
+        from jhora.charts.chart import ChartBuilder
+        tz_east = -ChartBuilder._parse_tz(chart.timezone, chart.birth_date)
+        wall_hour = chart.time_of_day_hours % 24.0
+        birth = chart.birth_date
+        date = birth.replace(hour=0, minute=0, second=0, microsecond=0)
+        rise, set_ = sunrise_sunset_hours(
+            date, chart.latitude, chart.longitude, tz_east)
+        return bool(rise <= wall_hour < set_)
+    except Exception:
+        try:
+            return bool(6.0 <= chart.time_of_day_hours < 18.0)
+        except Exception:
+            return True
