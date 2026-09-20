@@ -413,8 +413,8 @@ def _special_points_snapshot(cd: ChartData, usl_config=None) -> str:
 
     # Sahamas
     from jhora.calc.sahama import compute_sahamas
-    is_day = 6.0 <= cd.time_of_day_hours < 18.0
-    sahamas = compute_sahamas(cd.ascendant, planets, day=is_day)
+    from jhora.calc.sahama import is_day_birth
+    sahamas = compute_sahamas(cd.ascendant, planets, day=is_day_birth(cd))
     lines.append("Sahamas (sensitive points):")
     for s in sahamas:
         lines.append(f"  {s.name}: {Rasi(int(s.longitude / 30)).short_name} {s.longitude:.1f}° — {s.meaning}")
