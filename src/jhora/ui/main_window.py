@@ -407,6 +407,7 @@ class MainWindow(QMainWindow):
         spec_sub.addTab(self._build_kuta_tab(), "Matchmaking")
         spec_sub.addTab(self._build_prasna_tab(), "Prasna")
         spec_sub.addTab(self._build_muhurta_tab(), "Muhurta")
+        spec_sub.addTab(self._build_kp_tab(), "KP")
         self.page_stack.addWidget(spec_sub)
 
         # 7. AI & Knowledge
@@ -823,6 +824,7 @@ class MainWindow(QMainWindow):
             self._populate_shadbala_table(self.chart_data)
             self._populate_arudha_table(self.chart_data)
             self._populate_ashtakavarga_table(self.chart_data)
+            self._populate_kp_table(self.chart_data)
             self._populate_transit_table(self.chart_data)
             self._populate_tithi_pravesha(self.chart_data)
             self._populate_progressions(self.chart_data)
@@ -1370,6 +1372,57 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.sahama_table, stretch=3)
 
         return w
+
+    def _build_kp_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        layout.addWidget(QLabel("House Cusps (Placidus) — sign / star / sub / sub-sub lord:"))
+        self.kp_cusp_table = QTableWidget()
+        self.kp_cusp_table.setAlternatingRowColors(True)
+        layout.addWidget(self.kp_cusp_table, stretch=3)
+
+        layout.addWidget(QLabel("Planets — bhava placement and KP lords:"))
+        self.kp_planet_table = QTableWidget()
+        self.kp_planet_table.setAlternatingRowColors(True)
+        layout.addWidget(self.kp_planet_table, stretch=3)
+
+        layout.addWidget(QLabel("Ruling Planets:"))
+        self.kp_rp_table = QTableWidget()
+        self.kp_rp_table.setAlternatingRowColors(True)
+        layout.addWidget(self.kp_rp_table, stretch=2)
+
+        return w
+
+    def _populate_kp_table(self, cd: ChartData):
+        from jhora.calc.kp import KPComputer
+
+        kpc = KPComputer(cd).compute()
+
+        headers = ["House", "Cusp", "Sign", "Sign Lord", "Star Lord",
+                   "Sub Lord", "Sub-Sub"]
+        rows = [
+            [str(c.house), f"{c.longitude:.2f}°", c.sign.short_name,
+             c.chain.sign_lord.short_name, c.chain.star_lord.short_name,
+             c.chain.sub_lord.short_name, c.chain.sub_sub_lord.short_name]
+            for c in kpc.cusps
+        ]
+        self._fill_table(self.kp_cusp_table, headers, rows)
+
+        headers = ["Planet", "Sign", "House", "Star Lord", "Sub Lord", "Sub-Sub"]
+        rows = [
+            [p.graha.full_name, p.sign.short_name, str(p.house),
+             p.chain.star_lord.short_name, p.chain.sub_lord.short_name,
+             p.chain.sub_sub_lord.short_name]
+            for p in kpc.planets
+        ]
+        self._fill_table(self.kp_planet_table, headers, rows)
+
+        self._fill_table(self.kp_rp_table, ["Planet", "Role"],
+                         [[r.graha.full_name, r.role_string]
+                          for r in kpc.ruling_planets])
 
     def _populate_arudha_table(self, cd: ChartData):
         from jhora.calc.arudha import (

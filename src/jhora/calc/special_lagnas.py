@@ -381,21 +381,27 @@ def compute_special_lagnas(cd: ChartData) -> list:
 def kp_sublord(longitude: float, level: int = 1) -> list:
     """Find the KP sub-lord(s) for a given longitude at specified depth.
 
+    The Vimsottari subdivision begins at the nakshatra's own lord and then
+    proceeds in the Vimsottari order (Krishnamurti's KP). The same rotation
+    is applied at each deeper level: within a sub, the sub-sub division
+    again starts at that sub's lord.
+
     Level 1 = sub-lord, 2 = sub-sub-lord, up to 5.
-    Returns list of (Graha, span_start, span_end).
+    Returns a list of dicts with graha / name / start / end / level.
     """
-    nakshatra_span = 13.333333  # 13°20'
+    nakshatra_span = 360.0 / 27.0  # 13°20'
     nakshatra_index = int(longitude / nakshatra_span)
-    start = nakshatra_index * nakshatra_span
     span = nakshatra_span
+    current_start = nakshatra_index * nakshatra_span
+    order_idx = nakshatra_index % len(_KP_ORDER)
+    n_lords = len(_KP_ORDER)
 
     results = []
-    current = longitude - start
-    current_start = start
-
     for lvl in range(level):
+        current = longitude - current_start
         cumulative = 0.0
-        for g in _KP_ORDER:
+        for k in range(n_lords):
+            g = _KP_ORDER[(order_idx + k) % n_lords]
             sub_width = span * _KP_SUB_PROPORTIONS[g]
             if cumulative + sub_width >= current:
                 results.append({
@@ -405,9 +411,9 @@ def kp_sublord(longitude: float, level: int = 1) -> list:
                     "end": current_start + cumulative + sub_width,
                     "level": lvl + 1,
                 })
-                current = current - cumulative
-                span = sub_width
+                order_idx = (order_idx + k) % n_lords
                 current_start = current_start + cumulative
+                span = sub_width
                 break
             cumulative += sub_width
 

@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-41 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1252 tests  |  GPL v3.0
+42 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+22-section JSON API for AI agents  |  1276 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -117,7 +117,7 @@ All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 | **Strengths** | Shadbala, Arudha & Karaka, Ashtakavarga |
 | **Dasas** | Dasa Periods with interactive bar chart |
 | **Transits & Tajaka** | Transits, Tajaka & TP, Mundane |
-| **Special** | Matchmaking, Prasna, Muhurta (incl. Choghadiya) |
+| **Special** | Matchmaking, Prasna, Muhurta (incl. Choghadiya), KP |
 | **AI & Learn** | AI Chat, AI Teacher, Knowledge, Reading |
 | **Tools** | Ephemeris |
 
@@ -178,12 +178,12 @@ data = json.loads(subprocess.run(
 ).stdout)
 ```
 
-## All CLI Commands (35)
+## All CLI Commands (42)
 
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets + upagrahas + outer planets |
-| `analyze` | AI-friendly JSON dump (21 sections) |
+| `analyze` | AI-friendly JSON dump (22 sections) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
@@ -213,6 +213,7 @@ data = json.loads(subprocess.run(
 | `panchanga` | Monthly calendar (tithi/nakshatra/rahu kalam) |
 | `chakras` | Sarvatobhadra + Kota chakras |
 | `lagnas` | All special lagnas with meanings |
+| `kp` | Krishnamurti Paddhati — Placidus cusp/planet lord chains + Ruling Planets (`--ayanamsa krishnamurti`) |
 | `sphutas` | Prasna Marga auspicious points (Tri/Chatus/Pancha/Prana/Deha/Mrityu/Beeja/Kshetra/Yoga) |
 | `learning` | Marana karaka, KP sub-lords, vaiseshikamsas |
 | `tui` | Launch interactive terminal UI |
@@ -227,7 +228,7 @@ Rasi chart (D-1) with South/North/East styles · 23 varga charts (D-2 to D-150) 
 36 Sahamas · 20 ayanamsa modes (Lahiri/Raman/KP/Fagan/Tropical/etc.) ·
 Outer planets (Uranus/Neptune/Pluto) · Upagrahas (5 solar + Gulika/Mandi) ·
 Special lagnas (Bhrigu Bindu/Indu/Varnada/Pranapada/Vighati) ·
-KP sub-lords (5 levels) · Chalit/Bhava charts
+KP mode — Placidus cusp/planet lord chains, Ruling Planets, sub-lords (5 levels) · Chalit/Bhava charts
 
 ### Forecasting
 Transits with SAV scores · Tajaka solar return · Tithi Pravesha ·
@@ -256,7 +257,7 @@ src/jhora/
 ├── export/         HTML report generator
 ├── io/             Atlas (SQLite/FTS5), JHD parser
 ├── core/           Unified database
-├── cli/            Typer CLI (41 commands)
+├── cli/            Typer CLI (42 commands)
 ├── tui/            prompt_toolkit menu system
 └── ui/             PyQt6 GUI (8-category tabs, chart widget, dasa timeline)
 ```

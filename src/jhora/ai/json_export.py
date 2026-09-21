@@ -14,6 +14,7 @@ from jhora.calc.karaka import compute_chara_karakas
 from jhora.calc.arudha import all_bhava_arudhas
 from jhora.calc.ashtakavarga import sarva_ashtakavarga
 from jhora.calc.upagraha import compute_solar_upagrahas
+from jhora.calc.kp import kp_chart
 from jhora.calc.special_lagnas import compute_special_lagnas, kp_sublord_string
 from jhora.calc.learning import marana_karaka_sthana, vaiseshikamsas, ishta_kashta_phala
 from jhora.dasas.vimsottari import VimsottariDasa
@@ -316,6 +317,44 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
         for g in Graha:
             if g in cd.planets:
                 result["kp_sublords"][g.short_name] = kp_sublord_string(cd.planet(g).longitude, 3)
+    except Exception:
+        pass
+
+    # ── KP tables (Placidus cusps + Ruling Planets) ──
+    try:
+        kp = kp_chart(cd)
+        result["kp"] = {
+            "cusp_system": kp.cusp_system,
+            "ayanamsa": kp.ayanamsa,
+            "day_lord": kp.day_lord.full_name,
+            "cusps": [
+                {
+                    "house": c.house,
+                    "longitude": round(c.longitude, 2),
+                    "sign": c.sign.short_name,
+                    "sign_lord": c.chain.sign_lord.full_name,
+                    "star_lord": c.chain.star_lord.full_name,
+                    "sub_lord": c.chain.sub_lord.full_name,
+                    "sub_sub_lord": c.chain.sub_sub_lord.full_name,
+                }
+                for c in kp.cusps
+            ],
+            "planets": [
+                {
+                    "planet": p.graha.full_name,
+                    "house": p.house,
+                    "sign": p.sign.short_name,
+                    "star_lord": p.chain.star_lord.full_name,
+                    "sub_lord": p.chain.sub_lord.full_name,
+                    "sub_sub_lord": p.chain.sub_sub_lord.full_name,
+                }
+                for p in kp.planets
+            ],
+            "ruling_planets": [
+                {"planet": r.graha.full_name, "roles": list(r.roles)}
+                for r in kp.ruling_planets
+            ],
+        }
     except Exception:
         pass
 
