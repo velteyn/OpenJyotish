@@ -121,8 +121,8 @@ echo "Done."
 echo
 echo "Quick start:"
 echo "  ./run.sh          Launch GUI"
-echo "  jhora tui         Terminal mode"
-echo "  jhora --help      All commands"
+echo "  openjyotish tui         Terminal mode"
+echo "  openjyotish --help      All commands"
 echo
 echo "Cleaning cache..."
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true

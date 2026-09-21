@@ -26,7 +26,7 @@ def test_planet_rows_cover_lagna_nine_grahas():
 
 
 def test_sav_totals_match_reference_grid():
-    """SAV row must reproduce the reference program's totals exactly."""
+    """SAV row must reproduce the classical totals exactly."""
     from jhora.export.traditional import _classical_bav
     _bavs, sav = _classical_bav(_chart())
     assert sav == [28, 26, 34, 28, 30, 33, 26, 34, 22, 24, 26, 26]

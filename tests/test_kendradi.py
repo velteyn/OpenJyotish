@@ -65,7 +65,7 @@ class TestLagnaKendradi:
                      cd.julian_day)
 
 
-@pytest.mark.skip(reason="AK Kendradi suspended: reference tables refutes "
+@pytest.mark.skip(reason="AK Kendradi suspended: reference tables refute "
                         "seed/order/cycles; pending dedicated research")
 class TestAKKendradi:
     """SUSPENDED — see module note. Skipped, not deleted."""

@@ -35,7 +35,7 @@ def _ranking_degrees(graha: Graha, longitude: float) -> float:
 
     Rahu moves retrograde, so it is ranked by mirrored degrees
     (30° minus in-sign longitude) — the mainstream PVR reading,
-    verified against the published tables labels 16/16 on two charts and PVR-book
+    verified against the published labels 16/16 on two charts and PVR-book
     examples. Ketu is excluded from the ranking entirely.
     """
     in_sign = longitude % 30

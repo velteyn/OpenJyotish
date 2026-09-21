@@ -7,7 +7,7 @@ index is even and backward otherwise. Durations follow the Chara
 lord-distance rule (inclusive sign-to-lord count minus one, footed
 directions, own sign 12, full circle 11, dual Scorpio/Aquarius lords
 under the Rao own-sign exception; no exaltation adjustment) —
-reproducing the tradition exactly, including the Rao-exception Scorpio.
+reproducing the published tables exactly, including the Rao-exception Scorpio.
 Antardasas split each MD equally in modality-gated order (d = +1 for
 even MD signs, −1 for odd): the cycle starts at the MD itself when
 MD is odd and at 7th-from-MD when even; then movable MDs run plain

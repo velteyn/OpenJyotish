@@ -1,4 +1,4 @@
-"""Traditional one-page report — traditional-style layout rendered to PNG/JPG.
+"""Traditional one-page report — classic one-page layout rendered to PNG/JPG.
 
 Produces a single-page printable report containing:
   - Birth header (panchanga: tithi, yoga, karana, sunrise/sunset, dasa balance)
@@ -283,7 +283,7 @@ def _planet_rows(cd: ChartData) -> List[List[str]]:
 # ── Classical Ashtakavarga benefic-place tables (BPHS) ───────────────────────
 # _AV_TABLES[subject][reference] = 1-based houses from the reference's sign
 # that receive a bindu for the subject's Bhinna Ashtakavarga.
-# Validated: reproduces traditional's BAV rows exactly (totals 48/49/39/54/56/52/39,
+# Validated: reproduces the classical BAV rows exactly (totals 48/49/39/54/56/52/39,
 # SAV total 337) for a known reference chart.
 
 _AV_TABLES: Dict[str, Dict[str, List[int]]] = {
@@ -475,7 +475,7 @@ def _navamsa_occupants(cd: ChartData) -> Tuple[Rasi, Dict[int, List[str]]]:
     """D-9 lagna rasi + {house_number: [abbreviations]}.
 
     Uses the standard Parashara navamsa (movable→same sign, fixed→9th,
-    dual→5th) — the convention used by the tradition/traditional traditional reports.
+    dual→5th) — the convention used by traditional reports.
     """
     lagna_rasi = _navamsa_sign(cd.ascendant)
     houses: Dict[int, List[str]] = {}
