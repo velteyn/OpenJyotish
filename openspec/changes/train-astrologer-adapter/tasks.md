@@ -16,19 +16,19 @@
 
 ## 2. Training recipe (user hardware)
 
-- [ ] 2.1 Unsloth QLoRA config: 8B-class base, rank 16–32, pinned versions,
+- [x] 2.1 Unsloth QLoRA config: 8B-class base, rank 16–32, pinned versions,
       single-GPU VRAM notes (8B ≈ 10–12GB, 14B ≈ 20–24GB)
-- [ ] 2.2 Repro script: dataset hash → trained adapter, one command,
+- [x] 2.2 Repro script: dataset hash → trained adapter, one command,
       deterministic seeds where Unsloth allows
-- [ ] 2.3 Model card template: base, dataset hash, eval numbers, limitations
+- [x] 2.3 Model card template: base, dataset hash, eval numbers, limitations
 
 ## 3. Eval harness
 
-- [ ] 3.1 Flag-rate + citation-genuineness scorer over the held-out set,
+- [x] 3.1 Flag-rate + citation-genuineness scorer over the held-out set,
       identical prompts, base vs adapter
-- [ ] 3.2 Mock-LLM mode for CI (no server needed); live mode against
+- [x] 3.2 Mock-LLM mode for CI (no server needed); live mode against
       LM Studio/Ollama/Unsloth endpoints
-- [ ] 3.3 Ship-threshold gate: adapter must beat base to release
+- [x] 3.3 Ship-threshold gate: adapter must beat base to release
 
 ## 4. Publishing
 
