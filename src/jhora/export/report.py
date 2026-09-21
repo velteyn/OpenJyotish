@@ -73,7 +73,7 @@ def _meta(cd: ChartData) -> str:
     return f"""
 <div class="meta">
   <strong>Birth:</strong> {cd.birth_date.strftime('%Y-%m-%d %H:%M')} |
-  <strong>Location:</strong> {abs(cd.latitude):.2f}°{lat_hemi}, {abs(cd.longitude):.2f}°{lon_hemi} |
+  <strong>Location:</strong> {lat_hemi}, {lon_hemi} |
   <strong>Lagna:</strong> {lagna.full_name} {cd.ascendant:.1f}° |
   <strong>Ayanamsa:</strong> {cd.ayanamsa_name.title()}{panch}{sun}{dasa}
 </div>"""
