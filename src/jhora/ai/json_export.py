@@ -198,7 +198,8 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
                     "sthira", "navamsa", "yogardha", "niryana-shoola",
                     "lagna-kendradi", "kaala", "chakra", "mandooka",
                     "tithi-ashtottari", "tithi-yogini",
-                    "karana-chaturaaseeti", "yoga-vimsottari"):
+                    "karana-chaturaaseeti", "yoga-vimsottari",
+                    "naisargika"):
             try:
                 periods = _dasa_engine(sys).compute(cd.julian_day, cd_dict)
                 for p in periods:
