@@ -161,9 +161,22 @@ def knowledge_import(
 def analyze(
     birthdata: str = typer.Argument(..., help="Birth data"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    jsonld: bool = typer.Option(False, "--jsonld",
+                                help="Emit a JSON-LD document instead of plain JSON"),
 ):
     """AI-friendly JSON dump — all computed data in one structured output."""
     import json
+    if jsonld:
+        from jhora.ai.jsonld import chart_to_jsonld
+        bd = parse_birthdata(birthdata)
+        builder = ChartBuilder()
+        cd = builder.build(
+            year=bd["year"], month=bd["month"], day=bd["day"],
+            hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+            tz=bd["tz"], ayanamsa=ayanamsa,
+        )
+        print(json.dumps(chart_to_jsonld(cd), indent=2, ensure_ascii=False))
+        return
     data = full_analysis(birthdata, ayanamsa)
     redacted_data = _redact_sensitive_fields(data)
     print(json.dumps(redacted_data, indent=2, ensure_ascii=False))

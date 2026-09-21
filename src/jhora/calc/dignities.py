@@ -1,5 +1,6 @@
 """Planetary dignity calculator."""
 
+from dataclasses import dataclass
 from typing import Dict, Tuple
 
 from jhora.types.graha import Graha
@@ -51,6 +52,15 @@ OWN_SIGNS: Dict[Graha, Tuple[int, ...]] = {
 }
 
 
+@dataclass(frozen=True)
+class DignityResult:
+    """A planet's dignity state together with its tattva layer."""
+
+    dignity: str
+    planet_tattva: str
+    sign_tattva: str
+
+
 class DignityChecker:
     """Check planetary dignity (exalted, debilitated, moolatrikona, own, etc.)."""
 
@@ -91,3 +101,64 @@ class DignityChecker:
                 return "own"
         # Friend/neutral/enemy — depends on graha relationships
         return "neutral"
+
+    def full_result(self, graha: Graha, rasi_index: int,
+                    deg_in_rasi: float) -> DignityResult:
+        """Dignity state plus the planet and sign tattvas."""
+        return DignityResult(
+            dignity=self.get_dignity(graha, rasi_index, deg_in_rasi),
+            planet_tattva=planet_tattva(graha),
+            sign_tattva=sign_tattva(rasi_index),
+        )
+
+
+# ── Tattva (element) layer ────────────────────────────────────────────────────
+
+#: Classical element of each planet (BPHS / Saravali convention).
+PLANET_TATTVA: Dict[Graha, str] = {
+    Graha.SUN: "fire",
+    Graha.MOON: "water",
+    Graha.MARS: "fire",
+    Graha.MERCURY: "earth",
+    Graha.JUPITER: "akasha",
+    Graha.VENUS: "fire",
+    Graha.SATURN: "air",
+    Graha.RAHU: "air",
+    Graha.KETU: "air",
+}
+
+#: Element group of each sign.
+SIGN_TATTVA: Dict[int, str] = {
+    0: "fire", 1: "earth", 2: "air", 3: "water",
+    4: "fire", 5: "earth", 6: "air", 7: "water",
+    8: "fire", 9: "earth", 10: "air", 11: "water",
+}
+
+#: Tattvas that are friendly to each other; akasha is friendly to all.
+_FRIENDLY_PAIRS = {frozenset({"fire", "air"}), frozenset({"earth", "water"})}
+
+
+def planet_tattva(graha: Graha) -> str:
+    """The classical element of a planet."""
+    return PLANET_TATTVA[graha]
+
+
+def sign_tattva(rasi_index: int) -> str:
+    """The element group of a sign (0 = Aries)."""
+    return SIGN_TATTVA[int(rasi_index) % 12]
+
+
+def tattva_relation(a: str, b: str) -> str:
+    """Relationship between two tattvas: friendly, inimical or same.
+
+    Fire and air are friendly, earth and water are friendly, akasha is
+    friendly to everything; the remaining combinations are inimical.
+    """
+    a, b = a.lower(), b.lower()
+    if a == b:
+        return "same"
+    if "akasha" in (a, b):
+        return "friendly"
+    if frozenset({a, b}) in _FRIENDLY_PAIRS:
+        return "friendly"
+    return "inimical"
