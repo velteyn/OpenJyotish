@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 40 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1240 tests  |  GPL v3.0
+21-section JSON API for AI agents  |  1246 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -222,7 +222,7 @@ data = json.loads(subprocess.run(
 
 ### Calculation Engine
 Rasi chart (D-1) with South/North/East styles · 23 varga charts (D-2 to D-150) ·
-25 dasa systems · 8 conditional dasas · Shadbala · Bhava Bala · Vimsopaka Bala (4 schemes) ·
+26 dasa systems · 8 conditional dasas · Shadbala · Bhava Bala · Vimsopaka Bala (4 schemes) ·
 200+ yogas · Ashtakavarga (BAV/SAV/Kakshya) · Arudha Padas · Chara Karakas ·
 36 Sahamas · 20 ayanamsa modes (Lahiri/Raman/KP/Fagan/Tropical/etc.) ·
 Outer planets (Uranus/Neptune/Pluto) · Upagrahas (5 solar + Gulika/Mandi) ·
@@ -250,7 +250,7 @@ src/jhora/
 ├── ephemeris/      Swiss Ephemeris wrapper (18 API functions)
 ├── charts/         ChartBuilder, ChartData (frozen), VargaChartComputer
 ├── calc/           29 modules: strengths, yogas, dasas, transits, chakras...
-├── dasas/          25 dasa systems (+ shared Jaimini core)
+├── dasas/          26 dasa systems (+ shared Jaimini core)
 ├── ai/             AI engine, RAG pipeline, JSON export, teacher
 ├── interpreter/    Chart reading, knowledge base
 ├── export/         HTML report generator
