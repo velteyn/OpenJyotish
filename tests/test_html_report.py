@@ -22,7 +22,10 @@ def test_title_and_meta():
     html = _html()
     assert "OpenJyotish Chart Report" in html
     assert "Jhora Chart Report" not in html
-    assert "19.18" in html and "72.50" in html
+    # Location is hemispheres only (privacy: no exact birth coordinates
+    # in exported reports); birth time stays, it is the horoscope.
+    assert "19.18" not in html and "72.50" not in html
+    assert "N, E" in html
     assert "Tithi" in html and "Sunrise" in html and "Dasa balance" in html
 
 
