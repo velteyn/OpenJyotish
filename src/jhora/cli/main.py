@@ -187,7 +187,10 @@ def dasa(
     birthdata: str = typer.Argument(..., help="Birth data"),
     system: str = typer.Argument("vimsottari", help="Dasa system"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
-    start: str = typer.Option("moon", "--start", help="Nakshatra dasa seed: moon, lagna, sun, kshema, utpanna, adhana"),
+    start: str = typer.Option("moon", "--start", help="Nakshatra dasa seed: moon, lagna, sun, kshema, utpanna, adhana, devi, brahma, maandi, trisphuta"),
+    ad_method: str = typer.Option("rao_rath", "--ad-method", help="Antardasa method: rao_rath, raman, continuous, raghavacharya"),
+    narayana_variant: str = typer.Option("base", "--narayana-variant", help="Narayana variant: base, sama, paka, ayur"),
+    narayana_chart: str = typer.Option(None, "--narayana-chart", help="Narayana chart seed (e.g. D-9, D-60, D-144)"),
     sesham: str = typer.Option("moon", "--sesham", help="Sesham handling: moon (reduce first MD), full (no reduction)"),
     year_def: str = typer.Option("solar", "--year-def", help="Year definition: solar, savana, tithi"),
     karaka_role: str = typer.Option("Dara", "--karaka-role", help="Karaka Dasa seed: Putra, Matri, Bhratri, Dara"),
@@ -215,12 +218,14 @@ def dasa(
     chart_dict = _chart_to_dict(chart_data)
     from jhora.dasas.base import DasaOptions
     opts = DasaOptions(start_variation=start, sesham_method=sesham, year_definition=year_def,
-                       karaka_role=karaka_role, seed_house=house)
+                       karaka_role=karaka_role, seed_house=house, ad_method=ad_method,
+                       narayana_variant=narayana_variant, narayana_chart=narayana_chart)
     engine = _get_dasa_engine(system, opts)
     periods = engine.compute(chart_data.julian_day, chart_dict, opts)
     _display_dasa_table(periods, f"{system.title()} Dasa Periods")
     if system.lower() in ("vimsottari", "ashtottari", "yogini"):
-        console.print(f"[dim]Seed: {start} · Sesham: {sesham} · Year: {year_def}[/dim]")
+        console.print(f"[dim]Seed: {start} · Sesham: {sesham} · Year: {year_def}"
+                      f" · AD: {ad_method}[/dim]")
 
 
 @app.command()
@@ -403,6 +408,15 @@ def _chart_to_dict(cd: ChartData) -> dict:
         # True Hora Lagna for Varnada dasa; engines fall back to the
         # Sun's sign when the key is absent.
         d["hora_lagna_lon"] = cd.hora_lagna.longitude
+    try:
+        # Maandi/Gulika longitude for the Maandi and Trisphuta dasa seeds.
+        from jhora.calc.upagraha import compute_temporal_upagrahas
+        for u in compute_temporal_upagrahas(cd):
+            if u.name in ("Gulika", "Maandi", "Mandi"):
+                d["gulika_lon"] = u.longitude
+                break
+    except Exception:
+        pass
     return d
 
 
@@ -1133,7 +1147,11 @@ def shadbala(
     vimsopaka: bool = typer.Option(False, "--vimsopaka", "-v",
                                    help="Show Vimsopaka Bala (varga-weighted strength)"),
     scheme: str = typer.Option("shadvarga", "--scheme",
-                               help="Vimsopaka scheme: shadvarga, saptavarga, dashavarga, shodasavarga"),
+                               help="Vimsopaka scheme: shadvarga, saptavarga, dashavarga, shodasavarga, dwadasavarga"),
+    bhava_varga: str = typer.Option(None, "--bhava-varga",
+                                    help="Varga for Bhava Bala (e.g. D-9, D-10); default rasi"),
+    ishta_kashta: bool = typer.Option(False, "--ishta-kashta",
+                                      help="Show Ishta/Kashta Phala (beneficence vs difficulty)"),
 ):
     """Compute Shadbala (six-fold planetary strength) or Bhava Bala (house strength)."""
     bd = parse_birthdata(birthdata)
@@ -1178,18 +1196,43 @@ def shadbala(
 
     if bhava:
         console.print()
-        _print_bhava_bala(cd)
+        _print_bhava_bala(cd, bhava_varga)
 
     if vimsopaka:
         console.print()
         _print_vimsopaka(cd, scheme)
 
+    if ishta_kashta:
+        console.print()
+        from jhora.calc.learning import ishta_kashta_phala
+        ik = ishta_kashta_phala(cd)
+        t = Table(title="Ishta/Kashta Phala (Beneficence vs Difficulty)")
+        t.add_column("Planet", style="cyan")
+        t.add_column("Ishta", style="green")
+        t.add_column("Kashta", style="red")
+        for r in ik:
+            t.add_row(r["graha"], f"{r['ishta']:.0f}", f"{r['kashta']:.0f}")
+        console.print(t)
 
-def _print_bhava_bala(cd):
+
+def _print_bhava_bala(cd, varga: str = None):
     from jhora.types.rasi import Rasi
-    bb = BhavaBalaComputer(cd)
+    from jhora.types.varga import VargaLevel
+    if varga:
+        try:
+            lvl = _parse_varga_level(varga)
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+            return
+        bb = BhavaBalaComputer.for_varga(cd, lvl)
+        asc_lon = bb.chart.ascendant
+        title = f"Bhava Bala — {lvl.name.replace('D_', 'D-')} House Strengths"
+    else:
+        bb = BhavaBalaComputer(cd)
+        asc_lon = cd.ascendant
+        title = "Bhava Bala — House Strengths"
     report = bb.compute_all()
-    table = Table(title="Bhava Bala — House Strengths")
+    table = Table(title=title)
     table.add_column("H", style="cyan")
     table.add_column("Sign", style="yellow")
     table.add_column("Lord", style="yellow")
@@ -1201,7 +1244,7 @@ def _print_bhava_bala(cd):
     table.add_column("Total", style="white bold")
     for h in range(1, 13):
         r = report.results[h]
-        rasi_idx = (int(cd.ascendant / 30) + h - 1) % 12
+        rasi_idx = (int(asc_lon / 30) + h - 1) % 12
         table.add_row(
             str(h), Rasi(rasi_idx).short_name, Rasi(rasi_idx).lord,
             f"{r.sthana:.1f}", f"{r.drishti:.1f}", f"{r.dig:.1f}",

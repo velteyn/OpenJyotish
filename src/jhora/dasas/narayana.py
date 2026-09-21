@@ -35,8 +35,16 @@ class NarayanaDasa(DasaBase):
         lagna_lord_name = lagna_rasi.lord
         lagna_lord = _LORD_NAME_TO_GRAHA.get(lagna_lord_name, Graha.SUN)
 
-        lagna_lord_lon = planets[lagna_lord]["longitude"]
-        seed_rasi = self._find_seed(lagna_lord, lagna_lord_lon)
+        # Chart seed: when a varga level is requested, the seed rasi is taken
+        # from that divisional chart's lagna-lord position instead of D-1.
+        seed_chart = chart.get("seed_varga_positions") if opts.narayana_chart else None
+        if seed_chart:
+            lord_lon = seed_chart.get(lagna_lord)
+            if lord_lon is None:
+                lord_lon = planets[lagna_lord]["longitude"]
+        else:
+            lord_lon = planets[lagna_lord]["longitude"]
+        seed_rasi = self._find_seed(lagna_lord, lord_lon)
 
         lord_names: Dict[int, str] = {}
         rasies: List[tuple] = []
@@ -44,13 +52,30 @@ class NarayanaDasa(DasaBase):
 
         sequence = self._compute_sequence(seed_rasi)
 
+        # Variant: Sama uses equal 10-year periods; Paka doubles the seed
+        # lord's period; Ayur orders by the lord's ayur (longevity) years.
+        variant = opts.narayana_variant
         for rasi in sequence:
-            yrs = _rasi_vimsottari_years(rasi)
+            if variant == "sama":
+                yrs = 10.0
+            elif variant == "paka" and rasi == seed_rasi:
+                yrs = _rasi_vimsottari_years(rasi) * 2.0
+            else:
+                yrs = _rasi_vimsottari_years(rasi)
             lord_idx = 100 + rasi.value
             lord_names[lord_idx] = rasi.full_name
             rasies.append((lord_idx, yrs))
 
-        sub_ratios = [_rasi_vimsottari_years(Rasi(i)) for i in range(12)]
+        if variant == "sama":
+            sub_ratios = [10.0 for _ in range(12)]
+        elif variant == "paka":
+            sub_ratios = [
+                2.0 * _rasi_vimsottari_years(Rasi(i)) if Rasi(i) == seed_rasi
+                else _rasi_vimsottari_years(Rasi(i))
+                for i in range(12)
+            ]
+        else:
+            sub_ratios = [_rasi_vimsottari_years(Rasi(i)) for i in range(12)]
 
         sub_lord_names = {i: Rasi(i).full_name for i in range(12)}
         return self.build_period_tree(

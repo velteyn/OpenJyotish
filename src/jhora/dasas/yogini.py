@@ -62,6 +62,8 @@ class YoginiDasa(DasaBase):
             y_per_d=y_per_d,
             max_level=opts.subdivision_level,
             sub_lord_names=sub_lord_names,
+            sub_order=self._cycle_lord_indices() if hasattr(self, "_cycle_lord_indices") else None,
+            ad_method=opts.ad_method,
         )
 
     def dasa_at_date(
