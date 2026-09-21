@@ -1,4 +1,4 @@
-"""Shared machinery for Jaimini rasi dasas (Karaka, Moola, Shoola, ...).
+"""Shared machinery for Jaimini rasi dasas (Karaka, Shoola, ...).
 
 Classical rules implemented here (Jaimini Sutras, Upadesa Khanda, in the
 standard Parasara/SJC reading):
