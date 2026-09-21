@@ -97,3 +97,10 @@ def test_print_stylesheet_covers_tables():
     from jhora.export.report import CSS
     assert "@media print" in CSS
     assert "table" in CSS and "th" in CSS
+
+
+def test_parity_tables_present():
+    from jhora.export.report import _build_html
+    html = _build_html(_chart(), "full")
+    assert "Dwadasa Vargeeya Bala" in html
+    assert "Ishta / Kashta Phala" in html

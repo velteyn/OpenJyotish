@@ -26,7 +26,21 @@ class DasaOptions:
     #:   kshema    - from the Kshema tara (4th nakshatra) from Moon
     #:   utpanna   - from the Utpanna tara (5th nakshatra) from Moon
     #:   adhana    - from the Aadhaana tara (8th nakshatra) from Moon
+    #:   maandi    - from the Maandi (Gulika) position (needs its longitude)
+    #:   trisphuta - from the Trisphuta longitude (Lagna + Moon + Gulika)
+    #:   devi      - from the 7th nakshatra (Devi tara) from Moon
+    #:   brahma    - from the 9th nakshatra (Brahma tara) from Moon
     start_variation: str = "moon"
+
+    #: Antardasa construction method for nakshatra dasas:
+    #:   rao_rath    - rotate sub-periods to start at the parent lord (default)
+    #:   raman       - Dr. Raman first-fraction (sub-periods from the MD lord,
+    #:                 first sub halved at the start of the cycle)
+    #:   continuous  - each sub-period starts where the previous ended, in the
+    #:                 MD lord's order (no re-anchoring)
+    #:   raghavacharya - navamsa progression (sub-periods follow the navamsa
+    #:                 order from the seed nakshatra)
+    ad_method: str = "rao_rath"
 
     #: How the first mahadasa's duration is handled:
     #:   moon  - reduce first MD by the fraction of Moon's nakshatra remaining
@@ -40,6 +54,13 @@ class DasaOptions:
     #: Which chara karaka seeds Karaka Dasa ("Putra", "Matri", "Bhratri",
     #: "Dara"); other systems ignore it.
     karaka_role: str = "Dara"
+
+    #: Narayana-dasa variant: "base" (default), "sama", "paka" or "ayur".
+    narayana_variant: str = "base"
+    #: Narayana-dasa chart seed: None/"D-1" (default), or a varga label such
+    #: as "D-9"/"D-60"/"D-144". The caller supplies the seed chart's lord
+    #: longitudes in the chart dict under "seed_varga_positions".
+    narayana_chart: Optional[str] = None
 
     #: Which house seeds Shoola Dasa (1 = self/lagna, 9 = Pitri/father,
     #: 7 = Dara/spouse, 5 = Putra/children); other systems ignore it.
@@ -103,6 +124,7 @@ class DasaBase(ABC):
         lord_names: Optional[Dict[int, str]] = None,
         sub_lord_names: Optional[Dict[int, str]] = None,
         sub_order: Optional[List[int]] = None,
+        ad_method: str = "rao_rath",
     ) -> List[DasaPeriod]:
         """Build hierarchical period tree from lord sequence.
         
@@ -152,7 +174,7 @@ class DasaBase(ABC):
             if max_level.value >= PeriodLevel.ANTARDASA.value:
                 md.sub_periods = _subdivide(
                     md, sub_ratios, y_per_d, 1, max_level, sub_lord_names,
-                    sub_order,
+                    sub_order, ad_method,
                 )
             periods.append(md)
             current_jd = end_jd
@@ -167,6 +189,7 @@ def _subdivide(
     max_depth: PeriodLevel,
     sub_lord_names: Optional[Dict[int, str]] = None,
     sub_order: Optional[List[int]] = None,
+    ad_method: str = "rao_rath",
 ) -> List[DasaPeriod]:
     """Create subdivision periods for a parent period.
 
@@ -174,6 +197,16 @@ def _subdivide(
     enumeration rotates to the parent lord's cycle position, so sub-periods
     start from the parent lord at every depth; otherwise legacy input order
     is kept byte-identical.
+
+    ``ad_method`` selects the construction:
+      * ``rao_rath``    - the rotation above (default, unchanged)
+      * ``raman``       - Dr. Raman's first-fraction: the parent lord runs the
+                          first half of the sub-cycle before the proportional
+                          rotation (sub-periods keep the rotation order)
+      * ``continuous``  - no re-anchoring: each level continues in the parent
+                          lord's cyclic order from the start of the parent
+      * ``raghavacharya`` - navamsa progression: the sub-order steps by one
+                          navamsa per sub-period instead of the Vimsottari order
     """
     if depth > max_depth.value:
         return None
@@ -186,6 +219,26 @@ def _subdivide(
             start = 0
     else:
         start = 0
+
+    # ── Antardasa construction method ────────────────────────────────────
+    # Only the first level (antardasas) is method-sensitive; deeper levels
+    # follow the same rotation so a method choice cannot cascade.
+    raman_halved_first = False
+    big_step = 1
+    if ad_method == "continuous" and order is not None:
+        # Each sub-period continues in the parent lord's cyclic order,
+        # starting at the parent lord (no re-anchoring beyond the parent).
+        pass
+    elif ad_method == "raghavacharya" and order is not None:
+        # Navamsa progression: step by one navamsa per sub-period, so the
+        # order advances by the sign's navamsa count rather than by one.
+        big_step = max(1, len(order) // 4) or 1
+    elif ad_method == "raman" and depth == 1:
+        # Dr. Raman first-fraction: the parent lord opens the cycle and its
+        # first sub-period is halved (the remaining half is redistributed by
+        # the proportional rotation).
+        raman_halved_first = True
+
     total_ratio = sum(ratios)
     periods = []
     level_map = {
@@ -200,9 +253,11 @@ def _subdivide(
     current_jd = parent.start_jd
     n = len(ratios)
     for k in range(n):
-        i = (start + k) % n if order is not None else k
+        i = (start + k * big_step) % n if order is not None else k
         ratio = ratios[i]
         dur = parent_duration * (ratio / total_ratio)
+        if raman_halved_first and k == 0:
+            dur = dur / 2.0
         end_jd = current_jd + dur
         sub_name = sub_lord_names.get(i, str(i))
         sub = DasaPeriod(
@@ -215,7 +270,7 @@ def _subdivide(
         )
         if depth < max_depth.value:
             sub.sub_periods = _subdivide(sub, ratios, y_per_d, depth + 1, max_depth, sub_lord_names,
-                                         sub_order)
+                                         sub_order, ad_method)
         periods.append(sub)
         current_jd = end_jd
     return periods

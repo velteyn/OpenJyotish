@@ -26,6 +26,7 @@ class VimsopakaScheme(Enum):
     SAPTAVARGA = "saptavarga"
     DASHAVARGA = "dashavarga"
     SHODASAVARGA = "shodasavarga"
+    DWADASAVARGA = "dwadasavarga"
 
 
 # Varga weights per scheme — how many points each varga contributes to the 20
@@ -43,6 +44,16 @@ _WEIGHTS = {
         VargaLevel.D_7: 1.5, VargaLevel.D_9: 1.5, VargaLevel.D_12: 1.5,
         VargaLevel.D_16: 1.0, VargaLevel.D_20: 1.0,
         VargaLevel.D_24: 1.0, VargaLevel.D_30: 1.0,
+    },
+    # Dwadasa Vargeeya Bala — twelve vargas, equal weight (20/12 each), the
+    # scheme the tradition prints as the twelve-fold strength.
+    VimsopakaScheme.DWADASAVARGA: {
+        VargaLevel.D_1: 20.0 / 12, VargaLevel.D_2: 20.0 / 12,
+        VargaLevel.D_3: 20.0 / 12, VargaLevel.D_4: 20.0 / 12,
+        VargaLevel.D_7: 20.0 / 12, VargaLevel.D_9: 20.0 / 12,
+        VargaLevel.D_10: 20.0 / 12, VargaLevel.D_12: 20.0 / 12,
+        VargaLevel.D_16: 20.0 / 12, VargaLevel.D_20: 20.0 / 12,
+        VargaLevel.D_24: 20.0 / 12, VargaLevel.D_30: 20.0 / 12,
     },
     VimsopakaScheme.SHODASAVARGA: {
         VargaLevel.D_1: 3.5, VargaLevel.D_2: 1.0, VargaLevel.D_3: 1.0,

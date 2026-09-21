@@ -48,7 +48,12 @@ class VimsottariDasa(DasaBase):
         "kshema": 3,    # 4th star
         "utpanna": 4,   # 5th star
         "adhana": 7,    # 8th star (Aadhaana tara)
+        "devi": 6,      # 7th star (Devi tara)
+        "brahma": 8,    # 9th star (Brahma tara)
     }
+
+    #: Seeds that come from a computed point rather than a planets' nakshatra.
+    _POINT_SEEDS = {"maandi", "trisphuta"}
 
     def __init__(self, options: Optional[DasaOptions] = None):
         super().__init__(options)
@@ -95,6 +100,7 @@ class VimsottariDasa(DasaBase):
             max_level=opts.subdivision_level,
             sub_lord_names=sub_lord_names,
             sub_order=[g.value for g in self.CYCLE_LORDS],
+            ad_method=opts.ad_method,
         )
 
     def _days_per_year(self, year_definition: str) -> float:
@@ -116,6 +122,12 @@ class VimsottariDasa(DasaBase):
             lon = chart["planets"][Graha.SUN]["longitude"]
             nak, _ = Nakshatra.from_longitude(lon)
             return lon, nak.value
+        if variation in self._POINT_SEEDS:
+            lon = self._point_seed_longitude(chart, variation)
+            if lon is not None:
+                nak, _ = Nakshatra.from_longitude(lon)
+                return lon, nak.value
+            # Point unavailable → fall back to Moon rather than inventing one.
         if variation in self._TARA_OFFSET:
             # Tara-based seed: nakshatra offset from Moon's nakshatra.
             moon_lon = chart["planets"][Graha.MOON]["longitude"]
@@ -127,6 +139,24 @@ class VimsottariDasa(DasaBase):
         lon = chart["planets"][Graha.MOON]["longitude"]
         nak, _ = Nakshatra.from_longitude(lon)
         return lon, nak.value
+
+    def _point_seed_longitude(self, chart: Dict, variation: str):
+        """Longitude for a Maandi/Trisphuta seed, or None if unavailable.
+
+        The chart dict may carry a precomputed ``gulika_lon`` (the Maandi
+        position). When it does, the Trisphuta is derived from it directly;
+        when it does not, both seeds fall back to the Moon.
+        """
+        gulika = chart.get("gulika_lon")
+        if gulika is None:
+            return None
+        if variation == "maandi":
+            return gulika
+        if variation == "trisphuta":
+            lagna = chart.get("lagna_lon", 0.0)
+            moon = chart["planets"][Graha.MOON]["longitude"]
+            return (lagna + moon + gulika) % 360.0
+        return None
 
     def _nakshatra_to_graha(self, n: Nakshatra) -> Graha:
         """Map nakshatra lord name to Graha enum."""

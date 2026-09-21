@@ -448,6 +448,37 @@ def _chalit_table(cd: ChartData) -> str:
         return ""
 
 
+def _dwadasa_vargeeya_table(cd: ChartData) -> str:
+    try:
+        from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
+        vc = VimsopakaComputer(cd)
+        results = sorted(vc.compute_all(VimsopakaScheme.DWADASAVARGA),
+                         key=lambda r: r.total, reverse=True)
+        rows = "".join(
+            f"<tr><td>{r.graha.full_name}</td><td>{r.total:.1f}/20</td>"
+            f"<td>{r.percentage:.0f}%</td></tr>"
+            for r in results
+        )
+        return f"""<h2>Dwadasa Vargeeya Bala (12 vargas)</h2>
+<table><tr><th>Planet</th><th>Score</th><th>%</th></tr>{rows}</table>"""
+    except Exception:
+        return ""
+
+
+def _ishta_kashta_table(cd: ChartData) -> str:
+    try:
+        from jhora.calc.learning import ishta_kashta_phala
+        rows = "".join(
+            f"<tr><td>{r['graha']}</td><td>{r['ishta']:.0f}</td>"
+            f"<td>{r['kashta']:.0f}</td></tr>"
+            for r in ishta_kashta_phala(cd)
+        )
+        return f"""<h2>Ishta / Kashta Phala</h2>
+<table><tr><th>Planet</th><th>Ishta</th><th>Kashta</th></tr>{rows}</table>"""
+    except Exception:
+        return ""
+
+
 def _chart_images_html(cd: ChartData) -> str:
     """Render Lagna (D-1) and true Navamsa (D-9) charts and return HTML."""
     import base64
@@ -508,6 +539,8 @@ def _build_html(cd: ChartData, style: str) -> str:
             _arudha_pada_table(cd),
             _karaka_table(cd),
             _chalit_table(cd),
+            _dwadasa_vargeeya_table(cd),
+            _ishta_kashta_table(cd),
         ])
 
     body = "\n".join(sections)

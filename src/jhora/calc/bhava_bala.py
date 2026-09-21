@@ -88,8 +88,49 @@ class BhavaBalaReport:
         return self.sorted_by_strength()[-1]
 
 
+def as_varga_chart(chart: ChartData, level) -> ChartData:
+    """A ChartData view of a divisional chart, for the strength calculators.
+
+    The planets take their varga longitudes and the lagna takes the varga
+    lagna; house cusps are equal-house from that lagna. Purely a projection
+    of the existing chart — no ephemeris is re-run.
+    """
+    import dataclasses
+    from jhora.charts.varga import VargaChartComputer
+    from jhora.charts.chart import VargaPosition
+    from jhora.types.varga import VargaLevel, VargaVariant
+
+    lvl = level if isinstance(level, VargaLevel) else VargaLevel[level]
+    if lvl == VargaLevel.D_1:
+        return chart
+    vcd = VargaChartComputer().compute(chart, lvl, VargaVariant.DEFAULT)
+
+    planets = {}
+    for g, vp in vcd.positions.items():
+        base = chart.planets[g]
+        planets[g] = dataclasses.replace(
+            base, longitude=vp.longitude, rasi=vp.rasi,
+            degrees_in_rasi=vp.degrees_in_rasi,
+        )
+    lagna_lon = vcd.lagna_position.longitude
+    lagna_base = chart.lagna
+    lagna = dataclasses.replace(
+        lagna_base, longitude=lagna_lon, rasi=vcd.lagna_position.rasi,
+        degrees_in_rasi=vcd.lagna_position.degrees_in_rasi,
+    )
+    cusps = tuple((lagna_lon + i * 30) % 360 for i in range(13))
+    return dataclasses.replace(
+        chart, planets=planets, lagna=lagna, ascendant=lagna_lon,
+        house_cusps=cusps,
+    )
+
+
 class BhavaBalaComputer:
-    """Compute the strength of each house (bhava) in a birth chart."""
+    """Compute the strength of each house (bhava) in a birth chart.
+
+    The chart may be the rasi chart (default) or, via :func:`as_varga_chart`,
+    a projection of a divisional chart.
+    """
 
     def __init__(self, chart: ChartData):
         self.chart = chart
@@ -117,6 +158,11 @@ class BhavaBalaComputer:
         for h in range(1, 13):
             report.results[h] = self.compute(h)
         return report
+
+    @classmethod
+    def for_varga(cls, chart: ChartData, level) -> "BhavaBalaComputer":
+        """A Bhava Bala computer for a divisional chart."""
+        return cls(as_varga_chart(chart, level))
 
     def _sthana_bala(self, house: int) -> float:
         """Positional strength: kendra=60, panapara=30, apoklima=15."""
