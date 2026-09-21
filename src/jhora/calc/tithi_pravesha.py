@@ -52,6 +52,14 @@ def _from_jd(jd: float) -> tuple:
     return int(y), m, int(d), h
 
 
+def _wall_ymdh(best_jd: float, tz: str) -> tuple:
+    """Local wall-clock y/m/d/h for a JD (revjul returns UT)."""
+    from jhora.charts.chart import ChartBuilder
+    tz_east = -ChartBuilder._parse_tz(tz)
+    y, m, d, h = swe.revjul(best_jd + tz_east / 24.0)
+    return int(y), int(m), int(d), float(h)
+
+
 def _sun_lon(jd: float) -> float:
     return swe.calc_ut(jd, swe.SUN, swe.FLG_SWIEPH)[0][0]
 
@@ -124,8 +132,8 @@ class TithiPraveshaCalculator:
             if best_jd is None:
                 best_jd = jd_mid
 
-        # Cast chart
-        y, m, d, h = _from_jd(best_jd)
+        # Cast chart (revjul is UT: convert to local wall time first).
+        y, m, d, h = _wall_ymdh(best_jd, tz)
         try:
             chart = self.builder.build(
                 year=y, month=m, day=d, hour=h,
@@ -173,7 +181,7 @@ class TithiPraveshaCalculator:
                 break
             jd += 0.0005  # ~40 seconds
 
-        y, m, d, h = _from_jd(best_jd)
+        y, m, d, h = _wall_ymdh(best_jd, tz)
         try:
             chart = self.builder.build(year=y, month=m, day=d, hour=h,
                                        lat=lat, lon=lon, tz=tz)
