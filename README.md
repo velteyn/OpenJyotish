@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 42 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-22-section JSON API for AI agents  |  1276 tests  |  GPL v3.0
+23-section JSON API for AI agents  |  1293 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -183,7 +183,7 @@ data = json.loads(subprocess.run(
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets + upagrahas + outer planets |
-| `analyze` | AI-friendly JSON dump (22 sections) |
+| `analyze` | AI-friendly JSON dump (23 sections) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
@@ -192,7 +192,7 @@ data = json.loads(subprocess.run(
 | `dasa-timeline` | Text bar chart with now-marker |
 | `conditional-dasas` | List additional dasa systems that apply |
 | `transit` | Current transits with SAV scores |
-| `tajaka` | Solar return chart |
+| `tajaka` | Tajaka return charts — annual/monthly/2.5-day/5-hr/25-min/2-min (`--level`, `--index`, `--sunrise`) |
 | `tithi-pravesha` | Annual solar-tithi ingress |
 | `progression` | Secondary progressions (1 day = 1 year) |
 | `kuta` | Marriage compatibility (Porutham + Ashta Koota) |

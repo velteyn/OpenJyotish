@@ -358,6 +358,38 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         pass
 
+    # ── Tajaka levels (duodecimal return charts) ──
+    try:
+        from jhora.calc.tajaka import (
+            SOLAR_YEAR_DAYS, TajakaLevel, _SE_FLAGS, find_varsha_pravesh_jd,
+        )
+        from jhora.ephemeris.swe import SweEngine
+
+        target_year = datetime.now().year
+        engine = SweEngine()
+        engine.set_sidereal_mode(cd.ayanamsa_name)
+        engine._flags = _SE_FLAGS
+        anchor_jd = find_varsha_pravesh_jd(
+            engine, cd.sun.longitude, cd.julian_day, target_year,
+            cd.birth_date.month, cd.birth_date.day,
+        )
+        ay, am, ad, ah = engine.revjul(anchor_jd)
+        result["tajaka"] = {
+            "year": target_year,
+            "solar_year_days": SOLAR_YEAR_DAYS,
+            "anchor_ut": f"{int(ay):04d}-{int(am):02d}-{int(ad):02d} {ah:.2f}h",
+            "levels": [
+                {
+                    "level": lvl.label,
+                    "days": round(lvl.days, 4),
+                    "periods_per_year": lvl.periods_per_year,
+                }
+                for lvl in TajakaLevel
+            ],
+        }
+    except Exception:
+        pass
+
     # ── Marana Karaka ──
     try:
         mk = marana_karaka_sthana(cd)

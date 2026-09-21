@@ -1540,6 +1540,15 @@ class MainWindow(QMainWindow):
         self.taj_year_combo.setEditable(True)
         self.taj_year_combo.setCurrentText("2001")
         top.addWidget(self.taj_year_combo)
+        top.addWidget(QLabel("Level:"))
+        self.taj_level_combo = QComboBox()
+        for _key in ["annual", "monthly", "2.5-day", "5-hr", "25-min", "2-min"]:
+            self.taj_level_combo.addItem(_key, _key)
+        top.addWidget(self.taj_level_combo)
+        top.addWidget(QLabel("Index:"))
+        self.taj_index_spin = QSpinBox()
+        self.taj_index_spin.setRange(1, 12)
+        top.addWidget(self.taj_index_spin)
         self.taj_find_btn = QPushButton("Find Tajaka Chart")
         self.taj_find_btn.clicked.connect(self._on_tajaka_find)
         top.addWidget(self.taj_find_btn)
@@ -1651,7 +1660,8 @@ class MainWindow(QMainWindow):
     def _on_tajaka_find(self):
         if not self.chart_data:
             return
-        from jhora.calc.tajaka import (build_tajaka_chart, compute_harsha_bala,
+        from jhora.calc.tajaka import (TajakaLevel, build_tajaka_level_chart,
+                                       compute_harsha_bala,
                                        compute_mudda_dasa,
                                        compute_patyayini_dasa)
         try:
@@ -1659,15 +1669,31 @@ class MainWindow(QMainWindow):
         except ValueError:
             return
 
+        level_map = {
+            "annual": TajakaLevel.ANNUAL, "monthly": TajakaLevel.MONTHLY,
+            "2.5-day": TajakaLevel.TWO_AND_HALF_DAY,
+            "5-hr": TajakaLevel.FIVE_HOUR,
+            "25-min": TajakaLevel.TWENTY_FIVE_MIN,
+            "2-min": TajakaLevel.TWO_MIN,
+        }
+        level = level_map.get(self.taj_level_combo.currentData(), TajakaLevel.ANNUAL)
+        index = max(1, min(self.taj_index_spin.value(), level.periods_per_year))
+
         cb = ChartBuilder(self.builder.swe)
-        taj = build_tajaka_chart(self.builder.swe, cb, self.chart_data, target_year)
+        try:
+            taj = build_tajaka_level_chart(self.builder.swe, cb, self.chart_data,
+                                           target_year, level, index)
+        except ValueError:
+            return
         chart = taj.chart
 
         y, m, d, h = self.builder.swe.revjul(taj.varsha_pravesh_jd)
+        my, mm, md, mh = self.builder.swe.revjul(taj.moment_jd)
         muntha_name = ["Ar", "Ta", "Ge", "Cn", "Le", "Vi",
                         "Li", "Sc", "Sg", "Cp", "Aq", "Pi"][taj.muntha_sign]
         self.taj_info.setText(
-            f"Varsha Pravesh: {int(y)}-{int(m):02d}-{int(d):02d} {h:.2f}h UT  |  "
+            f"Anchor (varsha pravesh): {int(y)}-{int(m):02d}-{int(d):02d} {h:.2f}h UT  |  "
+            f"{level.label} #{taj.index}: {int(my)}-{int(mm):02d}-{int(md):02d} {mh:.2f}h UT  |  "
             f"Year {taj.year_index}  |  Muntha: {muntha_name} ({taj.muntha_sign})"
         )
 

@@ -748,20 +748,41 @@ class JhoraTui:
         y = input_dialog("Tajaka Year", "Target year:", str(datetime.now().year)).run()
         if not y:
             return
+        lvl_key = input_dialog(
+            "Tajaka Level",
+            "Level (annual/monthly/2.5-day/5-hr/25-min/2-min):", "annual").run()
+        idx_key = input_dialog(
+            "Sub-period", "One-based index (1 = period start):", "1").run()
         try:
-            from jhora.calc.tajaka import build_tajaka_chart
+            from jhora.calc.tajaka import TajakaLevel, build_tajaka_level_chart
             from jhora.ephemeris.swe import SweEngine
+            level_map = {
+                "annual": TajakaLevel.ANNUAL, "monthly": TajakaLevel.MONTHLY,
+                "2.5-day": TajakaLevel.TWO_AND_HALF_DAY,
+                "5-hr": TajakaLevel.FIVE_HOUR,
+                "25-min": TajakaLevel.TWENTY_FIVE_MIN,
+                "2-min": TajakaLevel.TWO_MIN,
+            }
+            lvl = level_map.get((lvl_key or "annual").strip().lower())
+            if lvl is None:
+                self._content_lines = [
+                    f"[red]Unknown level '{lvl_key}'. Use one of: "
+                    f"{', '.join(level_map)}[/red]"]
+                return
+            index = int((idx_key or "1").strip())
             with rich.capture() as cap:
                 eng = SweEngine()
                 cbb = ChartBuilder()
-                tr = build_tajaka_chart(eng, cbb, self.chart, int(y), tropical=False)
-                t = Table(title=f"Tajaka Solar Return {y}", box=rich_box.SIMPLE)
+                tr = build_tajaka_level_chart(
+                    eng, cbb, self.chart, int(y), lvl, index, sunrise=False)
+                t = Table(title=f"Tajaka {lvl.label} #{tr.index} {y}",
+                          box=rich_box.SIMPLE)
                 t.add_column("Planet")
                 t.add_column("Sign")
                 t.add_column("Deg")
                 for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
                           Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
-                    p = tr.planet(g)
+                    p = tr.chart.planet(g)
                     r = Rasi.from_longitude(p.longitude)
                     t.add_row(g.short_name, r.short_name, f"{p.longitude:.1f}°")
                 rich.print(t)

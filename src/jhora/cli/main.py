@@ -1402,9 +1402,37 @@ def tajaka(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     target_year: int = typer.Argument(..., help="Target year for yearly chart"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    level: str = typer.Option("annual", "--level", "-l",
+                              help="annual | monthly | 2.5-day | 5-hr | 25-min | 2-min"),
+    index: int = typer.Option(1, "--index", "-i",
+                              help="One-based sub-period index (1 = period start)"),
+    sunrise: bool = typer.Option(False, "--sunrise",
+                                 help="Cast at sunrise of the computed day"),
 ):
-    """Compute Tajaka solar return chart for a given year."""
-    from jhora.calc.tajaka import build_tajaka_chart, compute_harsha_bala, compute_patyayini_dasa, compute_mudda_dasa
+    """Compute a Tajaka return chart for a given year.
+
+    The Tajaka year begins at the varsha pravesh (solar return); every level is
+    a duodecimal division of that year, so --level monthly --index 3 gives the
+    third monthly chart of the year.
+    """
+    from jhora.calc.tajaka import (
+        TajakaLevel, build_tajaka_level_chart, compute_harsha_bala,
+        compute_patyayini_dasa, compute_mudda_dasa,
+    )
+    level_map = {
+        "annual": TajakaLevel.ANNUAL,
+        "monthly": TajakaLevel.MONTHLY,
+        "2.5-day": TajakaLevel.TWO_AND_HALF_DAY,
+        "5-hr": TajakaLevel.FIVE_HOUR,
+        "25-min": TajakaLevel.TWENTY_FIVE_MIN,
+        "2-min": TajakaLevel.TWO_MIN,
+    }
+    lvl = level_map.get(level.lower())
+    if lvl is None:
+        console.print(f"[red]Unknown level '{level}'. Use one of: "
+                      f"{', '.join(level_map)}[/red]")
+        raise typer.Exit(code=2)
+
     bd = parse_birthdata(birthdata)
     cb = ChartBuilder()
     cb.swe.set_sidereal_mode(ayanamsa)
@@ -1413,15 +1441,26 @@ def tajaka(
         hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
         tz=bd["tz"], ayanamsa=ayanamsa,
     )
-    taj = build_tajaka_chart(cb.swe, cb, natal, target_year)
+    try:
+        taj = build_tajaka_level_chart(
+            cb.swe, cb, natal, target_year, lvl, index, sunrise,
+        )
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2)
     chart = taj.chart
 
-    y, m, d, h = cb.swe.revjul(taj.varsha_pravesh_jd)
-    console.print(f"\n[bold]Tajaka Varsha Pravesh[/bold]: {int(y)}-{int(m):02d}-{int(d):02d} {h:.2f}h UT")
+    ay, am, ad, ah = cb.swe.revjul(taj.anchor_jd)
+    my, mm, md_, mh = cb.swe.revjul(taj.moment_jd)
+    console.print(f"\n[bold]Tajaka anchor (varsha pravesh)[/bold]: "
+                  f"{int(ay)}-{int(am):02d}-{int(ad):02d} {ah:.2f}h UT")
+    console.print(f"[bold]{lvl.label} chart[/bold] index {taj.index}"
+                  f"{' (sunrise)' if taj.sunrise else ''}: "
+                  f"{int(my)}-{int(mm):02d}-{int(md_):02d} {mh:.2f}h UT")
     console.print(f"Natal lagna: {natal.ascendant:.2f}° ({int(natal.ascendant//30)%12})")
     console.print(f"Year index: {taj.year_index}, Muntha sign: {taj.muntha_sign}")
 
-    table = Table(title=f"Solar Return Chart (Year {target_year})")
+    table = Table(title=f"Solar Return Chart ({lvl.label} #{taj.index}, {target_year})")
     table.add_column("Graha", style="yellow")
     table.add_column("Longitude", style="cyan")
     table.add_column("Sign", style="green")
