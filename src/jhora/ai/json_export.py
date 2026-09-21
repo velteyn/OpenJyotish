@@ -194,7 +194,7 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
         result["dasa"]["systems"] = {}
         for sys in ("ashtottari", "yogini", "sudasa", "chara",
                     "narayana", "kalachakra", "brahma", "karaka",
-                    "moola", "shoola", "trikona", "varnada",
+                    "shoola", "trikona", "varnada",
                     "sthira", "navamsa", "yogardha", "niryana-shoola",
                     "lagna-kendradi", "kaala", "chakra", "mandooka",
                     "tithi-ashtottari", "tithi-yogini",

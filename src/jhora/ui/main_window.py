@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
         self.dasa_system_combo.addItems([
             "Vimsottari", "Ashtottari", "Yogini", "Sudasa",
             "Chara", "Narayana", "Kalachakra", "Brahma",
-            "Karaka", "Moola", "Shoola", "Trikona", "Varnada",
+            "Karaka", "Shoola", "Trikona", "Varnada",
             "Sthira", "Navamsa", "Yogardha", "Niryana-Shoola",
             "Lagna-Kendradi", "Kaala", "Chakra", "Mandooka",
             "Tithi-Ashtottari", "Tithi-Yogini", "Karana-Chaturaaseeti",
@@ -1021,9 +1021,6 @@ class MainWindow(QMainWindow):
         elif system == "Karaka":
             from jhora.dasas.karaka_dasa import KarakaDasa
             return KarakaDasa(options)
-        elif system == "Moola":
-            from jhora.dasas.moola import MoolaDasa
-            return MoolaDasa(options)
         elif system == "Shoola":
             from jhora.dasas.shoola import ShoolaDasa
             return ShoolaDasa(options)

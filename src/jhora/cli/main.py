@@ -172,7 +172,7 @@ def dasa(
     """Compute dasa periods for a chart.
 
     system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
-    kalachakra, brahma, karaka, moola, shoola, trikona, varnada,
+    kalachakra, brahma, karaka, shoola, trikona, varnada,
     sthira, navamsa, yogardha, niryana-shoola, lagna-kendradi,
     kaala, chakra, mandooka, tithi-ashtottari, tithi-yogini,
     karana-chaturaaseeti, yoga-vimsottari, naisargika.
@@ -383,7 +383,7 @@ def _chart_to_dict(cd: ChartData) -> dict:
 
 def _get_dasa_engine(system: str, options=None):
     """Return a dasa engine for the given system name (vimsottari/ashtottari/
-    yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola/
+    yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/shoola/
     trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/
     lagna-kendradi/kaala/chakra/mandooka/tithi-ashtottari/tithi-yogini/
     karana-chaturaaseeti/yoga-vimsottari/naisargika)."""
@@ -415,9 +415,6 @@ def _get_dasa_engine(system: str, options=None):
     if s == "karaka":
         from jhora.dasas.karaka_dasa import KarakaDasa
         return KarakaDasa(options)
-    if s == "moola":
-        from jhora.dasas.moola import MoolaDasa
-        return MoolaDasa(options)
     if s == "shoola":
         from jhora.dasas.shoola import ShoolaDasa
         return ShoolaDasa(options)
