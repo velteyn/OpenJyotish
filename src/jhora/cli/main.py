@@ -77,6 +77,9 @@ def chart(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
     chalit: bool = typer.Option(False, "--chalit", help="Show Bhava/Chalit house positions"),
+    chalit_varga: Optional[str] = typer.Option(
+        None, "--chalit-varga",
+        help="Varga level for --chalit (e.g. D-1, D-9, D-60); default D-1 + D-9"),
 ):
     """Compute and display birth chart."""
     bd = parse_birthdata(birthdata)
@@ -89,7 +92,15 @@ def chart(
     _display_chart(chart_data)
     _display_chart_yogas(chart_data)
     if chalit:
-        _display_chalit(chart_data)
+        if chalit_varga:
+            try:
+                levels = [_parse_varga_level(chalit_varga)]
+            except ValueError as exc:
+                console.print(f"[red]{exc}[/red]")
+                raise typer.Exit(code=2)
+        else:
+            levels = [VargaLevel.D_1, VargaLevel.D_9]
+        _display_chalit(chart_data, levels=levels)
 
 
 def _redact_sensitive_fields(value):
@@ -319,9 +330,10 @@ def _lord_name(idx: int) -> str:
         return str(idx)
 
 
-def _display_chalit(cd: ChartData):
+def _display_chalit(cd: ChartData, levels=None):
     cc = ChalitComputer(cd)
-    for vl in [VargaLevel.D_1, VargaLevel.D_9]:
+    for vl in (levels if levels is not None
+               else [VargaLevel.D_1, VargaLevel.D_9]):
         r = cc.compute(vl)
         table = Table(title=f"{vl.name} Chalit Chakra — Bhava (cusp) vs Rasi (sign)")
         table.add_column("Planet", style="cyan")

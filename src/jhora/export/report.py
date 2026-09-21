@@ -313,6 +313,141 @@ def _transit_table(cd: ChartData) -> str:
         return ""
 
 
+def _special_lagnas_table(cd: ChartData) -> str:
+    try:
+        from jhora.calc.special_lagnas import compute_special_lagnas
+        rows = []
+        for l in compute_special_lagnas(cd):
+            rows.append(
+                f"<tr><td>{l.name}</td><td>{l.longitude:.2f}&deg;</td>"
+                f"<td>{l.sign}</td><td>{l.description}</td></tr>"
+            )
+        return f"""<h2>Special Lagnas</h2>
+<table><tr><th>Lagna</th><th>Longitude</th><th>Sign</th><th>Meaning</th></tr>
+{"".join(rows)}</table>"""
+    except Exception:
+        return ""
+
+
+def _arudha_pada_table(cd: ChartData) -> str:
+    try:
+        from jhora.calc.arudha import (
+            all_bhava_arudhas, all_graha_arudhas, bhava_pada_name,
+            graha_pada_name)
+        planets = {g: {"longitude": p.longitude}
+                   for g, p in cd.planets.items()}
+        bhava = all_bhava_arudhas(cd.ascendant, planets)
+        rows = []
+        for n in range(1, 13):
+            alias = ""
+            if n == 7:
+                alias = " (Darapada)"
+            elif n == 12:
+                alias = " (Upapada)"
+            elif n == 1:
+                alias = " (AL)"
+            rows.append(
+                f"<tr><td>A{n}</td><td>{bhava_pada_name(n)}{alias}</td>"
+                f"<td>{bhava[n].full_name}</td></tr>"
+            )
+        graha_rows = []
+        for g, r in all_graha_arudhas(planets).items():
+            graha_rows.append(
+                f"<tr><td>{g.full_name if hasattr(g, 'full_name') else g}</td>"
+                f"<td>{graha_pada_name(g)}</td><td>{r.full_name}</td></tr>"
+            )
+        return f"""<h2>Arudha Padas</h2>
+<table><tr><th>Pada</th><th>Classical name</th><th>Sign</th></tr>
+{"".join(rows)}</table>
+<h3>Graha Padas</h3>
+<table><tr><th>Planet</th><th>Pada</th><th>Sign</th></tr>
+{"".join(graha_rows)}</table>"""
+    except Exception:
+        return ""
+
+
+def _karaka_table(cd: ChartData) -> str:
+    try:
+        from jhora.calc.karaka import compute_chara_karakas
+        from jhora.types.rasi import Rasi
+        planets = {g: {"longitude": p.longitude, "speed": p.speed}
+                   for g, p in cd.planets.items()}
+        rows = []
+        for k in compute_chara_karakas(planets):
+            sign = Rasi.from_longitude(k.longitude).full_name
+            rows.append(
+                f"<tr><td>{k.short_name}</td><td>{k.full_name}</td>"
+                f"<td>{k.graha.full_name}</td><td>{sign}</td>"
+                f"<td>{k.meaning}</td></tr>"
+            )
+        return f"""<h2>Chara Karakas</h2>
+<table><tr><th>Karaka</th><th>Name</th><th>Planet</th><th>Sign</th>
+<th>Signifies</th></tr>
+{"".join(rows)}</table>"""
+    except Exception:
+        return ""
+
+
+def _kp_table(cd: ChartData) -> str:
+    try:
+        from jhora.calc.kp import KPComputer
+        kpc = KPComputer(cd).compute()
+        cusp_rows = []
+        for c in kpc.cusps:
+            cusp_rows.append(
+                f"<tr><td>{c.house}</td><td>{c.longitude:.2f}&deg;</td>"
+                f"<td>{c.sign.short_name}</td>"
+                f"<td>{c.chain.sign_lord.short_name}</td>"
+                f"<td>{c.chain.star_lord.short_name}</td>"
+                f"<td>{c.chain.sub_lord.short_name}</td>"
+                f"<td>{c.chain.sub_sub_lord.short_name}</td></tr>"
+            )
+        planet_rows = []
+        for p in kpc.planets:
+            planet_rows.append(
+                f"<tr><td>{p.graha.full_name}</td><td>{p.house}</td>"
+                f"<td>{p.sign.short_name}</td>"
+                f"<td>{p.chain.star_lord.short_name}</td>"
+                f"<td>{p.chain.sub_lord.short_name}</td>"
+                f"<td>{p.chain.sub_sub_lord.short_name}</td></tr>"
+            )
+        rp = ", ".join(f"{r.graha.full_name} ({r.role_string})"
+                       for r in kpc.ruling_planets)
+        return f"""<h2>KP ({kpc.cusp_system}, ayanamsa: {kpc.ayanamsa})</h2>
+<table><tr><th>House</th><th>Cusp</th><th>Sign</th><th>Sign Lord</th>
+<th>Star Lord</th><th>Sub Lord</th><th>Sub-Sub</th></tr>
+{"".join(cusp_rows)}</table>
+<h3>KP Planets</h3>
+<table><tr><th>Planet</th><th>House</th><th>Sign</th><th>Star Lord</th>
+<th>Sub Lord</th><th>Sub-Sub</th></tr>
+{"".join(planet_rows)}</table>
+<p><strong>Ruling Planets:</strong> {rp}</p>"""
+    except Exception:
+        return ""
+
+
+def _chalit_table(cd: ChartData) -> str:
+    try:
+        from jhora.calc.chalit import ChalitComputer
+        chalit = ChalitComputer(cd).compute()
+        rows = []
+        for e in chalit.entries:
+            moved = ' class="moved"' if e.moved else ""
+            marker = "&#8592; MOVED" if e.moved else ""
+            rows.append(
+                f"<tr><td>{e.graha.short_name}</td><td>{e.sign}</td>"
+                f"<td>{e.sign_house}</td>"
+                f"<td{moved}>{e.cusp_house}</td>"
+                f"<td{moved}>{marker}</td></tr>"
+            )
+        return f"""<h2>Chalit (Bhava) Shifts</h2>
+<table><tr><th>Planet</th><th>Sign</th><th>Sign H</th><th>Cusp H</th>
+<th>Shift</th></tr>
+{"".join(rows)}</table>"""
+    except Exception:
+        return ""
+
+
 def _chart_images_html(cd: ChartData) -> str:
     """Render Lagna (D-1) and true Navamsa (D-9) charts and return HTML."""
     import base64
@@ -357,6 +492,7 @@ def _build_html(cd: ChartData, style: str) -> str:
         _chart_images_html(cd),
         _planet_table(cd),
         _house_table(cd),
+        _kp_table(cd),
     ]
     if style in ("full", "detailed"):
         sections.extend([
@@ -368,6 +504,10 @@ def _build_html(cd: ChartData, style: str) -> str:
             _sahamas_table(cd),
             _vimsopaka_table(cd),
             _transit_table(cd),
+            _special_lagnas_table(cd),
+            _arudha_pada_table(cd),
+            _karaka_table(cd),
+            _chalit_table(cd),
         ])
 
     body = "\n".join(sections)

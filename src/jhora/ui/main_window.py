@@ -276,9 +276,22 @@ class MainWindow(QMainWindow):
         self.house_table = QTableWidget()
         hl.addWidget(self.house_table)
 
+        chalit_top = QHBoxLayout()
         self.chalit_label = QLabel("Chalit (Bhava) Shifts — cusp-based house positions")
         self.chalit_label.setStyleSheet("font-weight: bold; color: #d4af37;")
-        hl.addWidget(self.chalit_label)
+        chalit_top.addWidget(self.chalit_label)
+        chalit_top.addStretch()
+        chalit_top.addWidget(QLabel("Varga:"))
+        self.chalit_varga_combo = QComboBox()
+        for _vl in VargaLevel:
+            self.chalit_varga_combo.addItem(_vl.name.replace("D_", "D-"), _vl)
+        self.chalit_varga_combo.setCurrentIndex(
+            list(VargaLevel).index(VargaLevel.D_1))
+        self.chalit_varga_combo.currentIndexChanged.connect(
+            lambda _i: self._update_house_table()
+            if self.chart_data else None)
+        chalit_top.addWidget(self.chalit_varga_combo)
+        hl.addLayout(chalit_top)
         self.chalit_table = QTableWidget()
         self.chalit_table.setMaximumHeight(260)
         hl.addWidget(self.chalit_table)
@@ -905,7 +918,9 @@ class MainWindow(QMainWindow):
         # Chalit / Bhava table
         from jhora.calc.chalit import ChalitComputer
         cc = ChalitComputer(self.chart_data)
-        chalit = cc.compute()
+        varga_level = (self.chalit_varga_combo.currentData()
+                       if hasattr(self, "chalit_varga_combo") else None)
+        chalit = cc.compute(varga_level or VargaLevel.D_1)
         ch_headers = ["Planet", "Sign", "Sign H", "Cusp H", "Shift"]
         self.chalit_table.setColumnCount(len(ch_headers))
         self.chalit_table.setHorizontalHeaderLabels(ch_headers)
@@ -921,8 +936,11 @@ class MainWindow(QMainWindow):
                 self.chalit_table.setItem(i, j, item)
         self.chalit_table.resizeColumnsToContents()
         moved = len(chalit.moved_planets)
+        level_name = (varga_level.name.replace("D_", "D-")
+                      if varga_level else "D-1")
         self.chalit_label.setText(
-            f"Chalit (Bhava) — {moved} planet(s) shifted houses vs whole-sign")
+            f"Chalit (Bhava) {level_name} — {moved} planet(s) shifted houses "
+            f"vs whole-sign")
 
     def _update_dasa_text(self):
         if not self.chart_data:

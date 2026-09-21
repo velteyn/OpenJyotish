@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 42 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-23-section JSON API for AI agents  |  1293 tests  |  GPL v3.0
+23-section JSON API for AI agents  |  1298 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -206,7 +206,7 @@ data = json.loads(subprocess.run(
 | `knowledge` | Search Vedic textbooks provided by you in txt format |
 | `ai` | LLM chart reading (Ollama/LM Studio/Unsloth) |
 | `teach` | AI Teacher — learn Vedic astrology |
-| `export` | HTML report (printable to PDF) |
+| `export` | HTML report — positions, strengths, ashtakavarga, yogas, sahamas, special lagnas, arudhas, karakas, KP, chalit, dasa, transits |
 | `ephemeris` | Daily planet table |
 | `varga` | Any divisional chart (D-1 to D-150) |
 | `navamsa` | D-9 Navamsa |
