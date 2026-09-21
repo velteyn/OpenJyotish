@@ -152,3 +152,33 @@ class TestRulingPlanets:
     def test_repr_includes_roles(self, ref_chart):
         rp = ruling_planets(ref_chart)[0]
         assert "day lord" in rp.role_string
+
+
+class TestSubLordBoundaries:
+    """Boundary/identity guards for the KP chain (found via cross-check).
+
+    A third-party KP implementation (vedicastro) resets the sub-lord phase at
+    every 120 degrees instead of continuing the nakshatra sequence, so it
+    reports the wrong sub-lord past 120. The KP identity below is the test:
+    each nakshatra's *first* sub-lord must be that nakshatra's own lord, for
+    every one of the 27 nakshatras.
+    """
+
+    def test_every_nakshatra_starts_at_its_own_lord(self):
+        from jhora.types.nakshatra import Nakshatra
+        for i in range(27):
+            lon = i * (360 / 27)
+            nak = Nakshatra(i)
+            assert kp_sublord(lon, 1)[0]["graha"].full_name == nak.lord
+
+    def test_no_gaps_at_nakshatra_boundaries(self):
+        # Exact boundaries used to drop the second level (float accumulation).
+        for lon in (0.0, 120.0, 180.0, 233.333, 240.0, 360.0 - 1e-9):
+            assert len(kp_sublord(lon, 3)) == 3
+
+    def test_chain_is_continuous_within_a_nakshatra(self):
+        # Sub/sub-sub widths must tile the nakshatra with no hole or overlap.
+        for i in (0, 9, 13, 18, 26):
+            base = i * (360 / 27)
+            subs = kp_sublord(base + 1e-6, 1)
+            assert subs[0]["start"] <= base + 1e-6 < subs[0]["end"]

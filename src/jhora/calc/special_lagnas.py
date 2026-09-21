@@ -400,22 +400,34 @@ def kp_sublord(longitude: float, level: int = 1) -> list:
     for lvl in range(level):
         current = longitude - current_start
         cumulative = 0.0
+        picked = None
+        last = None
         for k in range(n_lords):
             g = _KP_ORDER[(order_idx + k) % n_lords]
             sub_width = span * _KP_SUB_PROPORTIONS[g]
+            last = (g, k, cumulative, sub_width)
             if cumulative + sub_width >= current:
-                results.append({
-                    "graha": g,
-                    "name": g.full_name,
-                    "start": current_start + cumulative,
-                    "end": current_start + cumulative + sub_width,
-                    "level": lvl + 1,
-                })
-                order_idx = (order_idx + k) % n_lords
-                current_start = current_start + cumulative
-                span = sub_width
+                picked = (g, k, cumulative, sub_width)
                 break
             cumulative += sub_width
+        # Floating-point guard: the nine widths can fall a hair short of the
+        # parent span at a boundary, leaving no match. Take the final sub —
+        # the remainder belongs to it.
+        if picked is None:
+            picked = last
+        if picked is None:
+            break
+        g, k, cumulative, sub_width = picked
+        results.append({
+            "graha": g,
+            "name": g.full_name,
+            "start": current_start + cumulative,
+            "end": current_start + cumulative + sub_width,
+            "level": lvl + 1,
+        })
+        order_idx = (order_idx + k) % n_lords
+        current_start = current_start + cumulative
+        span = sub_width
 
     return results
 
