@@ -44,7 +44,7 @@ def _durs(periods):
 class TestTrikona:
     def test_sequence_and_durations(self):
         # Strongest lagna trine is Gemini itself → forward from Gemini;
-        # Chara-counted durations reproduce JHora exactly.
+        # Chara-counted durations reproduce the published tables exactly.
         cd = _chart_1990()
         periods = TrikonaDasa().compute(cd.julian_day, _dict(cd))
         assert _lords(periods) == [
@@ -117,7 +117,7 @@ class TestVarnada:
 
     def test_sequence_and_durations(self):
         # Varnada Capricorn (even) → backward; footed counts minus one
-        # (cross-checked against PyJHora); Scorpio runs 8 via Ketu
+        # (cross-checked against an independent implementation); Scorpio runs 8 via Ketu
         # (Rao own-sign exception: Mars in Scorpio, Ketu elsewhere).
         cd = _chart_1990()
         periods = VarnadaDasa().compute(cd.julian_day, _dict_with_hora(cd))

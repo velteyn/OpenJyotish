@@ -34,9 +34,9 @@ run.bat
 
 Ephemeris data is auto-downloaded by `install.sh` / `install.bat` (2 files, ~1MB).
 pip installs: the app offers the one-time download on first Calculate
-(or Tools → Ephemeris → Download, or `jhora download-ephe`). Your own
+(or Tools → Ephemeris → Download, or `openjyotish download-ephe`). Your own
 textbook `.txt` files go in the books folder inside your per-user data
-directory (Knowledge tab → "Import books…" or `jhora knowledge-import
+directory (Knowledge tab → "Import books…" or `openjyotish knowledge-import
 f.txt`), then Build/Rebuild the Vector DB. The public repo ships a clean
 database (schema + city atlas, no book texts): your library stays yours.
 Out of the box you still get a working library: our 10-chapter OpenJyotish
@@ -54,7 +54,7 @@ ready-to-run binaries — no Python, pip or terminal needed:
 | Platform | Files |
 |----------|-------|
 | Windows | `OpenJyotish-<ver>-Windows-Setup.exe` (installer: wizard, Start menu, uninstaller) |
-| Linux | `OpenJyotish-<ver>-Linux-amd64.deb` (`sudo dpkg -i`, menu entry + `jhora` CLI) or `-Linux-x86_64.tar.gz` |
+| Linux | `OpenJyotish-<ver>-Linux-amd64.deb` (`sudo dpkg -i`, menu entry + `openjyotish` CLI) or `-Linux-x86_64.tar.gz` |
 
 Notes: the apps are unsigned, so Windows SmartScreen will ask once
 ("More info" → Run). Your charts live per-user (`%APPDATA%\OpenJyotish`
@@ -64,30 +64,30 @@ on Windows).
 
 ```bash
 # Get your chart
-jhora chart "1973-03-14 14:55 +0100 45.41 11.88"
+openjyotish chart "1973-03-14 14:55 +0100 45.41 11.88"
 
 # Everything at a glance (AI-friendly JSON)
-jhora analyze "1973-03-14 14:55 +0100 45.41 11.88"
+openjyotish analyze "1973-03-14 14:55 +0100 45.41 11.88"
 
 # Current dasa period
-jhora dasa-timeline "1973-03-14 14:55 +0100 45.41 11.88"
+openjyotish dasa-timeline "1973-03-14 14:55 +0100 45.41 11.88"
 
 # Choghadiya — auspicious/inauspicious time slots for today
-jhora choghadiya --lat 28.61 --lon 77.21 --tz 5.5
+openjyotish choghadiya --lat 28.61 --lon 77.21 --tz 5.5
 
 # Strengths
-jhora shadbala --bhava --vimsopaka "birthdata"
+openjyotish shadbala --bhava --vimsopaka "birthdata"
 
 # Prediction (Tithi Pravesha)
-jhora tithi-pravesha "birthdata"
+openjyotish tithi-pravesha "birthdata"
 
 # Matchmaking
-jhora kuta "girl_birthdata" "boy_birthdata"
+openjyotish kuta "girl_birthdata" "boy_birthdata"
 
 # AI interpretation (needs Ollama)
 # Full guide: https://github.com/velteyn/OpenJyotish/wiki/AI-Complete-Guide
-jhora ai "birthdata"
-jhora teach "How do I read my 7th house?" --chart "birthdata"
+openjyotish ai "birthdata"
+openjyotish teach "How do I read my 7th house?" --chart "birthdata"
 
 # Launch desktop app
 ./run.sh
@@ -108,7 +108,7 @@ All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 
 ## GUI
 
-`jhora gui` or `./run.sh` — 8 main categories with sub-tabs:
+`openjyotish gui` or `./run.sh` — 8 main categories with sub-tabs:
 
 | Category | Contains |
 |----------|----------|
@@ -143,7 +143,7 @@ Full audit trail, per-model scorecards and setup laws: `docs/AI_LESSONS.md`.
 
 ## TUI
 
-`jhora tui` — interactive terminal app with the same 9-category structure.  
+`openjyotish tui` — interactive terminal app with the same 9-category structure.  
 Arrow keys ↑↓ to navigate, letters to jump, Enter to select, `b` to go back, `q` to quit.
 
 ```
@@ -160,21 +160,21 @@ Main Menu:
 One command, everything computed. Pipe to AI agents, `jq`, or Python:
 
 ```bash
-jhora analyze "birthdata"
+openjyotish analyze "birthdata"
 # → 10KB JSON — 21 sections, every calculation
 
 # Pipe it around
-jhora analyze "..." | jq '.planets.Su.house'
-jhora analyze "..." | jq '.dasa.mahadashas[] | select(.current)'
-jhora analyze "..." | jq '.dasa.systems'   # current MD in every dasa system
-jhora analyze "..." | jq '.choghadiya.current'   # current Choghadiya slot
-jhora analyze "..." | jq '.muhurta_adjuncts.chandra_bala'   # daily adjunct grades
+openjyotish analyze "..." | jq '.planets.Su.house'
+openjyotish analyze "..." | jq '.dasa.mahadashas[] | select(.current)'
+openjyotish analyze "..." | jq '.dasa.systems'   # current MD in every dasa system
+openjyotish analyze "..." | jq '.choghadiya.current'   # current Choghadiya slot
+openjyotish analyze "..." | jq '.muhurta_adjuncts.chandra_bala'   # daily adjunct grades
 ```
 
 ```python
 import json, subprocess
 data = json.loads(subprocess.run(
-    ["jhora", "analyze", birthdata], capture_output=True, text=True
+    ["openjyotish", "analyze", birthdata], capture_output=True, text=True
 ).stdout)
 ```
 
@@ -266,7 +266,7 @@ If you want to discuss the project, ask questions, or share your own astrology s
 
 ## Traditions & Lineage
 
-No single sampradaya — like JHora itself, this toolkit follows an eclectic
+No single sampradaya — like the classical compendium tradition itself, this toolkit follows an eclectic
 school with a clear backbone:
 
 - **Parashara core** (Brihat Parashara Hora Shastra): Lahiri ayanamsa,
@@ -282,11 +282,11 @@ school with a clear backbone:
   Muntha, Mudda/Patyayini dasas).
 
 Purists of any single tradition will find foreign bodies here; that mixing
-*is* the JHora school this project continues.
+*is* the school this project continues.
 
 ## Credits
 
-Based on **OpenJyotish 8.0 Lite** by PVR Narasimha Rao (Sri Jagannath Vedic Centre).  
+Methodology follows the PVR Narasimha Rao / Sri Jagannath Centre tradition; classical texts are cited per module.  
 Atlas data: GeoNames.org (CC BY 4.0).  
 
 ## License

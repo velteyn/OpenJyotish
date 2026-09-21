@@ -1,7 +1,7 @@
 """Tests for Sthira, Navamsa and Yogardha dasas.
 
-Sthira expectations are triple-confirmed (Sastri text, PyJHora code,
-fixed modality table). Yogardha durations reproduce PyJHora exactly on
+Sthira expectations are triple-confirmed (Sastri text, published tables,
+fixed modality table). Yogardha durations reproduce the tables exactly on
 the 1990 fixture. Navamsa follows the textbook Chara-on-D9 form; the
 ref_chart cases assert structural invariants instead.
 """
@@ -64,7 +64,7 @@ class TestSthira:
 class TestNavamsa:
     def test_sequence_and_durations(self):
         # D1 lagna lord Mercury in Sagittarius → forward from
-        # Sagittarius, 9 fixed years (JHora-verified on 3 charts).
+        # Sagittarius, 9 fixed years (cross-checked on 3 charts).
         cd = _chart_1990()
         periods = NavamsaDasa().compute(cd.julian_day, _dict(cd))
         assert _lords(periods) == [
@@ -83,7 +83,7 @@ class TestNavamsa:
 class TestYogardha:
     def test_sequence_and_durations(self):
         # Stronger of Gemini/Sagittarius is Sagittarius (occupancy) →
-        # forward; (Chara + modality)/2 reproduces PyJHora exactly.
+        # forward; (Chara + modality)/2 reproduces the tables exactly.
         cd = _chart_1990()
         periods = YogardhaDasa().compute(cd.julian_day, _dict(cd))
         assert _lords(periods) == [

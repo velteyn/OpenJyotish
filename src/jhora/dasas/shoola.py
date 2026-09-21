@@ -1,13 +1,13 @@
 """Shoola Dasa — Jaimini rasi dasa of longevity.
 
-Classical method (PVR/JHora school; PVR textbook worked answers):
+Classical method (PVR school; PVR textbook worked answers):
 seed at the stronger of a reference house and 7th from it (same BPHS
 stronger-sign determination as Brahma) — lagna for self (house 1),
 9th for Pitri (father), 7th for Dara (spouse), 5th for Putra
 (children) — running forward zodiacally with fixed 9-year Mahadashas
 — 108 years total on every chart. Antardasas cycle forward
 proportionally (equal 9-year shares structurally). Used for
-longevity, maraka periods and severe illness timing; JHora's
+longevity, maraka periods and severe illness timing; the
 antardasa-start options are out of scope.
 """
 

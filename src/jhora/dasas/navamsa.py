@@ -1,11 +1,11 @@
 """Navamsa Dasa — Jaimini rasi dasa of the navamsa lagna lord's sign.
 
-Classical method (PVR/JHora school, binary-verified on three charts):
+Classical method (PVR school, cross-checked on three charts):
 seed at the sign occupied by the D1 lagna lord, running forward
 (parity direction: forward iff the seed index is even — all three
 observed seeds are even, so the odd-seed branch is the mainstream
 default, documented), with fixed 9-year Mahadashas — 108 years total.
-Antardasas cycle forward proportionally (house convention; JHora's AD
+Antardasas cycle forward proportionally (house convention; the standard AD
 method uncompared). An alternative school runs the Chara cycle on D-9
 positions; this engine documents that variant without implementing it.
 """

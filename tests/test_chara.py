@@ -56,7 +56,7 @@ class TestFixture:
 
     def test_durations_and_total(self):
         # Scorpio runs 8 via Ketu (Rao own-sign exception, forward
-        # footed count minus one); cross-checked against PyJHora.
+        # footed count minus one); cross-checked against an independent implementation.
         cd = _chart_1990()
         periods = CharaDasa().compute(cd.julian_day, _dict(cd))
         assert _durs(periods) == [6, 8, 7, 9, 1, 1, 6, 8, 3, 9, 7, 11]

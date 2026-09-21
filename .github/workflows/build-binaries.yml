@@ -77,7 +77,7 @@ jobs:
         run: |
           # NOTE: no pipes here — `| head` SIGPIPEs the frozen binary into
           # a false failure.
-          if [ "$RUNNER_OS" = "Windows" ]; then ./dist/OpenJyotish/jhora.exe --help > /dev/null
+          if [ "$RUNNER_OS" = "Windows" ]; then ./dist/OpenJyotish/openjyotish.exe --help > /dev/null
           else ./dist/OpenJyotish/jhora --help > /dev/null
           fi
 

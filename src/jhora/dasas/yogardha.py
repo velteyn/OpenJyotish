@@ -1,6 +1,6 @@
 """Yogardha Dasa — Jaimini rasi dasa averaging Chara and Sthira.
 
-Classical method (JHora-compatible mainstream form, independently
+Classical method (mainstream form, independently
 confirmed by two implementations): seed at the stronger of lagna and
 7th house (same BPHS stronger-sign determination as Brahma), running
 forward — reverse iff the seed index is odd. Each Mahadasha lasts the

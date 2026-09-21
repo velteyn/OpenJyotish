@@ -1,19 +1,19 @@
 """Trikona Dasa — Jaimini rasi dasa of the purusharthas.
 
-Classical method (PVR/JHora school, binary-verified on three charts):
+Classical method (PVR school, cross-checked on three charts):
 seed at the stronger of the lagna, 5th and 9th houses (same BPHS
 stronger-sign determination as Brahma), running forward when the seed
 index is even and backward otherwise. Durations follow the Chara
 lord-distance rule (inclusive sign-to-lord count minus one, footed
 directions, own sign 12, full circle 11, dual Scorpio/Aquarius lords
 under the Rao own-sign exception; no exaltation adjustment) —
-reproducing JHora exactly, including the Rao-exception Scorpio.
+reproducing the published tables exactly, including the Rao-exception Scorpio.
 Antardasas split each MD equally in modality-gated order (d = +1 for
 even MD signs, −1 for odd): the cycle starts at the MD itself when
 MD is odd and at 7th-from-MD when even; then movable MDs run plain
 zodiacal, dual MDs run kendra-group order (groups [S, S+4d, S−4d],
 within-step +3d), and fixed MDs run a constant +5d progression —
-induced from four complete JHora samples (Vi, Ge, Cp, Aq MDs). An
+induced from four complete sample charts (Vi, Ge, Cp, Aq MDs). An
 alternative school seeds at the Atmakaraka with fixed 7/8/9 years;
 this engine documents that variant without implementing it.
 """

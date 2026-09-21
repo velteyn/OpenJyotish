@@ -530,7 +530,7 @@ class MainWindow(QMainWindow):
 
     def _on_file_open(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Import JHora Chart", "", "JHora Data (*.jhd);;All Files (*)"
+            self, "Import Chart", "", "Chart Data (*.jhd);;All Files (*)"
         )
         if not path:
             return
@@ -624,7 +624,7 @@ class MainWindow(QMainWindow):
     def _on_file_export(self):
         """Export current chart data to .jhd file."""
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export Chart", "", "JHora Data (*.jhd);;All Files (*)"
+            self, "Export Chart", "", "Chart Data (*.jhd);;All Files (*)"
         )
         if not path:
             return
@@ -4035,7 +4035,7 @@ class MainWindow(QMainWindow):
 
         self.dash_keydates.setHtml(_to_html(kd_lines))
 
-    # --- Consolidated View (JHora-style three-column layout) ---
+    # --- Consolidated View (three-column layout) ---
 
     def _build_consolidated_tab(self):
         w = QWidget()

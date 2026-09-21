@@ -1,6 +1,6 @@
 """Kendradi Rasi dasas — quadrants-first cycles (Lagna and AK seeds).
 
-Classical method (PVR textbook ch. 19, JHora-compatible): seed at the
+Classical method (PVR textbook ch. 19): seed at the
 stronger of a reference sign and 7th from it (lagna for Lagna
 Kendradi, Atmakaraka sign for AK Kendradi; same BPHS stronger-sign
 determination as Brahma). Cycle direction: forward if Saturn occupies
@@ -97,7 +97,7 @@ class LagnaKendradiDasa(DasaBase):
 class AKKendradiDasa(DasaBase):
     """Kendradi cycle seeded at the stronger of AK-sign/7th-from-AK.
 
-    EXPERIMENTAL / SUSPENDED (2026-09-15): live JHora extraction
+    EXPERIMENTAL / SUSPENDED (2026-09-15): reference tables
     (Gandhi + 1990 charts) refutes this construction on seed, order
     and cycles. Not wired to any surface. Do not re-enable without
     the dedicated research change resolving the seed rule.

@@ -93,7 +93,7 @@ class TestKaraka:
         # Su 1.36 → Dara is Sun (Capricorn).
         # Scorpio resolves to Ketu (Rao own-sign exception: Mars in
         # Scorpio, Ketu elsewhere); footed counts minus one throughout
-        # (cross-checked against PyJHora).
+        # (cross-checked against an independent implementation).
         cd = _chart_1990()
         periods = KarakaDasa().compute(cd.julian_day, _dict(cd))
         assert _lords(periods) == [

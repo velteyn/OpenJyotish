@@ -1,9 +1,8 @@
 """Tests for Kaala / Chakra / Mandooka dasas (gated change).
 
 Golden sources (see design.md for the full gate record):
-- Mandooka KNR: the reference program's "Mandooka dasa of K.N. Rao"
-  table on the 1990 fixture + the KNR school order tables for all
-  lagna parities.
+- Mandooka KNR: the published "Mandooka dasa of K.N. Rao" table on the
+  1990 fixture + the KNR school order tables for all lagna parities.
 - Kaala/Chakra: the PVR paper tables (Rajiv Gandhi, Kennedy, Reagan).
   Caveat recorded in the tests: the paper's JFK/Reagan Kaala dates are
   structurally inconsistent with its own fraction rule (JFK needs

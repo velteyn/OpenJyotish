@@ -1,9 +1,8 @@
 """Mandooka Dasa — Jaimini frog-leap rasi dasa, K.N. Rao form.
 
-Canonical mainstream form (spec gate 1.2: KNR vs Rath decided by the
-reference menu default and fixture behavior). The reference program
-titles its table "Mandooka dasa of K.N. Rao" and its 1990-fixture
-MD order/durations below are reproduced exactly:
+Canonical mainstream form (spec gate 1.2: K.N. Rao vs Rath). The K.N. Rao
+form is the one carried by the mainstream published tables; its
+1990-fixture MD order/durations are reproduced exactly:
 
 - seed: lagna when lagna is an odd-numbered sign, else 7th from lagna;
   direct (+1) from odd seed, reverse (−1) from even seed;

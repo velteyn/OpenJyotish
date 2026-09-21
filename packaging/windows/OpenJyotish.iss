@@ -39,7 +39,7 @@ Source: "..\..\dist\OpenJyotish\*"; DestDir: "{app}"; \
 
 [Icons]
 Name: "{group}\OpenJyotish"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\OpenJyotish CLI"; Filename: "{app}\jhora.exe"
+Name: "{group}\OpenJyotish CLI"; Filename: "{app}\openjyotish.exe"
 Name: "{autodesktop}\OpenJyotish"; Filename: "{app}\{#MyAppExeName}"; \
     Tasks: desktopicon
 

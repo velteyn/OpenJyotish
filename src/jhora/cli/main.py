@@ -960,7 +960,7 @@ def traditional_report(
     place: str = typer.Option("", "--place", "-p", help="Birth place name"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
 ):
-    """Generate a traditional one-page report (AstroSage-style) as PNG/JPG."""
+    """Generate a traditional one-page report as PNG/JPG."""
     from jhora.export.traditional import generate_traditional_report
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()

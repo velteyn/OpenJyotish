@@ -9,7 +9,7 @@ from jhora.calc import sphuta as S
 runner = CliRunner()
 JALKOT = "2001-02-24 06:11:00 +0530 18.6333 77.2"
 
-# Worked JHora-lineage example (swisseph list): Jalkot 2001-02-24 06:11 +0530.
+# Worked example (swisseph list): Jalkot 2001-02-24 06:11 +0530.
 EXPECTED = {
     "Trisphuta": 117.794,
     "Chatusphuta": 69.414,
