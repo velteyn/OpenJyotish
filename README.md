@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 40 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-21-section JSON API for AI agents  |  1246 tests  |  GPL v3.0
+21-section JSON API for AI agents  |  1243 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -188,7 +188,7 @@ data = json.loads(subprocess.run(
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
 | `ashtakavarga` | BAV, SAV, Sodhya Pinda, Kakshya bindu |
-| `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola/trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/lagna-kendradi (MD/AD; system positional, `--karaka-role` for karaka, `--house` for shoola) |
+| `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/shoola/trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/lagna-kendradi (MD/AD; system positional, `--karaka-role` for karaka, `--house` for shoola) |
 | `dasa-timeline` | Text bar chart with now-marker |
 | `conditional-dasas` | List additional dasa systems that apply |
 | `transit` | Current transits with SAV scores |
@@ -222,7 +222,7 @@ data = json.loads(subprocess.run(
 
 ### Calculation Engine
 Rasi chart (D-1) with South/North/East styles · 23 varga charts (D-2 to D-150) ·
-26 dasa systems · 8 conditional dasas · Shadbala · Bhava Bala · Vimsopaka Bala (4 schemes) ·
+25 dasa systems · 8 conditional dasas · Shadbala · Bhava Bala · Vimsopaka Bala (4 schemes) ·
 200+ yogas · Ashtakavarga (BAV/SAV/Kakshya) · Arudha Padas · Chara Karakas ·
 36 Sahamas · 20 ayanamsa modes (Lahiri/Raman/KP/Fagan/Tropical/etc.) ·
 Outer planets (Uranus/Neptune/Pluto) · Upagrahas (5 solar + Gulika/Mandi) ·
@@ -250,7 +250,7 @@ src/jhora/
 ├── ephemeris/      Swiss Ephemeris wrapper (18 API functions)
 ├── charts/         ChartBuilder, ChartData (frozen), VargaChartComputer
 ├── calc/           29 modules: strengths, yogas, dasas, transits, chakras...
-├── dasas/          26 dasa systems (+ shared Jaimini core)
+├── dasas/          25 dasa systems (+ shared Jaimini core)
 ├── ai/             AI engine, RAG pipeline, JSON export, teacher
 ├── interpreter/    Chart reading, knowledge base
 ├── export/         HTML report generator

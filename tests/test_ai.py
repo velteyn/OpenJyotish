@@ -822,7 +822,7 @@ class TestDasaSystemsPropagation:
         systems = result["dasa"]["systems"]
         for sys in ("ashtottari", "yogini", "sudasa", "chara",
                     "narayana", "kalachakra", "brahma", "karaka",
-                    "moola", "shoola", "trikona", "varnada",
+                    "shoola", "trikona", "varnada",
                     "sthira", "navamsa", "yogardha",
                     "niryana-shoola",
                     "lagna-kendradi", "kaala", "chakra", "mandooka",

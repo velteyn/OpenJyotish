@@ -1,4 +1,8 @@
-"""Tests for Karaka, Moola and Shoola dasas.
+"""Tests for Karaka and Shoola dasas.
+
+Moola dasa tests were removed with the engine: the binary-verified form is a
+planetary dasa (GAP-ANALYSIS §1.6), not the fixed-12y rasi cycle this file
+previously asserted.
 
 Mahadasha sequences below were hand-derived from the classical rules
 (see module docstrings) for the 1990 Bangalore fixture and checked
@@ -10,7 +14,6 @@ import pytest
 from jhora.charts.chart import ChartBuilder
 from jhora.dasas.base import DasaOptions
 from jhora.dasas.karaka_dasa import KarakaDasa
-from jhora.dasas.moola import MoolaDasa
 from jhora.dasas.shoola import ShoolaDasa
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
@@ -83,24 +86,6 @@ class TestShoola:
             cd.julian_day, _dict(cd))[0].lord_name == "Sagittarius"
 
 
-class TestMoola:
-    def test_starts_at_strongest_planet_sign(self):
-        # Su/Ve/Ra tie at 320; strict-first keeps Sun → Capricorn.
-        cd = _chart_1990()
-        periods = MoolaDasa().compute(cd.julian_day, _dict(cd))
-        assert periods[0].lord_name == "Capricorn"
-        assert _lords(periods) == [
-            "Capricorn", "Aquarius", "Pisces", "Aries",
-            "Taurus", "Gemini", "Cancer", "Leo",
-            "Virgo", "Libra", "Scorpio", "Sagittarius"]
-
-    def test_twelve_year_cycle(self):
-        cd = _chart_1990()
-        periods = MoolaDasa().compute(cd.julian_day, _dict(cd))
-        assert _durs(periods) == [12] * 12
-        assert sum(_durs(periods)) == 144
-
-
 class TestKaraka:
     def test_dara_sequence_and_durations(self):
         # Effective degrees (Rahu mirrored): Ma 26.19 > Mo 23.78 >
@@ -155,11 +140,6 @@ class TestRefChartStructural:
         assert periods[0].start_jd == cd.julian_day
         for a, b in zip(periods, periods[1:]):
             assert a.end_jd == b.start_jd
-
-    def test_moola_always_144(self, ref_chart):
-        cd, d = ref_chart, _dict(ref_chart)
-        periods = MoolaDasa().compute(cd.julian_day, d)
-        assert sum(_durs(periods)) == 144
 
     def test_karaka_matches_cycle_totals(self, ref_chart):
         from jhora.dasas.jaimini_common import (

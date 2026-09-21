@@ -475,7 +475,7 @@ class JhoraTui:
         sys_val = input_dialog(
             "Dasa System",
             "System:\n  vimsottari, ashtottari, yogini, sudasa, chara,\n"
-            "  narayana, kalachakra, brahma, karaka, moola, shoola,\n"
+            "  narayana, kalachakra, brahma, karaka, shoola,\n"
             "  trikona, varnada,\n"
             "  sthira, navamsa, yogardha,\n"
             "  niryana-shoola, lagna-kendradi,\n"
@@ -486,7 +486,7 @@ class JhoraTui:
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
                 "vimsottari", "ashtottari", "yogini", "sudasa", "chara",
-                "narayana", "kalachakra", "brahma", "karaka", "moola",
+                "narayana", "kalachakra", "brahma", "karaka",
                 "shoola", "trikona", "varnada",
                 "sthira", "navamsa", "yogardha",
                 "niryana-shoola", "lagna-kendradi",
@@ -541,7 +541,6 @@ class JhoraTui:
         from jhora.dasas.kalachakra import KalachakraDasa
         from jhora.dasas.brahma import BrahmaDasa
         from jhora.dasas.karaka_dasa import KarakaDasa
-        from jhora.dasas.moola import MoolaDasa
         from jhora.dasas.shoola import ShoolaDasa
         from jhora.dasas.trikona import TrikonaDasa
         from jhora.dasas.varnada import VarnadaDasa
@@ -571,8 +570,6 @@ class JhoraTui:
             return BrahmaDasa()
         if system == "karaka":
             return KarakaDasa(opts)
-        if system == "moola":
-            return MoolaDasa(opts)
         if system == "shoola":
             return ShoolaDasa(opts)
         if system == "trikona":
@@ -621,7 +618,7 @@ class JhoraTui:
         sys_val = input_dialog(
             "Dasa System",
             "System:\n  vimsottari, ashtottari, yogini, sudasa, chara,\n"
-            "  narayana, kalachakra, brahma, karaka, moola, shoola,\n"
+            "  narayana, kalachakra, brahma, karaka, shoola,\n"
             "  trikona, varnada,\n"
             "  sthira, navamsa, yogardha,\n"
             "  niryana-shoola, lagna-kendradi,\n"
@@ -632,7 +629,7 @@ class JhoraTui:
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
                 "vimsottari", "ashtottari", "yogini", "sudasa", "chara",
-                "narayana", "kalachakra", "brahma", "karaka", "moola",
+                "narayana", "kalachakra", "brahma", "karaka",
                 "shoola", "trikona", "varnada",
                 "sthira", "navamsa", "yogardha",
                 "niryana-shoola", "lagna-kendradi",
