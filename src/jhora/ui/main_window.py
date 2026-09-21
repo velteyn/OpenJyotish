@@ -295,6 +295,8 @@ class MainWindow(QMainWindow):
             "Karaka", "Moola", "Shoola", "Trikona", "Varnada",
             "Sthira", "Navamsa", "Yogardha", "Niryana-Shoola",
             "Lagna-Kendradi", "Kaala", "Chakra", "Mandooka",
+            "Tithi-Ashtottari", "Tithi-Yogini", "Karana-Chaturaaseeti",
+            "Yoga-Vimsottari",
         ])
         self.dasa_system_combo.currentTextChanged.connect(self._update_dasa_text)
         dl.addWidget(self.dasa_system_combo)
@@ -1055,6 +1057,18 @@ class MainWindow(QMainWindow):
         elif system == "Mandooka":
             from jhora.dasas.mandooka import MandookaDasa
             return MandookaDasa(options)
+        elif system == "Tithi-Ashtottari":
+            from jhora.dasas.pravesha import TithiAshtottariDasa
+            return TithiAshtottariDasa(options)
+        elif system == "Tithi-Yogini":
+            from jhora.dasas.pravesha import TithiYoginiDasa
+            return TithiYoginiDasa(options)
+        elif system == "Karana-Chaturaaseeti":
+            from jhora.dasas.pravesha import KaranaChaturaaseetiDasa
+            return KaranaChaturaaseetiDasa(options)
+        elif system == "Yoga-Vimsottari":
+            from jhora.dasas.pravesha import YogaVimsottariDasa
+            return YogaVimsottariDasa(options)
         from jhora.dasas.vimsottari import VimsottariDasa
         return VimsottariDasa(options)
 
