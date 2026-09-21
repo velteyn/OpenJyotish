@@ -196,3 +196,29 @@ class TestDasaSystems:
         assert result.exit_code == 0
         out = result.stdout.to_plain() if hasattr(result.stdout, "to_plain") else result.stdout
         assert "Shoola Dasa Periods" in out
+
+def test_chalit_varga_option():
+    """`chart --chalit --chalit-varga` must reach the varga chalit engine."""
+    from typer.testing import CliRunner
+    from jhora.cli.main import app
+
+    runner = CliRunner()
+    result = runner.invoke(app, [
+        "chart", "1970-04-04 23:18:20 -5.5 13.08 80.27",
+        "--chalit", "--chalit-varga", "D-60",
+    ])
+    assert result.exit_code == 0
+    assert "D_60 Chalit" in result.stdout
+
+
+def test_chalit_varga_rejects_unknown_level():
+    from typer.testing import CliRunner
+    from jhora.cli.main import app
+
+    runner = CliRunner()
+    result = runner.invoke(app, [
+        "chart", "1970-04-04 23:18:20 -5.5 13.08 80.27",
+        "--chalit", "--chalit-varga", "D-999",
+    ])
+    assert result.exit_code != 0
+    assert "Unknown varga level" in result.stdout

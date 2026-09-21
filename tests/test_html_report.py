@@ -68,3 +68,32 @@ def test_export_writes_file(tmp_path):
     out = str(tmp_path / "rep.html")
     assert generate_chart_report(_chart(), out) == out
     assert os.path.getsize(out) > 50_000
+
+
+def test_new_report_sections_present():
+    from jhora.export.report import _build_html
+    html = _build_html(_chart(), "full")
+    for heading in ["Special Lagnas", "Arudha Padas", "Chara Karakas",
+                    "Chalit (Bhava) Shifts"]:
+        assert heading in html, f"missing report section: {heading}"
+    assert "KP (Placidus" in html
+    assert "Darapada" in html and "Upapada" in html
+
+
+def test_report_values_match_cli_computation():
+    """A reported value must equal the engine function the CLI uses."""
+    from jhora.export.report import _build_html
+    from jhora.calc.kp import KPComputer
+
+    cd = _chart()
+    html = _build_html(cd, "full")
+    kpc = KPComputer(cd).compute()
+    first = kpc.cusps[0]
+    assert f"{first.longitude:.2f}" in html
+    assert first.chain.sub_lord.full_name in html
+
+
+def test_print_stylesheet_covers_tables():
+    from jhora.export.report import CSS
+    assert "@media print" in CSS
+    assert "table" in CSS and "th" in CSS
