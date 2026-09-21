@@ -241,21 +241,24 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["karakas"] = []
 
-    # ── Arudhas (bhava + graha) ──
+    # ── Arudhas (bhava + graha, classical pada names) ──
     try:
-        from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
+        from jhora.calc.arudha import (
+            all_bhava_arudhas, all_graha_arudhas, upapada, darapada,
+            bhava_pada_name, graha_pada_name)
         bhava = all_bhava_arudhas(cd.ascendant, planets)
         graha_arus = all_graha_arudhas(planets)
-        pada_names = {1: "AL", 2: "A2 (Dhana)", 3: "A3 (Vikrama)", 4: "A4 (Sukha)",
-                      5: "A5 (Mantra)", 6: "A6 (Satru)", 7: "A7 (Dara)", 8: "A8 (Mrityu)",
-                      9: "A9 (Bhagya)", 10: "A10 (Karma)", 11: "A11 (Labha)",
-                      12: "A12 (Upapada)"}
         result["arudhas"] = {
-            "bhava": [{"house": n, "pada": pada_names[n], "sign": bhava[n].short_name}
+            "bhava": [{"house": n, "pada": f"A{n} ({bhava_pada_name(n)})",
+                       "name": bhava_pada_name(n),
+                       "sign": bhava[n].short_name}
                       for n in range(1, 13)],
             "graha": [{"planet": g.short_name,
+                       "pada": graha_pada_name(g),
                        "sign": graha_arus[g].short_name}
                       for g in Graha if g in graha_arus],
+            "upapada": upapada(cd.ascendant, planets).short_name,
+            "darapada": darapada(cd.ascendant, planets).short_name,
         }
     except Exception:
         result["arudhas"] = {}

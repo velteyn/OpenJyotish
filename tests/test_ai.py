@@ -191,7 +191,9 @@ class TestArudhaSahamaExport:
         result = chart_to_json(cd)
         assert len(result["arudhas"]["bhava"]) == 12
         assert len(result["arudhas"]["graha"]) > 0
-        assert result["arudhas"]["bhava"][0]["pada"] == "AL"
+        assert result["arudhas"]["bhava"][0]["name"] == "Arudha Lagna"
+        assert result["arudhas"]["bhava"][6]["name"] == "Dara pada"
+        assert result["arudhas"]["upapada"]
 
     def test_json_export_sahamas(self):
         cd = _sample_chart()
