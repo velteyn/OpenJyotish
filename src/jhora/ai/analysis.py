@@ -91,7 +91,6 @@ def dasa_snapshot(cd: ChartData) -> str:
             "Kalachakra": _dasa_engine("kalachakra"),
             "Brahma": _dasa_engine("brahma"),
             "Karaka": _dasa_engine("karaka"),
-            "Moola": _dasa_engine("moola"),
             "Shoola": _dasa_engine("shoola"),
             "Trikona": _dasa_engine("trikona"),
             "Varnada": _dasa_engine("varnada"),
@@ -125,7 +124,7 @@ def dasa_snapshot(cd: ChartData) -> str:
 
 def _dasa_engine(system: str):
     """Return a dasa engine for the given system (vimsottari/ashtottari/
-    yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola/
+    yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/shoola/
     trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/
     lagna-kendradi). Uses standard defaults;
     the nakshatra dasas (vimsottari/ashtottari/yogini) use the documented
@@ -156,9 +155,6 @@ def _dasa_engine(system: str):
     if system == "karaka":
         from jhora.dasas.karaka_dasa import KarakaDasa
         return KarakaDasa(opts)
-    if system == "moola":
-        from jhora.dasas.moola import MoolaDasa
-        return MoolaDasa(opts)
     if system == "shoola":
         from jhora.dasas.shoola import ShoolaDasa
         return ShoolaDasa(opts)
