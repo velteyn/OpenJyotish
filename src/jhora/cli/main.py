@@ -174,7 +174,8 @@ def dasa(
     system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
     kalachakra, brahma, karaka, moola, shoola, trikona, varnada,
     sthira, navamsa, yogardha, niryana-shoola, lagna-kendradi,
-    kaala, chakra, mandooka.
+    kaala, chakra, mandooka, tithi-ashtottari, tithi-yogini,
+    karana-chaturaaseeti, yoga-vimsottari.
     Seed/sesham/year options apply
     to the nakshatra dasas (vimsottari, ashtottari, yogini); --karaka-role
     selects the Karaka Dasa seed; --house selects the Shoola Dasa seed
@@ -384,7 +385,8 @@ def _get_dasa_engine(system: str, options=None):
     """Return a dasa engine for the given system name (vimsottari/ashtottari/
     yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/moola/shoola/
     trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/
-    lagna-kendradi/kaala/chakra/mandooka)."""
+    lagna-kendradi/kaala/chakra/mandooka/tithi-ashtottari/tithi-yogini/
+    karana-chaturaaseeti/yoga-vimsottari)."""
     s = system.lower()
     if s == "vimsottari":
         from jhora.dasas.vimsottari import VimsottariDasa
@@ -449,6 +451,18 @@ def _get_dasa_engine(system: str, options=None):
     if s == "mandooka":
         from jhora.dasas.mandooka import MandookaDasa
         return MandookaDasa(options)
+    if s == "tithi-ashtottari":
+        from jhora.dasas.pravesha import TithiAshtottariDasa
+        return TithiAshtottariDasa(options)
+    if s == "tithi-yogini":
+        from jhora.dasas.pravesha import TithiYoginiDasa
+        return TithiYoginiDasa(options)
+    if s == "karana-chaturaaseeti":
+        from jhora.dasas.pravesha import KaranaChaturaaseetiDasa
+        return KaranaChaturaaseetiDasa(options)
+    if s == "yoga-vimsottari":
+        from jhora.dasas.pravesha import YogaVimsottariDasa
+        return YogaVimsottariDasa(options)
     from jhora.dasas.vimsottari import VimsottariDasa
     return VimsottariDasa(options)
 
@@ -1441,6 +1455,88 @@ def tithi_pravesha(
             f"{a:.2f}°",
         )
     console.print(table)
+
+
+@app.command()
+def yoga_pravesha(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    year: int = typer.Option(None, "--year", "-y", help="Target year (default: current year)"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Compute Yoga Pravesha chart — annual (Sun+Moon) return for year-ahead prediction."""
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+
+    if year is None:
+        from datetime import datetime
+        year = datetime.now().year
+
+    from jhora.calc.pravesha import YogaPraveshaCalculator
+    yp = YogaPraveshaCalculator(cd)
+    console.print(f"Natal yoga point: {yp.natal_yoga:.2f}°")
+
+    entries = yp.compute_range(year - 1, year + 1)
+    table = Table(title=f"Yoga Pravesha Charts ({year-1}-{year+1})")
+    table.add_column("Year", style="cyan")
+    table.add_column("Date/Time (UT)", style="white")
+    table.add_column("Lagna", style="yellow")
+    table.add_column("Yoga Angle", style="white")
+
+    from jhora.calc.pravesha import yoga_angle
+    for e in entries:
+        if e.chart is None:
+            continue
+        lagna = Rasi.from_longitude(e.chart.ascendant).short_name
+        m = e.chart.planet(Graha.MOON).longitude
+        s = e.chart.planet(Graha.SUN).longitude
+        marker = " ◀" if e.year == year else ""
+        table.add_row(
+            f"{e.year}{marker}", e.event_date, lagna,
+            f"{yoga_angle(s, m):.2f}°",
+        )
+    console.print(table)
+
+
+@app.command()
+def nakshatra_pravesha(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    year: int = typer.Option(None, "--year", "-y", help="Target year (default: current year)"),
+    month: int = typer.Option(None, "--month", "-m", help="Target month 1-12 (default: current month)"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Compute Nakshatra Pravesha chart — monthly lunar return to natal Moon."""
+    from datetime import datetime
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+
+    now = datetime.now()
+    if year is None:
+        year = now.year
+    if month is None:
+        month = now.month
+
+    from jhora.calc.pravesha import NakshatraPraveshaCalculator
+    np = NakshatraPraveshaCalculator(cd)
+    e = np.compute(year, month)
+    if e.chart is None:
+        console.print("[red]Could not compute Nakshatra Pravesha chart.[/red]")
+        return
+    lagna = Rasi.from_longitude(e.chart.ascendant).short_name
+    moon = Rasi.from_longitude(e.chart.planet(Graha.MOON).longitude).short_name
+    console.print(f"Nakshatra Pravesha {year}-{month:02d}: {e.event_date} "
+                  f"(lagna {lagna}, Moon {moon})")
 
 
 @app.command()
