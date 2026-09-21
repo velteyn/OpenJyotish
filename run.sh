@@ -5,10 +5,10 @@
     exit 1
 }
 
-# Try jhora CLI first, then fall back to python -m
-jhora --gui 2>/dev/null && exit 0
-python3 -m jhora --gui 2>/dev/null && exit 0
+# Try openjyotish CLI first, then fall back to python -m
+openjyotish --gui 2>/dev/null && exit 0
+python3 -m openjyotish --gui 2>/dev/null && exit 0
 python -m jhora --gui 2>/dev/null && exit 0
 
-echo "Could not launch GUI. Try: source venv/bin/activate && python3 -m jhora --gui"
+echo "Could not launch GUI. Try: source venv/bin/activate && python3 -m openjyotish --gui"
 exit 1

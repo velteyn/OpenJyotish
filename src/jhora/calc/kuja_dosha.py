@@ -1,6 +1,6 @@
 """Kuja Dosha (Mangal Dosha) — Mars affliction check.
 
-Based on BPHS principles (matching standard behavior).
+Based on BPHS principles (standard behavior).
 
 Checks Mars placement in houses 1, 2, 4, 7, 8, 12 from:
   - Lagna (Janma Lagna)

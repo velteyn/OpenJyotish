@@ -7,7 +7,7 @@ stronger-sign determination as Brahma) — lagna for self (house 1),
 (children) — running forward zodiacally with fixed 9-year Mahadashas
 — 108 years total on every chart. Antardasas cycle forward
 proportionally (equal 9-year shares structurally). Used for
-longevity, maraka periods and severe illness timing; the standard
+longevity, maraka periods and severe illness timing; the
 antardasa-start options are out of scope.
 """
 

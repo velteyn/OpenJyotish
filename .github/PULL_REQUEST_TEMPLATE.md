@@ -25,7 +25,7 @@
 
 <!-- Steps to verify the change works -->
 ```bash
-jhora <command> "<birthdata>"
+openjyotish <command> "<birthdata>"
 ```
 
 ## Screenshots (if UI change)

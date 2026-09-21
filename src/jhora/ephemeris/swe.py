@@ -39,7 +39,7 @@ SEFLG_TOPO = swe.FLG_TOPOCTR         # 8192
 SEFLG_SWIEPH = swe.FLG_SWIEPH        # 1024
 SEFLG_DEFAULT = SEFLG_SWIEPH | SEFLG_SPEED | SEFLG_SIDEREAL
 
-# Sidereal modes (matching the tradition ayanamsas)
+# Sidereal modes (matching the standard ayanamsas)
 # Using available pyswisseph constants:
 # Lahiri=1, Raman=3, Krishnamurti=5, True Citra=27, True Pushya=29, Aldebaran 15Tau=14
 

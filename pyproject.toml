@@ -40,7 +40,7 @@ test = [
 ]
 
 [project.scripts]
-jhora = "jhora.__main__:main"
+openjyotish = "jhora.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/velteyn/OpenJyotish"

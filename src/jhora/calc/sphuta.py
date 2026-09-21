@@ -3,7 +3,7 @@
 Pure functions of explicit longitudes (degrees, any sidereal frame as long
 as inputs share it); all results modulo 360. Formulas per Prasna Marga
 Chapter V (B.V. Raman lineage); Beeja/Kshetra planet sets per standard
-teaching. Proven against a worked classical example (see tests).
+teaching. Proven against a worked example (see tests).
 
 Gulika is passed in (temporal upagrahas), never computed here, keeping this
 module free of ephemeris and of Gulika-convention questions.
