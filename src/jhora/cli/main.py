@@ -651,6 +651,49 @@ def sahamas(
 
 
 @app.command()
+def arudhas(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    varga: str = typer.Option("D-1", "--varga", "-v",
+                              help="Divisional chart: D-1, D-9, D-10, ..."),
+):
+    """Show arudha padas (bhava + graha) with classical names.
+
+    Arudhas are defined for every divisional chart; pass --varga to read
+    them from that varga (default D-1). A7 Dara pada and A12 Upapada are
+    shown explicitly.
+    """
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+    from jhora.calc.arudha import (
+        bhava_pada_name, graha_pada_name, varga_arudhas)
+    level = _parse_varga_level(varga)
+    bhava, graha_arus = varga_arudhas(cd, level)
+
+    bt = Table(title=f"Bhava Arudhas — {level.full_name}")
+    bt.add_column("Pada", style="cyan")
+    bt.add_column("Name", style="white")
+    bt.add_column("Sign", style="yellow")
+    for n in range(1, 13):
+        bt.add_row(f"A{n}", bhava_pada_name(n), bhava[n].short_name)
+    console.print(bt)
+
+    gt = Table(title=f"Graha Arudhas — {level.full_name}")
+    gt.add_column("Planet", style="cyan")
+    gt.add_column("Pada", style="white")
+    gt.add_column("Sign", style="yellow")
+    for g in Graha:
+        if g in graha_arus:
+            gt.add_row(g.full_name, graha_pada_name(g),
+                       graha_arus[g].short_name)
+    console.print(gt)
+
+
+@app.command()
 def learning(
     birthdata: str = typer.Argument(..., help="Birth data"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),

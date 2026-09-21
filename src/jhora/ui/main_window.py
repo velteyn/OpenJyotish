@@ -1372,31 +1372,37 @@ class MainWindow(QMainWindow):
         return w
 
     def _populate_arudha_table(self, cd: ChartData):
-        from jhora.calc.arudha import all_bhava_arudhas, all_graha_arudhas
+        from jhora.calc.arudha import (
+            all_bhava_arudhas, all_graha_arudhas, bhava_pada_name,
+            graha_pada_name)
         from jhora.calc.karaka import compute_chara_karakas
         from jhora.calc.sahama import compute_sahamas
         planets = {g: {"longitude": p.longitude, "speed": p.speed}
                    for g, p in cd.planets.items()}
 
         bhava = all_bhava_arudhas(cd.ascendant, planets)
-        headers = ["House", "Pada Name", "Sign"]
+        headers = ["House", "Pada (classical name)", "Sign"]
         rows = []
         for n in range(1, 13):
-            name = {1: "AL (Arudha Lagna)", 2: "A2 (Dhana)", 3: "A3 (Vikrama)",
-                    4: "A4 (Sukha)", 5: "A5 (Mantra)", 6: "A6 (Satru)",
-                    7: "A7 (Dara)", 8: "A8 (Mrityu)", 9: "A9 (Bhagya)",
-                    10: "A10 (Karma)", 11: "A11 (Labha)", 12: "A12 (Upapada)"}.get(n, f"A{n}")
-            rows.append([str(n), name, bhava[n].full_name])
+            alias = ""
+            if n == 7:
+                alias = "  (Darapada)"
+            elif n == 12:
+                alias = "  (Upapada)"
+            elif n == 1:
+                alias = "  (AL)"
+            rows.append([str(n),
+                         f"A{n} — {bhava_pada_name(n)}{alias}",
+                         bhava[n].full_name])
         self._fill_table(self.arudha_bhava_table, headers, rows)
 
         graha_arus = all_graha_arudhas(planets)
-        headers = ["Planet", "Pada Name", "Sign"]
+        headers = ["Planet", "Graha pada", "Sign"]
         rows = []
         for g in Graha:
             if g in graha_arus:
-                rows.append([g.full_name,
-                            f"A({g.short_name})",
-                            graha_arus[g].full_name])
+                rows.append([g.full_name, graha_pada_name(g),
+                             graha_arus[g].full_name])
         self._fill_table(self.arudha_graha_table, headers, rows)
 
         karakas = compute_chara_karakas(planets)
