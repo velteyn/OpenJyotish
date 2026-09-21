@@ -1,8 +1,8 @@
 """Tests for Karaka and Shoola dasas.
 
-Moola dasa tests were removed with the engine: the cross-checked form is a
-planetary dasa (the gap analysis §1.6), not the fixed-12y rasi cycle this file
-previously asserted.
+Moola dasa tests were removed with the engine: it is a planetary dasa,
+not the fixed-12y rasi cycle this file previously asserted, and the
+implementation is pending correct rules.
 
 Mahadasha sequences below were hand-derived from the classical rules
 (see module docstrings) for the 1990 Bangalore fixture and checked

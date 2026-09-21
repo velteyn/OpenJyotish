@@ -69,8 +69,8 @@ class TestTrikona:
             assert total == pytest.approx(md.duration_years)
 
     def test_antardasa_orders_match_jhora(self):
-        # Four classical sample charts (Jan 1990 chart): equal
-        # splits in modality-gated order.
+        # Four classical sample charts (Jan 1990): equal splits in
+        # modality-gated order.
         from jhora.types.rasi import Rasi
         cd = _chart_1990()
         by_lord = {p.lord_name: p

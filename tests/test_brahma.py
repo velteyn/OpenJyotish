@@ -1,8 +1,8 @@
 """Tests for Brahma Dasa computation (BPHS 'Sthira/Brahma dasa').
 
-Faithful to the original openjyotish.exe (96-year cycle, movable/fixed/dual =
-7/8/9 durations, first-mahadasa sesham) and to the extracted textbook
-article (BPHS Brahma planet seed from stronger of lagna/7th).
+Implements the BPHS 'Sthira/Brahma dasa' scheme: 96-year cycle,
+movable/fixed/dual = 7/8/9 durations, first-mahadasa sesham, Brahma
+planet seed from the stronger of lagna/7th.
 """
 
 import pytest
