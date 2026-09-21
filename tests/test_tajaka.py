@@ -177,3 +177,147 @@ class TestMuddaDasa(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+import pytest
+
+from jhora.calc.tajaka import (
+    SOLAR_YEAR_DAYS,
+    TajakaLevel,
+    build_tajaka_level_chart,
+    level_offset_days,
+)
+from jhora.charts.chart import ChartBuilder
+
+
+class TestTajakaLevels:
+    def test_periods_per_year(self):
+        assert [lvl.periods_per_year for lvl in TajakaLevel] == [
+            1, 12, 144, 1728, 20736, 248832,
+        ]
+
+    def test_durations_are_duodecimal(self):
+        assert TajakaLevel.ANNUAL.days == pytest.approx(SOLAR_YEAR_DAYS)
+        assert TajakaLevel.MONTHLY.days == pytest.approx(SOLAR_YEAR_DAYS / 12)
+        assert TajakaLevel.TWO_AND_HALF_DAY.days == pytest.approx(SOLAR_YEAR_DAYS / 144)
+        assert TajakaLevel.FIVE_HOUR.days == pytest.approx(SOLAR_YEAR_DAYS / 1728)
+        assert TajakaLevel.TWENTY_FIVE_MIN.days == pytest.approx(SOLAR_YEAR_DAYS / 20736)
+        assert TajakaLevel.TWO_MIN.days == pytest.approx(SOLAR_YEAR_DAYS / 248832)
+
+    def test_levels_nest_by_twelve(self):
+        levels = list(TajakaLevel)
+        for coarse, fine in zip(levels, levels[1:]):
+            assert fine.days * 12 == pytest.approx(coarse.days)
+
+    def test_index_one_is_the_anchor(self):
+        for lvl in TajakaLevel:
+            assert level_offset_days(lvl, 1) == 0.0
+
+    def test_offsets_are_uniform(self):
+        step = (level_offset_days(TajakaLevel.MONTHLY, 3)
+                - level_offset_days(TajakaLevel.MONTHLY, 2))
+        assert step == pytest.approx(TajakaLevel.MONTHLY.days)
+
+    def test_invalid_index_rejected(self):
+        for bad in (0, -1, 13):
+            with pytest.raises(ValueError):
+                level_offset_days(TajakaLevel.MONTHLY, bad)
+        with pytest.raises(ValueError):
+            level_offset_days(TajakaLevel.ANNUAL, 2)
+
+
+def _natal_chart():
+    cb = ChartBuilder()
+    cb.swe.set_sidereal_mode("lahiri")
+    natal = cb.build(
+        year=1970, month=4, day=4, hour=23.3,
+        lat=13.08, lon=80.27, tz="-5.5", ayanamsa="lahiri",
+    )
+    return cb, natal
+
+
+class TestLevelCharts:
+    def test_index_one_equals_the_anchor(self):
+        cb, natal = _natal_chart()
+        t = build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                     TajakaLevel.MONTHLY, 1)
+        assert t.moment_jd == pytest.approx(t.anchor_jd)
+        assert t.anchor_jd == pytest.approx(t.varsha_pravesh_jd)
+
+    def test_annual_index_one_is_the_solar_return(self):
+        cb, natal = _natal_chart()
+        t = build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                     TajakaLevel.ANNUAL, 1)
+        assert t.level == TajakaLevel.ANNUAL
+        assert t.moment_jd == pytest.approx(t.anchor_jd)
+
+    def test_offsets_are_uniform(self):
+        cb, natal = _natal_chart()
+        a = build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                     TajakaLevel.MONTHLY, 2)
+        b = build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                     TajakaLevel.MONTHLY, 3)
+        assert b.moment_jd - a.moment_jd == pytest.approx(TajakaLevel.MONTHLY.days)
+
+    def test_invalid_index_raises(self):
+        cb, natal = _natal_chart()
+        with pytest.raises(ValueError):
+            build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                     TajakaLevel.MONTHLY, 13)
+
+    def test_sunrise_variant(self):
+        cb, natal = _natal_chart()
+        exact = build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                         TajakaLevel.MONTHLY, 3)
+        sr = build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                      TajakaLevel.MONTHLY, 3, sunrise=True)
+        assert sr.sunrise
+        assert abs(sr.moment_jd - exact.moment_jd) > 1e-3
+        assert abs(sr.moment_jd - exact.moment_jd) < 1.0
+
+    def test_deterministic(self):
+        cb, natal = _natal_chart()
+        a = build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                     TajakaLevel.TWO_AND_HALF_DAY, 4)
+        b = build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                     TajakaLevel.TWO_AND_HALF_DAY, 4)
+        assert a.moment_jd == b.moment_jd
+        assert a.chart.ascendant == b.chart.ascendant
+
+
+class TestMuddaSeedOptions:
+    def test_default_is_natal_moon_seed(self):
+        assert compute_mudda_dasa(0.0, 0, 2451545.0)[0].lord_name == "Ke"
+        assert compute_mudda_dasa(0.0, 1, 2451545.0)[0].lord_name == "Ve"
+
+    def test_seed_longitude_selects_another_seed(self):
+        natal_seed = compute_mudda_dasa(0.0, 0, 2451545.0)
+        annual_seed = compute_mudda_dasa(0.0, 0, 2451545.0, seed_longitude=100.0)
+        assert natal_seed[0].lord_name != annual_seed[0].lord_name
+
+    def test_progress_seed_false_keeps_the_seed(self):
+        p0 = compute_mudda_dasa(0.0, 0, 2451545.0, progress_seed=False)
+        p5 = compute_mudda_dasa(0.0, 5, 2451545.0, progress_seed=False)
+        assert p0[0].lord_name == p5[0].lord_name == "Ke"
+
+
+class TestLevelApparatus:
+    def test_level_chart_carries_the_tajaka_apparatus(self):
+        cb, natal = _natal_chart()
+        t = build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                     TajakaLevel.MONTHLY, 2)
+        assert t.harsha_bala
+        assert len(t.patyayini_dasa) > 0
+        assert len(t.mudda_dasa) == 9
+        # periods begin at the level chart's own moment
+        assert t.patyayini_dasa[0].start_jd == pytest.approx(t.moment_jd)
+        assert t.mudda_dasa[0].start_jd == pytest.approx(t.moment_jd)
+
+    def test_anchor_and_moment_reported(self):
+        cb, natal = _natal_chart()
+        t = build_tajaka_level_chart(cb.swe, cb, natal, 2026,
+                                     TajakaLevel.FIVE_HOUR, 5)
+        assert t.anchor_jd is not None and t.moment_jd is not None
+        assert t.moment_jd > t.anchor_jd
+        assert t.level == TajakaLevel.FIVE_HOUR
+        assert t.index == 5

@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+from enum import IntEnum
 from typing import Dict, List, Optional, Tuple
 
 import swisseph as swe
@@ -31,6 +32,68 @@ _MUDDA_DAYS = {
 
 _MUDDA_ORDER_NAMES = [g.short_name for g in _MUDDA_ORDER]
 
+#: Solar (Tajaka) year in days, used for every duodecimal division.
+SOLAR_YEAR_DAYS = 365.2425
+
+
+class TajakaLevel(IntEnum):
+    """The six Tajaka return levels.
+
+    Each level is one twelfth of the one above it, so the Tajaka year divides
+    by twelve at every step (a duodecimal subdivision, as in the reference):
+
+        annual 1 y  ->  monthly 1/12 y  ->  2.5-day 1/144 y
+        ->  5-hr 1/1728 y  ->  25-min 1/20736 y  ->  2-min 1/248832 y
+
+    The level chart for index ``i`` is cast at the commencement of the i-th
+    sub-period, measured from the varsha pravesh (solar return) moment that
+    begins the Tajaka year. Index is one-based, so index 1 is the anchor.
+    """
+
+    ANNUAL = 0
+    MONTHLY = 1
+    TWO_AND_HALF_DAY = 2
+    FIVE_HOUR = 3
+    TWENTY_FIVE_MIN = 4
+    TWO_MIN = 5
+
+    @property
+    def label(self) -> str:
+        return {
+            TajakaLevel.ANNUAL: "annual",
+            TajakaLevel.MONTHLY: "monthly",
+            TajakaLevel.TWO_AND_HALF_DAY: "2.5-day",
+            TajakaLevel.FIVE_HOUR: "5-hr",
+            TajakaLevel.TWENTY_FIVE_MIN: "25-min",
+            TajakaLevel.TWO_MIN: "2-min",
+        }[self]
+
+    @property
+    def periods_per_year(self) -> int:
+        return 12 ** int(self)
+
+    @property
+    def year_fraction(self) -> float:
+        return 1.0 / self.periods_per_year
+
+    @property
+    def days(self) -> float:
+        """Length of one sub-period at this level, in days."""
+        return SOLAR_YEAR_DAYS * self.year_fraction
+
+
+def level_offset_days(level: TajakaLevel, index: int) -> float:
+    """Days from the Tajaka-year anchor to the start of sub-period ``index``.
+
+    Index is one-based: index 1 returns 0.0 (the anchor itself). An index
+    outside 1..periods_per_year is rejected rather than wrapped.
+    """
+    if not 1 <= index <= level.periods_per_year:
+        raise ValueError(
+            f"{level.label} index must be 1..{level.periods_per_year}, got {index}"
+        )
+    return (index - 1) * level.days
+
 
 @dataclass
 class TajakaData:
@@ -41,6 +104,12 @@ class TajakaData:
     harsha_bala: Dict[Graha, int] = None
     patyayini_dasa: List[DasaPeriod] = None
     mudda_dasa: List[DasaPeriod] = None
+    # Level charts (the annual chart is level ANNUAL, index 1)
+    level: "TajakaLevel" = TajakaLevel.ANNUAL
+    index: int = 1
+    anchor_jd: Optional[float] = None
+    moment_jd: Optional[float] = None
+    sunrise: bool = False
 
 
 def compute_muntha(natal_lagna_sign_index: int, year_number: int) -> int:
@@ -123,6 +192,104 @@ def build_tajaka_chart(
         year_index=year_index,
         muntha_sign=muntha,
         varsha_pravesh_jd=jd_cross,
+        level=TajakaLevel.ANNUAL,
+        index=1,
+        anchor_jd=jd_cross,
+        moment_jd=jd_cross,
+    )
+
+
+def cast_chart_at_jd(
+    swe_engine: SweEngine,
+    chart_builder: ChartBuilder,
+    natal_chart: ChartData,
+    jd: float,
+) -> ChartData:
+    """Cast a chart at a Julian day, for the birth place and ayanamsa."""
+    y, m, d, h = swe_engine.revjul(jd)
+    return chart_builder.build(
+        int(y), int(m), int(d), h,
+        natal_chart.latitude, natal_chart.longitude, natal_chart.timezone,
+        ayanamsa=natal_chart.ayanamsa_name,
+    )
+
+
+def sunrise_jd_of(swe_engine: SweEngine, jd: float, lat: float,
+                  lon: float) -> float:
+    """Sunrise (UT Julian day) on the UT day containing ``jd``.
+
+    Falls back to ``jd`` when the Sun does not rise (polar latitudes).
+    """
+    y, m, d, _h = swe_engine.revjul(jd)
+    day_start = swe_engine.julday(int(y), int(m), int(d), 0.0)
+    sr = swe_engine.rise_trans(day_start, swe.SUN, lat, lon, rise=True)
+    return sr if sr is not None else jd
+
+
+def build_tajaka_level_chart(
+    swe_engine: SweEngine,
+    chart_builder: ChartBuilder,
+    natal_chart: ChartData,
+    target_year: int,
+    level: TajakaLevel = TajakaLevel.ANNUAL,
+    index: int = 1,
+    sunrise: bool = False,
+) -> TajakaData:
+    """Build a Tajaka chart for a level and one-based sub-period index.
+
+    The Tajaka year begins at the varsha pravesh (solar return) moment, and
+    every level is a duodecimal division of the year measured from that
+    anchor. Index 1 of any level is the anchor itself; index i is the start of
+    the i-th sub-period. ``sunrise=True`` casts the chart at sunrise on the
+    computed day instead of at the exact moment.
+    """
+    birth_year = natal_chart.birth_date.year
+    natal_sun_lon = natal_chart.sun.longitude
+
+    anchor_jd = find_varsha_pravesh_jd(
+        swe_engine, natal_sun_lon, natal_chart.julian_day,
+        target_year, natal_chart.birth_date.month, natal_chart.birth_date.day,
+    )
+
+    moment_jd = anchor_jd + level_offset_days(level, index)
+    if sunrise:
+        moment_jd = sunrise_jd_of(
+            swe_engine, moment_jd, natal_chart.latitude, natal_chart.longitude
+        )
+
+    chart = cast_chart_at_jd(swe_engine, chart_builder, natal_chart, moment_jd)
+
+    year_index = target_year - birth_year + 1
+    natal_lagna_sign = int(natal_chart.ascendant // 30) % 12
+    muntha = compute_muntha(natal_lagna_sign, year_index)
+
+    return TajakaData(
+        chart=chart,
+        year_index=year_index,
+        muntha_sign=muntha,
+        varsha_pravesh_jd=anchor_jd,
+        harsha_bala=compute_harsha_bala(chart, moment_jd),
+        patyayini_dasa=compute_patyayini_dasa(
+            chart.planets, chart.ascendant, moment_jd),
+        mudda_dasa=compute_mudda_dasa(
+            natal_chart.moon.longitude, year_index - 1, moment_jd),
+        level=level,
+        index=index,
+        anchor_jd=anchor_jd,
+        moment_jd=moment_jd,
+        sunrise=sunrise,
+    )
+
+
+def build_dasa_pravesh_chart(
+    swe_engine: SweEngine,
+    chart_builder: ChartBuilder,
+    natal_chart: ChartData,
+    period: DasaPeriod,
+) -> ChartData:
+    """Cast a dasa pravesh (period-commencement) chart at a period's start."""
+    return cast_chart_at_jd(
+        swe_engine, chart_builder, natal_chart, period.start_jd
     )
 
 
@@ -254,8 +421,22 @@ def compute_mudda_dasa(
     natal_moon_lon: float,
     completed_years: int,
     varsha_pravesh_jd: float,
+    *,
+    seed_longitude: Optional[float] = None,
+    progress_seed: bool = True,
 ) -> List[DasaPeriod]:
-    nakshatra, pada = Nakshatra.from_longitude(natal_moon_lon)
+    """Mudda (Varsha Vimsottari) dasa, compressed into the Tajaka year.
+
+    Seed options:
+      * ``seed_longitude`` selects the seed point. ``None`` (default) seeds
+        from the natal Moon; pass the annual chart's lagna longitude to seed
+        from the varshaphal chart instead. Sources differ on which is
+        canonical, so the choice is always explicit at the call site.
+      * ``progress_seed=False`` keeps the seed fixed for the year instead of
+        advancing it by ``completed_years``.
+    """
+    seed_lon = natal_moon_lon if seed_longitude is None else seed_longitude
+    nakshatra, pada = Nakshatra.from_longitude(seed_lon)
     nakshatra_lord_name = nakshatra.lord
     nakshatra_lord_map = {
         "Ketu": Graha.KETU, "Venus": Graha.VENUS, "Sun": Graha.SUN,
@@ -265,12 +446,15 @@ def compute_mudda_dasa(
     first_lord = nakshatra_lord_map.get(nakshatra_lord_name, Graha.KETU)
 
     first_idx = _MUDDA_ORDER.index(first_lord)
-    progressed_idx = (first_idx + completed_years) % 9
+    if progress_seed:
+        progressed_idx = (first_idx + completed_years) % 9
+    else:
+        progressed_idx = first_idx
 
     # Dasa balance: fraction of nakshatra remaining
     nakshatra_span = 13.3333333
     nakshatra_start = nakshatra.start_longitude
-    offset_in_nakshatra = (natal_moon_lon - nakshatra_start) % 360
+    offset_in_nakshatra = (seed_lon - nakshatra_start) % 360
     fraction_remaining = (nakshatra_span - offset_in_nakshatra) / nakshatra_span
     if fraction_remaining < 0:
         fraction_remaining = 0
