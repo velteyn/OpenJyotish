@@ -1,10 +1,5 @@
-# Binaries from original the tradition distribution
+# Runtime data directory
 jhcore/
-
-# Reverse-engineering artifacts (no longer needed)
-jhora.analysis/
-analysis_out/
-the analysis tool_out/
 
 # Book PDFs (large, copyrighted)
 docs/books/
