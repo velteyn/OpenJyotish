@@ -615,6 +615,74 @@ def lagnas(
 
 
 @app.command()
+def kp(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    rp: bool = typer.Option(True, "--rp/--no-rp",
+                            help="Show the KP Ruling Planets"),
+):
+    """Krishnamurti Paddhati — cusps, lord chains and Ruling Planets.
+
+    Uses Placidus cusps (as KP does) and the fourfold Vimsottari chain
+    (sign / star / sub / sub-sub lord) for every cusp and planet. KP
+    practitioners normally work in the Krishnamurti ayanamsa: pass
+    --ayanamsa krishnamurti for that; the ayanamsa used is always shown.
+    """
+    from jhora.calc.kp import KPComputer
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+
+    kpc = KPComputer(cd).compute()
+
+    cusp_table = Table(title=f"KP Cusps ({kpc.cusp_system}, ayanamsa: {kpc.ayanamsa})")
+    cusp_table.add_column("House", style="cyan")
+    cusp_table.add_column("Cusp", style="green")
+    cusp_table.add_column("Sign", style="yellow")
+    cusp_table.add_column("Sign Lord", style="magenta")
+    cusp_table.add_column("Star Lord", style="white")
+    cusp_table.add_column("Sub Lord", style="white")
+    cusp_table.add_column("Sub-Sub", style="dim")
+    for c in kpc.cusps:
+        cusp_table.add_row(
+            str(c.house), f"{c.longitude:.2f}°", c.sign.short_name,
+            c.chain.sign_lord.short_name, c.chain.star_lord.short_name,
+            c.chain.sub_lord.short_name, c.chain.sub_sub_lord.short_name,
+        )
+    console.print(cusp_table)
+
+    planet_table = Table(title="KP Planets (Placidus bhava)")
+    planet_table.add_column("Planet", style="cyan")
+    planet_table.add_column("Longitude", style="green")
+    planet_table.add_column("Sign", style="yellow")
+    planet_table.add_column("House", style="cyan")
+    planet_table.add_column("Sign Lord", style="magenta")
+    planet_table.add_column("Star Lord", style="white")
+    planet_table.add_column("Sub Lord", style="white")
+    planet_table.add_column("Sub-Sub", style="dim")
+    for p in kpc.planets:
+        planet_table.add_row(
+            p.graha.full_name, f"{p.longitude:.2f}°", p.sign.short_name,
+            str(p.house), p.chain.sign_lord.short_name,
+            p.chain.star_lord.short_name, p.chain.sub_lord.short_name,
+            p.chain.sub_sub_lord.short_name,
+        )
+    console.print(planet_table)
+
+    if rp:
+        rp_table = Table(title=f"Ruling Planets (day lord: {kpc.day_lord.full_name})")
+        rp_table.add_column("Planet", style="cyan")
+        rp_table.add_column("Role", style="white")
+        for r in kpc.ruling_planets:
+            rp_table.add_row(r.graha.full_name, r.role_string)
+        console.print(rp_table)
+
+
+@app.command()
 def sahamas(
     birthdata: str = typer.Argument(..., help="Birth data"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),

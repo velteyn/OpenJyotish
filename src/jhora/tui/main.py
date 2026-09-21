@@ -341,6 +341,45 @@ class JhoraTui:
             rich.print(t)
         self._content_lines = cap.get().split("\n")
 
+    def _action_kp(self):
+        """KP view — Placidus cusp/planet lord chains + Ruling Planets."""
+        if not self._check_chart():
+            return
+        from jhora.calc.kp import KPComputer
+        with rich.capture() as cap:
+            kpc = KPComputer(self.chart).compute()
+            t = Table(title=f"KP Cusps ({kpc.cusp_system}, "
+                            f"ayanamsa: {kpc.ayanamsa})", box=rich_box.SIMPLE)
+            for h in ["House", "Cusp", "Sign", "Sign Lord", "Star Lord",
+                      "Sub Lord", "Sub-Sub"]:
+                t.add_column(h)
+            for c in kpc.cusps:
+                t.add_row(str(c.house), f"{c.longitude:.2f}°", c.sign.short_name,
+                          c.chain.sign_lord.short_name,
+                          c.chain.star_lord.short_name,
+                          c.chain.sub_lord.short_name,
+                          c.chain.sub_sub_lord.short_name)
+            rich.print(t)
+
+            p = Table(title="KP Planets (Placidus bhava)", box=rich_box.SIMPLE)
+            for h in ["Planet", "Sign", "House", "Star Lord", "Sub Lord", "Sub-Sub"]:
+                p.add_column(h)
+            for pl in kpc.planets:
+                p.add_row(pl.graha.full_name, pl.sign.short_name, str(pl.house),
+                          pl.chain.star_lord.short_name,
+                          pl.chain.sub_lord.short_name,
+                          pl.chain.sub_sub_lord.short_name)
+            rich.print(p)
+
+            r = Table(title=f"Ruling Planets (day lord: {kpc.day_lord.full_name})",
+                      box=rich_box.SIMPLE)
+            r.add_column("Planet")
+            r.add_column("Role")
+            for rp in kpc.ruling_planets:
+                r.add_row(rp.graha.full_name, rp.role_string)
+            rich.print(r)
+        self._content_lines = cap.get().split("\n")
+
     def _action_yogas(self):
         if not self._check_chart():
             return
@@ -1091,6 +1130,7 @@ class JhoraTui:
             ("5", "Ashtakavarga SAV", self._action_ashtakavarga),
             ("6", "Sahamas (Sensitive Points)", self._action_sahamas),
             ("7", "User's Special Lagna (planet/factor/reverse)", self._action_usl),
+            ("8", "KP Cusps + Ruling Planets", self._action_kp),
         ]
         self._sub_menu("Chart & Varga", items)
 
