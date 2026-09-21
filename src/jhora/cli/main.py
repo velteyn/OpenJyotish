@@ -818,6 +818,7 @@ def conditional_dasas(
     console.print(f"[green]{len(applicable)} conditional dasas apply:[/green]")
     for d in applicable:
         console.print(f"  [cyan]{d['name']}[/cyan]: {d['full_name']} ({d['total_years']} years)")
+        console.print(f"    [dim]gate: {d['condition']}[/dim]")
 
 
 @app.command()
