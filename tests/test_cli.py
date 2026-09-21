@@ -169,7 +169,7 @@ class TestDasaSystems:
         opts = DasaOptions()
         for sys in ["vimsottari", "ashtottari", "yogini", "sudasa",
                     "chara", "narayana", "kalachakra", "brahma",
-                    "karaka", "moola", "shoola", "trikona", "varnada",
+                    "karaka", "shoola", "trikona", "varnada",
                     "sthira", "navamsa", "yogardha",
                     "niryana-shoola",
                     "lagna-kendradi", "kaala", "chakra", "mandooka",
