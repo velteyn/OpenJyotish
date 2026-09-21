@@ -1,8 +1,8 @@
 """Tests for Muhurta daily adjuncts (Durmuhurta, Varjya, Panchaka, Chandra/Tara Bala).
 
-Golden fixtures anchor the implementations to the reference values used while
-reverse-engineering the adjuncts table:
-  - Durmuhurta: weekday -> 15-muhurta index (reference DurMuhurta1 column).
+Golden fixtures anchor the implementations to classical reference
+values:
+  - Durmuhurta: weekday -> 15-muhurta index.
   - Tara Bala: inclusive Janma -> target 9-count (Sampat/Vipat/.../Parama Mitra).
   - Regression: Drik Panchang Chennai 2026-09-16 Dur Muhurtam / Varjyam and the
     Panchaka-Rahita day list; AstroShruti Chandra Bala verdicts (New Delhi,
