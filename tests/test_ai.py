@@ -264,6 +264,19 @@ class TestArudhaSahamaExport:
         assert len(ch.get("night", [])) == 8
         assert ch["day"][0]["slot"] and ch["day"][0]["rating"]
 
+    def test_json_export_has_hora(self):
+        from jhora.ai.json_export import full_analysis
+        cd = _sample_chart()
+        result = full_analysis(
+            f"{cd.birth_date.strftime('%Y-%m-%d %H:%M:%S')} {cd.timezone} "
+            f"{cd.latitude:.4f} {cd.longitude:.4f}"
+        )
+        hora = result.get("hora", {})
+        assert hora, "hora block missing from JSON export"
+        assert len(hora.get("slots", [])) == 24
+        assert hora["slots"][0]["lord"] == hora["day_lord"]
+        assert sum(s["part"] == "Night" for s in hora["slots"]) == 12
+
 
 class TestModelResolution:
     """Auto model resolution: pick a chat model regardless of server state."""

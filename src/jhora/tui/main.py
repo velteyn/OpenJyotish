@@ -924,6 +924,42 @@ class JhoraTui:
                            f"— {remaining:.0f} min remaining[/bold]")
         self._content_lines = cap.get().split("\n")
 
+    def _action_hora(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.hora import hora_slots, current_hora, WEEKDAY_LORD
+        with rich.capture() as cap:
+            now = datetime.now()
+            tz_str = self.chart.timezone.replace("+", "").replace("−", "-")
+            tz = float(tz_str) if tz_str else 0.0
+            dt = datetime(self.chart.year, self.chart.month, self.chart.day)
+            slots = hora_slots(dt, self.chart.latitude, self.chart.longitude, tz)
+            current = current_hora(now, self.chart.latitude,
+                                   self.chart.longitude, tz)
+            wd = (dt.weekday() + 1) % 7
+            t = Table(
+                title=f"Hora — {dt.strftime('%A %d %B %Y')} "
+                      f"(day lord {WEEKDAY_LORD[wd].full_name})",
+                box=rich_box.SIMPLE,
+            )
+            t.add_column("#", style="dim", width=3)
+            t.add_column("Part", style="blue", width=5)
+            t.add_column("Lord", style="magenta", width=8)
+            t.add_column("Start", style="white")
+            t.add_column("End", style="white")
+            for slot in slots:
+                is_cur = current is not None and slot is current
+                label = f"[bold]{slot.lord_name}[/bold]" if is_cur else slot.lord_name
+                t.add_row(str(slot.index + 1), slot.part, label,
+                          slot.start.strftime("%H:%M"),
+                          slot.end.strftime("%H:%M"))
+            rich.print(t)
+            if current:
+                remaining = (current.end - now).total_seconds() / 60.0
+                rich.print(f"\n[bold]Current: {current.lord_name} hora — "
+                           f"{remaining:.0f} min remaining[/bold]")
+        self._content_lines = cap.get().split("\n")
+
     def _action_mundane(self):
         from prompt_toolkit.shortcuts import input_dialog
         y = input_dialog("Mundane", "Year:", str(datetime.now().year)).run()
@@ -1209,6 +1245,7 @@ class JhoraTui:
             ("2", "Prasna (Horary)", self._action_prasna),
             ("3", "Muhurta (Electional)", self._action_muhurta),
             ("4", "Choghadiya (Day/Night Slots)", self._action_choghadiya),
+            ("5", "Hora (Planetary Hours)", self._action_hora),
         ]
         self._sub_menu("Special Topics", items)
 
