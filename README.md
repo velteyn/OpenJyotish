@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 44 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-24-section JSON API for AI agents (+ JSON-LD)  |  1398 tests  |  GPL v3.0
+24-section JSON API for AI agents (+ JSON-LD)  |  1404 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -240,7 +240,7 @@ Rasi chart (D-1) with South/North/East styles · 23 varga charts (D-2 to D-150) 
 Outer planets (Uranus/Neptune/Pluto) · Upagrahas (5 solar + Gulika/Mandi) ·
 Special lagnas (Bhrigu Bindu/Indu/Varnada/Pranapada/Vighati) ·
 KP mode — Placidus cusp/planet lord chains, Ruling Planets, sub-lords (5 levels) · Chalit/Bhava charts (any varga)
-Tattva dignities · Graha-drishti API (give/receive) · JSON-LD export (`analyze --jsonld`)
+Tattva dignities · Jaimini rasi strength · Graha-drishti API (give/receive) · JSON-LD export (`analyze --jsonld`)
 
 ### Forecasting
 Transits with SAV scores · Tajaka solar return · Tithi Pravesha ·
