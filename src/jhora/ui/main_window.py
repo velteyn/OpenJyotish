@@ -463,6 +463,7 @@ class MainWindow(QMainWindow):
         spec_sub.addTab(self._build_prasna_tab(), "Prasna")
         spec_sub.addTab(self._build_muhurta_tab(), "Muhurta")
         spec_sub.addTab(self._build_kp_tab(), "KP")
+        spec_sub.addTab(self._build_remedies_tab(), "Remedies")
         self.page_stack.addWidget(spec_sub)
 
         # 7. AI & Knowledge
@@ -2596,6 +2597,101 @@ class MainWindow(QMainWindow):
         interpreter = ChartInterpreter()
         text = interpreter.interpret_text(cd, style=style)
         self.int_output.setText(text)
+
+    def _build_remedies_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("As of:"))
+        self.remedy_when = QDateEdit()
+        self.remedy_when.setCalendarPopup(True)
+        self.remedy_when.setDate(QDate.currentDate())
+        row.addWidget(self.remedy_when)
+        self.remedy_btn = QPushButton("Compute Remedies")
+        self.remedy_btn.clicked.connect(self._on_remedies_compute)
+        row.addWidget(self.remedy_btn)
+        row.addStretch()
+        layout.addLayout(row)
+
+        partner_group = QGroupBox("Marriage remedies (optional partner)")
+        pg = QHBoxLayout(partner_group)
+        self.remedy_partner_check = QCheckBox("Include")
+        pg.addWidget(self.remedy_partner_check)
+        pg.addWidget(QLabel("Date:"))
+        self.remedy_partner_date = QDateEdit()
+        self.remedy_partner_date.setCalendarPopup(True)
+        self.remedy_partner_date.setDate(QDate(2000, 1, 1))
+        pg.addWidget(self.remedy_partner_date)
+        pg.addWidget(QLabel("Time:"))
+        self.remedy_partner_time = QTimeEdit()
+        self.remedy_partner_time.setTime(QTime(12, 0))
+        pg.addWidget(self.remedy_partner_time)
+        pg.addWidget(QLabel("TZ:"))
+        self.remedy_partner_tz = QLineEdit("+0530")
+        self.remedy_partner_tz.setMaximumWidth(70)
+        pg.addWidget(self.remedy_partner_tz)
+        pg.addWidget(QLabel("Lat:"))
+        self.remedy_partner_lat = QLineEdit("13.08")
+        self.remedy_partner_lat.setMaximumWidth(70)
+        pg.addWidget(self.remedy_partner_lat)
+        pg.addWidget(QLabel("Lon:"))
+        self.remedy_partner_lon = QLineEdit("80.27")
+        self.remedy_partner_lon.setMaximumWidth(70)
+        pg.addWidget(self.remedy_partner_lon)
+        layout.addWidget(partner_group)
+
+        self.remedy_deity = QLabel("")
+        self.remedy_deity.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        layout.addWidget(self.remedy_deity)
+
+        self.remedy_table = QTableWidget()
+        self.remedy_table.setAlternatingRowColors(True)
+        layout.addWidget(self.remedy_table, stretch=1)
+        return w
+
+    def _on_remedies_compute(self):
+        from jhora.calc.remedies import compute_marriage_remedies, compute_remedies
+        cd = self._get_chart_data()
+        if cd is None:
+            return
+        when = datetime(self.remedy_when.date().year(),
+                        self.remedy_when.date().month(),
+                        self.remedy_when.date().day())
+        report = compute_remedies(cd, when=when)
+        items = list(report.items)
+        if self.remedy_partner_check.isChecked():
+            try:
+                builder = ChartBuilder()
+                qd = self.remedy_partner_date.date()
+                qt = self.remedy_partner_time.time()
+                partner = builder.build(
+                    year=qd.year(), month=qd.month(), day=qd.day(),
+                    hour=qt.hour() + qt.minute() / 60.0,
+                    lat=float(self.remedy_partner_lat.text().strip()),
+                    lon=float(self.remedy_partner_lon.text().strip()),
+                    tz=self.remedy_partner_tz.text().strip(),
+                    ayanamsa=self.ayanamsa_combo.currentText().lower(),
+                )
+                items += compute_marriage_remedies(cd, partner)
+            except Exception as e:
+                QMessageBox.warning(self, "Partner Error",
+                                    f"Cannot compute partner chart: {e}")
+                return
+        self.remedy_deity.setText(
+            f"Ishta Devata: {report.ishta_devata.title}   |   "
+            f"Palana Devata: {report.palana_devata.title}")
+        headers = ["Category", "Remedy", "Detail", "Source"]
+        self.remedy_table.setColumnCount(len(headers))
+        self.remedy_table.setHorizontalHeaderLabels(headers)
+        self.remedy_table.setRowCount(len(items))
+        for r, it in enumerate(items):
+            for c, val in enumerate([it.category, it.title, it.detail,
+                                     it.source]):
+                self.remedy_table.setItem(r, c, QTableWidgetItem(val))
+        self.remedy_table.resizeColumnsToContents()
 
     def _get_chart_data(self) -> Optional[ChartData]:
         try:
