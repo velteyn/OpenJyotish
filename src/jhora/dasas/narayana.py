@@ -82,18 +82,21 @@ class NarayanaDasa(DasaBase):
                    opts: DasaOptions) -> Rasi:
         """Seed sign of the dasa (Narayana family: overridden per variant).
 
-        Base Narayana seeds from the sign occupied by the lagna lord (the
-        Paka rasi). When ``narayana_chart`` is set the lord's position is
-        taken from that divisional chart instead of D-1.
+        Default Narayana seeds from the **stronger of the lagna and its 7th**
+        (the satya-peetha rule, resolved by the Jaimini sign-strength ladder).
+        When ``narayana_chart`` is set the seed is taken from the lagna lord's
+        position in that divisional chart instead.
         """
+        if not opts.narayana_chart:
+            from jhora.calc.jaimini_strength import (chart_signs_lons,
+                                                     stronger_rasi)
+            signs, lons = chart_signs_lons(chart)
+            seventh = (lagna_rasi.value + 6) % 12
+            return Rasi(stronger_rasi(lagna_rasi.value, seventh, signs, lons))
         lagna_lord = _LORD_NAME_TO_GRAHA.get(lagna_rasi.lord, Graha.SUN)
-        seed_chart = (chart.get("seed_varga_positions")
-                      if opts.narayana_chart else None)
-        if seed_chart:
-            lord_lon = seed_chart.get(lagna_lord)
-            if lord_lon is None:
-                lord_lon = planets[lagna_lord]["longitude"]
-        else:
+        seed_chart = chart.get("seed_varga_positions")
+        lord_lon = seed_chart.get(lagna_lord)
+        if lord_lon is None:
             lord_lon = planets[lagna_lord]["longitude"]
         return self._find_seed(lagna_lord, lord_lon)
 
