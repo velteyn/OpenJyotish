@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 45 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-25-section JSON API for AI agents (+ JSON-LD)  |  1427 tests  |  GPL v3.0
+25-section JSON API for AI agents (+ JSON-LD)  |  1431 tests  |  GPL v3.0
 ```
 
 ## Quick Install
