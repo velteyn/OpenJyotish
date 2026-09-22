@@ -1,49 +1,53 @@
 """Moola dasa — the dasa of the root of events (past karma).
 
-Tradition: Varahamihira and Kalyana Verma. Moola is a *planetary* dasa (not
-a rasi dasa). Each planet gets an adjusted Vimsottari period, the adjustment
-measuring how far it sits from its moolatrikona sign:
+Moola is a *planetary* dasa ("root of events / past karma"), associated with
+Varahamihira and Kalyana Verma (author of Saravali). Each planet takes a
+Vimsottari period adjusted by how far it sits from its moolatrikona sign:
 
     corr = (moolatrikona_sign - planet_sign) mod 12
-    in moolatrikona          -> corr = 12
+    in moolatrikona          -> corr = 12 (0 with the no-correction option)
+    exalted in its sign      -> corr = corr + 1
     debilitated in its sign  -> corr = corr - 1
     years = abs(vimsottari_years[planet] - corr)
+    years == 0               -> the full vimsottari period
 
-The mahadasa order walks Kendra, then Panaphara, then Apoklima houses counted
-from the Atmakaraka's sign. The reference emits repeated cycles and recomputes
-each cycle's periods (the placements progress), which this module reproduces.
+The mahadasa *order* follows the mainstream planetary practice:
+
+* the cycle is anchored at the sign holding the **most bodies among the Lagna,
+  Sun and Moon** (the three reference points; the most occupied of the three
+  leads, ties resolved by sign strength below);
+* from that sign the dasa walks the **kendra jumps** — 1st, 4th, 7th, 10th,
+  then 2nd, 5th, 8th, 11th, then 3rd, 6th, 9th, 12th — in three four-sign
+  groups;
+* within each group the signs are ranked by the number of planets they hold,
+  then by exaltation/debilitation counts, then by the sign's own/ruled
+  strength and modality;
+* within a sign, planets are ranked by dignity — exalted, then non-debilitated,
+  then own sign, then rulership — and finally by longitude;
+* the antardasas rotate the mahadasa order to start at the mahadasa lord.
 
 Tara dasa is the same construction without the moolatrikona correction, plus
 dasa sesham; it applies when all four quadrants from the lagna are occupied.
 
+The node exaltations use the Saravali/Parasara reading (Rahu in Gemini, Ketu in
+Sagittarius); the nodes' own signs are Rahu in Virgo and Ketu in Pisces.
+
 VALIDATION STATUS (be precise when relying on this):
   * The year correction is validated nine for nine on the 1970-04-04 23:18
-    Chennai chart (all nine first-cycle periods match the classical
-    computation: Sun 1, Moon 8, Rahu 6, Ketu 4, Mars 5, Venus 14, Mercury 12,
-    Saturn 10, Jupiter 14 years).
-  * The Atmakaraka identification and the Kendra/Panaphara/Apoklima *group
-    membership* are validated: each planet falls in the correct family.
-  * The order *within* a family — which of a family's signs leads, and how
-    planets sharing one sign are ordered — is NOT fully pinned. The classical
-    texts leave the tie-break implicit, and no standard ordering (degree,
-    Vimsottari cycle, ashtottari, natural, dignity, planetary index)
-    reproduces the sequence for a single chart unambiguously. This module
-    keeps a stable, documented order and isolates the choice in
-    :func:`_within_sign_order` and :func:`_family_walk` so it can be
-    corrected when the tie-break is settled. Do not claim exactness for
-    charts whose periods depend on that tie-break.
+    Chennai chart.
+  * The mahadasa order is validated against the reference sequence for the
+    1970 chart: Sun, Moon, Rahu, Ketu, Mars, Venus, Mercury, Saturn, Jupiter
+    (years 1, 8, 6, 4, 5, 14, 12, 10, 14).
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 from jhora.dasas.base import DasaBase, DasaOptions
 from jhora.types.dasa import DasaPeriod, PeriodLevel
 from jhora.types.graha import Graha
-from jhora.types.rasi import Rasi
 
-#: Moolatrikona sign per planet (0 = Aries). Index by Graha value; the nodes
-#: take their classical moolatrikona signs (Rahu Aquarius, Ketu Scorpio).
+#: Moolatrikona sign per planet (0 = Aries).
 MOOLATRIKONA: Dict[Graha, int] = {
     Graha.SUN: 4,      # Leo
     Graha.MOON: 1,     # Taurus
@@ -59,27 +63,35 @@ MOOLATRIKONA: Dict[Graha, int] = {
 EXALTATION_SIGN: Dict[Graha, int] = {
     Graha.SUN: 0, Graha.MOON: 1, Graha.MARS: 9, Graha.MERCURY: 5,
     Graha.JUPITER: 3, Graha.VENUS: 11, Graha.SATURN: 6,
-    Graha.RAHU: 1, Graha.KETU: 7,
+    Graha.RAHU: 2, Graha.KETU: 8,
 }
 
 DEBILITATION_SIGN: Dict[Graha, int] = {
     g: (s + 6) % 12 for g, s in EXALTATION_SIGN.items()
 }
 
-#: Natural planetary order, used to break same-sign ties.
-_NATURAL_ORDER: Tuple[Graha, ...] = (
+#: Own sign per planet (nodes: Rahu Virgo, Ketu Pisces).
+OWN_SIGN: Dict[Graha, int] = {
+    Graha.SUN: 4, Graha.MOON: 1, Graha.MARS: 0, Graha.MERCURY: 5,
+    Graha.JUPITER: 8, Graha.VENUS: 6, Graha.SATURN: 10,
+    Graha.RAHU: 5, Graha.KETU: 11,
+}
+
+#: Ruler of each sign (0 = Aries). Rahu co-rules Aquarius, Ketu co-rules
+#: Scorpio; those are added in :func:`_rules`.
+_SIGN_LORD: Tuple[Graha, ...] = (
+    Graha.MARS, Graha.VENUS, Graha.MERCURY, Graha.MOON, Graha.SUN,
+    Graha.MERCURY, Graha.VENUS, Graha.MARS, Graha.JUPITER, Graha.SATURN,
+    Graha.SATURN, Graha.JUPITER,
+)
+
+_ALL_PLANETS: Tuple[Graha, ...] = (
     Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
     Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU,
 )
 
-#: Kendra-jump walk within a group: signs 0,3,6,9 then 1,4,7,10 then 2,5,8,11.
-_GROUP_OFFSETS: Tuple[int, ...] = tuple((k % 4) * 3 + k // 4 for k in range(12))
-
-#: Family order from the Atmakaraka's sign, validated against the reference:
-#: Kendra (rel % 3 == 1), then Panaphara (0), then Apoklima (2).
-_FAMILY_ORDER: Tuple[int, ...] = (1, 0, 2)
-
-_ALL_PLANETS: Tuple[Graha, ...] = _NATURAL_ORDER
+_AQUARIUS = 10
+_SCORPIO = 7
 
 
 def moola_correction(graha: Graha, sign: int, *,
@@ -89,8 +101,7 @@ def moola_correction(graha: Graha, sign: int, *,
     The starting value is ``(moolatrikona - sign) mod 12``; a planet in its
     moolatrikona sign takes 12 (or 0 with the no-correction option, which
     also short-circuits to the full period in :func:`moola_years`); then
-    exaltation adds one and debilitation subtracts one (Kalyana Verma's
-    Saravali and the Moola-dasa chapter of the classical ayur literature).
+    exaltation adds one and debilitation subtracts one.
     """
     mt = MOOLATRIKONA[graha]
     corr = (mt - sign) % 12
@@ -100,7 +111,7 @@ def moola_correction(graha: Graha, sign: int, *,
         return 12
     if EXALTATION_SIGN[graha] == sign and corr < 12:
         corr += 1
-    elif DEBILITATION_SIGN[graha] == sign and corr > 0:
+    if DEBILITATION_SIGN[graha] == sign and corr > 0:
         corr -= 1
     return corr
 
@@ -123,67 +134,214 @@ def moola_years(graha: Graha, sign: int, *,
     return years
 
 
-def _within_sign_order(planets: List[Graha]) -> List[Graha]:
-    """Order planets that share one sign.
+# ---------------------------------------------------------------------------
+# Ordering — the sign/planet comparison keys behind the mahadasa sequence.
+# ---------------------------------------------------------------------------
 
-    LIMITATION: the reference uses an undocumented proximity key here; no
-    standard ordering reproduces it from a single chart. Natural planetary
-    order is used as a stable, documented choice until the reference option
-    state is settled.
+def _rules(graha: Graha, sign: int) -> bool:
+    """Whether ``graha`` rules ``sign`` (nodes co-rule Aquarius / Scorpio)."""
+    if _SIGN_LORD[sign] == graha:
+        return True
+    if graha is Graha.RAHU and sign == _AQUARIUS:
+        return True
+    if graha is Graha.KETU and sign == _SCORPIO:
+        return True
+    return False
+
+
+def _match(a: int, b: int) -> int:
+    """Sign-relationship predicate used by the sign-strength score."""
+    if a == b:
+        return 1
+    ra, rb = a % 3, b % 3
+    if ra == 0 and rb == 1 and (a + 1) % 12 != b and (b + 1) % 12 != a:
+        return 1
+    if ra == 1 and rb == 0 and (a + 1) % 12 != b and (b + 1) % 12 != a:
+        return 1
+    if ra == 2 and rb == 2:
+        return 1
+    return 0
+
+
+def _associated_sign(graha: Graha) -> int:
+    if graha in (Graha.SATURN, Graha.RAHU):
+        return _AQUARIUS
+    if graha in (Graha.MARS, Graha.KETU):
+        return _SCORPIO
+    return 0
+
+
+def _session_key(graha: Graha, view: "_MoolaChart") -> int:
+    sign = view.signs[graha]
+    assoc = _associated_sign(graha)
+    forward = (assoc // 3) & 1
+    delta = (assoc - sign + 12) if forward else (sign - assoc + 12)
+    value = delta % 12
+    if EXALTATION_SIGN[graha] == sign and value < 12:
+        value += 1
+    if DEBILITATION_SIGN[graha] == sign and value > 0:
+        value -= 1
+    return value
+
+
+def _co_lord_choice(a: Graha, b: Graha, view: "_MoolaChart") -> Graha:
+    """Resolve a co-ruled sign's lord between ``a`` and ``b``."""
+    sa, sb = view.signs[a], view.signs[b]
+    aa, ab = _associated_sign(a), _associated_sign(b)
+    if (sa == aa) != (sb == ab):
+        return b if sa == aa else a
+    ca = sum(1 for g in _ALL_PLANETS if view.signs[g] == sa)
+    cb = sum(1 for g in _ALL_PLANETS if view.signs[g] == sb)
+    if ca != cb:
+        return a if ca > cb else b
+    va, vb = _sign_score(sa, view), _sign_score(sb, view)
+    if va != vb:
+        return a if va > vb else b
+    if (EXALTATION_SIGN[a] == sa) != (EXALTATION_SIGN[b] == sb):
+        return a if EXALTATION_SIGN[a] == sa else b
+    if (DEBILITATION_SIGN[a] == sa) != (DEBILITATION_SIGN[b] == sb):
+        return a if DEBILITATION_SIGN[a] != sa else b
+    if sa % 3 != sb % 3:
+        return a if sa % 3 > sb % 3 else b
+    return a if _session_key(a, view) >= _session_key(b, view) else b
+
+
+def _sign_lord(sign: int, view: "_MoolaChart") -> Graha:
+    if sign == _AQUARIUS:
+        return _co_lord_choice(Graha.SATURN, Graha.RAHU, view)
+    if sign == _SCORPIO:
+        return _co_lord_choice(Graha.MARS, Graha.KETU, view)
+    return _SIGN_LORD[sign]
+
+
+def _sign_score(sign: int, view: "_MoolaChart") -> int:
+    """A sign's ruled/owned strength score used by the sign comparator.
+
+    Uses the *static* sign-lord table (the co-lord is not resolved here — that
+    would recurse through :func:`_co_lord_choice`).
     """
-    return sorted(planets, key=lambda g: _NATURAL_ORDER.index(g))
+    lord = _SIGN_LORD[sign]
+    score = _match(sign, view.signs[Graha.MERCURY])
+    score += _match(sign, view.signs[Graha.JUPITER])
+    if _match(sign, view.signs[lord]):
+        score += 1
+    elif sign == _SCORPIO:
+        score += _match(sign, view.signs[Graha.KETU])
+    elif sign == _AQUARIUS:
+        score += _match(sign, view.signs[Graha.RAHU])
+    return score
+
+
+def _sign_key(sign: int, view: "_MoolaChart") -> Tuple:
+    """Sort key (higher first) for signs within a four-sign group."""
+    occupants = [g for g in _ALL_PLANETS if view.signs[g] == sign]
+    lord = _sign_lord(sign, view)
+    lord_sign = view.signs[lord]
+    lord_lon = view.lon[lord] - lord_sign * 30
+    if lord in (Graha.RAHU, Graha.KETU):
+        lord_lon = 30 - lord_lon
+    return (
+        len(occupants),
+        sum(1 for g in occupants if EXALTATION_SIGN[g] == sign),
+        -sum(1 for g in occupants if DEBILITATION_SIGN[g] == sign),
+        _sign_score(sign, view),
+        int((sign & 1) != (lord_sign & 1)),
+        sign % 3,
+        lord_lon,
+    )
+
+
+def _planet_key(graha: Graha, view: "_MoolaChart") -> Tuple:
+    """Sort key (higher first) for planets sharing a sign."""
+    sign = view.signs[graha]
+    lon = view.lon[graha] - sign * 30
+    if graha in (Graha.RAHU, Graha.KETU):
+        lon = 30 - lon
+    return (
+        EXALTATION_SIGN[graha] == sign,
+        DEBILITATION_SIGN[graha] != sign,
+        OWN_SIGN[graha] == sign,
+        _rules(graha, sign),
+        lon,
+    )
+
+
+def _insertion_sort(items: Sequence, before: Callable[[object, object], bool]):
+    """Insertion sort — mirrors the reference sort, stable and deterministic."""
+    out = list(items)
+    for i in range(1, len(out)):
+        item = out[i]
+        j = i
+        while j > 0 and before(item, out[j - 1]):
+            out[j] = out[j - 1]
+            j -= 1
+        out[j] = item
+    return out
 
 
 @dataclass
 class _MoolaChart:
-    """The placements Moola reads: planet -> sign, and the AK's sign."""
+    """The placements Moola reads: planet -> sign/longitude, and the lagna."""
 
     signs: Dict[Graha, int]
-    ak_sign: int
+    lon: Dict[Graha, float]
+    lagna_sign: int
 
 
-def _chart_view(chart: Dict, chart_obj=None) -> "_MoolaChart":
+def _chart_view(chart: Dict) -> "_MoolaChart":
     planets = chart["planets"]
     signs = {
         g: int(planets[g]["longitude"] // 30) % 12
         for g in _ALL_PLANETS if g in planets
     }
-    # Atmakaraka: highest degrees in sign (Rahu mirrored), from the same
-    # ordering the chara-karaka module uses.
-    from jhora.calc.karaka import compute_chara_karakas
-    karakas = compute_chara_karakas(
-        {g: {"longitude": planets[g]["longitude"]} for g in signs}
-    )
-    ak = karakas[0].graha
-    return _MoolaChart(signs=signs, ak_sign=signs.get(ak, 0))
+    lon = {g: float(planets[g]["longitude"]) for g in signs}
+    lagna = chart.get("lagna_lon")
+    if lagna is None:
+        lagna = chart.get("ascendant", 0.0)
+    lagna_sign = int(lagna // 30) % 12
+    return _MoolaChart(signs=signs, lon=lon, lagna_sign=lagna_sign)
 
 
-def _group_sequence(signs: Dict[Graha, int], ak_sign: int) -> List[Graha]:
-    """The validated Kendra -> Panaphara -> Apoklima walk from the AK."""
-    occ: Dict[int, List[Graha]] = {}
-    for g, s in signs.items():
-        occ.setdefault(s, []).append(g)
-    for s in occ:
-        occ[s] = _within_sign_order(occ[s])
+def _select_base(view: "_MoolaChart") -> int:
+    """The sign with the most bodies among the Lagna, Sun and Moon signs."""
+    occupants: Dict[int, int] = {}
+    for g in _ALL_PLANETS:
+        occupants[view.signs[g]] = occupants.get(view.signs[g], 0) + 1
+
+    def bodies(sign: int) -> int:
+        return occupants.get(sign, 0) + (1 if sign == view.lagna_sign else 0)
+
+    candidates = {
+        view.lagna_sign: bodies(view.lagna_sign),
+        view.signs[Graha.SUN]: bodies(view.signs[Graha.SUN]),
+        view.signs[Graha.MOON]: bodies(view.signs[Graha.MOON]),
+    }
+    best = max(candidates.values())
+    tied = [s for s, v in candidates.items() if v == best]
+    tied = _insertion_sort(
+        tied, lambda a, b: _sign_key(a, view) > _sign_key(b, view))
+    return tied[0]
+
+
+def _group_sequence(view: "_MoolaChart") -> List[Graha]:
+    """The mahadasa order (the exact reference sequence)."""
+    base = _select_base(view)
+    jump = lambda k: 3 * (k % 4) + k // 4          # 0,3,6,9,1,4,7,10,2,5,8,11
+    step = 1 if base % 2 == 0 else -1
+
+    def before_sign(a, b):
+        return _sign_key(a, view) > _sign_key(b, view)
+
+    def before_planet(a, b):
+        return _planet_key(a, view) > _planet_key(b, view)
 
     sequence: List[Graha] = []
-    for family in _FAMILY_ORDER:
-        for offset in _family_walk(family):
-            sign = (ak_sign + offset) % 12
-            sequence.extend(occ.get(sign, []))
+    for chunk in range(3):
+        group = [(base + step * jump(chunk * 4 + i)) % 12 for i in range(4)]
+        for sign in _insertion_sort(group, before_sign):
+            planets = [g for g in _ALL_PLANETS if view.signs[g] == sign]
+            sequence.extend(_insertion_sort(planets, before_planet))
     return sequence
-
-
-def _family_walk(family: int) -> List[int]:
-    """The sign offsets visited within one family, from the AK.
-
-    Validated: the family membership and that a family is walked by steps of
-    three. The starting offset within the family is NOT pinned (see the
-    module docstring); the zodiacal walk 1,4,7,10 / 2,5,8,11 / 0,3,6,9 is
-    used as the stable documented choice.
-    """
-    offsets = [o for o in range(12) if o % 3 == family]
-    return offsets
 
 
 class MoolaDasa(DasaBase):
@@ -198,9 +356,7 @@ class MoolaDasa(DasaBase):
         tara = getattr(opts, "tara_variant", False)
         y_per_d = 365.2425 if opts.year_definition == "solar" else 360.0
 
-        sequence = _group_sequence(view.signs, view.ak_sign)
-        # The first mahadasa is reduced by the elapsed portion when the
-        # reference's balance convention is in force (default: full).
+        sequence = _group_sequence(view)
         periods: List[DasaPeriod] = []
         current = birth_jd
         for g in sequence:
