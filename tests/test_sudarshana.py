@@ -36,6 +36,8 @@ class TestSudarshana:
             md.duration_years / 12, rel=1e-9)
         # Gemini's lord is Mercury; in 1990 it sits in Sagittarius (8).
         assert md.sub_periods[0].lord_name == Rasi(8).full_name
+        # The reference builder assembles only MD and AD: no deeper level.
+        assert all(p.sub_periods is None for p in md.sub_periods)
 
     def test_ad_from_md_sign_option(self):
         cd, d = _chart()
