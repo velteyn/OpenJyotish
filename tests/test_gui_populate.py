@@ -818,3 +818,9 @@ def test_muhurta_adjuncts_button_shows_windows_and_grades(main_window, chart):
         assert "saved birth chart Moon" in detail
     finally:
         main_window.chart_data = previous_chart
+
+
+def test_populate_remedies(main_window):
+    main_window._on_remedies_compute()
+    assert main_window.remedy_table.rowCount() > 0
+    assert "Ishta Devata" in main_window.remedy_deity.text()
