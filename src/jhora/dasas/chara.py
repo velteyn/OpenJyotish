@@ -38,7 +38,10 @@ class CharaDasa(DasaBase):
         direction = chara_direction(lagna)
         planet_sigs = planet_signs(
             normalize_planets(chart.get("planets", {})))
-        durations = chara_cycle_years(planet_sigs)
+        durations = chara_cycle_years(
+            planet_sigs,
+            exaltation_exception=getattr(
+                opts, "chara_exaltation_exception", False))
         sequence = [((lagna + direction * i) % 12,
                      durations[(lagna + direction * i) % 12])
                     for i in range(12)]

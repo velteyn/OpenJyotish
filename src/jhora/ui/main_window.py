@@ -348,6 +348,12 @@ class MainWindow(QMainWindow):
         shl.addWidget(self.dasa_house_combo, 1)
         dl.addLayout(shl)
 
+        self.dasa_chara_exalt = QCheckBox(
+            "Chara dasa: exaltation exception (adjust a sign's years when its "
+            "lord is exalted/debilitated)")
+        self.dasa_chara_exalt.toggled.connect(self._update_dasa_text)
+        dl.addWidget(self.dasa_chara_exalt)
+
         # Moola / Tara options: anchor references, Tara definition, direction
         # reckoning and sesham. Other dasa systems ignore these.
         mt = QGroupBox("Moola / Tara options")
@@ -1021,6 +1027,7 @@ class MainWindow(QMainWindow):
             tara_sesham_rev_apasavya=self.dasa_tara_sesham.currentText().startswith(
                 "From Moon, reverse"),
             tara_direction_from_star=self.dasa_tara_dir_star.isChecked(),
+            chara_exaltation_exception=self.dasa_chara_exalt.isChecked(),
         )
 
     @staticmethod

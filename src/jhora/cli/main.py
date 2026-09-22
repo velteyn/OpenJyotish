@@ -201,6 +201,7 @@ def dasa(
     tara_definition: str = typer.Option("parasara", "--tara-definition", help="Tara dasa definition: parasara, rath"),
     tara_sesham: str = typer.Option("moon", "--tara-sesham", help="Tara sesham: none, moon, moon-rev-apasavya"),
     tara_dir_star: bool = typer.Option(False, "--tara-direction-from-star", help="Tara: reckon direction from the nakshatra instead of the sign"),
+    chara_exalt_exc: bool = typer.Option(False, "--chara-exaltation-exception/--no-chara-exaltation-exception", help="Chara dasa: adjust a sign's years when its lord is exalted/debilitated"),
 ):
     """Compute dasa periods for a chart.
 
@@ -232,7 +233,8 @@ def dasa(
                        tara_use_sesham=(tara_sesham.lower() != "none"),
                        tara_sesham_rev_apasavya=(
                            tara_sesham.lower() == "moon-rev-apasavya"),
-                       tara_direction_from_star=tara_dir_star)
+                       tara_direction_from_star=tara_dir_star,
+                       chara_exaltation_exception=chara_exalt_exc)
     engine = _get_dasa_engine(system, opts)
     periods = engine.compute(chart_data.julian_day, chart_dict, opts)
     _display_dasa_table(periods, f"{system.title()} Dasa Periods")
