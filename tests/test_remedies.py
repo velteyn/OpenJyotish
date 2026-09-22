@@ -4,7 +4,7 @@ from datetime import datetime
 from types import SimpleNamespace
 
 from jhora.charts.chart import ChartBuilder
-from jhora.calc.remedies import compute_remedies
+from jhora.calc.remedies import compute_marriage_remedies, compute_remedies
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 
@@ -68,6 +68,33 @@ class TestRemedies:
         rep = compute_remedies(_chart())
         charity = next(it for it in rep.items if it.category == "charity")
         assert "fast" in charity.detail.lower()
+
+
+class TestMarriageRemedies:
+    def _pair(self):
+        g = ChartBuilder().build(1990, 1, 15, 17.5, 12.9716, 77.5946,
+                                 tz="+0530")
+        b = ChartBuilder().build(1988, 6, 20, 9.25, 12.9716, 77.5946,
+                                 tz="+0530")
+        return g, b
+
+    def test_weak_factors_get_remedies(self):
+        g, b = self._pair()
+        items = compute_marriage_remedies(g, b)
+        assert items
+        assert all(it.category == "marriage" for it in items)
+        assert all(it.source for it in items)
+
+    def test_strong_factors_are_skipped(self):
+        # Nadi is 8/8 for this pair -> no Nadi remedy.
+        g, b = self._pair()
+        items = compute_marriage_remedies(g, b)
+        assert not any("Nadi" in it.title for it in items)
+
+    def test_mangal_from_either_chart(self):
+        g, b = self._pair()
+        items = compute_marriage_remedies(g, b)
+        assert any("Kuja" in it.title for it in items)
 
 
 class TestDoshas:

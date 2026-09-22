@@ -2727,10 +2727,11 @@ def sphutas(
 def remedies(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     when: Optional[str] = typer.Option(None, "--when", help="Date YYYY-MM-DD for Sade Sati"),
+    partner: Optional[str] = typer.Option(None, "--partner", help="Partner birth data for marriage remedies"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
 ):
     """Rule-based remedies — Ishta devata, gemstone, mantra, charity, doshas."""
-    from jhora.calc.remedies import compute_remedies
+    from jhora.calc.remedies import compute_marriage_remedies, compute_remedies
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()
     builder.swe.set_sidereal_mode(ayanamsa)
@@ -2741,6 +2742,14 @@ def remedies(
     )
     w = datetime.strptime(when, "%Y-%m-%d") if when else None
     report = compute_remedies(cd, when=w)
+    if partner:
+        bd2 = parse_birthdata(partner)
+        partner_cd = builder.build(
+            year=bd2["year"], month=bd2["month"], day=bd2["day"],
+            hour=bd2["hour"], lat=bd2["lat"], lon=bd2["lon"],
+            tz=bd2["tz"], ayanamsa=ayanamsa,
+        )
+        report.items.extend(compute_marriage_remedies(cd, partner_cd))
     console.print(f"[bold]Ishta Devata:[/bold] {report.ishta_devata.title}  "
                   f"[dim]({report.ishta_devata.detail})[/dim]")
     console.print(f"[bold]Palana Devata:[/bold] {report.palana_devata.title}  "
