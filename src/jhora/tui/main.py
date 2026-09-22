@@ -518,7 +518,7 @@ class JhoraTui:
             "  trikona, varnada,\n"
             "  sthira, navamsa, yogardha,\n"
             "  niryana-shoola, lagna-kendradi,\n"
-            "  kaala, chakra, mandooka, drig, tithi-ashtottari,\n"
+            "  kaala, chakra, mandooka, drig, sudarshana, tithi-ashtottari,\n"
             "  tithi-yogini, karana-chaturaaseeti, yoga-vimsottari,\n"
             "  naisargika, moola, tara\n"
             f"(current: {self._dasa_system})",
@@ -529,7 +529,7 @@ class JhoraTui:
                 "shoola", "trikona", "varnada",
                 "sthira", "navamsa", "yogardha",
                 "niryana-shoola", "lagna-kendradi",
-                "kaala", "chakra", "mandooka", "drig", "tithi-ashtottari",
+                "kaala", "chakra", "mandooka", "drig", "sudarshana", "tithi-ashtottari",
                 "tithi-yogini", "karana-chaturaaseeti",
                 "yoga-vimsottari", "naisargika", "moola", "tara"):
             self._dasa_system = sys_val.strip().lower()
@@ -637,6 +637,9 @@ class JhoraTui:
         if system == "drig":
             from jhora.dasas.drig import DrigDasa
             return DrigDasa(opts)
+        if system == "sudarshana":
+            from jhora.dasas.sudarshana import SudarshanaDasa
+            return SudarshanaDasa(opts)
         if system == "tithi-ashtottari":
             from jhora.dasas.pravesha import TithiAshtottariDasa
             return TithiAshtottariDasa(opts)
@@ -671,7 +674,7 @@ class JhoraTui:
             "  trikona, varnada,\n"
             "  sthira, navamsa, yogardha,\n"
             "  niryana-shoola, lagna-kendradi,\n"
-            "  kaala, chakra, mandooka, drig, tithi-ashtottari,\n"
+            "  kaala, chakra, mandooka, drig, sudarshana, tithi-ashtottari,\n"
             "  tithi-yogini, karana-chaturaaseeti, yoga-vimsottari,\n"
             "  naisargika, moola, tara\n"
             f"(current: {self._dasa_system})",
@@ -682,7 +685,7 @@ class JhoraTui:
                 "shoola", "trikona", "varnada",
                 "sthira", "navamsa", "yogardha",
                 "niryana-shoola", "lagna-kendradi",
-                "kaala", "chakra", "mandooka", "drig", "tithi-ashtottari",
+                "kaala", "chakra", "mandooka", "drig", "sudarshana", "tithi-ashtottari",
                 "tithi-yogini", "karana-chaturaaseeti",
                 "yoga-vimsottari", "naisargika", "moola", "tara"):
             self._dasa_system = sys_val.strip().lower()

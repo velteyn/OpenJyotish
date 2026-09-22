@@ -91,6 +91,10 @@ class DasaOptions:
     #: exalted / debilitated in its sign (the Exaltation Exception).
     chara_exaltation_exception: bool = False
 
+    #: Sudarshana Chakra dasa: antardasas run from the sign of the mahadasa
+    #: sign's lord (default) instead of from the mahadasa sign itself.
+    sudarshana_ad_from_lord: bool = True
+
 
 class DasaBase(ABC):
     """Abstract base for all dasa system implementations."""
