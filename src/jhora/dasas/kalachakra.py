@@ -1,3 +1,17 @@
+"""Kalachakra dasa.
+
+NOTE (2026-09-22): this implementation is a **12-sign savya/apasavya walk**,
+which is NOT the mainstream/reference Kalachakra. The reference and the
+Raghavaacharya method use **nine mahadasas** (nine navamsa-signs from the janma
+navamsa) with the fixed sign durations (Aries 7, Taurus 16, Gemini 9, Cancer 21,
+Leo 5, Virgo 9, Libra 16, Scorpio 7, Sagittarius 10, Capricorn 4, Aquarius 4,
+Pisces 10) and the classical leap table (Simhaavalokana / Markati / Mandooki).
+A faithful re-implementation is pending: it needs the canonical group/pada
+sequence table and (for byte-exactness) the ephemeris chart-build layer.
+
+Treat the output as experimental until then.
+"""
+
 from typing import Dict, List, Optional
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
