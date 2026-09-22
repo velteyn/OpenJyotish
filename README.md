@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-43 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-24-section JSON API for AI agents (+ JSON-LD)  |  1391 tests  |  GPL v3.0
+44 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+24-section JSON API for AI agents (+ JSON-LD)  |  1392 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -221,7 +221,7 @@ data = json.loads(subprocess.run(
 | `varga` | Any divisional chart (D-1 to D-150) |
 | `navamsa` | D-9 Navamsa |
 | `vargottama` | Planets/lagna holding the same rasi in D-1 and each varga (D-9 classical) |
-| `panchanga` | Monthly calendar (paksha/tithi/nakshatra/yoga/karana, sunrise/sunset, rahu kalam) |
+| `panchanga` | Monthly calendar (paksha/tithi/nakshatra/yoga/karana, sunrise/sunset, rahu kalam; `--adjuncts` adds Durmuhurta/Varjya) |
 | `chakras` | Sarvatobhadra + Kota chakras |
 | `lagnas` | All special lagnas with meanings |
 | `kp` | Krishnamurti Paddhati — Placidus cusp/planet lord chains + Ruling Planets (`--ayanamsa krishnamurti`) |
@@ -263,7 +263,7 @@ src/jhora/
 ├── ephemeris/      Swiss Ephemeris wrapper (18 API functions)
 ├── charts/         ChartBuilder, ChartData (frozen), VargaChartComputer
 ├── calc/           29 modules: strengths, yogas, dasas, transits, chakras...
-├── dasas/          27 dasa systems (+ shared Jaimini core)
+├── dasas/          29 dasa systems (+ shared Jaimini core)
 ├── ai/             AI engine, RAG pipeline, JSON export, teacher
 ├── interpreter/    Chart reading, knowledge base
 ├── export/         HTML report generator

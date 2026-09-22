@@ -30,6 +30,10 @@ class PanchangaDay:
     rahu_kalam: str
     gulika_kalam: str
     yama_gandam: str
+    varjya1: str = "—"
+    varjya2: str = "—"
+    durmuhurta1: str = "—"
+    durmuhurta2: str = "—"
 
 
 WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -46,17 +50,22 @@ def _window(idx: int, sunrise_h: float, seg: float) -> str:
 
 
 def monthly_panchanga(year: int, month: int, lat: float = 28.61,
-                      lon: float = 77.21,
-                      tz_offset: float = 5.5) -> List[PanchangaDay]:
+                      lon: float = 77.21, tz_offset: float = 5.5,
+                      with_adjuncts: bool = False) -> List[PanchangaDay]:
     """Compute panchanga for every day of a month.
 
     ``tz_offset`` is signed hours EAST of UTC (e.g. +5.5 for IST).
+    ``with_adjuncts`` also fills the Durmuhurta/Varjya windows.
     """
     from jhora.calc.muhurta import (
         compute_panchanga, sunrise_sunset_hours, _get_moon_longitude,
         _YOGA_NAMES, _RAHU_PERIOD_INDEX, _GULIKA_PERIOD_INDEX,
-        _YAMAGANDA_PERIOD_INDEX,
+        _YAMAGANDA_PERIOD_INDEX, compute_adjuncts, _datetime_to_jd,
     )
+
+    def _window_jd(jd: float, base_jd: float) -> str:
+        h = (jd - base_jd) * 24.0
+        return f"{int(h % 24):02d}:{int((h % 1) * 60):02d}"
 
     if month == 12:
         next_month = datetime(year + 1, 1, 1)
@@ -75,6 +84,18 @@ def monthly_panchanga(year: int, month: int, lat: float = 28.61,
         seg = (ss_h - sr_h) / 8.0
         moon = _get_moon_longitude(sunrise_dt, tz_offset)
 
+        base_jd = _datetime_to_jd(datetime(year, month, d), tz_offset)
+        vars_ = ["", ""]
+        durs = ["", ""]
+        if with_adjuncts:
+            adj = compute_adjuncts(dt, lat, lon, tz_offset, None)
+            vars_ = ["" if i >= len(adj.varjya) else
+                     f"{_window_jd(adj.varjya[i].start, base_jd)}-"
+                     f"{_window_jd(adj.varjya[i].end, base_jd)}" for i in range(2)]
+            durs = ["" if i >= len(adj.durmuhurta) else
+                    f"{_window_jd(adj.durmuhurta[i].start, base_jd)}-"
+                    f"{_window_jd(adj.durmuhurta[i].end, base_jd)}" for i in range(2)]
+
         days.append(PanchangaDay(
             date=f"{year:04d}-{month:02d}-{d:02d}",
             weekday=WEEKDAYS[wd],
@@ -89,5 +110,7 @@ def monthly_panchanga(year: int, month: int, lat: float = 28.61,
             rahu_kalam=_window(_RAHU_PERIOD_INDEX[wd], sr_h, seg),
             gulika_kalam=_window(_GULIKA_PERIOD_INDEX[wd], sr_h, seg),
             yama_gandam=_window(_YAMAGANDA_PERIOD_INDEX[wd], sr_h, seg),
+            varjya1=vars_[0] or "—", varjya2=vars_[1] or "—",
+            durmuhurta1=durs[0] or "—", durmuhurta2=durs[1] or "—",
         ))
     return days

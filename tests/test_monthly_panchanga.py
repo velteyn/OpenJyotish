@@ -56,3 +56,23 @@ def test_sunrise_matches_verified_source():
     d = next(x for x in monthly_panchanga(2026, 9, LAT, LON, TZ)
              if x.date == "2026-09-22")
     assert d.sunrise == f"{int(sr):02d}:{int((sr % 1) * 60):02d}"
+
+
+def test_adjunct_windows_match_muhurta():
+    from jhora.calc.muhurta import compute_adjuncts, _datetime_to_jd
+
+    day = datetime(2026, 9, 22)
+    d = next(x for x in monthly_panchanga(2026, 9, LAT, LON, TZ,
+                                          with_adjuncts=True)
+             if x.date == "2026-09-22")
+    assert d.durmuhurta1 != "—" and d.varjya1 != "—"
+
+    base = _datetime_to_jd(day, TZ)
+    adj = compute_adjuncts(day, LAT, LON, TZ, None)
+
+    def _start(jd):
+        h = (jd - base) * 24.0
+        return f"{int(h % 24):02d}:{int((h % 1) * 60):02d}"
+
+    assert d.durmuhurta1.split("-")[0] == _start(adj.durmuhurta[0].start)
+    assert d.varjya1.split("-")[0] == _start(adj.varjya[0].start)

@@ -984,6 +984,7 @@ def panchanga(
     lat: float = typer.Option(28.61, "--lat", help="Latitude"),
     lon: float = typer.Option(77.21, "--lon", help="Longitude"),
     tz: str = typer.Option("+0530", "--tz", "-z", help="Timezone offset"),
+    adjuncts: bool = typer.Option(False, "--adjuncts", help="Add Durmuhurta/Varjya windows"),
 ):
     """Monthly panchanga calendar — tithi, nakshatra, yoga, karana per day."""
     if year is None:
@@ -994,7 +995,8 @@ def panchanga(
     from jhora.calc.monthly_panchanga import monthly_panchanga
     from jhora.charts.chart import ChartBuilder
     tz_offset = -ChartBuilder._parse_tz(tz, datetime(year, month, 1))
-    days = monthly_panchanga(year, month, lat, lon, tz_offset)
+    days = monthly_panchanga(year, month, lat, lon, tz_offset,
+                             with_adjuncts=adjuncts)
     table = Table(title=f"Panchanga — {year}-{month:02d}")
     table.add_column("Date", style="cyan")
     table.add_column("Day", style="white")
@@ -1010,6 +1012,17 @@ def panchanga(
         table.add_row(d.date, d.weekday, d.paksha, d.tithi, d.nakshatra,
                       d.yoga, d.karana, d.sunrise, d.sunset, d.rahu_kalam)
     console.print(table)
+    if adjuncts:
+        win = Table(title=f"Daily Windows — {year}-{month:02d}")
+        win.add_column("Date", style="cyan")
+        win.add_column("DurMuhurta1", style="red")
+        win.add_column("DurMuhurta2", style="red")
+        win.add_column("Varjya1", style="red")
+        win.add_column("Varjya2", style="red")
+        for d in days:
+            win.add_row(d.date, d.durmuhurta1, d.durmuhurta2,
+                        d.varjya1, d.varjya2)
+        console.print(win)
 
 
 @app.command()
