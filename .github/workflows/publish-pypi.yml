@@ -9,6 +9,12 @@ name: Publish PyPI
 #      GitHub repository velteyn/OpenJyotish,
 #      workflow filename publish-pypi.yml (tag-constrained to v*).
 # Afterwards every pushed v* tag publishes automatically.
+#
+# Idempotent: PyPI filenames are immutable, so re-running this workflow for a
+# tag whose version is already published would fail with
+# "400 File already exists". The version check below skips the build and
+# upload when the version is already on PyPI, so a re-pushed/moved tag does
+# not produce a failing run. Prefer tagging a new version over moving a tag.
 on:
   push:
     tags:
@@ -29,10 +35,24 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Check whether this version is already on PyPI
+        id: pypi_check
+        run: |
+          version="$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")"
+          echo "version=${version}"
+          if curl -fsS "https://pypi.org/pypi/openjyotish/${version}/json" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "openjyotish ${version} is already published — skipping upload."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build sdist + wheel
+        if: steps.pypi_check.outputs.exists == 'false'
         run: |
           pip install build
           python -m build
 
       - name: Publish to PyPI
+        if: steps.pypi_check.outputs.exists == 'false'
         uses: pypa/gh-action-pypi-publish@release/v1
