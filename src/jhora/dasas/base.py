@@ -87,6 +87,10 @@ class DasaOptions:
     #: 7 = Dara/spouse, 5 = Putra/children); other systems ignore it.
     seed_house: int = 1
 
+    #: Chara dasa: raise/lower a sign's duration by one year when its lord is
+    #: exalted / debilitated in its sign (the Exaltation Exception).
+    chara_exaltation_exception: bool = False
+
 
 class DasaBase(ABC):
     """Abstract base for all dasa system implementations."""

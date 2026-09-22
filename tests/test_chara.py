@@ -101,3 +101,33 @@ class TestRefChartStructural:
         planets = normalize_planets(d["planets"])
         assert sum(_durs(periods)) == sum(
             chara_cycle_years(planet_signs(planets)))
+
+
+class TestExaltationException:
+    """The Exaltation Exception raises/lowers a sign's years by one when its
+    lord sits in its exaltation / debilitation sign."""
+
+    def _sigs(self):
+        from jhora.types.graha import Graha
+        return {Graha.SUN: 0, Graha.MOON: 1, Graha.MERCURY: 2,
+                Graha.JUPITER: 3, Graha.VENUS: 4, Graha.SATURN: 5,
+                Graha.RAHU: 6, Graha.KETU: 7, Graha.MARS: 9}
+
+    def test_exalted_lord_raises_a_year(self):
+        from jhora.dasas.jaimini_common import chara_years
+        sigs = self._sigs()  # Aries lord Mars is exalted in Capricorn (9)
+        assert chara_years(0, sigs, exaltation_exception=True) == \
+            chara_years(0, sigs, exaltation_exception=False) + 1
+
+    def test_debilitated_lord_lowers_a_year(self):
+        from jhora.dasas.jaimini_common import chara_years
+        sigs = self._sigs()
+        sigs = dict(sigs)
+        from jhora.types.graha import Graha
+        sigs[Graha.MARS] = 3  # Cancer, Mars debilitated
+        assert chara_years(0, sigs, exaltation_exception=True) == \
+            chara_years(0, sigs, exaltation_exception=False) - 1
+
+    def test_option_off_by_default(self):
+        from jhora.dasas.base import DasaOptions
+        assert DasaOptions().chara_exaltation_exception is False

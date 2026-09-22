@@ -195,15 +195,31 @@ def rao_dual_lord(sign: int, planet_sigs: Dict[Graha, int]) -> Graha:
     return stronger_lord(sign, planet_sigs)
 
 
-def chara_years(sign: int, planet_sigs: Dict[Graha, int]) -> int:
-    """Chara duration for one sign with the Rao dual-lord exception."""
+def chara_years(sign: int, planet_sigs: Dict[Graha, int],
+                exaltation_exception: bool = False) -> int:
+    """Chara duration for one sign with the Rao dual-lord exception.
+
+    With ``exaltation_exception`` the counted duration is raised by one when
+    the sign's (resolved) lord sits in its exaltation sign and lowered by one
+    when it sits in its debilitation sign.
+    """
     lord = rao_dual_lord(sign, planet_sigs)
-    return _count_years(sign, planet_sigs.get(lord, sign))
+    years = _count_years(sign, planet_sigs.get(lord, sign))
+    if exaltation_exception:
+        lord_si = planet_sigs.get(lord)
+        if lord_si is not None and lord in EXALT_SIGNS:
+            if EXALT_SIGNS[lord] == lord_si and years < 12:
+                years += 1
+            elif (EXALT_SIGNS[lord] + 6) % 12 == lord_si and years > 0:
+                years -= 1
+    return years
 
 
-def chara_cycle_years(planet_sigs: Dict[Graha, int]) -> List[int]:
+def chara_cycle_years(planet_sigs: Dict[Graha, int],
+                      exaltation_exception: bool = False) -> List[int]:
     """Chara durations (Rao exception) for all 12 signs, zodiacal order."""
-    return [chara_years(s, planet_sigs) for s in range(12)]
+    return [chara_years(s, planet_sigs, exaltation_exception)
+            for s in range(12)]
 
 
 def chara_direction(lagna: int) -> int:
