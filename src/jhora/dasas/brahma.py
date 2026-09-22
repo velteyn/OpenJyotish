@@ -66,34 +66,14 @@ def _stronger_planet(p1: Graha, p2: Graha, planets: Dict) -> Graha:
 
 
 def _stronger_rasi(r1: Rasi, r2: Rasi, planets: Dict) -> Rasi:
-    """Return the stronger of two rasis (BPHS 'stronger of lagna and 7th').
+    """Return the stronger of two rasis by the Jaimini sign-strength ladder.
 
-    Tie-break uses planet count in each rasi, then co-lord association
-    (Jupiter/Mercury/dispositor), then the higher advancement of the rasi lord.
+    Reference-exact: the same resolver the rasi dasas use
+    (:func:`jhora.calc.jaimini_strength.stronger_rasi`).
     """
-    def _in_rasi(rasi: Rasi) -> int:
-        return sum(1 for g in _GRAHAS if _planet_rasi(g, planets) == rasi)
-
-    c1, c2 = _in_rasi(r1), _in_rasi(r2)
-    if c1 != c2:
-        return r1 if c1 > c2 else r2
-
-    def _co_count(rasi: Rasi) -> int:
-        lord = _rasi_lord(rasi)
-        count = 0
-        for g in (Graha.JUPITER, Graha.MERCURY, lord):
-            if _planet_rasi(g, planets) == rasi:
-                count += 1
-        return count
-
-    cc1, cc2 = _co_count(r1), _co_count(r2)
-    if cc1 != cc2:
-        return r1 if cc1 > cc2 else r2
-
-    # Higher advancement of the rasi lord's longitude (returns the
-    # RASI whose lord wins — never the planet itself).
-    l1, l2 = _rasi_lord(r1), _rasi_lord(r2)
-    return r1 if _stronger_planet(l1, l2, planets) == l1 else r2
+    from jhora.calc.jaimini_strength import planet_signs_lons, stronger_rasi
+    signs, lons = planet_signs_lons(planets)
+    return Rasi(stronger_rasi(r1.value, r2.value, signs, lons))
 
 
 def _brahma_planet(lagna_rasi: Rasi, planets: Dict) -> Graha:
