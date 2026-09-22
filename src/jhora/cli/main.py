@@ -782,6 +782,43 @@ def sahamas(
 
 
 @app.command()
+def vargottama(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Show which planets (and the lagna) are vargottama.
+
+    A body is vargottama in a varga when it occupies the same rasi as in the
+    rasi chart (D-1); D-9 is the classical case, where a vargottama planet is
+    strengthened. The concept extends to every divisional chart.
+    """
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+    from jhora.calc.vargottama import compute_vargottama
+    res = compute_vargottama(cd)
+    table = Table(title="Vargottama (same rasi in D-1 and the varga)")
+    table.add_column("Body", style="cyan")
+    table.add_column("Rasi", style="yellow")
+    table.add_column("D-9", style="magenta")
+    table.add_column("Vargottama vargas", style="green")
+    for g, p in cd.planets.items():
+        levels = res.planets.get(g, [])
+        table.add_row(
+            g.full_name, Rasi.from_longitude(p.longitude).full_name,
+            "yes" if VargaLevel.D_9 in levels else "",
+            ", ".join(lv.short_name for lv in levels) or "—")
+    table.add_row(
+        "Lagna", Rasi.from_longitude(cd.ascendant).full_name,
+        "yes" if VargaLevel.D_9 in res.lagna else "",
+        ", ".join(lv.short_name for lv in res.lagna) or "—")
+    console.print(table)
+
+
+@app.command()
 def arudhas(
     birthdata: str = typer.Argument(..., help="Birth data"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
