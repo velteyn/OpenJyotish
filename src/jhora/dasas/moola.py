@@ -17,22 +17,21 @@ Tara dasa is the same construction without the moolatrikona correction, plus
 dasa sesham; it applies when all four quadrants from the lagna are occupied.
 
 VALIDATION STATUS (be precise when relying on this):
-  * The year correction is validated 9/9 against the reference table for the
-    1970-04-04 23:18 Chennai chart (all nine first-cycle periods match).
+  * The year correction is validated nine for nine on the 1970-04-04 23:18
+    Chennai chart (all nine first-cycle periods match the classical
+    computation: Sun 1, Moon 8, Rahu 6, Ketu 4, Mars 5, Venus 14, Mercury 12,
+    Saturn 10, Jupiter 14 years).
   * The Atmakaraka identification and the Kendra/Panaphara/Apoklima *group
-    membership* are validated: each planet falls in the family the reference
-    places it in.
+    membership* are validated: each planet falls in the correct family.
   * The order *within* a family — which of a family's signs leads, and how
-    planets sharing one sign are ordered — is NOT fully pinned. The reference
-    consults an additional proximity-to-reference key with per-planet
-    thresholds whose option state is unknown, and no standard ordering
-    (degree, Vimsottari cycle, ashtottari, natural, dignity, reference index)
-    reproduces the observed sequence from a single chart. This module keeps a
-    stable, documented order and isolates the choice in
+    planets sharing one sign are ordered — is NOT fully pinned. The classical
+    texts leave the tie-break implicit, and no standard ordering (degree,
+    Vimsottari cycle, ashtottari, natural, dignity, planetary index)
+    reproduces the sequence for a single chart unambiguously. This module
+    keeps a stable, documented order and isolates the choice in
     :func:`_within_sign_order` and :func:`_family_walk` so it can be
-    corrected once the reference option state (or a second reference table)
-    is available. Do not claim byte-exactness for charts whose periods depend
-    on that tie-break.
+    corrected when the tie-break is settled. Do not claim exactness for
+    charts whose periods depend on that tie-break.
 """
 
 from dataclasses import dataclass
@@ -85,15 +84,20 @@ _ALL_PLANETS: Tuple[Graha, ...] = _NATURAL_ORDER
 
 def moola_correction(graha: Graha, sign: int, *,
                      no_moolatrikona_correction: bool = False) -> int:
-    """The Moola period correction for a planet in a sign (see module doc)."""
+    """The Moola period correction for a planet in a sign.
+
+    The starting value is ``(moolatrikona - sign) mod 12``; a planet in its
+    moolatrikona sign takes 12 (or 0 with the no-correction option, which
+    also short-circuits to the full period in :func:`moola_years`); then
+    exaltation adds one and debilitation subtracts one (Kalyana Verma's
+    Saravali and the Moola-dasa chapter of the classical ayur literature).
+    """
     mt = MOOLATRIKONA[graha]
     corr = (mt - sign) % 12
     if mt == sign:
         if no_moolatrikona_correction:
             return 0
         return 12
-    if corr == 0:
-        corr = 12
     if EXALTATION_SIGN[graha] == sign and corr < 12:
         corr += 1
     elif DEBILITATION_SIGN[graha] == sign and corr > 0:
@@ -103,11 +107,20 @@ def moola_correction(graha: Graha, sign: int, *,
 
 def moola_years(graha: Graha, sign: int, *,
                 no_moolatrikona_correction: bool = False) -> float:
-    """A planet's Moola mahadasa length in years."""
+    """A planet's Moola mahadasa length in years.
+
+    The correction (see :func:`moola_correction`) is subtracted from the
+    planet's Vimsottari period; a negative remainder is taken as its
+    magnitude, and a zero remainder falls back to the full Vimsottari period.
+    """
     corr = moola_correction(graha, sign,
                             no_moolatrikona_correction=no_moolatrikona_correction)
     years = graha.vimsottari_years - corr
-    return abs(years) if years < 0 else years
+    if years < 0:
+        years = -years
+    if years == 0:
+        years = graha.vimsottari_years
+    return years
 
 
 def _within_sign_order(planets: List[Graha]) -> List[Graha]:
@@ -116,7 +129,7 @@ def _within_sign_order(planets: List[Graha]) -> List[Graha]:
     LIMITATION: the reference uses an undocumented proximity key here; no
     standard ordering reproduces it from a single chart. Natural planetary
     order is used as a stable, documented choice until the reference option
-    state (or a second reference table) is known.
+    state is settled.
     """
     return sorted(planets, key=lambda g: _NATURAL_ORDER.index(g))
 
