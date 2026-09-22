@@ -491,6 +491,23 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["hora"] = {}
 
+    # ── Remedies (rule-based, source-cited) ──
+    try:
+        from jhora.calc.remedies import compute_remedies
+        rep = compute_remedies(cd)
+        result["remedies"] = {
+            "ishta_devata": {"title": rep.ishta_devata.title,
+                             "detail": rep.ishta_devata.detail},
+            "palana_devata": {"title": rep.palana_devata.title,
+                              "detail": rep.palana_devata.detail},
+            "items": [{"category": it.category, "title": it.title,
+                       "detail": it.detail, "source": it.source,
+                       "planet": it.planet.full_name if it.planet else None}
+                      for it in rep.items],
+        }
+    except Exception:
+        result["remedies"] = {}
+
     # ── Muhurta adjuncts (daily windows/grades) for birth place/date ──
     try:
         from jhora.ai.analysis import _chart_tz_offset
