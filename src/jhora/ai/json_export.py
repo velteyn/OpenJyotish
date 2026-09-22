@@ -194,7 +194,7 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
         from jhora.ai.analysis import _dasa_engine
         result["dasa"]["systems"] = {}
         for sys in ("ashtottari", "yogini", "sudasa", "chara",
-                    "narayana", "kalachakra", "brahma", "karaka",
+                    "narayana", "lagnamsaka", "padanaathaamsa", "kalachakra", "brahma", "karaka",
                     "shoola", "trikona", "varnada",
                     "sthira", "navamsa", "yogardha", "niryana-shoola",
                     "lagna-kendradi", "kaala", "chakra", "mandooka", "drig",

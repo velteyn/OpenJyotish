@@ -304,7 +304,7 @@ class MainWindow(QMainWindow):
         self.dasa_system_combo = QComboBox()
         self.dasa_system_combo.addItems([
             "Vimsottari", "Ashtottari", "Yogini", "Sudasa",
-            "Chara", "Narayana", "Kalachakra", "Brahma",
+            "Chara", "Narayana", "Lagnamsaka", "Padanaathaamsa", "Kalachakra", "Brahma",
             "Karaka", "Shoola", "Trikona", "Varnada",
             "Sthira", "Navamsa", "Yogardha", "Niryana-Shoola",
             "Lagna-Kendradi", "Kaala", "Chakra", "Mandooka",
@@ -1085,6 +1085,12 @@ class MainWindow(QMainWindow):
         elif system == "Narayana":
             from jhora.dasas.narayana import NarayanaDasa
             return NarayanaDasa()
+        elif system == "Lagnamsaka":
+            from jhora.dasas.narayana_variants import LagnamsakaDasa
+            return LagnamsakaDasa()
+        elif system == "Padanaathaamsa":
+            from jhora.dasas.narayana_variants import PadanaathaamsaDasa
+            return PadanaathaamsaDasa()
         elif system == "Kalachakra":
             from jhora.dasas.kalachakra import KalachakraDasa
             return KalachakraDasa()
