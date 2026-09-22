@@ -207,7 +207,7 @@ def dasa(
     """Compute dasa periods for a chart.
 
     system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
-    lagnamsaka, padanaathaamsa,
+    lagnamsaka, padanaathaamsa, rasi-bhukta-vimsottari,
     kalachakra, brahma, karaka, shoola, trikona, varnada,
     sthira, navamsa, yogardha, niryana-shoola, lagna-kendradi,
     kaala, chakra, mandooka, drig, sudarshana, tithi-ashtottari, tithi-yogini,
@@ -440,7 +440,7 @@ def _chart_to_dict(cd: ChartData) -> dict:
 
 def _get_dasa_engine(system: str, options=None):
     """Return a dasa engine for the given system name (vimsottari/ashtottari/
-    yogini/sudasa/chara/narayana/lagnamsaka/padanaathaamsa/kalachakra/brahma/karaka/shoola/
+    yogini/sudasa/chara/narayana/lagnamsaka/padanaathaamsa/rasi-bhukta-vimsottari/kalachakra/brahma/karaka/shoola/
     trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/
     lagna-kendradi/kaala/chakra/mandooka/drig/sudarshana/tithi-ashtottari/tithi-yogini/
     karana-chaturaaseeti/yoga-vimsottari/naisargika/moola/tara)."""
