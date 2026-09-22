@@ -151,15 +151,24 @@ def stronger_rasi(sign_x: int, sign_y: int, signs: Sequence[int],
     return _compare(sign_x, sign_y, signs, lons)
 
 
-def chart_signs_lons(chart: Dict) -> Tuple[List[int], Dict[int, float]]:
-    """Adapter: build the ``signs``/``lons`` index used by :func:`stronger_rasi`."""
+def planet_signs_lons(planets: Dict) -> Tuple[List[int], Dict[int, float]]:
+    """Adapter: ``(signs, lons)`` from a planet-longitude mapping.
+
+    ``signs[0]`` (the lagna) is 0; callers that need it set it separately.
+    """
     from jhora.types.graha import Graha
-    lagna = int(chart["lagna_lon"] // 30) % 12
-    signs = [lagna] + [0] * 9
+    signs = [0] * 10
     lons: Dict[int, float] = {}
     for p in range(1, 10):
         g = Graha(p - 1)          # 1=Sun .. 9=Ketu
-        lon = chart["planets"][g]["longitude"]
+        lon = planets[g]["longitude"]
         signs[p] = int(lon // 30) % 12
         lons[p] = lon
+    return signs, lons
+
+
+def chart_signs_lons(chart: Dict) -> Tuple[List[int], Dict[int, float]]:
+    """Adapter: build the ``signs``/``lons`` index used by :func:`stronger_rasi`."""
+    signs, lons = planet_signs_lons(chart["planets"])
+    signs[0] = int(chart["lagna_lon"] // 30) % 12
     return signs, lons

@@ -77,10 +77,11 @@ class TestShoola:
         opts = DasaOptions(seed_house=7)
         assert ShoolaDasa(opts).compute(
             cd.julian_day, _dict(cd), opts)[0].lord_name == "Sagittarius"
-        # Putra (5th Libra vs Aries, both empty; Venus outranks Mars).
+        # Putra (5th Libra vs Aries, both empty) — decided by the Jaimini
+        # sign-strength ladder: Aries wins.
         opts = DasaOptions(seed_house=5)
         assert ShoolaDasa(opts).compute(
-            cd.julian_day, _dict(cd), opts)[0].lord_name == "Libra"
+            cd.julian_day, _dict(cd), opts)[0].lord_name == "Aries"
         # Default is self (house 1).
         assert ShoolaDasa().compute(
             cd.julian_day, _dict(cd))[0].lord_name == "Sagittarius"
