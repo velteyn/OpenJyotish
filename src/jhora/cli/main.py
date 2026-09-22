@@ -983,6 +983,7 @@ def panchanga(
     month: int = typer.Argument(None, help="Month (default: current)"),
     lat: float = typer.Option(28.61, "--lat", help="Latitude"),
     lon: float = typer.Option(77.21, "--lon", help="Longitude"),
+    tz: str = typer.Option("+0530", "--tz", "-z", help="Timezone offset"),
 ):
     """Monthly panchanga calendar — tithi, nakshatra, yoga, karana per day."""
     if year is None:
@@ -991,18 +992,23 @@ def panchanga(
         month = datetime.now().month
 
     from jhora.calc.monthly_panchanga import monthly_panchanga
-    days = monthly_panchanga(year, month, lat, lon)
+    from jhora.charts.chart import ChartBuilder
+    tz_offset = -ChartBuilder._parse_tz(tz, datetime(year, month, 1))
+    days = monthly_panchanga(year, month, lat, lon, tz_offset)
     table = Table(title=f"Panchanga — {year}-{month:02d}")
     table.add_column("Date", style="cyan")
     table.add_column("Day", style="white")
+    table.add_column("Paksha", style="blue")
     table.add_column("Tithi", style="yellow")
     table.add_column("Nakshatra", style="magenta")
-    table.add_column("Moon", style="green")
+    table.add_column("Yoga", style="green")
+    table.add_column("Karana", style="green")
     table.add_column("Sunrise", style="white")
+    table.add_column("Sunset", style="white")
     table.add_column("Rahu Kalam", style="red")
     for d in days:
-        table.add_row(d.date, d.weekday, d.tithi, d.nakshatra,
-                     d.moon_sign, d.sunrise, d.rahu_kalam)
+        table.add_row(d.date, d.weekday, d.paksha, d.tithi, d.nakshatra,
+                      d.yoga, d.karana, d.sunrise, d.sunset, d.rahu_kalam)
     console.print(table)
 
 

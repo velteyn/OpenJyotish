@@ -4066,14 +4066,15 @@ class MainWindow(QMainWindow):
             text = re.sub(r'\[([^/\[\]]+)\]', replacer, text)
             return f"<div style='font-family: Consolas, monospace; font-size: 15px; white-space: pre-wrap; word-break: break-word;'>{text}</div>"
 
+        from jhora.calc.muhurta import _tithi, _RAHU_PERIOD_INDEX
         now = datetime.now()
         # ── RIGHT NOW ──
         moon = cd.planet(Graha.MOON).longitude
         sun = cd.planet(Graha.SUN).longitude
-        tithi_angle = (moon - sun) % 360
-        tithi_idx = int(tithi_angle / 12)
+        tithi_name = _tithi(sun, moon).name
         nak, pada = Nakshatra.from_longitude(moon)
-        rahu_block = [7,1,5,2,3,4,6][now.weekday()]
+        wd = (now.weekday() + 1) % 7  # Sun=0 .. Sat=6
+        rahu_block = _RAHU_PERIOD_INDEX[wd]
         rahu_start = 6 + rahu_block * 1.5
         rahu_end = rahu_start + 1.5
 
@@ -4091,8 +4092,8 @@ class MainWindow(QMainWindow):
             current_md = current_ad = None
 
         now_lines = [
-            f"[bold yellow]Today: {now.strftime('%B %d, %Y')} | {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.weekday()]}[/bold yellow]",
-            f"Tithi: {tithi_idx} | Nakshatra: {nak.name.replace('_',' ').title()} | Moon: {Rasi.from_longitude(moon).short_name}",
+            f"[bold yellow]Today: {now.strftime('%B %d, %Y')} | {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][wd]}[/bold yellow]",
+            f"Tithi: {tithi_name} | Nakshatra: {nak.name.replace('_',' ').title()} | Moon: {Rasi.from_longitude(moon).short_name}",
             f"Rahu Kalam: {int(rahu_start):02d}:{int((rahu_start%1)*60):02d} – {int(rahu_end):02d}:{int((rahu_end%1)*60):02d}",
             "",
         ]

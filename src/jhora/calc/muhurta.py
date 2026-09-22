@@ -158,46 +158,49 @@ _WEEKDAY_PLANET: List[Graha] = [
 
 
 # ── Rahu Kalam — inauspicious periods each day ────────────────────────────────
-# Duration = 1/8th of daytime (from sunrise to sunset).
-# Each weekday has a specific period ruled by a planet in sequence.
-# Sequence: Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn (from Sunday).
-# Rahu's period = 8 - lord_index (1-indexed) counted from sunrise.
+# Duration = 1/8th of daytime (sunrise→sunset). Which eighth is Rahu's depends
+# only on the weekday, per the standard drik-panchanga trikalam tables
+# (0-based eighth from sunrise; Sun=0 .. Sat=6):
+#   Sun 8th, Mon 2nd, Tue 7th, Wed 5th, Thu 6th, Fri 4th, Sat 3rd.
 
 _RAHU_PERIOD_INDEX: List[int] = [
-    7,  # Sunday:    period 8 (Sun→Moon→Mars→Mercury→Jupiter→Venus→Saturn→RAHU)
-    6,  # Monday:    period 7
-    5,  # Tuesday:   period 6
-    4,  # Wednesday: period 5
-    3,  # Thursday:  period 4
-    2,  # Friday:    period 3
-    1,  # Saturday:  period 2
+    7,  # Sunday:    8th eighth (16:30-18:00 for a 06:00-18:00 day)
+    1,  # Monday:    2nd eighth (07:30-09:00)
+    6,  # Tuesday:   7th eighth (15:00-16:30)
+    4,  # Wednesday: 5th eighth (12:00-13:30)
+    5,  # Thursday:  6th eighth (13:30-15:00)
+    3,  # Friday:    4th eighth (10:30-12:00)
+    2,  # Saturday:  3rd eighth (09:00-10:30)
 ]
 
 
 # ── Gulika Kalam — inauspicious periods ───────────────────────────────────────
-# Similar to Rahu Kalam but for Gulika (Saturn's son).
+# Standard drik-panchanga tables (0-based eighth from sunrise):
+#   Sun 7th, Mon 6th, Tue 5th, Wed 4th, Thu 3rd, Fri 2nd, Sat 1st.
 
 _GULIKA_PERIOD_INDEX: List[int] = [
-    2,  # Sunday:    period 3
-    1,  # Monday:    period 2
-    0,  # Tuesday:   period 1
-    7,  # Wednesday: period 8
-    6,  # Thursday:  period 7
-    5,  # Friday:    period 6
-    4,  # Saturday:  period 5
+    6,  # Sunday:    7th eighth (15:00-16:30)
+    5,  # Monday:    6th eighth (13:30-15:00)
+    4,  # Tuesday:   5th eighth (12:00-13:30)
+    3,  # Wednesday: 4th eighth (10:30-12:00)
+    2,  # Thursday:  3rd eighth (09:00-10:30)
+    1,  # Friday:    2nd eighth (07:30-09:00)
+    0,  # Saturday:  1st eighth (06:00-07:30)
 ]
 
 
 # ── Yama Gandam — inauspicious periods ────────────────────────────────────────
+# Standard drik-panchanga tables (0-based eighth from sunrise):
+#   Sun 5th, Mon 4th, Tue 3rd, Wed 2nd, Thu 1st, Fri 7th, Sat 6th.
 
 _YAMAGANDA_PERIOD_INDEX: List[int] = [
-    4,  # Sunday
-    3,  # Monday
-    2,  # Tuesday
-    1,  # Wednesday
-    0,  # Thursday
-    7,  # Friday
-    6,  # Saturday
+    4,  # Sunday:    5th eighth (12:00-13:30)
+    3,  # Monday:    4th eighth (10:30-12:00)
+    2,  # Tuesday:   3rd eighth (09:00-10:30)
+    1,  # Wednesday: 2nd eighth (07:30-09:00)
+    0,  # Thursday:  1st eighth (06:00-07:30)
+    6,  # Friday:    7th eighth (15:00-16:30)
+    5,  # Saturday:  6th eighth (13:30-15:00)
 ]
 
 
