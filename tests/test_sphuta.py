@@ -18,6 +18,8 @@ EXPECTED = {
     "Beeja": 341.136,
     "Kshetra": 218.773,
     "Yoga": 270.728,
+    "Tithi": 7.486,
+    "RahuTithi": 127.351,
 }
 
 
@@ -58,6 +60,12 @@ class TestStructuralIdentities:
         assert S.beeja_sphuta(38.0, 350.0, 311.0) == pytest.approx(339.0)
         assert S.kshetra_sphuta(38.0, 319.0, 220.0) == pytest.approx(217.0)
         assert S.yoga_sphuta(311.0, 319.0) == pytest.approx(270.0)
+        assert S.tithi_sphuta(319.0, 311.0) == pytest.approx(8.0)
+        assert S.rahu_tithi_sphuta(79.0, 311.0) == pytest.approx(128.0)
+        assert S.yogi_sphuta(311.0, 319.0) == pytest.approx(
+            (270.0 + 93.0 + 20.0 / 60.0) % 360.0)
+        assert S.avayoga_sphuta(311.0, 319.0) == pytest.approx(
+            (270.0 + 280.0) % 360.0)
 
     def test_bundle_chaining(self):
         out = S.compute_sphutas(lagna=300.0, sun=311.0, moon=319.0,
@@ -69,14 +77,14 @@ class TestStructuralIdentities:
             (out["Chatusphuta"] + 79.0) % 360.0)
         assert set(out) == {"Trisphuta", "Chatusphuta", "Panchasphuta",
                             "Prana", "Deha", "Mrityu", "Beeja", "Kshetra",
-                            "Yoga"}
+                            "Yoga", "Tithi", "RahuTithi", "Yogi", "Avayoga"}
 
 
 class TestWorkedExample:
     def test_planet_only_sphutas(self):
         inp = _jalkot_inputs()
         got = S.compute_sphutas(**inp)
-        for name in ("Beeja", "Kshetra", "Yoga"):
+        for name in ("Beeja", "Kshetra", "Yoga", "Tithi", "RahuTithi"):
             delta = abs((got[name] - EXPECTED[name] + 180.0) % 360.0 - 180.0)
             assert delta < 0.1, f"{name}: {delta:.4f}"
 
@@ -97,10 +105,28 @@ class TestWorkedExample:
         assert delta < 7.0, f"Mrityu: {delta:.4f}"
 
 
+class TestYogi:
+    def test_yogi_family_planets(self):
+        # IndiaDivine worked example: Sun 24°19'06", Moon 85°31'45".
+        sun = 24.0 + 19.0 / 60.0 + 6.0 / 3600.0
+        moon = 85.0 + 31.0 / 60.0 + 45.0 / 3600.0
+        got = S.compute_yogi(moon, sun)
+        assert got["Yogi"] == "Jupiter"
+        assert got["Avayogi"] == "Sun"
+        assert got["Sahayogi"] == "Venus"
+
+    def test_jalkot_yogi_planets_present(self):
+        inp = _jalkot_inputs()
+        got = S.compute_yogi(inp["moon"], inp["sun"])
+        assert set(got) == {"Yogi", "Avayogi", "Sahayogi"}
+        assert all(isinstance(v, str) for v in got.values())
+
+
 class TestSphutasCli:
     def test_sphutas_command(self):
         result = runner.invoke(app, ["sphutas", JALKOT])
         assert result.exit_code == 0, result.output
         for name in ("Trisphuta", "Chatusphuta", "Panchasphuta", "Prana",
-                     "Deha", "Mrityu", "Beeja", "Kshetra", "Yoga"):
+                     "Deha", "Mrityu", "Beeja", "Kshetra", "Yoga", "Tithi",
+                     "RahuTithi", "Yogi", "Avayoga"):
             assert name in result.output

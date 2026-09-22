@@ -5,11 +5,24 @@ as inputs share it); all results modulo 360. Formulas per Prasna Marga
 Chapter V (B.V. Raman lineage); Beeja/Kshetra planet sets per standard
 teaching. Proven against a worked example (see tests).
 
+Also the Yogi family: Yoga Sphuta = Sun + Moon; Tithi Sphuta = Moon − Sun;
+Rahu Tithi Sphuta = Rahu − Sun; Yogi Sphuta = Yoga + 93°20' (Yogi planet =
+its nakshatra lord); Avayoga Sphuta = Yogi + 186°40' (Avayogi planet = its
+nakshatra lord); Sahayogi (Duplicate Yogi) = the sign lord of the Yogi point.
+
 Gulika is passed in (temporal upagrahas), never computed here, keeping this
 module free of ephemeris and of Gulika-convention questions.
 """
 
 from typing import Dict
+
+from jhora.types.nakshatra import Nakshatra
+from jhora.types.rasi import Rasi
+
+#: Yogi point advances seven nakshatras (93°20') past the Yoga point.
+YOGI_OFFSET = 93.0 + 20.0 / 60.0
+#: Avayoga point advances fourteen nakshatras (186°40') past the Yoga point.
+AVAYOGI_OFFSET = 186.0 + 40.0 / 60.0
 
 
 def trisphuta(lagna: float, moon: float, gulika: float) -> float:
@@ -57,6 +70,50 @@ def yoga_sphuta(sun: float, moon: float) -> float:
     return (sun + moon) % 360.0
 
 
+def tithi_sphuta(moon: float, sun: float) -> float:
+    """Tithi Sphuta: Moon − Sun (the lunar-day longitude)."""
+    return (moon - sun) % 360.0
+
+
+def rahu_tithi_sphuta(rahu: float, sun: float) -> float:
+    """Rahu Tithi Sphuta: Rahu − Sun."""
+    return (rahu - sun) % 360.0
+
+
+def yogi_sphuta(sun: float, moon: float) -> float:
+    """Yogi Sphuta: the Yoga point (Sun + Moon) + 93°20' (7 nakshatras)."""
+    return (sun + moon + YOGI_OFFSET) % 360.0
+
+
+def avayoga_sphuta(sun: float, moon: float) -> float:
+    """Avayoga Sphuta: the Yogi Sphuta + 186°40' (Yoga + 280°)."""
+    return (sun + moon + YOGI_OFFSET + AVAYOGI_OFFSET) % 360.0
+
+
+def yogi_planet(moon: float, sun: float) -> str:
+    """Yogi planet: the lord of the nakshatra of the Yogi Sphuta."""
+    return Nakshatra.from_longitude(yogi_sphuta(sun, moon))[0].lord
+
+
+def avayogi_planet(moon: float, sun: float) -> str:
+    """Avayogi planet: the lord of the nakshatra of the Avayoga Sphuta."""
+    return Nakshatra.from_longitude(avayoga_sphuta(sun, moon))[0].lord
+
+
+def sahayogi_planet(moon: float, sun: float) -> str:
+    """Sahayogi (Duplicate Yogi): the sign lord of the Yogi point."""
+    return Rasi.from_longitude(yogi_sphuta(sun, moon)).lord
+
+
+def compute_yogi(moon: float, sun: float) -> Dict[str, str]:
+    """The Yogi / Avayogi / Sahayogi planets (Prasna Marga)."""
+    return {
+        "Yogi": yogi_planet(moon, sun),
+        "Avayogi": avayogi_planet(moon, sun),
+        "Sahayogi": sahayogi_planet(moon, sun),
+    }
+
+
 def compute_sphutas(lagna: float, sun: float, moon: float, mars: float,
                     jupiter: float, venus: float, rahu: float,
                     gulika: float) -> Dict[str, float]:
@@ -73,4 +130,8 @@ def compute_sphutas(lagna: float, sun: float, moon: float, mars: float,
         "Beeja": beeja_sphuta(jupiter, venus, sun),
         "Kshetra": kshetra_sphuta(jupiter, moon, mars),
         "Yoga": yoga_sphuta(sun, moon),
+        "Tithi": tithi_sphuta(moon, sun),
+        "RahuTithi": rahu_tithi_sphuta(rahu, sun),
+        "Yogi": yogi_sphuta(sun, moon),
+        "Avayoga": avayoga_sphuta(sun, moon),
     }

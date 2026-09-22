@@ -2657,6 +2657,11 @@ def sphutas(
         r = Rasi.from_longitude(val)
         table.add_row(name, f"{val:.2f}°", r.short_name)
     console.print(table)
+    from jhora.calc.sphuta import compute_yogi
+    yg = compute_yogi(pl(Graha.MOON).longitude, pl(Graha.SUN).longitude)
+    console.print(f"\n[bold]Yogi:[/bold] {yg['Yogi']}   "
+                  f"[bold]Avayogi:[/bold] {yg['Avayogi']}   "
+                  f"[bold]Sahayogi:[/bold] {yg['Sahayogi']}")
 
 
 @app.callback()
