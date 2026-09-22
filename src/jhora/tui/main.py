@@ -520,7 +520,7 @@ class JhoraTui:
             "  niryana-shoola, lagna-kendradi,\n"
             "  kaala, chakra, mandooka, tithi-ashtottari,\n"
             "  tithi-yogini, karana-chaturaaseeti, yoga-vimsottari,\n"
-            "  naisargika\n"
+            "  naisargika, moola, tara\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
@@ -531,7 +531,7 @@ class JhoraTui:
                 "niryana-shoola", "lagna-kendradi",
                 "kaala", "chakra", "mandooka", "tithi-ashtottari",
                 "tithi-yogini", "karana-chaturaaseeti",
-                "yoga-vimsottari", "naisargika"):
+                "yoga-vimsottari", "naisargika", "moola", "tara"):
             self._dasa_system = sys_val.strip().lower()
         system = self._dasa_system
         engine = self._get_dasa_engine(system)
@@ -649,6 +649,13 @@ class JhoraTui:
         if system == "naisargika":
             from jhora.dasas.naisargika import NaisargikaDasa
             return NaisargikaDasa(opts)
+        if system == "moola":
+            from jhora.dasas.moola import MoolaDasa
+            return MoolaDasa(opts)
+        if system == "tara":
+            from jhora.dasas.moola import MoolaDasa
+            opts.tara_variant = True
+            return MoolaDasa(opts)
         return VimsottariDasa(opts)
 
     def _action_dasa_settings(self):
@@ -663,7 +670,7 @@ class JhoraTui:
             "  niryana-shoola, lagna-kendradi,\n"
             "  kaala, chakra, mandooka, tithi-ashtottari,\n"
             "  tithi-yogini, karana-chaturaaseeti, yoga-vimsottari,\n"
-            "  naisargika\n"
+            "  naisargika, moola, tara\n"
             f"(current: {self._dasa_system})",
             self._dasa_system).run()
         if sys_val and sys_val.strip().lower() in (
@@ -674,7 +681,7 @@ class JhoraTui:
                 "niryana-shoola", "lagna-kendradi",
                 "kaala", "chakra", "mandooka", "tithi-ashtottari",
                 "tithi-yogini", "karana-chaturaaseeti",
-                "yoga-vimsottari", "naisargika"):
+                "yoga-vimsottari", "naisargika", "moola", "tara"):
             self._dasa_system = sys_val.strip().lower()
         seed_map = {
             "moon": "Moon (default)", "lagna": "Lagna", "sun": "Sun",
