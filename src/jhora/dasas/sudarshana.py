@@ -41,7 +41,6 @@ class SudarshanaDasa(DasaBase):
         planet_sigs = planet_signs(normalize_planets(chart.get("planets", {})))
         y_per_d = 365.2425 if opts.year_definition == "solar" else 360.0
         from_lord = getattr(opts, "sudarshana_ad_from_lord", True)
-        max_level = opts.subdivision_level
 
         periods: List[DasaPeriod] = []
         current = birth_jd
@@ -53,35 +52,29 @@ class SudarshanaDasa(DasaBase):
                 start_jd=current, end_jd=end, duration_years=1.0,
                 level=PeriodLevel.MAHADASA,
             )
-            if max_level.value >= PeriodLevel.ANTARDASA.value:
-                start = sign
-                if from_lord:
-                    lord = _single_lord(sign)
-                    start = planet_sigs.get(lord, sign)
-                md.sub_periods = self._split(
-                    md, _zodiacal(start), PeriodLevel.ANTARDASA, max_level)
+            start = sign
+            if from_lord:
+                lord = _single_lord(sign)
+                start = planet_sigs.get(lord, sign)
+            md.sub_periods = self._split(
+                md, _zodiacal(start), PeriodLevel.ANTARDASA)
             periods.append(md)
             current = end
         return periods
 
     def _split(self, parent: DasaPeriod, sub_signs: List[int],
-               level: PeriodLevel, max_level: PeriodLevel) -> List[DasaPeriod]:
+               level: PeriodLevel) -> List[DasaPeriod]:
         span = parent.end_jd - parent.start_jd
         step = span / len(sub_signs)
         out: List[DasaPeriod] = []
         cursor = parent.start_jd
         for sign in sub_signs:
             end = cursor + step
-            period = DasaPeriod(
+            out.append(DasaPeriod(
                 lord_index=100 + sign, lord_name=Rasi(sign).full_name,
                 start_jd=cursor, end_jd=end,
                 duration_years=(end - cursor) / 365.2425,
                 level=level,
-            )
-            if level.value < max_level.value:
-                period.sub_periods = self._split(
-                    period, _zodiacal(sign), PeriodLevel(level.value + 1),
-                    max_level)
-            out.append(period)
+            ))
             cursor = end
         return out
