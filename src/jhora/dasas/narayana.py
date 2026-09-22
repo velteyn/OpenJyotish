@@ -32,19 +32,8 @@ class NarayanaDasa(DasaBase):
         lagna_lon = chart["lagna_lon"]
         planets = chart["planets"]
         lagna_rasi = Rasi.from_longitude(lagna_lon)
-        lagna_lord_name = lagna_rasi.lord
-        lagna_lord = _LORD_NAME_TO_GRAHA.get(lagna_lord_name, Graha.SUN)
 
-        # Chart seed: when a varga level is requested, the seed rasi is taken
-        # from that divisional chart's lagna-lord position instead of D-1.
-        seed_chart = chart.get("seed_varga_positions") if opts.narayana_chart else None
-        if seed_chart:
-            lord_lon = seed_chart.get(lagna_lord)
-            if lord_lon is None:
-                lord_lon = planets[lagna_lord]["longitude"]
-        else:
-            lord_lon = planets[lagna_lord]["longitude"]
-        seed_rasi = self._find_seed(lagna_lord, lord_lon)
+        seed_rasi = self._seed_rasi(lagna_rasi, planets, chart, opts)
 
         lord_names: Dict[int, str] = {}
         rasies: List[tuple] = []
@@ -89,6 +78,25 @@ class NarayanaDasa(DasaBase):
             sub_lord_names=sub_lord_names,
         )
 
+    def _seed_rasi(self, lagna_rasi: Rasi, planets: Dict, chart: Dict,
+                   opts: DasaOptions) -> Rasi:
+        """Seed sign of the dasa (Narayana family: overridden per variant).
+
+        Base Narayana seeds from the sign occupied by the lagna lord (the
+        Paka rasi). When ``narayana_chart`` is set the lord's position is
+        taken from that divisional chart instead of D-1.
+        """
+        lagna_lord = _LORD_NAME_TO_GRAHA.get(lagna_rasi.lord, Graha.SUN)
+        seed_chart = (chart.get("seed_varga_positions")
+                      if opts.narayana_chart else None)
+        if seed_chart:
+            lord_lon = seed_chart.get(lagna_lord)
+            if lord_lon is None:
+                lord_lon = planets[lagna_lord]["longitude"]
+        else:
+            lord_lon = planets[lagna_lord]["longitude"]
+        return self._find_seed(lagna_lord, lord_lon)
+
     @staticmethod
     def _find_seed(lagna_lord: Graha, lord_lon: float) -> Rasi:
         lord_rasi = Rasi.from_longitude(lord_lon)
@@ -100,19 +108,13 @@ class NarayanaDasa(DasaBase):
 
     @staticmethod
     def _compute_sequence(start: Rasi) -> List[Rasi]:
-        result = []
-        current = start
-        direction = 1 if start.is_movable else -1 if start.is_fixed else 1
+        """The twelve dasa signs: a single-direction run from ``start``.
 
-        for i in range(12):
-            result.append(current)
-            if current.is_movable:
-                direction = 1
-            elif current.is_fixed:
-                direction = -1
-            if direction == 1:
-                current = Rasi((current.value + 1) % 12)
-            else:
-                current = Rasi((current.value - 1) % 12)
-
-        return result
+        Direction is fixed by the foot of the **9th sign from the seed**
+        (Sanjay Rath, *Narayana Dasa*): odd (vishama-pada) ninth → zodiacal
+        (forward), even → anti-zodiacal (backward). The walk then visits all
+        twelve signs one step at a time.
+        """
+        ninth = (start.value + 8) % 12
+        direction = 1 if ninth % 2 == 0 else -1
+        return [Rasi((start.value + k * direction) % 12) for k in range(12)]
