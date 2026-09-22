@@ -202,13 +202,14 @@ def dasa(
     tara_sesham: str = typer.Option("moon", "--tara-sesham", help="Tara sesham: none, moon, moon-rev-apasavya"),
     tara_dir_star: bool = typer.Option(False, "--tara-direction-from-star", help="Tara: reckon direction from the nakshatra instead of the sign"),
     chara_exalt_exc: bool = typer.Option(False, "--chara-exaltation-exception/--no-chara-exaltation-exception", help="Chara dasa: adjust a sign's years when its lord is exalted/debilitated"),
+    sudarshana_ad_lord: bool = typer.Option(True, "--sudarshana-ad-from-lord/--no-sudarshana-ad-from-lord", help="Sudarshana Chakra: antardasas run from the MD sign's lord (default) or the MD sign"),
 ):
     """Compute dasa periods for a chart.
 
     system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
     kalachakra, brahma, karaka, shoola, trikona, varnada,
     sthira, navamsa, yogardha, niryana-shoola, lagna-kendradi,
-    kaala, chakra, mandooka, drig, tithi-ashtottari, tithi-yogini,
+    kaala, chakra, mandooka, drig, sudarshana, tithi-ashtottari, tithi-yogini,
     karana-chaturaaseeti, yoga-vimsottari, naisargika, moola, tara.
     Seed/sesham/year options apply
     to the nakshatra dasas (vimsottari, ashtottari, yogini); --karaka-role
@@ -234,7 +235,8 @@ def dasa(
                        tara_sesham_rev_apasavya=(
                            tara_sesham.lower() == "moon-rev-apasavya"),
                        tara_direction_from_star=tara_dir_star,
-                       chara_exaltation_exception=chara_exalt_exc)
+                       chara_exaltation_exception=chara_exalt_exc,
+                       sudarshana_ad_from_lord=sudarshana_ad_lord)
     engine = _get_dasa_engine(system, opts)
     periods = engine.compute(chart_data.julian_day, chart_dict, opts)
     _display_dasa_table(periods, f"{system.title()} Dasa Periods")
@@ -439,7 +441,7 @@ def _get_dasa_engine(system: str, options=None):
     """Return a dasa engine for the given system name (vimsottari/ashtottari/
     yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/shoola/
     trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/
-    lagna-kendradi/kaala/chakra/mandooka/drig/tithi-ashtottari/tithi-yogini/
+    lagna-kendradi/kaala/chakra/mandooka/drig/sudarshana/tithi-ashtottari/tithi-yogini/
     karana-chaturaaseeti/yoga-vimsottari/naisargika/moola/tara)."""
     s = system.lower()
     if s == "vimsottari":
@@ -505,6 +507,9 @@ def _get_dasa_engine(system: str, options=None):
     if s == "drig":
         from jhora.dasas.drig import DrigDasa
         return DrigDasa(options)
+    if s == "sudarshana":
+        from jhora.dasas.sudarshana import SudarshanaDasa
+        return SudarshanaDasa(options)
     if s == "tithi-ashtottari":
         from jhora.dasas.pravesha import TithiAshtottariDasa
         return TithiAshtottariDasa(options)
