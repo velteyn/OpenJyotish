@@ -457,6 +457,43 @@ def choghadiya_snapshot(cd: ChartData) -> str:
         return ""
 
 
+def hora_snapshot(cd: ChartData) -> str:
+    """Hora (planetary hours) for the birth place/date.
+
+    24 horas — 12 day (sunrise→sunset) + 12 night (sunset→next sunrise) — in
+    Chaldean order (Sun, Venus, Mercury, Moon, Saturn, Jupiter, Mars) from the
+    weekday lord, matching the CLI/GUI/TUI surfaces.
+    """
+    try:
+        from datetime import datetime
+        from jhora.calc.hora import current_hora, hora_slots, WEEKDAY_LORD
+        tz = _chart_tz_offset(cd.timezone, cd.birth_date)
+        day = datetime(cd.birth_date.year, cd.birth_date.month,
+                       cd.birth_date.day)
+        slots = hora_slots(day, cd.latitude, cd.longitude, tz)
+        wd = (day.weekday() + 1) % 7
+
+        day_s = slots[:12]
+        night_s = slots[12:]
+        lines = [f"Hora (planetary hours, day lord {WEEKDAY_LORD[wd].full_name}):"]
+        lines.append(f"  Day   ({day_s[0].start.strftime('%H:%M')}–"
+                     f"{day_s[-1].end.strftime('%H:%M')}): " +
+                     ", ".join(s.lord_name for s in day_s))
+        lines.append(f"  Night ({night_s[0].start.strftime('%H:%M')}–"
+                     f"{night_s[-1].end.strftime('%H:%M')}): " +
+                     ", ".join(s.lord_name for s in night_s))
+
+        now = datetime.now()
+        current = current_hora(now, cd.latitude, cd.longitude, tz)
+        if current is not None:
+            remaining = int((current.end - now).total_seconds() / 60.0)
+            lines.append(f"  Current: {current.lord_name} hora ({current.part}) — "
+                         f"{remaining} min remaining")
+        return "\n".join(lines)
+    except Exception:
+        return ""
+
+
 def muhurta_adjuncts_snapshot(cd: ChartData) -> str:
     """Daily Muhurta adjuncts for the birth place/date, for AI prompt context.
 

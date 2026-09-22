@@ -462,6 +462,35 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["choghadiya"] = {}
 
+    # ── Hora (planetary hours) for birth place/date ──
+    try:
+        from jhora.ai.analysis import hora_snapshot, _chart_tz_offset
+        from jhora.calc.hora import current_hora, hora_slots, WEEKDAY_LORD
+        tz = _chart_tz_offset(cd.timezone)
+        day = datetime(cd.birth_date.year, cd.birth_date.month,
+                       cd.birth_date.day)
+        slots = hora_slots(day, cd.latitude, cd.longitude, tz)
+        wd = (day.weekday() + 1) % 7
+        now = datetime.now()
+        cur = current_hora(now, cd.latitude, cd.longitude, tz)
+        result["hora"] = {
+            "date": day.strftime("%Y-%m-%d"),
+            "day_lord": WEEKDAY_LORD[wd].full_name,
+            "text": hora_snapshot(cd),
+            "slots": [{"index": s.index + 1, "part": s.part,
+                       "lord": s.lord_name,
+                       "start": s.start.strftime("%H:%M"),
+                       "end": s.end.strftime("%H:%M")} for s in slots],
+            "current": ({"lord": cur.lord_name, "part": cur.part,
+                         "start": cur.start.strftime("%H:%M"),
+                         "end": cur.end.strftime("%H:%M"),
+                         "minutes_remaining": int(
+                             (cur.end - now).total_seconds() / 60.0)}
+                        if cur is not None else None),
+        }
+    except Exception:
+        result["hora"] = {}
+
     # ── Muhurta adjuncts (daily windows/grades) for birth place/date ──
     try:
         from jhora.ai.analysis import _chart_tz_offset

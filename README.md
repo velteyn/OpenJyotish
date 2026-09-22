@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 43 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-23-section JSON API for AI agents (+ JSON-LD)  |  1384 tests  |  GPL v3.0
+24-section JSON API for AI agents (+ JSON-LD)  |  1391 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -192,7 +192,7 @@ data = json.loads(subprocess.run(
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets + upagrahas + outer planets |
-| `analyze` | AI-friendly JSON dump (23 sections) |
+| `analyze` | AI-friendly JSON dump (24 sections) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
@@ -208,6 +208,7 @@ data = json.loads(subprocess.run(
 | `prasna` | Horary (108/249/Nadi modes) |
 | `muhurta` | Electional — 11 task types (+ `--adjuncts` daily table, `--janma-nakshatra` Bala grades) |
 | `choghadiya` | 8 day + 8 night auspicious/inauspicious time slots |
+| `hora` | Planetary hours — 24 horas (12 day + 12 night) in Chaldean order |
 | `mundane` | World events, eclipses, ingresses |
 | `compare` | Natal vs transit or two-chart comparison |
 | `interpret` | Rule-based chart reading |
@@ -244,7 +245,7 @@ Tattva dignities · Graha-drishti API (give/receive) · JSON-LD export (`analyze
 ### Forecasting
 Transits with SAV scores · Tajaka solar return · Tithi Pravesha ·
 Progressions · Dasa timeline · Mundane (ingresses/eclipses/conjunctions) ·
-Matchmaking (10 Porutham + Ashta Koota 36pt) · Muhurta · Choghadiya · Prasna
+Matchmaking (10 Porutham + Ashta Koota 36pt) · Muhurta · Choghadiya · Hora · Prasna
 
 ### AI & Data
 Local LLM (Ollama/LM Studio/Unsloth) · RAG pipeline with textbook citations ·

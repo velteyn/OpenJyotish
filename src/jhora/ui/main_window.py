@@ -2112,6 +2112,10 @@ class MainWindow(QMainWindow):
         self.muhurta_choghadiya_btn.clicked.connect(self._on_muhurta_choghadiya)
         btn_row.addWidget(self.muhurta_choghadiya_btn)
 
+        self.muhurta_hora_btn = QPushButton("Hora")
+        self.muhurta_hora_btn.clicked.connect(self._on_muhurta_hora)
+        btn_row.addWidget(self.muhurta_hora_btn)
+
         self.muhurta_adjuncts_btn = QPushButton("Adjuncts")
         self.muhurta_adjuncts_btn.clicked.connect(self._on_muhurta_adjuncts)
         btn_row.addWidget(self.muhurta_adjuncts_btn)
@@ -2324,6 +2328,62 @@ class MainWindow(QMainWindow):
             self.muhurta_detail.setText(
                 "Day slots are sunrise→sunset; night slots sunset→next sunrise. "
                 "Green = Good, Yellow = Neutral, Red = Bad."
+            )
+
+    def _on_muhurta_hora(self):
+        from datetime import datetime
+
+        from jhora.calc.hora import current_hora, hora_slots, WEEKDAY_LORD
+
+        try:
+            dt, tz_offset, lat, lon = self._get_muhurta_inputs()
+        except (ValueError, AttributeError) as e:
+            QMessageBox.warning(self, "Input Error", f"Invalid input: {e}")
+            return
+
+        slots = hora_slots(dt, lat, lon, tz_offset)
+        now = datetime.now()
+        is_today = dt.date() == now.date()
+        current = current_hora(now, lat, lon, tz_offset) if is_today else None
+
+        headers = ["#", "Part", "Lord", "Start", "End"]
+        self.muhurta_table.setColumnCount(len(headers))
+        self.muhurta_table.setHorizontalHeaderLabels(headers)
+        self.muhurta_table.setRowCount(len(slots))
+
+        for row, slot in enumerate(slots):
+            is_current = current is not None and slot is current
+            lord_label = f"▶ {slot.lord_name}" if is_current else slot.lord_name
+            items = [
+                QTableWidgetItem(str(slot.index + 1)),
+                QTableWidgetItem(slot.part),
+                QTableWidgetItem(lord_label),
+                QTableWidgetItem(slot.start.strftime("%H:%M")),
+                QTableWidgetItem(slot.end.strftime("%H:%M")),
+            ]
+            if is_current:
+                for item in items:
+                    item.setForeground(QColor("#000000"))
+                    item.setBackground(QColor("#ffcc00"))
+            for col, item in enumerate(items):
+                self.muhurta_table.setItem(row, col, item)
+
+        self.muhurta_table.resizeColumnsToContents()
+
+        wd = (dt.weekday() + 1) % 7
+        self.muhurta_result.setText(
+            f"Hora — {dt.strftime('%A %d %B %Y')}  ({lat:.2f}°, {lon:.2f}°)  |  "
+            f"day lord {WEEKDAY_LORD[wd].full_name}")
+        if current:
+            remaining = (current.end - now).total_seconds() / 60.0
+            self.muhurta_detail.setText(
+                f"Current: {current.lord_name} hora ({current.part}) — "
+                f"{remaining:.0f} min remaining (ends {current.end.strftime('%H:%M')})"
+            )
+        else:
+            self.muhurta_detail.setText(
+                "24 planetary hours: 12 day (sunrise→sunset) + 12 night "
+                "(sunset→next sunrise), in Chaldean order from the weekday lord."
             )
 
     def _on_muhurta_adjuncts(self):

@@ -2621,6 +2621,45 @@ def choghadiya(
 
 
 @app.command()
+def hora(
+    date_str: Optional[str] = typer.Argument(None, help="Date YYYY-MM-DD (default: today)"),
+    lat: float = typer.Option(28.61, "--lat", help="Latitude"),
+    lon: float = typer.Option(77.21, "--lon", help="Longitude"),
+    tz: float = typer.Option(5.5, "--tz", help="Timezone offset hours east of UTC"),
+    now: bool = typer.Option(False, "--now", help="Highlight the current hora"),
+):
+    """Planetary hours (Hora) — the 24-hora cycle for a day."""
+    from jhora.calc.hora import hora_slots, current_hora, WEEKDAY_LORD
+    if date_str:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+    else:
+        dt = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    slots = hora_slots(dt, lat, lon, tz)
+    current = current_hora(datetime.now(), lat, lon, tz) if now else None
+
+    wd = (dt.weekday() + 1) % 7
+    table = Table(title=f"Hora — {dt.strftime('%A %d %B %Y')}  "
+                        f"(day lord {WEEKDAY_LORD[wd].full_name})")
+    table.add_column("#", style="dim", width=3)
+    table.add_column("Part", style="blue", width=5)
+    table.add_column("Lord", style="magenta", width=8)
+    table.add_column("Start", style="white")
+    table.add_column("End", style="white")
+    table.add_column("Duration", style="dim")
+    for slot in slots:
+        label = f"[bold]{slot.lord_name}[/bold]" if slot is current else slot.lord_name
+        dur = (slot.end - slot.start).total_seconds() / 60.0
+        table.add_row(str(slot.index + 1), slot.part, label,
+                      slot.start.strftime("%H:%M"), slot.end.strftime("%H:%M"),
+                      f"{dur:.0f}m")
+    console.print(table)
+    if current:
+        remaining = (current.end - datetime.now()).total_seconds() / 60.0
+        console.print(f"\n[bold]Current: {current.lord_name} hora — "
+                      f"{remaining:.0f} min remaining[/bold]")
+
+
+@app.command()
 def sphutas(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
