@@ -195,6 +195,9 @@ def dasa(
     year_def: str = typer.Option("solar", "--year-def", help="Year definition: solar, savana, tithi"),
     karaka_role: str = typer.Option("Dara", "--karaka-role", help="Karaka Dasa seed: Putra, Matri, Bhratri, Dara"),
     house: int = typer.Option(1, "--house", help="Shoola Dasa seed house: 1 self, 9 Pitri, 7 Dara, 5 Putra"),
+    moola_lagna: bool = typer.Option(True, "--moola-lagna/--no-moola-lagna", help="Moola/Tara: use the Lagna sign as a base candidate"),
+    moola_sun: bool = typer.Option(True, "--moola-sun/--no-moola-sun", help="Moola/Tara: use the Sun's sign as a base candidate"),
+    moola_moon: bool = typer.Option(True, "--moola-moon/--no-moola-moon", help="Moola/Tara: use the Moon's sign as a base candidate"),
 ):
     """Compute dasa periods for a chart.
 
@@ -219,7 +222,9 @@ def dasa(
     from jhora.dasas.base import DasaOptions
     opts = DasaOptions(start_variation=start, sesham_method=sesham, year_definition=year_def,
                        karaka_role=karaka_role, seed_house=house, ad_method=ad_method,
-                       narayana_variant=narayana_variant, narayana_chart=narayana_chart)
+                       narayana_variant=narayana_variant, narayana_chart=narayana_chart,
+                       moola_use_lagna=moola_lagna, moola_use_sun=moola_sun,
+                       moola_use_moon=moola_moon)
     engine = _get_dasa_engine(system, opts)
     periods = engine.compute(chart_data.julian_day, chart_dict, opts)
     _display_dasa_table(periods, f"{system.title()} Dasa Periods")

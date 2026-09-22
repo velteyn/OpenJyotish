@@ -65,6 +65,13 @@ class DasaOptions:
     #: Moola dasa without the moolatrikona correction (the Tara variant).
     tara_variant: bool = False
 
+    #: Which reference signs seed the Moola/Tara mahadasa cycle. The base sign
+    #: is the most-occupied of the enabled Lagna/Sun/Moon signs; disabling a
+    #: reference removes it from that choice.
+    moola_use_lagna: bool = True
+    moola_use_sun: bool = True
+    moola_use_moon: bool = True
+
     #: Which house seeds Shoola Dasa (1 = self/lagna, 9 = Pitri/father,
     #: 7 = Dara/spouse, 5 = Putra/children); other systems ignore it.
     seed_house: int = 1

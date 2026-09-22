@@ -15,7 +15,9 @@ The mahadasa *order* follows the mainstream planetary practice:
 
 * the cycle is anchored at the sign holding the **most bodies among the Lagna,
   Sun and Moon** (the three reference points; the most occupied of the three
-  leads, ties resolved by sign strength below);
+  leads, ties resolved by sign strength below). Any of the three can be
+  dropped with the ``moola_use_lagna`` / ``moola_use_sun`` / ``moola_use_moon``
+  switches, in which case its sign counts as empty for the anchor;
 * from that sign the dasa walks the **kendra jumps** — 1st, 4th, 7th, 10th,
   then 2nd, 5th, 8th, 11th, then 3rd, 6th, 9th, 12th — in three four-sign
   groups;
@@ -302,8 +304,12 @@ def _chart_view(chart: Dict) -> "_MoolaChart":
     return _MoolaChart(signs=signs, lon=lon, lagna_sign=lagna_sign)
 
 
-def _select_base(view: "_MoolaChart") -> int:
-    """The sign with the most bodies among the Lagna, Sun and Moon signs."""
+def _select_base(view: "_MoolaChart", opts: DasaOptions) -> int:
+    """The sign with the most bodies among the enabled Lagna/Moon/Sun signs.
+
+    Disabling a reference treats its sign as empty (value zero), exactly as the
+    inclusion switches do.
+    """
     occupants: Dict[int, int] = {}
     for g in _ALL_PLANETS:
         occupants[view.signs[g]] = occupants.get(view.signs[g], 0) + 1
@@ -311,21 +317,33 @@ def _select_base(view: "_MoolaChart") -> int:
     def bodies(sign: int) -> int:
         return occupants.get(sign, 0) + (1 if sign == view.lagna_sign else 0)
 
-    candidates = {
-        view.lagna_sign: bodies(view.lagna_sign),
-        view.signs[Graha.SUN]: bodies(view.signs[Graha.SUN]),
-        view.signs[Graha.MOON]: bodies(view.signs[Graha.MOON]),
-    }
-    best = max(candidates.values())
-    tied = [s for s, v in candidates.items() if v == best]
+    lagna_sign = view.lagna_sign
+    moon_sign = view.signs[Graha.MOON]
+    sun_sign = view.signs[Graha.SUN]
+    values = [
+        (lagna_sign, bodies(lagna_sign) if opts.moola_use_lagna else 0),
+        (moon_sign, bodies(moon_sign) if opts.moola_use_moon else 0),
+        (sun_sign, bodies(sun_sign) if opts.moola_use_sun else 0),
+    ]
+    best = values[0][1]
+    tied = [values[0][0]]
+    for sign, value in values[1:]:
+        if value > best:
+            best = value
+            tied = [sign]
+        elif value == best:
+            tied.append(sign)
+    tied = list(dict.fromkeys(tied))
     tied = _insertion_sort(
         tied, lambda a, b: _sign_key(a, view) > _sign_key(b, view))
     return tied[0]
 
 
-def _group_sequence(view: "_MoolaChart") -> List[Graha]:
+def _group_sequence(view: "_MoolaChart",
+                    opts: Optional[DasaOptions] = None) -> List[Graha]:
     """The mahadasa order (the exact reference sequence)."""
-    base = _select_base(view)
+    opts = opts or DasaOptions()
+    base = _select_base(view, opts)
     jump = lambda k: 3 * (k % 4) + k // 4          # 0,3,6,9,1,4,7,10,2,5,8,11
     step = 1 if base % 2 == 0 else -1
 
@@ -356,7 +374,7 @@ class MoolaDasa(DasaBase):
         tara = getattr(opts, "tara_variant", False)
         y_per_d = 365.2425 if opts.year_definition == "solar" else 360.0
 
-        sequence = _group_sequence(view)
+        sequence = _group_sequence(view, opts)
         periods: List[DasaPeriod] = []
         current = birth_jd
         for g in sequence:

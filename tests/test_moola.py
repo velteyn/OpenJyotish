@@ -157,6 +157,34 @@ class TestSyntheticOrders:
             assert got == expected, (signs, got)
 
 
+class TestBaseSelectionSwitches:
+    """The Lagna/Sun/Moon inclusion switches gate the base sign."""
+
+    def test_default_uses_all_three_references(self):
+        _cd, ch = _chart_dict()
+        periods = MoolaDasa().compute(0.0, ch, DasaOptions())
+        assert [p.lord_name for p in periods] == \
+            [g.full_name for g in REFERENCE_ORDER]
+
+    def test_disabling_sun_keeps_base_when_moon_shares_the_sign(self):
+        # Sun and Moon are both in Pisces, so dropping the Sun from the
+        # candidate set does not move the base.
+        _cd, ch = _chart_dict()
+        a = MoolaDasa().compute(0.0, ch, DasaOptions())
+        b = MoolaDasa().compute(0.0, ch, DasaOptions(moola_use_sun=False))
+        assert [p.lord_name for p in a] == [p.lord_name for p in b]
+
+    def test_disabling_sun_and_moon_falls_back_to_lagna(self):
+        # Lagna is Sagittarius (empty); the cycle then anchors there, which
+        # pushes the Rahu/Ketu group to the end.
+        _cd, ch = _chart_dict()
+        periods = MoolaDasa().compute(
+            0.0, ch, DasaOptions(moola_use_sun=False, moola_use_moon=False))
+        assert [p.lord_name for p in periods] == \
+            ["Sun", "Moon", "Mars", "Venus", "Mercury", "Saturn",
+             "Jupiter", "Rahu", "Ketu"]
+
+
 class TestTaraVariant:
     def test_tara_differs_for_moolatrikona_planet(self):
         # Mercury/Venus in moolatrikona: Moola gives correction 12, Tara 0, so
