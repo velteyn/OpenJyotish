@@ -130,6 +130,7 @@ _SRC_DOSHA = "Prasna Marga; Saravali; standard Parashari practice"
 _SRC_YANTRA = "standard Navagraha yantra tradition"
 _SRC_DASHA = "Brihat Parashara Hora Sastra; standard dasha-remedy practice"
 _SRC_TIMING = "Phaladeepika (weekday of the graha)"
+_SRC_MARRIAGE = "Ashta Koota / Muhurta texts (Raman, Rath)"
 
 
 @dataclass
@@ -487,6 +488,65 @@ def _daridra(cd: ChartData) -> Optional[RemedyItem]:
             source=_SRC_DOSHA,
         )
     return None
+
+
+#: Ashta-Koota factor -> (title, remedy detail). Emitted when the factor is weak.
+_MARRIAGE_REMEDY: Dict[str, tuple] = {
+    "Nadi": ("Nadi dosha",
+             "Propitiate Rahu and Ketu (the nadi lords); Vishnu worship; "
+             "Nadi-dosha nivarana. Classical exemptions apply when the "
+             "nakshatras differ in specific ways."),
+    "Bhakoota": ("Bhakoota dosha",
+                 "Worship Vishnu and Lakshmi; propitiate the lords of the two "
+                 "rashis (especially the 6/8 lords)."),
+    "Gana": ("Gana dosha",
+             "Propitiate the gana deity (Deva / Manushya / Rakshasa) of the "
+             "weaker side; Durga / Devi worship."),
+    "Graha Maitri": ("Graha Maitri weakness",
+                     "Propitiate the rasi lords (especially the Moon and the "
+                     "lords of both rasis)."),
+    "Yoni": ("Yoni dosha",
+             "Propitiate the yoni animal's presiding deity; worship the "
+             "corresponding Devi form."),
+    "Vashya": ("Vashya weakness",
+               "Propitiate the rasi lords; Vishnu worship."),
+    "Tara/Dina": ("Tara / Dina weakness",
+                  "Propitiate the nakshatra lords of both charts; Gauri / "
+                  "Shiva worship."),
+    "Varna": ("Varna mismatch",
+              "Minor factor; propitiate the rasi lords."),
+}
+
+
+def compute_marriage_remedies(girl_cd: ChartData,
+                              boy_cd: ChartData) -> List[RemedyItem]:
+    """Partner-aware marriage-dosha remedies from the Ashta Koota factors."""
+    from jhora.calc.kuta import ScoringSystem, compute_kuta
+    girl_moon = girl_cd.planets[Graha.MOON].longitude
+    boy_moon = boy_cd.planets[Graha.MOON].longitude
+    res = compute_kuta(girl_moon, boy_moon, ScoringSystem.ASHTA_KOOTA)
+    items: List[RemedyItem] = []
+    for p in res.poruthams:
+        if p.score >= p.max_score:
+            continue
+        remedy = _MARRIAGE_REMEDY.get(p.name)
+        if remedy is None:
+            continue
+        title, detail = remedy
+        items.append(RemedyItem(
+            category="marriage", title=f"{title} ({p.name} {p.fraction})",
+            detail=f"{p.description}. {detail}", source=_SRC_MARRIAGE,
+        ))
+    for who, cd in (("girl", girl_cd), ("boy", boy_cd)):
+        k = _kuja(cd)
+        if k is not None:
+            items.append(RemedyItem(
+                category="marriage", planet=Graha.MARS,
+                title=f"Kuja (Mangal) dosha — {who}",
+                detail=f"{k.detail} (from the {who}'s chart)",
+                source=_SRC_DOSHA,
+            ))
+    return items
 
 
 def compute_remedies(cd: ChartData,
