@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 45 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-25-section JSON API for AI agents (+ JSON-LD)  |  1417 tests  |  GPL v3.0
+25-section JSON API for AI agents (+ JSON-LD)  |  1424 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -226,7 +226,7 @@ data = json.loads(subprocess.run(
 | `lagnas` | All special lagnas with meanings |
 | `kp` | Krishnamurti Paddhati — Placidus cusp/planet lord chains + Ruling Planets (`--ayanamsa krishnamurti`) |
 | `sphutas` | Prasna Marga auspicious points (Tri/Chatus/Pancha/Prana/Deha/Mrityu/Beeja/Kshetra/Yoga) |
-| `remedies` | Rule-based remedies — Ishta/Palana devata, gemstone, mantra, charity, doshas (sourced) |
+| `remedies` | Rule-based remedies — Ishta/Palana devata, gemstone, mantra, yantra, charity, dasha-lord, doshas (sourced) |
 | `learning` | Marana karaka, KP sub-lords, vaiseshikamsas |
 | `tui` | Launch interactive terminal UI |
 | `gui` | Launch desktop GUI |

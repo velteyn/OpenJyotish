@@ -12,7 +12,7 @@ Phaladeepika, *Prasna Marga*.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from jhora.charts.chart import ChartData
@@ -83,6 +83,15 @@ DEITY: Dict[Graha, str] = {
     Graha.KETU: "Ganesha",
 }
 
+#: Planet -> yantra (undebated, standard Navagraha yantras).
+YANTRA: Dict[Graha, str] = {
+    Graha.SUN: "Surya Yantra", Graha.MOON: "Chandra Yantra",
+    Graha.MARS: "Mangala Yantra", Graha.MERCURY: "Budha Yantra",
+    Graha.JUPITER: "Guru (Brihaspati) Yantra", Graha.VENUS: "Shukra Yantra",
+    Graha.SATURN: "Shani Yantra", Graha.RAHU: "Rahu Yantra",
+    Graha.KETU: "Ketu Yantra",
+}
+
 _LORD_NAME_TO_GRAHA = {
     "Sun": Graha.SUN, "Moon": Graha.MOON, "Mars": Graha.MARS,
     "Mercury": Graha.MERCURY, "Jupiter": Graha.JUPITER,
@@ -118,6 +127,9 @@ _SRC_MANTRA = "Brihat Parashara Hora Sastra (remedial chapters)"
 _SRC_DEITY = "Jaimini Sutras (Sanjay Rath, Jaimini Maharishi's Upadesa Sutras)"
 _SRC_CHARITY = "Brihat Parashara Hora Sastra; Phaladeepika"
 _SRC_DOSHA = "Prasna Marga; Saravali; standard Parashari practice"
+_SRC_YANTRA = "standard Navagraha yantra tradition"
+_SRC_DASHA = "Brihat Parashara Hora Sastra; standard dasha-remedy practice"
+_SRC_TIMING = "Phaladeepika (weekday of the graha)"
 
 
 @dataclass
@@ -349,6 +361,134 @@ def _pitru(cd: ChartData) -> Optional[RemedyItem]:
     return None
 
 
+def _yantra_item(target: Graha) -> RemedyItem:
+    return RemedyItem(
+        category="yantra", planet=target,
+        title=f"Install {YANTRA[target]}",
+        detail=f"Worship/enliven the {YANTRA[target]} for {target.full_name}, "
+               "ideally with the corresponding mantra.",
+        source=_SRC_YANTRA,
+    )
+
+
+def _current_md_lord(cd: ChartData, when: datetime) -> Optional[Graha]:
+    from jhora.dasas.base import DasaOptions
+    from jhora.dasas.vimsottari import VimsottariDasa
+    from jhora.ephemeris.swe import SweEngine
+    chart = {"planets": {g: {"longitude": p.longitude}
+                         for g, p in cd.planets.items()},
+             "lagna_lon": cd.ascendant}
+    periods = VimsottariDasa().compute(cd.julian_day, chart, DasaOptions())
+    jd = SweEngine().julday(when.year, when.month, when.day,
+                            when.hour + when.minute / 60.0)
+    for md in periods:
+        if md.start_jd <= jd < md.end_jd:
+            return Graha(md.lord_index)
+    return None
+
+
+def _dasha_items(cd: ChartData, when: Optional[datetime],
+                 benefics: set) -> List[RemedyItem]:
+    if when is None:
+        return []
+    lord = _current_md_lord(cd, when)
+    if lord is None:
+        return []
+    stuff, direction, day = CHARITY[lord]
+    items = [RemedyItem(
+        category="dasha", planet=lord,
+        title=f"Propitiate the running {lord.full_name} mahadasa lord",
+        detail=f"{DEITY[lord]} worship; {MANTRA[lord][0]}; give {stuff} on "
+               f"{day}, facing {direction}.",
+        source=_SRC_DASHA,
+    )]
+    if lord in benefics:
+        gem, metal, finger, day = GEMSTONE[lord]
+        items.append(RemedyItem(
+            category="dasha-gem", planet=lord,
+            title=f"(Optional) {gem} for the dasha lord",
+            detail=f"{lord.full_name} is a functional benefic and the running "
+                   f"mahadasa lord; its gem may reinforce the period.",
+            source=_SRC_GEM,
+        ))
+    return items
+
+
+def _next_weekday(when: datetime, day_name: str) -> datetime:
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+            "Saturday", "Sunday"]
+    delta = (days.index(day_name) - when.weekday()) % 7
+    return when + timedelta(days=delta)
+
+
+def _timing_item(target: Graha, when: Optional[datetime]) -> RemedyItem:
+    day = CHARITY[target][2]
+    base = when or datetime.now()
+    nxt = _next_weekday(base, day)
+    return RemedyItem(
+        category="timing", planet=target,
+        title=f"Begin on a {day}",
+        detail=f"Start the {target.full_name} remedies on {day} "
+               f"(next: {nxt.strftime('%Y-%m-%d')}), ideally at sunrise.",
+        source=_SRC_TIMING,
+    )
+
+
+def _guru_chandala(cd: ChartData) -> Optional[RemedyItem]:
+    if _rasi_of(cd, Graha.JUPITER) == _rasi_of(cd, Graha.RAHU):
+        return RemedyItem(
+            category="dosha", planet=Graha.JUPITER, title="Guru-Chandala dosha",
+            detail="Jupiter is conjunct Rahu. Propitiate Jupiter and Rahu; "
+                   "Vishnu/Durga worship; Jupiter and Rahu mantras.",
+            source=_SRC_DOSHA,
+        )
+    return None
+
+
+def _shrapit(cd: ChartData) -> Optional[RemedyItem]:
+    if _rasi_of(cd, Graha.SATURN) == _rasi_of(cd, Graha.RAHU):
+        return RemedyItem(
+            category="dosha", planet=Graha.SATURN, title="Shrapit (Shani-Rahu) dosha",
+            detail="Saturn is conjunct Rahu. Shani seva, Saturn and Rahu "
+                   "mantras, Saturday charity (sesame/oil).",
+            source=_SRC_DOSHA,
+        )
+    return None
+
+
+def _kemadruma(cd: ChartData) -> Optional[RemedyItem]:
+    moon = _rasi_of(cd, Graha.MOON)
+    ring = {(moon - 1) % 12, (moon + 1) % 12}
+    others = [Graha.MARS, Graha.MERCURY, Graha.JUPITER, Graha.VENUS,
+              Graha.SATURN]
+    if not any(_rasi_of(cd, g) in ring or _rasi_of(cd, g) == moon
+               for g in others):
+        return RemedyItem(
+            category="dosha", planet=Graha.MOON, title="Kemadruma dosha",
+            detail="No planet in the 2nd/12th from the Moon and none with it. "
+                   "Chandra worship, Monday charity, pearl if the Moon is a "
+                   "functional benefic.",
+            source=_SRC_DOSHA,
+        )
+    return None
+
+
+def _daridra(cd: ChartData) -> Optional[RemedyItem]:
+    lagna = int(cd.ascendant // 30) % 12
+    eleventh = (lagna + 10) % 12
+    lord = _lord_graha(eleventh)
+    house_of_lord = (_rasi_of(cd, lord) - lagna) % 12 + 1
+    if house_of_lord in (6, 8, 12):
+        return RemedyItem(
+            category="dosha", planet=lord, title="Daridra (poverty) yoga",
+            detail=f"11th lord {lord.full_name} falls in house {house_of_lord}. "
+                   "Propitiate the 11th lord; Lakshmi/Kubera worship; charity "
+                   "to the needy.",
+            source=_SRC_DOSHA,
+        )
+    return None
+
+
 def compute_remedies(cd: ChartData,
                      when: Optional[datetime] = None) -> RemedyReport:
     """Deterministic, source-cited remedies for a chart."""
@@ -360,11 +500,16 @@ def compute_remedies(cd: ChartData,
     palana = _devata_for_house(cd, 9)
     target = _mantra_target(bal, benefics)
 
+    md_lord = _current_md_lord(cd, when) if when else None
     items: List[RemedyItem] = _gemstone_items(cd, bal)
     items += _mantra_items(target)
-    items += _charity_items(target, None)
+    items += _charity_items(target, md_lord)
+    items.append(_yantra_item(target))
+    items.append(_timing_item(target, when))
+    items += _dasha_items(cd, when, benefics)
     for dosha in (_kuja(cd), _kaala_sarpa(cd), _sade_sati(cd, when),
-                  _grahana(cd), _pitru(cd)):
+                  _grahana(cd), _pitru(cd), _guru_chandala(cd),
+                  _shrapit(cd), _kemadruma(cd), _daridra(cd)):
         if dosha is not None:
             items.append(dosha)
     return RemedyReport(ishta_devata=ishta, palana_devata=palana, items=items)

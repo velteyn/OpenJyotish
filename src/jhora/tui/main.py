@@ -960,6 +960,25 @@ class JhoraTui:
                            f"{remaining:.0f} min remaining[/bold]")
         self._content_lines = cap.get().split("\n")
 
+    def _action_remedies(self):
+        if not self._check_chart():
+            return
+        from jhora.calc.remedies import compute_remedies
+        with rich.capture() as cap:
+            rep = compute_remedies(self.chart)
+            rich.print(f"[bold]Ishta Devata:[/bold] {rep.ishta_devata.title}  "
+                       f"[dim]({rep.ishta_devata.detail})[/dim]")
+            rich.print(f"[bold]Palana Devata:[/bold] {rep.palana_devata.title}  "
+                       f"[dim]({rep.palana_devata.detail})[/dim]\n")
+            t = Table(title="Remedies", box=rich_box.SIMPLE)
+            t.add_column("Category", style="cyan")
+            t.add_column("Remedy", style="yellow")
+            t.add_column("Detail")
+            for it in rep.items:
+                t.add_row(it.category, it.title, it.detail)
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
     def _action_mundane(self):
         from prompt_toolkit.shortcuts import input_dialog
         y = input_dialog("Mundane", "Year:", str(datetime.now().year)).run()
@@ -1246,6 +1265,7 @@ class JhoraTui:
             ("3", "Muhurta (Electional)", self._action_muhurta),
             ("4", "Choghadiya (Day/Night Slots)", self._action_choghadiya),
             ("5", "Hora (Planetary Hours)", self._action_hora),
+            ("6", "Remedies (Rule-based)", self._action_remedies),
         ]
         self._sub_menu("Special Topics", items)
 

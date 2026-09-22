@@ -93,3 +93,44 @@ class TestDoshas:
         from jhora.calc.remedies import _grahana
         cd = _fake(0, 2, {Graha.SUN: 5, Graha.RAHU: 5})
         assert _grahana(cd) is not None
+
+    def test_guru_chandala(self):
+        from jhora.calc.remedies import _guru_chandala
+        assert _guru_chandala(_fake(0, 2, {Graha.JUPITER: 6,
+                                           Graha.RAHU: 6})) is not None
+        assert _guru_chandala(_fake(0, 2, {Graha.JUPITER: 6,
+                                           Graha.RAHU: 7})) is None
+
+    def test_shrapit(self):
+        from jhora.calc.remedies import _shrapit
+        assert _shrapit(_fake(0, 2, {Graha.SATURN: 6,
+                                     Graha.RAHU: 6})) is not None
+
+    def test_kemadruma(self):
+        from jhora.calc.remedies import _kemadruma
+        planets = {g: SimpleNamespace(longitude=6 * 30 + 5, rasi=Rasi(6))
+                   for g in Graha}
+        planets[Graha.MOON] = SimpleNamespace(longitude=5, rasi=Rasi(0))
+        cd = SimpleNamespace(ascendant=5.0, planets=planets)
+        assert _kemadruma(cd) is not None
+
+    def test_daridra(self):
+        from jhora.calc.remedies import _daridra
+        # Aries lagna: 11th (Aquarius) lord Saturn in the 6th (Virgo).
+        assert _daridra(_fake(0, 2, {Graha.SATURN: 5})) is not None
+
+
+class TestExtensions:
+    def test_yantra_and_timing_present(self):
+        rep = compute_remedies(_chart())
+        cats = {it.category for it in rep.items}
+        assert "yantra" in cats and "timing" in cats
+
+    def test_dasha_lord_remedy_when_dated(self):
+        rep = compute_remedies(_chart(), when=datetime(2026, 9, 22))
+        dasha = [it for it in rep.items if it.category == "dasha"]
+        assert dasha and "mahadasa lord" in dasha[0].title
+
+    def test_no_dasha_remedy_without_date(self):
+        rep = compute_remedies(_chart())
+        assert not any(it.category == "dasha" for it in rep.items)
