@@ -8,8 +8,11 @@ Golden sources (see design.md for the full gate record):
   structurally inconsistent with its own fraction rule (JFK needs
   F = 153 > 120), so those assert internal ratios only; Rajiv (whose
   residual is ~3 min of input-level slop) asserts absolute dates.
-- Drig: deferred open (Aq-anchor anomaly) — its tests join this file
-  once the Ta/Ar-lagna discriminator resolves it.
+- Drig: mahadasa order = the 9th, 10th and 11th signs from lagna, each
+  expanded to its Jaimini rasi-drishti aspect group; 7/8/9 years by
+  modality (96-year cycle); antardasas are twelve equal parts in a fixed
+  sign cycle. Verified against four captured reference tables (Gemini×2,
+  Cancer, Libra).
 """
 
 from datetime import date
@@ -19,6 +22,12 @@ import pytest
 from jhora.charts.chart import ChartBuilder
 from jhora.dasas.base import DasaOptions
 from jhora.dasas.chakra import ChakraDasa
+from jhora.dasas.drig import (
+    DrigDasa,
+    antardasa_sequence,
+    mahadasa_sequence,
+    modality_years,
+)
 from jhora.dasas.kaala import KaalaDasa, day_parts, kaala_fraction
 from jhora.dasas.mandooka import (
     mandooka_order,
@@ -247,3 +256,45 @@ def test_chakra_ads_start_at_parent_equal_split():
     assert len(first.sub_periods) == 12
     assert first.sub_periods[0].duration_years == pytest.approx(
         first.duration_years / 12.0)
+
+
+class TestDrig:
+    """Drig: 9th/10th/11th from lagna, Jaimini aspect groups, 7/8/9 years."""
+
+    #: Captured reference mahadasa orders keyed by lagna index.
+    SEQUENCES = {
+        2: [10, 0, 3, 6, 11, 8, 5, 2, 0, 10, 7, 4],   # Gemini
+        3: [11, 8, 5, 2, 0, 10, 7, 4, 1, 3, 6, 9],    # Cancer
+        6: [2, 5, 8, 11, 3, 1, 10, 7, 4, 6, 9, 0],    # Libra
+    }
+
+    def test_mahadasa_sequences_match_reference(self):
+        for lagna, expected in self.SEQUENCES.items():
+            assert mahadasa_sequence(lagna) == expected
+
+    def test_years_are_seven_eight_nine(self):
+        for lagna in self.SEQUENCES:
+            years = [modality_years(s) for s in mahadasa_sequence(lagna)]
+            assert sorted(set(years)) == [7, 8, 9]
+            assert sum(years) == 96
+
+    def test_antardasa_sequence_of_aquarius(self):
+        # The captured Aquarius-mahadasa antardasa block.
+        assert antardasa_sequence(10) == \
+            [4, 9, 2, 7, 0, 5, 10, 3, 8, 1, 6, 11]
+
+    def test_fixture_is_contiguous_with_expected_first_mahadasa(self):
+        cd, chart = _chart()
+        mds = DrigDasa().compute(cd.julian_day, chart)
+        assert len(mds) == 12
+        assert round(sum(m.duration_years for m in mds)) == 96
+        # The 1990 fixture is Gemini lagna: the cycle opens in Aquarius.
+        assert Rasi(mds[0].lord_index - 100).short_name == "Aq"
+        subs = mds[0].sub_periods
+        assert [Rasi(s.lord_index - 100).short_name for s in subs] == \
+            ["Le", "Cp", "Ge", "Sc", "Ar", "Vi", "Aq", "Cn", "Sg", "Ta",
+             "Li", "Pi"]
+        assert subs[0].duration_years == pytest.approx(
+            mds[0].duration_years / 12.0)
+        for a, b in zip(mds, mds[1:]):
+            assert abs(a.end_jd - b.start_jd) < 1e-6

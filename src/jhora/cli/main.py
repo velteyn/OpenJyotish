@@ -201,7 +201,7 @@ def dasa(
     system may be: vimsottari, ashtottari, yogini, sudasa, chara, narayana,
     kalachakra, brahma, karaka, shoola, trikona, varnada,
     sthira, navamsa, yogardha, niryana-shoola, lagna-kendradi,
-    kaala, chakra, mandooka, tithi-ashtottari, tithi-yogini,
+    kaala, chakra, mandooka, drig, tithi-ashtottari, tithi-yogini,
     karana-chaturaaseeti, yoga-vimsottari, naisargika, moola, tara.
     Seed/sesham/year options apply
     to the nakshatra dasas (vimsottari, ashtottari, yogini); --karaka-role
@@ -424,7 +424,7 @@ def _get_dasa_engine(system: str, options=None):
     """Return a dasa engine for the given system name (vimsottari/ashtottari/
     yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/shoola/
     trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/
-    lagna-kendradi/kaala/chakra/mandooka/tithi-ashtottari/tithi-yogini/
+    lagna-kendradi/kaala/chakra/mandooka/drig/tithi-ashtottari/tithi-yogini/
     karana-chaturaaseeti/yoga-vimsottari/naisargika/moola/tara)."""
     s = system.lower()
     if s == "vimsottari":
@@ -487,6 +487,9 @@ def _get_dasa_engine(system: str, options=None):
     if s == "mandooka":
         from jhora.dasas.mandooka import MandookaDasa
         return MandookaDasa(options)
+    if s == "drig":
+        from jhora.dasas.drig import DrigDasa
+        return DrigDasa(options)
     if s == "tithi-ashtottari":
         from jhora.dasas.pravesha import TithiAshtottariDasa
         return TithiAshtottariDasa(options)
