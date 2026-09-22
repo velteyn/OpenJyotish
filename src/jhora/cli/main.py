@@ -2723,6 +2723,38 @@ def sphutas(
                   f"[bold]Sahayogi:[/bold] {yg['Sahayogi']}")
 
 
+@app.command()
+def remedies(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    when: Optional[str] = typer.Option(None, "--when", help="Date YYYY-MM-DD for Sade Sati"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Rule-based remedies — Ishta devata, gemstone, mantra, charity, doshas."""
+    from jhora.calc.remedies import compute_remedies
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    w = datetime.strptime(when, "%Y-%m-%d") if when else None
+    report = compute_remedies(cd, when=w)
+    console.print(f"[bold]Ishta Devata:[/bold] {report.ishta_devata.title}  "
+                  f"[dim]({report.ishta_devata.detail})[/dim]")
+    console.print(f"[bold]Palana Devata:[/bold] {report.palana_devata.title}  "
+                  f"[dim]({report.palana_devata.detail})[/dim]\n")
+    table = Table(title="Remedies")
+    table.add_column("Category", style="cyan")
+    table.add_column("Remedy", style="yellow")
+    table.add_column("Detail")
+    table.add_column("Source", style="dim")
+    for it in report.items:
+        table.add_row(it.category, it.title, it.detail, it.source)
+    console.print(table)
+
+
 @app.callback()
 def cli():
     """OpenJyotish — Vedic astrology calculator (implementation)."""

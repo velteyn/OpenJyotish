@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-44 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-24-section JSON API for AI agents (+ JSON-LD)  |  1408 tests  |  GPL v3.0
+45 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+25-section JSON API for AI agents (+ JSON-LD)  |  1417 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -192,7 +192,7 @@ data = json.loads(subprocess.run(
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets + upagrahas + outer planets |
-| `analyze` | AI-friendly JSON dump (24 sections) |
+| `analyze` | AI-friendly JSON dump (25 sections) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
@@ -226,6 +226,7 @@ data = json.loads(subprocess.run(
 | `lagnas` | All special lagnas with meanings |
 | `kp` | Krishnamurti Paddhati — Placidus cusp/planet lord chains + Ruling Planets (`--ayanamsa krishnamurti`) |
 | `sphutas` | Prasna Marga auspicious points (Tri/Chatus/Pancha/Prana/Deha/Mrityu/Beeja/Kshetra/Yoga) |
+| `remedies` | Rule-based remedies — Ishta/Palana devata, gemstone, mantra, charity, doshas (sourced) |
 | `learning` | Marana karaka, KP sub-lords, vaiseshikamsas |
 | `tui` | Launch interactive terminal UI |
 | `gui` | Launch desktop GUI |
@@ -235,7 +236,7 @@ data = json.loads(subprocess.run(
 ### Calculation Engine
 Rasi chart (D-1) with South/North/East styles · 23 varga charts (D-2 to D-150) ·
 32 dasa systems (incl. Moola + Tara + Narayana variants) · 8 conditional dasas · Shadbala · Bhava Bala (per-varga) · Vimsopaka Bala (5 schemes incl. Dwadasa Vargeeya) ·
-200+ yogas · Ashtakavarga (BAV/SAV/Kakshya) · Arudha Padas · Chara Karakas ·
+200+ yogas · 36 Sahamas · Rule-based remedies · Ashtakavarga (BAV/SAV/Kakshya) · Arudha Padas · Chara Karakas ·
 36 Sahamas · 20 ayanamsa modes (Lahiri/Raman/KP/Fagan/Tropical/etc.) ·
 Outer planets (Uranus/Neptune/Pluto) · Upagrahas (5 solar + Gulika/Mandi) ·
 Special lagnas (Bhrigu Bindu/Indu/Varnada/Pranapada/Vighati) ·

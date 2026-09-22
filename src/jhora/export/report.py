@@ -465,6 +465,23 @@ def _dwadasa_vargeeya_table(cd: ChartData) -> str:
         return ""
 
 
+def _remedies_table(cd: ChartData) -> str:
+    try:
+        from jhora.calc.remedies import compute_remedies
+        rep = compute_remedies(cd)
+    except Exception:
+        return ""
+    rows = "".join(
+        f"<tr><td>{it.category}</td><td>{it.title}</td>"
+        f"<td>{it.detail}</td><td>{it.source}</td></tr>"
+        for it in rep.items)
+    return (f"""<h2>Remedies</h2>
+<p><b>Ishta Devata:</b> {rep.ishta_devata.title} ({rep.ishta_devata.detail})<br>
+<b>Palana Devata:</b> {rep.palana_devata.title} ({rep.palana_devata.detail})</p>
+<table><tr><th>Category</th><th>Remedy</th><th>Detail</th><th>Source</th></tr>
+{rows}</table>""")
+
+
 def _ishta_kashta_table(cd: ChartData) -> str:
     try:
         from jhora.calc.learning import ishta_kashta_phala
@@ -541,6 +558,7 @@ def _build_html(cd: ChartData, style: str) -> str:
             _chalit_table(cd),
             _dwadasa_vargeeya_table(cd),
             _ishta_kashta_table(cd),
+            _remedies_table(cd),
         ])
 
     body = "\n".join(sections)
