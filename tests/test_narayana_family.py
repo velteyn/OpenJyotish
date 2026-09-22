@@ -17,6 +17,17 @@ def _chart():
     return cd, d
 
 
+class TestNarayanaSeed:
+    def test_base_narayana_seeds_from_stronger_of_lagna_and_seventh(self):
+        cd, d = _chart()
+        lagna = Rasi.from_longitude(d["lagna_lon"])
+        signs, lons = chart_signs_lons(d)
+        seed = Rasi(stronger_rasi(lagna.value, (lagna.value + 6) % 12,
+                                  signs, lons))
+        periods = NarayanaDasa().compute(cd.julian_day, d, DasaOptions())
+        assert periods[0].lord_name == seed.full_name
+
+
 class TestNarayanaSequence:
     def test_sequence_visits_all_twelve_signs(self):
         for seed in range(12):
