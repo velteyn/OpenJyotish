@@ -1,10 +1,9 @@
 """Tests for Moola dasa and its Tara variant.
 
-The year correction is validated against the reference table for the
-1970-04-04 23:18 Chennai chart (all nine first-cycle periods). The
-within-family ordering is a documented approximation — see the module
-docstring — so these tests assert the validated parts and the shape of the
-rest, never a fitted full order.
+The year correction is checked against the known periods for the 1970-04-04
+23:18 Chennai chart. The within-family ordering is a documented approximation
+- see the module docstring - so these tests assert the validated parts and
+the shape of the rest, never a fitted full order.
 """
 
 import pytest
@@ -33,7 +32,7 @@ def _chart_dict():
     }
 
 
-# Reference first-cycle years for the 1970 chart.
+# First-cycle years for the 1970 Chennai chart.
 REFERENCE_YEARS = {
     Graha.SUN: 1, Graha.MOON: 8, Graha.RAHU: 6, Graha.KETU: 4,
     Graha.MARS: 5, Graha.VENUS: 14, Graha.MERCURY: 12,
@@ -138,3 +137,47 @@ class TestTaraVariant:
         moola = MoolaDasa().compute(0.0, ch, DasaOptions())
         tara = MoolaDasa().compute(0.0, ch, DasaOptions(tara_variant=True))
         assert [p.lord_index for p in moola] == [p.lord_index for p in tara]
+
+
+class TestYearsZeroFallback:
+    """A zero result takes the full Vimsottari period. Four planet/sign
+    combinations hit it; without the guard they would get a zero-length
+    period."""
+
+    CASES = [
+        (Graha.SUN, 10, 6.0),     # correction 6, Vimsottari 6
+        (Graha.MOON, 3, 10.0),
+        (Graha.MARS, 5, 7.0),
+        (Graha.KETU, 0, 7.0),
+    ]
+
+    def test_zero_yields_full_period(self):
+        for graha, sign, full in self.CASES:
+            assert moola_years(graha, sign) == full
+
+    def test_correction_equals_full_years_in_those_cases(self):
+        for graha, sign, full in self.CASES:
+            assert moola_correction(graha, sign) == full
+
+
+class TestMoolaFormula:
+    """The Moola length formula: remainder semantics plus the
+    exaltation/debilitation adjustments."""
+
+    # (graha, sign, expected years) for the reference chart placements.
+    CASES = [
+        (Graha.SUN, 11, 1), (Graha.MOON, 11, 8), (Graha.MARS, 0, 5),
+        (Graha.MERCURY, 0, 12), (Graha.JUPITER, 6, 14), (Graha.VENUS, 0, 14),
+        (Graha.SATURN, 0, 10), (Graha.RAHU, 10, 6), (Graha.KETU, 4, 4),
+    ]
+
+    def test_years_for_known_placements(self):
+        for graha, sign, years in self.CASES:
+            assert moola_years(graha, sign) == years, graha.full_name
+
+    def test_debilitation_adjustment(self):
+        # Saturn in Aries is debilitated: (10-0)%12 = 10, minus 1 = 9 -> 19-9=10
+        from jhora.dasas.moola import DEBILITATION_SIGN
+        assert DEBILITATION_SIGN[Graha.SATURN] == 0
+        assert moola_correction(Graha.SATURN, 0) == 9
+        assert moola_years(Graha.SATURN, 0) == 10
