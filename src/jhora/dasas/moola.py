@@ -28,8 +28,14 @@ The mahadasa *order* follows the mainstream planetary practice:
   then own sign, then rulership — and finally by longitude;
 * the antardasas rotate the mahadasa order to start at the mahadasa lord.
 
-Tara dasa is the same construction without the moolatrikona correction, plus
-dasa sesham; it applies when all four quadrants from the lagna are occupied.
+Tara dasa is a planetary dasa for charts whose four quadrants from the lagna
+are all occupied. It has two definitions (selectable): **Parasara's** — the
+Vimsottari planetary sequence starting from the lord of the 9th sign from the
+lagna — and **Pt Sanjay Rath's** — the Moola sign-family walk anchored at the
+lagna. Both use the full Vimsottari years, and both can apply a **dasa
+sesham** (the first mahadasa's balance from the Moon's nakshatra fraction,
+optionally reversed for apasavya nakshatras). The `TaraDasaDirectionFromStar`
+option reckons the walk direction from the nakshatra instead of the sign.
 
 The node exaltations use the Saravali/Parasara reading (Rahu in Gemini, Ketu in
 Sagittarius); the nodes' own signs are Rahu in Virgo and Ketu in Pisces.
@@ -362,6 +368,52 @@ def _group_sequence(view: "_MoolaChart",
     return sequence
 
 
+#: The Vimsottari planetary sequence (the order of the 120-year cycle).
+_VIMSOTTARI_SEQUENCE: Tuple[Graha, ...] = (
+    Graha.SUN, Graha.MOON, Graha.MARS, Graha.RAHU, Graha.JUPITER,
+    Graha.SATURN, Graha.MERCURY, Graha.KETU, Graha.VENUS,
+)
+_NAKSHATRA_SPAN = 360.0 / 27.0
+
+
+def _tara_direction(view: "_MoolaChart", opts: DasaOptions) -> int:
+    """Direction of the Tara dasa (+1 forward, -1 reverse)."""
+    if getattr(opts, "tara_direction_from_star", False):
+        nakshatra = int(view.lon[Graha.MOON] // _NAKSHATRA_SPAN) % 27
+        return -1 if (nakshatra // 3) % 2 else 1
+    return 1 if view.lagna_sign % 2 == 0 else -1
+
+
+def _tara_sequence(view: "_MoolaChart", opts: DasaOptions) -> List[Graha]:
+    """The Tara mahadasa order for the chosen definition.
+
+    * ``parasara``: the Vimsottari sequence starting from the lord of the 9th
+      sign from the lagna.
+    * ``rath``: the Moola sign-family walk from the lagna (sign/planet
+      comparators), the planets of each sign in order.
+    """
+    step = _tara_direction(view, opts)
+    if getattr(opts, "tara_definition", "parasara") == "rath":
+        before_sign = lambda a, b: _sign_key(a, view) > _sign_key(b, view)
+        before_planet = lambda a, b: _planet_key(a, view) > _planet_key(b, view)
+        jump = lambda k: 3 * (k % 4) + k // 4
+        sequence: List[Graha] = []
+        for chunk in range(3):
+            group = [(view.lagna_sign + step * jump(chunk * 4 + i)) % 12
+                     for i in range(4)]
+            for sign in _insertion_sort(group, before_sign):
+                sequence.extend(_insertion_sort(
+                    [g for g in _ALL_PLANETS if view.signs[g] == sign],
+                    before_planet))
+        return sequence
+    lord = _SIGN_LORD[(view.lagna_sign + 8) % 12]
+    start = _VIMSOTTARI_SEQUENCE.index(lord)
+    sequence = list(_VIMSOTTARI_SEQUENCE[start:] + _VIMSOTTARI_SEQUENCE[:start])
+    if step < 0:
+        sequence = list(reversed(sequence))
+    return sequence
+
+
 class MoolaDasa(DasaBase):
     """Moola dasa — the planetary dasa of past karma."""
 
@@ -371,17 +423,15 @@ class MoolaDasa(DasaBase):
                 options: Optional[DasaOptions] = None) -> List[DasaPeriod]:
         opts = options or self.options
         view = _chart_view(chart)
-        tara = getattr(opts, "tara_variant", False)
+        if getattr(opts, "tara_variant", False):
+            return self._compute_tara(birth_jd, view, opts)
         y_per_d = 365.2425 if opts.year_definition == "solar" else 360.0
 
         sequence = _group_sequence(view, opts)
         periods: List[DasaPeriod] = []
         current = birth_jd
         for g in sequence:
-            years = moola_years(
-                g, view.signs[g],
-                no_moolatrikona_correction=tara,
-            )
+            years = moola_years(g, view.signs[g])
             end = current + years * y_per_d
             md = DasaPeriod(
                 lord_index=g.value, lord_name=g.full_name,
@@ -389,11 +439,72 @@ class MoolaDasa(DasaBase):
                 level=PeriodLevel.MAHADASA,
             )
             if opts.subdivision_level.value >= PeriodLevel.ANTARDASA.value:
-                md.sub_periods = self._antardasas(md, sequence, view, tara,
+                md.sub_periods = self._antardasas(md, sequence, view, False,
                                                   y_per_d, opts)
             periods.append(md)
             current = end
         return periods
+
+    # -- Tara ---------------------------------------------------------------
+
+    def _compute_tara(self, birth_jd: float, view: "_MoolaChart",
+                      opts: DasaOptions) -> List[DasaPeriod]:
+        sequence = _tara_sequence(view, opts)
+        y_per_d = 365.2425 if opts.year_definition == "solar" else 360.0
+        years = {g: g.vimsottari_years for g in sequence}
+
+        # Dasa sesham: the first mahadasa's balance is the Moon's nakshatra
+        # fraction remaining at birth (optional; reversed for apasavya
+        # nakshatras if the option asks).
+        start = birth_jd
+        if getattr(opts, "tara_use_sesham", True):
+            fraction = 1.0 - (view.lon[Graha.MOON] % _NAKSHATRA_SPAN) / _NAKSHATRA_SPAN
+            nakshatra = int(view.lon[Graha.MOON] // _NAKSHATRA_SPAN) % 27
+            if (getattr(opts, "tara_sesham_rev_apasavya", False)
+                    and (nakshatra // 3) % 2 == 1):
+                fraction = 1.0 - fraction
+            first = sequence[0]
+            start = birth_jd - (1.0 - fraction) * years[first] * y_per_d
+
+        periods: List[DasaPeriod] = []
+        current = start
+        for g in sequence:
+            end = current + years[g] * y_per_d
+            md = DasaPeriod(
+                lord_index=g.value, lord_name=g.full_name,
+                start_jd=current, end_jd=end, duration_years=years[g],
+                level=PeriodLevel.MAHADASA,
+            )
+            if opts.subdivision_level.value >= PeriodLevel.ANTARDASA.value:
+                md.sub_periods = self._tara_antardasas(md, sequence, years,
+                                                       y_per_d)
+            periods.append(md)
+            current = end
+        return periods
+
+    def _tara_antardasas(self, md: DasaPeriod, sequence: List[Graha],
+                         years: Dict[Graha, float],
+                         y_per_d: float) -> List[DasaPeriod]:
+        """Antardasas rotate the Tara order to start at the mahadasa lord."""
+        n = len(sequence)
+        start = sequence.index(
+            next(g for g in _ALL_PLANETS if g.value == md.lord_index))
+        total = sum(years.values())
+        out: List[DasaPeriod] = []
+        cur = md.start_jd
+        parent_days = md.end_jd - md.start_jd
+        for k in range(n):
+            g = sequence[(start + k) % n]
+            dur = parent_days * years[g] / total
+            end = cur + dur
+            out.append(DasaPeriod(
+                lord_index=g.value, lord_name=g.full_name,
+                start_jd=cur, end_jd=end, duration_years=dur / y_per_d,
+                level=PeriodLevel.ANTARDASA,
+            ))
+            cur = end
+        return out
+
 
     def _antardasas(self, md: DasaPeriod, sequence: List[Graha],
                     view: "_MoolaChart", tara: bool, y_per_d: float,

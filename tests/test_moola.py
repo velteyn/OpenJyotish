@@ -185,23 +185,71 @@ class TestBaseSelectionSwitches:
              "Jupiter", "Rahu", "Ketu"]
 
 
-class TestTaraVariant:
-    def test_tara_differs_for_moolatrikona_planet(self):
-        # Mercury/Venus in moolatrikona: Moola gives correction 12, Tara 0, so
-        # their periods differ by 12 years.
-        _cd, ch = _chart_dict()
-        moola = MoolaDasa().compute(0.0, ch, DasaOptions())
-        tara = MoolaDasa().compute(0.0, ch, DasaOptions(tara_variant=True))
-        m_by = {p.lord_index: p.duration_years for p in moola}
-        t_by = {p.lord_index: p.duration_years for p in tara}
-        assert m_by != t_by
+def _tara_chart(y, m, d, h, lat, lon, tz):
+    cd = ChartBuilder().build(year=y, month=m, day=d, hour=h,
+                              lat=lat, lon=lon, tz=tz,
+                              ayanamsa="pushya_paksha")
+    ch = {"planets": {g: {"longitude": p.longitude}
+                      for g, p in cd.planets.items()},
+          "lagna_lon": cd.ascendant}
+    return cd, ch
 
-    def test_tara_md_order_matches_moola(self):
-        # The variant changes years, not the sequence.
-        _cd, ch = _chart_dict()
-        moola = MoolaDasa().compute(0.0, ch, DasaOptions())
-        tara = MoolaDasa().compute(0.0, ch, DasaOptions(tara_variant=True))
-        assert [p.lord_index for p in moola] == [p.lord_index for p in tara]
+
+class TestTara:
+    """Tara dasa's two definitions, against captured reference orders.
+
+    Parasara = Vimsottari sequence from the lord of the 9th sign from lagna;
+    Rath = Moola sign-family walk from the lagna. Both use full Vimsottari
+    years; the sesham is the Moon's nakshatra fraction.
+    """
+
+    PARASARA = [
+        ((1970, 4, 4, 23.3, 13.08, 80.27, "-5.5"),
+         ["Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury",
+          "Ketu", "Venus"]),
+        ((1990, 1, 15, 17.5, 12.9716, 77.5946, "+0530"),
+         ["Saturn", "Mercury", "Ketu", "Venus", "Sun", "Moon", "Mars",
+          "Rahu", "Jupiter"]),
+    ]
+    RATH = [
+        ((1970, 4, 4, 23.3, 13.08, 80.27, "-5.5"),
+         ["Sun", "Moon", "Mars", "Venus", "Mercury", "Saturn", "Jupiter",
+          "Rahu", "Ketu"]),
+        ((1990, 1, 15, 17.5, 12.9716, 77.5946, "+0530"),
+         ["Saturn", "Mercury", "Jupiter", "Venus", "Rahu", "Sun", "Ketu",
+          "Moon", "Mars"]),
+    ]
+
+    def test_parasara_definition(self):
+        for args, expected in self.PARASARA:
+            cd, ch = _tara_chart(*args)
+            periods = MoolaDasa().compute(
+                cd.julian_day, ch, DasaOptions(tara_variant=True))
+            assert [p.lord_name for p in periods] == expected
+
+    def test_rath_definition_no_sesham_starts_at_birth(self):
+        for args, expected in self.RATH:
+            cd, ch = _tara_chart(*args)
+            periods = MoolaDasa().compute(
+                cd.julian_day, ch,
+                DasaOptions(tara_variant=True, tara_definition="rath",
+                            tara_use_sesham=False))
+            assert [p.lord_name for p in periods] == expected
+            assert periods[0].start_jd == cd.julian_day
+
+    def test_years_are_full_vimsottari(self):
+        cd, ch = _tara_chart(1990, 1, 15, 17.5, 12.9716, 77.5946, "+0530")
+        periods = MoolaDasa().compute(
+            cd.julian_day, ch, DasaOptions(tara_variant=True))
+        assert {p.lord_index: p.duration_years for p in periods} == {
+            g.value: g.vimsottari_years for g in Graha}
+
+    def test_use_sesham_moves_the_start_before_birth(self):
+        cd, ch = _tara_chart(1970, 4, 4, 23.3, 13.08, 80.27, "-5.5")
+        with_s = MoolaDasa().compute(0.0, ch, DasaOptions(tara_variant=True))
+        no_s = MoolaDasa().compute(
+            0.0, ch, DasaOptions(tara_variant=True, tara_use_sesham=False))
+        assert with_s[0].start_jd < no_s[0].start_jd
 
 
 class TestNodeExaltation:
