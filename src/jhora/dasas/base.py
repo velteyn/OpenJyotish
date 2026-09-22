@@ -62,6 +62,9 @@ class DasaOptions:
     #: longitudes in the chart dict under "seed_varga_positions".
     narayana_chart: Optional[str] = None
 
+    #: Moola dasa without the moolatrikona correction (the Tara variant).
+    tara_variant: bool = False
+
     #: Which house seeds Shoola Dasa (1 = self/lagna, 9 = Pitri/father,
     #: 7 = Dara/spouse, 5 = Putra/children); other systems ignore it.
     seed_house: int = 1

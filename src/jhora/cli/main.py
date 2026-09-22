@@ -202,7 +202,7 @@ def dasa(
     kalachakra, brahma, karaka, shoola, trikona, varnada,
     sthira, navamsa, yogardha, niryana-shoola, lagna-kendradi,
     kaala, chakra, mandooka, tithi-ashtottari, tithi-yogini,
-    karana-chaturaaseeti, yoga-vimsottari, naisargika.
+    karana-chaturaaseeti, yoga-vimsottari, naisargika, moola, tara.
     Seed/sesham/year options apply
     to the nakshatra dasas (vimsottari, ashtottari, yogini); --karaka-role
     selects the Karaka Dasa seed; --house selects the Shoola Dasa seed
@@ -425,7 +425,7 @@ def _get_dasa_engine(system: str, options=None):
     yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/shoola/
     trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/
     lagna-kendradi/kaala/chakra/mandooka/tithi-ashtottari/tithi-yogini/
-    karana-chaturaaseeti/yoga-vimsottari/naisargika)."""
+    karana-chaturaaseeti/yoga-vimsottari/naisargika/moola/tara)."""
     s = system.lower()
     if s == "vimsottari":
         from jhora.dasas.vimsottari import VimsottariDasa
@@ -502,6 +502,14 @@ def _get_dasa_engine(system: str, options=None):
     if s == "naisargika":
         from jhora.dasas.naisargika import NaisargikaDasa
         return NaisargikaDasa(options)
+    if s == "moola":
+        from jhora.dasas.moola import MoolaDasa
+        return MoolaDasa(options)
+    if s == "tara":
+        from jhora.dasas.moola import MoolaDasa
+        if options is not None:
+            options.tara_variant = True
+        return MoolaDasa(options)
     from jhora.dasas.vimsottari import VimsottariDasa
     return VimsottariDasa(options)
 

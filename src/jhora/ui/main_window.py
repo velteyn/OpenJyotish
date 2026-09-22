@@ -1089,6 +1089,14 @@ class MainWindow(QMainWindow):
         elif system == "Naisargika":
             from jhora.dasas.naisargika import NaisargikaDasa
             return NaisargikaDasa(options)
+        elif system == "Moola":
+            from jhora.dasas.moola import MoolaDasa
+            return MoolaDasa(options)
+        elif system == "Tara":
+            from jhora.dasas.moola import MoolaDasa
+            if options is not None:
+                options.tara_variant = True
+            return MoolaDasa(options)
         from jhora.dasas.vimsottari import VimsottariDasa
         return VimsottariDasa(options)
 
