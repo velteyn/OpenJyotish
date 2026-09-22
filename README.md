@@ -141,6 +141,15 @@ guaranteed**.
 
 Full audit trail, per-model scorecards and setup laws: `docs/AI_LESSONS.md`.
 
+### Astrologer adapter (optional)
+
+A domain LoRA — `openjyotish-astrologer-lora-vN` — is published with each
+release to cut verifier flags on readings. It assists wording only; the engine
+still owns every fact and verify-repair stays on. Dataset generation, the
+Unsloth recipe, the eval harness and the LM Studio / Ollama / Unsloth Studio
+loader steps (plus the `--provider`/`--model`/`--url` setting) are in
+`tools/train/README.md`.
+
 ## TUI
 
 `openjyotish tui` — interactive terminal app with the same 9-category structure.  
