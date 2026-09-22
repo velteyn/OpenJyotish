@@ -19,17 +19,25 @@ Publications), chapters "Lagnamsaka Dasa" and "Padanadhamsa Dasa".
 """
 
 from jhora.calc.arudha import bhava_arudha
+from jhora.calc.jaimini_strength import chart_signs_lons, stronger_rasi
 from jhora.dasas.narayana import NarayanaDasa, _LORD_NAME_TO_GRAHA
 from jhora.types.rasi import Rasi
 
 
 class LagnamsakaDasa(NarayanaDasa):
-    """Narayana-family dasa seeded from the lagna sign."""
+    """Narayana-family dasa seeded from the stronger of the lagna and its 7th.
+
+    The reference resolves the lagna/7th seed through its sign-strength
+    ladder (the "satya-peetha" rule); ``stronger_rasi`` reproduces that
+    exactly.
+    """
 
     system_name = "lagnamsaka"
 
     def _seed_rasi(self, lagna_rasi: Rasi, planets, chart, opts) -> Rasi:
-        return lagna_rasi
+        signs, lons = chart_signs_lons(chart)
+        seventh = (lagna_rasi.value + 6) % 12
+        return Rasi(stronger_rasi(lagna_rasi.value, seventh, signs, lons))
 
 
 class PadanaathaamsaDasa(NarayanaDasa):

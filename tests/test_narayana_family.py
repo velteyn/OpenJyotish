@@ -1,6 +1,7 @@
 """Lagnamsaka and Padanaathaamsa — Narayana-family seed variants."""
 
 from jhora.calc.arudha import bhava_arudha
+from jhora.calc.jaimini_strength import chart_signs_lons, stronger_rasi
 from jhora.charts.chart import ChartBuilder
 from jhora.dasas.base import DasaOptions
 from jhora.dasas.narayana import NarayanaDasa, _LORD_NAME_TO_GRAHA
@@ -33,17 +34,23 @@ class TestNarayanaSequence:
 
 
 class TestNarayanaFamily:
-    def test_lagnamsaka_seeds_from_lagna(self):
+    def test_lagnamsaka_seeds_from_stronger_of_lagna_and_seventh(self):
         cd, d = _chart()
         lagna = Rasi.from_longitude(d["lagna_lon"])
+        signs, lons = chart_signs_lons(d)
+        seed = Rasi(stronger_rasi(lagna.value, (lagna.value + 6) % 12,
+                                  signs, lons))
         periods = LagnamsakaDasa().compute(cd.julian_day, d, DasaOptions())
         assert len(periods) == 12
-        assert periods[0].lord_name == lagna.full_name
+        assert periods[0].lord_name == seed.full_name
 
     def test_lagnamsaka_uses_the_narayana_progression(self):
         cd, d = _chart()
         lagna = Rasi.from_longitude(d["lagna_lon"])
-        expected = [r.value for r in NarayanaDasa._compute_sequence(lagna)]
+        signs, lons = chart_signs_lons(d)
+        seed = Rasi(stronger_rasi(lagna.value, (lagna.value + 6) % 12,
+                                  signs, lons))
+        expected = [r.value for r in NarayanaDasa._compute_sequence(seed)]
         got = [p.lord_index - 100 for p in
                LagnamsakaDasa().compute(cd.julian_day, d, DasaOptions())]
         assert got == expected
