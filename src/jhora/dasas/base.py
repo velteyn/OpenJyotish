@@ -65,6 +65,17 @@ class DasaOptions:
     #: Moola dasa without the moolatrikona correction (the Tara variant).
     tara_variant: bool = False
 
+    #: Tara-dasa definition: "parasara" (Vimsottari sequence from the 9th-from-
+    #: lagna lord) or "rath" (Moola-style sign walk from that lord's sign).
+    tara_definition: str = "parasara"
+    #: Apply the dasa sesham to the first mahadasa (from the Moon's nakshatra).
+    tara_use_sesham: bool = True
+    #: Reckon direction from the Moon's nakshatra (savya/apasavya) rather than
+    #: from the sign (odd/even).
+    tara_direction_from_star: bool = False
+    #: In the Rath definition, reverse the sesham for apasavya nakshatras.
+    tara_sesham_rev_apasavya: bool = False
+
     #: Which reference signs seed the Moola/Tara mahadasa cycle. The base sign
     #: is the most-occupied of the enabled Lagna/Sun/Moon signs; disabling a
     #: reference removes it from that choice.

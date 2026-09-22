@@ -198,6 +198,9 @@ def dasa(
     moola_lagna: bool = typer.Option(True, "--moola-lagna/--no-moola-lagna", help="Moola/Tara: use the Lagna sign as a base candidate"),
     moola_sun: bool = typer.Option(True, "--moola-sun/--no-moola-sun", help="Moola/Tara: use the Sun's sign as a base candidate"),
     moola_moon: bool = typer.Option(True, "--moola-moon/--no-moola-moon", help="Moola/Tara: use the Moon's sign as a base candidate"),
+    tara_definition: str = typer.Option("parasara", "--tara-definition", help="Tara dasa definition: parasara, rath"),
+    tara_sesham: str = typer.Option("moon", "--tara-sesham", help="Tara sesham: none, moon, moon-rev-apasavya"),
+    tara_dir_star: bool = typer.Option(False, "--tara-direction-from-star", help="Tara: reckon direction from the nakshatra instead of the sign"),
 ):
     """Compute dasa periods for a chart.
 
@@ -224,7 +227,12 @@ def dasa(
                        karaka_role=karaka_role, seed_house=house, ad_method=ad_method,
                        narayana_variant=narayana_variant, narayana_chart=narayana_chart,
                        moola_use_lagna=moola_lagna, moola_use_sun=moola_sun,
-                       moola_use_moon=moola_moon)
+                       moola_use_moon=moola_moon,
+                       tara_definition=tara_definition,
+                       tara_use_sesham=(tara_sesham.lower() != "none"),
+                       tara_sesham_rev_apasavya=(
+                           tara_sesham.lower() == "moon-rev-apasavya"),
+                       tara_direction_from_star=tara_dir_star)
     engine = _get_dasa_engine(system, opts)
     periods = engine.compute(chart_data.julian_day, chart_dict, opts)
     _display_dasa_table(periods, f"{system.title()} Dasa Periods")

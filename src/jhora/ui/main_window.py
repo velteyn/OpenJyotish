@@ -348,6 +348,42 @@ class MainWindow(QMainWindow):
         shl.addWidget(self.dasa_house_combo, 1)
         dl.addLayout(shl)
 
+        # Moola / Tara options: anchor references, Tara definition, direction
+        # reckoning and sesham. Other dasa systems ignore these.
+        mt = QGroupBox("Moola / Tara options")
+        mtl = QFormLayout(mt)
+        refs = QHBoxLayout()
+        self.dasa_moola_lagna = QCheckBox("Lagna")
+        self.dasa_moola_sun = QCheckBox("Sun")
+        self.dasa_moola_moon = QCheckBox("Moon")
+        for cb in (self.dasa_moola_lagna, self.dasa_moola_sun,
+                   self.dasa_moola_moon):
+            cb.setChecked(True)
+            cb.toggled.connect(self._update_dasa_text)
+            refs.addWidget(cb)
+        refs.addStretch(1)
+        mtl.addRow("Anchor references:", refs)
+        self.dasa_tara_definition = QComboBox()
+        self.dasa_tara_definition.addItems(
+            ["Parasara's definition", "Pt Sanjay Rath's teaching"])
+        self.dasa_tara_definition.currentTextChanged.connect(
+            self._update_dasa_text)
+        mtl.addRow("Tara definition:", self.dasa_tara_definition)
+        self.dasa_tara_dir_star = QCheckBox(
+            "Use nakshatra (savya/apasavya) to reckon direction, "
+            "instead of sign (odd/even)")
+        self.dasa_tara_dir_star.toggled.connect(self._update_dasa_text)
+        mtl.addRow("", self.dasa_tara_dir_star)
+        self.dasa_tara_sesham = QComboBox()
+        self.dasa_tara_sesham.addItems([
+            "From Moon like Vimsottari",
+            "No dasa sesham",
+            "From Moon, reverse for apasavya nakshatras",
+        ])
+        self.dasa_tara_sesham.currentTextChanged.connect(self._update_dasa_text)
+        mtl.addRow("Tara sesham:", self.dasa_tara_sesham)
+        dl.addWidget(mt)
+
         self.dasa_text = QTextEdit()
         self.dasa_text.setReadOnly(True)
         apply_output_font(self.dasa_text)
@@ -975,6 +1011,16 @@ class MainWindow(QMainWindow):
             sesham_method=sesham,
             year_definition=year,
             seed_house=house,
+            moola_use_lagna=self.dasa_moola_lagna.isChecked(),
+            moola_use_sun=self.dasa_moola_sun.isChecked(),
+            moola_use_moon=self.dasa_moola_moon.isChecked(),
+            tara_definition=(
+                "rath" if self.dasa_tara_definition.currentText().startswith("Pt")
+                else "parasara"),
+            tara_use_sesham=not self.dasa_tara_sesham.currentText().startswith("No"),
+            tara_sesham_rev_apasavya=self.dasa_tara_sesham.currentText().startswith(
+                "From Moon, reverse"),
+            tara_direction_from_star=self.dasa_tara_dir_star.isChecked(),
         )
 
     @staticmethod
