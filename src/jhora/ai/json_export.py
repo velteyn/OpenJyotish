@@ -197,7 +197,7 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
                     "narayana", "kalachakra", "brahma", "karaka",
                     "shoola", "trikona", "varnada",
                     "sthira", "navamsa", "yogardha", "niryana-shoola",
-                    "lagna-kendradi", "kaala", "chakra", "mandooka",
+                    "lagna-kendradi", "kaala", "chakra", "mandooka", "drig",
                     "tithi-ashtottari", "tithi-yogini",
                     "karana-chaturaaseeti", "yoga-vimsottari",
                     "naisargika", "moola", "tara"):
