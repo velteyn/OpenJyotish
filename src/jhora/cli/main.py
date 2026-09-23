@@ -2062,6 +2062,45 @@ def transit(
 
 
 @app.command()
+def sade_sati(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Sade Sati timeline — Saturn phase dates + Kantaka/Ashtama Shani."""
+    from datetime import date
+    from jhora.calc.gochara import sade_sati_timeline
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    moon_rasi = cd.planets[Graha.MOON].rasi.value
+    phases = sade_sati_timeline(moon_rasi, ayanamsa)
+    today = date.today()
+
+    console.print(f"[dim]Natal Moon: {Rasi(moon_rasi).short_name}  "
+                  f"(dates are UTC)[/dim]")
+    table = Table(title="Sade Sati & Saturn Transits Timeline")
+    table.add_column("Kind", style="cyan")
+    table.add_column("Phase", style="yellow")
+    table.add_column("Saturn in", style="green")
+    table.add_column("Start", style="white")
+    table.add_column("End", style="white")
+    table.add_column("Now", style="bold")
+    for p in phases:
+        now = "[bold green]← now[/bold green]" \
+            if p.start <= today <= p.end else ""
+        start_s = f"~{p.start}" if not p.start_exact else str(p.start)
+        end_s = f"~{p.end}" if not p.end_exact else str(p.end)
+        table.add_row(p.kind, p.phase, Rasi(p.sign).short_name,
+                      start_s, end_s, now)
+    console.print(table)
+
+
+@app.command()
 def prasna(
     number: int = typer.Argument(..., help="Query number (1-108, 1-249, or 1-1800)"),
     mode: str = typer.Option("108", "--mode", "-m", help="Prasna mode: 108, 249, or nadi"),
