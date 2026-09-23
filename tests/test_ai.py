@@ -1400,3 +1400,25 @@ class TestTeacherChat:
         used, _ = t.context_usage(
             chart=None, history=[{"role": "user", "content": "A" * 10000}])
         assert used >= 700
+
+
+class TestVargaStrengthExport:
+    def test_json_export_varga_strength(self):
+        result = chart_to_json(_sample_chart())
+        vs = result["varga_strength"]
+        assert len(vs["shadbala"]) == 24
+        assert len(vs["bhava_bala"]) == 24
+        assert set(vs["shadbala"]["D-1"]) == {
+            "Su", "Mo", "Ma", "Me", "Ju", "Ve", "Sa"}
+        assert set(vs["bhava_bala"]["D-1"]) == {str(h) for h in range(1, 13)}
+
+    def test_varga_shadbala_matches_engine(self):
+        from jhora.calc.bhava_bala import as_varga_chart
+        from jhora.calc.shadbala import ShadbalaComputer
+        from jhora.types.varga import VargaLevel
+
+        cd = _sample_chart()
+        result = chart_to_json(cd)
+        sb = ShadbalaComputer(as_varga_chart(cd, VargaLevel.D_9))
+        expected = round(sb.compute_one(Graha.SUN).total_virupa, 0)
+        assert result["varga_strength"]["shadbala"]["D-9"]["Su"] == expected

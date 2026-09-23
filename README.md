@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 46 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-25-section JSON API for AI agents (+ JSON-LD)  |  1469 tests  |  GPL v3.0
+26-section JSON API for AI agents (+ JSON-LD)  |  1472 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -192,7 +192,7 @@ data = json.loads(subprocess.run(
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets + upagrahas + outer planets |
-| `analyze` | AI-friendly JSON dump (25 sections) |
+| `analyze` | AI-friendly JSON dump (26 sections) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
@@ -217,7 +217,7 @@ data = json.loads(subprocess.run(
 | `knowledge` | Search Vedic textbooks provided by you in txt format |
 | `ai` | LLM chart reading (Ollama/LM Studio/Unsloth) |
 | `teach` | AI Teacher — learn Vedic astrology |
-| `export` | HTML report — positions, strengths, ashtakavarga, yogas, sahamas, special lagnas, arudhas, karakas, KP, chalit, dasa, transits |
+| `export` | HTML report — positions, strengths (incl. per-varga), ashtakavarga, yogas, sahamas, special lagnas, arudhas, karakas, KP, chalit, dasa, transits |
 | `ephemeris` | Daily planet table |
 | `varga` | Any divisional chart (D-1 to D-150) |
 | `navamsa` | D-9 Navamsa |

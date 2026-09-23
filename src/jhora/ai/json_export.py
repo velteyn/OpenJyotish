@@ -133,6 +133,33 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["bhava_bala"] = {}
 
+    # ── Strength across divisional charts ──
+    try:
+        from jhora.calc.bhava_bala import as_varga_chart
+        from jhora.types.varga import VargaLevel
+
+        planets = [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                   Graha.JUPITER, Graha.VENUS, Graha.SATURN]
+        shadbala_by_varga = {}
+        bhava_by_varga = {}
+        for level in VargaLevel:
+            vc = as_varga_chart(cd, level)
+            sb = ShadbalaComputer(vc)
+            shadbala_by_varga[level.short_name] = {
+                g.short_name: round(sb.compute_one(g).total_virupa, 0)
+                for g in planets
+            }
+            bbr = BhavaBalaComputer(vc).compute_all()
+            bhava_by_varga[level.short_name] = {
+                str(h): round(bbr.results[h].total, 1) for h in range(1, 13)
+            }
+        result["varga_strength"] = {
+            "shadbala": shadbala_by_varga,
+            "bhava_bala": bhava_by_varga,
+        }
+    except Exception:
+        result["varga_strength"] = {}
+
     # ── Vimsopaka ──
     try:
         vc = VimsopakaComputer(cd)
