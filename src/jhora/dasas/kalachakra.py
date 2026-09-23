@@ -11,11 +11,12 @@ from jhora.dasas.base import DasaBase, DasaOptions
 #: Sign durations in years (Ar..Pi).
 _SIGN_YEARS = [7, 16, 9, 21, 5, 9, 16, 7, 10, 4, 4, 10]
 
-#: Nakshatra index -> group name.
+#: Nakshatra index -> group name (PVR Table 44-47; Savya-2 holds six:
+#: Bharani, Pushyami, Chitra, Poorvashadha, Uttarabhaadrapada, Revati).
 _GROUPS: Dict[int, str] = {}
-for _i in (0, 2, 6, 8, 12, 14, 18, 20, 24, 26):
+for _i in (0, 2, 6, 8, 12, 14, 18, 20, 24):
     _GROUPS[_i] = "savya1"
-for _i in (1, 7, 13, 19, 25):
+for _i in (1, 7, 13, 19, 25, 26):
     _GROUPS[_i] = "savya2"
 for _i in (3, 9, 15, 21):
     _GROUPS[_i] = "apasavya1"
