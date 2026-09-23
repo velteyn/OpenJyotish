@@ -162,6 +162,43 @@ def _bhava_bala_table(cd: ChartData) -> str:
         return ""
 
 
+def _varga_strength_table(cd: ChartData) -> str:
+    """Shadbala and Bhava Bala across every divisional chart."""
+    try:
+        from jhora.calc.bhava_bala import as_varga_chart
+        from jhora.types.varga import VargaLevel
+
+        planets = [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                   Graha.JUPITER, Graha.VENUS, Graha.SATURN]
+        head = "".join(f"<th>{g.short_name}</th>" for g in planets)
+        rows = []
+        for level in VargaLevel:
+            vc = as_varga_chart(cd, level)
+            sb = ShadbalaComputer(vc)
+            cells = []
+            for g in planets:
+                v = sb.compute_one(g).total_virupa
+                cls = "strength" if v > 400 else ("weak" if v < 300 else "")
+                cells.append(f"<td class='{cls}'>{v:.0f}</td>")
+            rows.append(f"<tr><td>{level.short_name}</td>{''.join(cells)}</tr>")
+        shadbala = f"""<h3>Shadbala across vargas (total virupa)</h3>
+<table><tr><th>Varga</th>{head}</tr>{"".join(rows)}</table>"""
+
+        hh = "".join(f"<th>{h}</th>" for h in range(1, 13))
+        rows = []
+        for level in VargaLevel:
+            bbr = BhavaBalaComputer(as_varga_chart(cd, level)).compute_all()
+            cells = "".join(
+                f"<td>{bbr.results[h].total:.0f}</td>" for h in range(1, 13))
+            rows.append(f"<tr><td>{level.short_name}</td>{cells}</tr>")
+        bhava = f"""<h3>Bhava Bala across vargas (total)</h3>
+<table><tr><th>Varga</th>{hh}</tr>{"".join(rows)}</table>"""
+
+        return ("<h2>Strength across Divisional Charts</h2>" + shadbala + bhava)
+    except Exception:
+        return ""
+
+
 def _ashtakavarga_table(cd: ChartData) -> str:
     try:
         from jhora.export.traditional import _classical_bav
@@ -546,6 +583,7 @@ def _build_html(cd: ChartData, style: str) -> str:
         sections.extend([
             _shadbala_table(cd),
             _bhava_bala_table(cd),
+            _varga_strength_table(cd),
             _ashtakavarga_table(cd),
             _vimsottari_table(cd),
             _yogas_list(cd),

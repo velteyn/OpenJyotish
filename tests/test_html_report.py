@@ -104,3 +104,12 @@ def test_parity_tables_present():
     html = _build_html(_chart(), "full")
     assert "Dwadasa Vargeeya Bala" in html
     assert "Ishta / Kashta Phala" in html
+
+
+def test_varga_strength_table():
+    from jhora.export.report import _varga_strength_table
+    html = _varga_strength_table(_chart())
+    assert "Strength across Divisional Charts" in html
+    assert "Shadbala across vargas" in html
+    assert "Bhava Bala across vargas" in html
+    assert "D-1" in html and "D-60" in html
