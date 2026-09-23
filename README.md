@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 48 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-28-section JSON API for AI agents (+ JSON-LD)  |  1539 tests  |  GPL v3.0
+28-section JSON API for AI agents (+ JSON-LD)  |  1543 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -196,7 +196,7 @@ data = json.loads(subprocess.run(
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
-| `ashtakavarga` | BAV, SAV, Sodhya Pinda, Kakshya bindu |
+| `ashtakavarga` | BAV, SAV, Sodhya Pinda, Kakshya bindu, Bala reduction stages (`--bala`) |
 | `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/shoola/trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/lagna-kendradi/drig/sudarshana/moola/tara/lagnamsaka/padanaathaamsa/rasi-bhukta-vimsottari (MD/AD; system positional, `--karaka-role` for karaka, `--house` for shoola) |
 | `dasa-timeline` | Text bar chart with now-marker |
 | `dasa-chart` | Period tree around the running period (MD → AD → PD; `--at`, `--depth`) |

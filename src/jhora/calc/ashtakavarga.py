@@ -14,6 +14,7 @@ References:
   - Classical Vedic 9.0 binary (function 0x00460bd0)
 """
 
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from jhora.charts.chart import ChartData
@@ -345,8 +346,39 @@ def sodhya_pinda(
     return {g: sum(ekadhi[g]) for g in _OCCUPANT_GRAHAS}
 
 
-# ── Kakshya (sub-divisional bindus) ──
+@dataclass(frozen=True)
+class AshtakavargaBala:
+    """One planet's strength through the reduction stages."""
+    graha: Graha
+    bav_total: int
+    trikona_total: int
+    ekadhipatya_total: int
+    sodhya_pinda: int
 
+
+def ashtakavarga_bala(
+    chart: ChartData,
+    parasara_moon: bool = True,
+    parasara_venus: bool = True,
+) -> List[AshtakavargaBala]:
+    """Per-planet strength at each reduction stage (the Bala view).
+
+    Raw BAV total → Trikona Shodhana total → Ekadhipatya Shodhana total
+    (= Sodhya Pinda). Totals never increase across stages.
+    """
+    bavs = all_bhinna_ashtakavarga(chart, parasara_moon, parasara_venus)
+    trikona = trikona_shodhana_all(bavs)
+    ekadhi = ekadhipatya_shodhana(trikona)
+    return [AshtakavargaBala(
+        graha=g,
+        bav_total=sum(bavs[g]),
+        trikona_total=sum(trikona[g]),
+        ekadhipatya_total=sum(ekadhi[g]),
+        sodhya_pinda=sum(ekadhi[g]),
+    ) for g in _OCCUPANT_GRAHAS]
+
+
+# ── Kakshya (sub-divisional bindus) ──
 _KAKSHYA_REFERENCES = [
     Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
     Graha.JUPITER, Graha.VENUS, Graha.SATURN, "LAGNA",

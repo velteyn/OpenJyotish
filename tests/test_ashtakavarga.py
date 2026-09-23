@@ -338,3 +338,36 @@ class TestKakshya:
             for h in range(12):
                 for k, ref in enumerate(_KAKSHYA_REFERENCES):
                     assert table[h][k] == pav[ref_to_str(ref)][h]
+
+
+class TestBalaView:
+    def test_fixed_bav_totals(self, chart):
+        from jhora.calc.ashtakavarga import ashtakavarga_bala
+        totals = {b.graha: b.bav_total for b in ashtakavarga_bala(chart)}
+        assert totals == {
+            Graha.SUN: 48, Graha.MOON: 49, Graha.MARS: 39,
+            Graha.MERCURY: 54, Graha.JUPITER: 56, Graha.VENUS: 52,
+            Graha.SATURN: 39,
+        }
+
+    def test_stages_never_increase(self, chart):
+        from jhora.calc.ashtakavarga import ashtakavarga_bala
+        for b in ashtakavarga_bala(chart):
+            assert b.bav_total >= b.trikona_total >= b.ekadhipatya_total
+            assert b.ekadhipatya_total == b.sodhya_pinda
+
+    def test_matches_sodhya_pinda(self, chart):
+        from jhora.calc.ashtakavarga import ashtakavarga_bala, sodhya_pinda
+        sp = sodhya_pinda(chart)
+        for b in ashtakavarga_bala(chart):
+            assert b.sodhya_pinda == sp[b.graha]
+
+    def test_bala_cli_flag(self):
+        from typer.testing import CliRunner
+        from jhora.cli.main import app
+        r = CliRunner().invoke(app, [
+            "ashtakavarga", "2001-02-24 06:11:00 +0530 18.6333 77.2",
+            "--bala"])
+        assert r.exit_code == 0, r.output
+        assert "Ashtakavarga Bala" in r.output
+        assert "Sodhya Pinda" in r.output
