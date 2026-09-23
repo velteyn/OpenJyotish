@@ -1492,6 +1492,7 @@ def ashtakavarga(
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
     parasara: bool = typer.Option(True, "--parasara/--varahamihira", help="Ashtakavarga tradition (Varahamihira matrix not yet validated — Parasara only)"),
     kakshya: Optional[str] = typer.Option(None, "--kakshya", "-k", help="Show Kakshya table for a planet: sun, moon, mars, mercury, jupiter, venus, saturn"),
+    bala: bool = typer.Option(False, "--bala", "-b", help="Show the Bala view: strength at each reduction stage"),
 ):
     """Compute Ashtakavarga — planetary strengths by house."""
     if not parasara:
@@ -1531,6 +1532,24 @@ def ashtakavarga(
     for g in _OCCUPANT_GRAHAS:
         sp_table.add_row(g.full_name, str(sp[g]))
     console.print(sp_table)
+
+    # Bala view: strength at each reduction stage
+    if bala:
+        from jhora.calc.ashtakavarga import ashtakavarga_bala
+        rows = ashtakavarga_bala(cd, parasara_moon=parasara,
+                                 parasara_venus=parasara)
+        bala_table = Table(title="Ashtakavarga Bala (reduction stages)")
+        bala_table.add_column("Planet", style="cyan")
+        bala_table.add_column("BAV", style="white")
+        bala_table.add_column("Trikona", style="green")
+        bala_table.add_column("Ekadhipatya", style="green")
+        bala_table.add_column("Sodhya Pinda", style="yellow bold")
+        for b in rows:
+            bala_table.add_row(b.graha.full_name, str(b.bav_total),
+                               str(b.trikona_total),
+                               str(b.ekadhipatya_total),
+                               str(b.sodhya_pinda))
+        console.print(bala_table)
 
     # Kakshya table (optional)
     if kakshya:
