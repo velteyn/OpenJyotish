@@ -103,21 +103,6 @@ def chart(
         _display_chalit(chart_data, levels=levels)
 
 
-def _redact_sensitive_fields(value):
-    """Recursively redact sensitive fields before CLI output."""
-    sensitive_keys = {"latitude", "longitude"}
-    if isinstance(value, dict):
-        redacted = {}
-        for k, v in value.items():
-            if k in sensitive_keys:
-                redacted[k] = "[REDACTED]"
-            else:
-                redacted[k] = _redact_sensitive_fields(v)
-        return redacted
-    if isinstance(value, list):
-        return [_redact_sensitive_fields(item) for item in value]
-    return value
-
 @app.command("download-ephe")
 def download_ephe(
     dest: str = typer.Option("", "--dest",
@@ -178,8 +163,7 @@ def analyze(
         print(json.dumps(chart_to_jsonld(cd), indent=2, ensure_ascii=False))
         return
     data = full_analysis(birthdata, ayanamsa)
-    redacted_data = _redact_sensitive_fields(data)
-    print(json.dumps(redacted_data, indent=2, ensure_ascii=False))
+    print(json.dumps(data, indent=2, ensure_ascii=False))
 
 
 @app.command()
