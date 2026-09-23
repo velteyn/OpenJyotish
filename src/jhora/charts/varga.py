@@ -195,9 +195,11 @@ def _default_map(sign: int, part: int, n: int) -> int:
 
     Implemented per BPHS ch. 6 for the divisions whose start rule is
     unambiguous: D-2 (Hora), D-3 (Drekkana), D-4 (Chaturthamsa),
-    D-7 (Saptamsa), D-9 (Navamsa), D-10 (Dasamsa) and D-12 (Dwadasamsa).
-    The remaining levels still use the older generic odd/even fallback below
-    and need their own classical start rules.
+    D-7 (Saptamsa), D-9 (Navamsa), D-10 (Dasamsa), D-12 (Dwadasamsa),
+    D-16 (Shodasamsa), D-20 (Vimsamsa), D-24 (Siddhamsa), D-27 (Bhamsa),
+    D-30 (Trimsamsa), D-40 (Khavedamsa) and D-45 (Akshavedamsa).
+    D-5, D-6, D-8, D-11, D-60, D-81, D-108, D-144 and D-150 still use the
+    generic odd/even fallback and need their own classical start rules.
     """
     if n == 9:
         r = Rasi(sign)
@@ -217,11 +219,61 @@ def _default_map(sign: int, part: int, n: int) -> int:
         return (sign + (0 if sign % 2 == 0 else 8) + part) % 12
     if n == 12:  # Dwadasamsa: from the sign
         return (sign + part) % 12
+    if n == 16:  # Shodasamsa: movable → Aries, fixed → Leo, dual → Sagittarius
+        r = Rasi(sign)
+        start = 0 if r.is_movable else (4 if r.is_fixed else 8)
+        return (start + part) % 12
+    if n == 20:  # Vimsamsa: movable → Aries, fixed → Sagittarius, dual → Leo
+        r = Rasi(sign)
+        start = 0 if r.is_movable else (8 if r.is_fixed else 4)
+        return (start + part) % 12
+    if n == 24:  # Siddhamsa: odd signs → Leo, even signs → Cancer
+        return ((4 if sign % 2 == 0 else 3) + part) % 12
+    if n == 27:  # Bhamsa: element-anchored (fire→Ar, earth→Cn, air→Li, water→Cp)
+        start = {"fire": 0, "earth": 3, "air": 6, "water": 9}[Rasi(sign).element]
+        return (start + part) % 12
+    if n == 30:  # Trimsamsa: five unequal bands, lord-mapped signs
+        return _trimsamsa_map(sign, part)
+    if n == 40:  # Khavedamsa: odd signs → Aries, even signs → Libra
+        return ((0 if sign % 2 == 0 else 6) + part) % 12
+    if n == 45:  # Akshavedamsa: movable → Aries, fixed → Leo, dual → Sagittarius
+        r = Rasi(sign)
+        start = 0 if r.is_movable else (4 if r.is_fixed else 8)
+        return (start + part) % 12
     if sign % 2 == 0:
         return (sign + part) % 12
     else:
         offset = n // 2
         return (sign + offset + part) % 12
+
+
+#: Trimsamsa (D-30) bands as (upper degree bound, target sign). Odd signs run
+#: Mars/Saturn/Jupiter/Mercury/Venus; even signs reverse the lords and mirror
+#: the widths. Each band maps to one of its lord's own signs (BPHS ch. 6).
+_TRIMSAMSA_ODD: Tuple[Tuple[float, int], ...] = (
+    (5.0, 0),    # Mars → Aries
+    (10.0, 10),  # Saturn → Aquarius
+    (18.0, 8),   # Jupiter → Sagittarius
+    (25.0, 2),   # Mercury → Gemini
+    (30.0, 6),   # Venus → Libra
+)
+_TRIMSAMSA_EVEN: Tuple[Tuple[float, int], ...] = (
+    (5.0, 1),    # Venus → Taurus
+    (12.0, 5),   # Mercury → Virgo
+    (20.0, 11),  # Jupiter → Pisces
+    (25.0, 9),   # Saturn → Capricorn
+    (30.0, 7),   # Mars → Scorpio
+)
+
+
+def _trimsamsa_map(sign: int, part: int) -> int:
+    """The Trimsamsa sign for a whole-degree band of a sign."""
+    bands = _TRIMSAMSA_ODD if sign % 2 == 0 else _TRIMSAMSA_EVEN
+    degree = part + 0.5
+    for upper, target in bands:
+        if degree < upper:
+            return target
+    return bands[-1][1]
 
 
 def _reverse_map(sign: int, part: int, n: int) -> int:
