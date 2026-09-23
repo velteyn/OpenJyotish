@@ -150,23 +150,13 @@ def compute_all_upagrahas(chart: ChartData) -> List[UpagrahaResult]:
     # Temporal upagrahas need sunrise/sunset
     try:
         from jhora.calc.muhurta import _sunrise_sunset
+        from jhora.charts.chart import ChartBuilder
         bd = chart.birth_date
-        tz_str = chart.timezone
-        tz_offset = 0.0
-        if tz_str:
-            try:
-                tz_offset = float(tz_str.replace("+", "").replace("−", "-"))
-                if "+" in tz_str or "−" in tz_str:
-                    pass
-                else:
-                    sign = -1 if tz_str.startswith("+") else 1
-                    tz_offset = sign * abs(float(tz_str.replace("+", "")))
-            except Exception:
-                tz_offset = 0.0
-
+        # _parse_tz returns hours added to local to get UTC (IST → -5.5);
+        # _sunrise_sunset wants the UTC offset (IST → +5.5).
+        tz_offset = -ChartBuilder._parse_tz(chart.timezone, bd)
         sunrise, sunset = _sunrise_sunset(
-            bd.year, bd.month, bd.day,
-            chart.latitude, chart.longitude, tz_offset,
+            bd, chart.latitude, chart.longitude, tz_offset,
         )
         results.extend(compute_temporal_upagrahas(chart, sunrise, sunset))
     except Exception:
