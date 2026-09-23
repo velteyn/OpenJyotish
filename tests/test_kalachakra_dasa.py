@@ -40,3 +40,25 @@ class TestKalachakraDasa:
         assert len(md.sub_periods) == 9
         assert abs(sum(s.duration_years for s in md.sub_periods)
                    - md.duration_years) < 1e-9
+
+
+class TestRevatiGrouping:
+    """Revati belongs to Savya-2 (PVR Table 45 lists it there), with
+    Uttarabhaadrapada making the six."""
+
+    def test_savya2_has_six(self):
+        from jhora.dasas.kalachakra import _GROUPS
+        assert sorted(n for n, g in _GROUPS.items()
+                      if g == "savya2") == [1, 7, 13, 19, 25, 26]
+        assert _GROUPS[26] == "savya2"
+        assert sorted(_GROUPS) == list(range(27))
+
+    def test_revati_moon_uses_savya2_table(self):
+        # Moon 355° → Revati, 3rd pada → Savya-2 3rd sequence
+        # (Li Sc Sg Cp Aq Pi Sc Cp Vi, paramayush 83); running Pisces.
+        periods = KalachakraDasa().compute(2440000.0, _d(355.0),
+                                           DasaOptions())
+        assert periods[0].lord_name == "Pisces"
+        assert periods[0].lord_name in (
+            "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius",
+            "Pisces", "Scorpio", "Capricorn", "Virgo")

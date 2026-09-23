@@ -19,6 +19,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
   mean (all reference vectors were pinned with it).
 
 ### Fixed
+- Kalachakra Revati grouping (Revati → Savya-2 per the pada tables;
+  previously misassigned, affecting Moon-in-Revati charts only).
 - Sodhya Pinda now follows BPHS / P.V.R. Rao ch. 12: occupation-aware
   Ekadhipatya Shodhana (rules 1–4) and Rasi Pinda + Graha Pinda with the
   Rasimana/Grahamana multipliers (verified: Mercury 152 = 77 + 75).
