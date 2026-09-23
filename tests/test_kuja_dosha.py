@@ -40,7 +40,7 @@ def test_dosha_houses_set():
 
 
 def test_house_from_mars():
-    """Test house calculations."""
+    """Whole-sign house counting (1-indexed)."""
     from jhora.calc.kuja_dosha import _house_from
     # Planet at 30 degrees from reference = H2
     assert _house_from(0, 30) == 2
@@ -48,3 +48,14 @@ def test_house_from_mars():
     assert _house_from(0, 5) == 1
     assert _house_from(100, 100.5) == 1
     assert _house_from(0, 350) == 12
+
+
+def test_house_from_is_whole_sign():
+    """Regression: 61° (Gemini 1°) from 59° (Taurus 29°) is H2, not H1.
+
+    The old angular-distance formula reported H1 whenever the two points were
+    within 30° of each other, ignoring the sign boundary.
+    """
+    from jhora.calc.kuja_dosha import _house_from
+    assert _house_from(59, 61) == 2
+    assert _house_from(101.14, 80.75) == 12

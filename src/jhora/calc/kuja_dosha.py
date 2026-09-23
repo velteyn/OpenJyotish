@@ -32,9 +32,13 @@ _SATURN_ASPECTS = {3, 10}   # Saturn also fully aspects 3rd and 10th
 
 
 def _house_from(reference_lon: float, planet_lon: float) -> int:
-    """House number of planet_lon measured from reference_lon (1-indexed)."""
-    diff = (planet_lon - reference_lon) % 360.0
-    return int(diff // 30) + 1
+    """Whole-sign house (1-12) of planet_lon from reference_lon's sign.
+
+    Kuja Dosha and graha drishti are counted by whole sign (the mainstream
+    convention, matching `calc.drishti`), not by the angular distance from
+    the reference degree.
+    """
+    return (int(planet_lon // 30) - int(reference_lon // 30)) % 12 + 1
 
 
 def _sign_from_lon(lon: float) -> int:
