@@ -130,7 +130,7 @@ harness before promoting any new model.
   positions/dates only from chart data; spouse-unknown guard) plus an
   exact-syntax command allowlist (verified against `--help`; the model
   invents flags like `--karaka-dasa` otherwise).
-- The corpus itself is a correctness oracle: it confirmed the 8-karaka
+- The corpus itself is a correctness reference: it confirmed the 8-karaka
   order (Putra 6th, Jnaati 7th, Dara 8th) behind the karaka fix.
 
 ## 9. Mechanical verification (reputation guarantee)

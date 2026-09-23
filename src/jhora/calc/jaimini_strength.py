@@ -11,7 +11,7 @@ family, Chara, Shoola, Drig). The ladder, applied in order:
 5. different-oddity of the sign vs its lord (Deha/Paka),
 6. degree-in-sign of the two sign-lords.
 
-Validated to 100% against an independent oracle.
+Validated to 100% against 1200 pinned reference vectors.
 
 Public API: :func:`stronger_rasi` — the stronger of two signs for a chart.
 """

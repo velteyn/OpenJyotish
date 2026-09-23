@@ -117,7 +117,7 @@ class TestSequence:
 
 
 class TestSyntheticOrders:
-    """Extra oracle-verified sequences (all exercise the Scorpio/Aquarius
+    """Extra reference sequences (all exercise the Scorpio/Aquarius
     co-lord path, which the 1970 fixture short-circuits)."""
 
     CASES = [

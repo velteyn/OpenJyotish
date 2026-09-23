@@ -27,7 +27,7 @@ class TestComputeAll:
 
     def test_temporal_matches_direct_call(self):
         # compute_all_upagrahas must wire sunrise/sunset identically to the
-        # direct temporal call used by the sphuta oracle tests.
+        # direct temporal call used by the sphuta reference tests.
         cd = _jalkot()
         sr, ss = _sunrise_sunset(
             datetime.datetime(2001, 2, 24), 18 + 38 / 60, 77 + 12 / 60, 5.5)

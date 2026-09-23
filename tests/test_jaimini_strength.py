@@ -1,6 +1,6 @@
 """Jaimini rasi strength (the sign-strength ladder).
 
-Golden vectors are validated against an independent oracle.
+Golden vectors capture pinned reference behavior (1200 vectors).
 `signs[p]`: 0 = lagna, 1 = Sun … 9 = Ketu.
 """
 

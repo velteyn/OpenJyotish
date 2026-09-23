@@ -2,12 +2,10 @@
 
 Supports two scoring systems:
   1. 10 Porutham (19 points) — standard South Indian matchmaking
-  2. Ashta Koota (36 points, 8 factors) — classical Vedic binary system
+  2. Ashta Koota (36 points, 8 factors) — classical eightfold matching
 
 References:
   - "Vedic Astrology: An Integrated Approach" by P.V.R. Narasimha Rao
-  - Original Vedic astrology binary (Ashta Koota: format string at 0x591a3c,
-    score table lookup at function_4b3b10)
   - "The 10 Poruthams" — standard South Indian matchmaking
 """
 
