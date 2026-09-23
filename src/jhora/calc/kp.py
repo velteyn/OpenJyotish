@@ -246,3 +246,146 @@ class KPComputer:
 def kp_chart(cd: ChartData) -> KPChart:
     """Convenience wrapper: the KP view of a chart."""
     return KPComputer(cd).compute()
+
+
+# ── KP view of the Vimsottari dasa ──────────────────────────────────────────
+#
+# KP does not change the Vimsottari periods; it changes how a running period
+# is read. Each dasa lord is judged through its *natal* position: the Placidus
+# bhava it occupies and its fourfold chain (sign / star / sub / sub-sub lord).
+# The sub lord of the dasa lord is the deciding factor in KP, so the same
+# Vimsottari years are presented with that chain attached.
+
+_LEVEL_NAMES: Tuple[str, ...] = (
+    "Mahadasa", "Antardasa", "Pratyantardasa", "Sukshma", "Prana", "Deha",
+)
+
+
+@dataclass(frozen=True)
+class KPDasaLord:
+    """A Vimsottari mahadasa lord read through its KP chain."""
+
+    graha: Graha
+    start_jd: float
+    end_jd: float
+    duration_years: float
+    house: int
+    chain: LordChain
+
+
+@dataclass(frozen=True)
+class KPDasaLevel:
+    """One level of the running Vimsottari chain, read KP-style."""
+
+    level: str
+    graha: Graha
+    start_jd: float
+    end_jd: float
+    house: int
+    chain: LordChain
+
+
+def _vimsottari_periods(cd: ChartData) -> List:
+    """The Vimsottari period tree for a chart (standard periods)."""
+    from jhora.dasas.vimsottari import VimsottariDasa
+
+    chart = {
+        "planets": {g.value: {"longitude": p.longitude}
+                    for g, p in cd.planets.items()},
+        "lagna_lon": cd.ascendant,
+    }
+    return VimsottariDasa().compute(cd.julian_day, chart)
+
+
+def _planet_annotations(cd: ChartData) -> Dict[Graha, KPPlanet]:
+    return {p.graha: p for p in kp_chart(cd).planets}
+
+
+def kp_dasa_lords(cd: ChartData) -> List[KPDasaLord]:
+    """The Vimsottari mahadasas, each lord annotated with its KP chain.
+
+    The years are the standard Vimsottari periods; the KP-specific view is
+    the fourfold chain and Placidus bhava of each lord's natal position.
+    """
+    annotations = _planet_annotations(cd)
+    rows: List[KPDasaLord] = []
+    for md in _vimsottari_periods(cd):
+        try:
+            graha = Graha(md.lord_index)
+        except ValueError:
+            continue
+        kp = annotations.get(graha)
+        if kp is None:
+            continue
+        rows.append(KPDasaLord(
+            graha=graha,
+            start_jd=md.start_jd,
+            end_jd=md.end_jd,
+            duration_years=md.duration_years,
+            house=kp.house,
+            chain=kp.chain,
+        ))
+    return rows
+
+
+def kp_dasa_levels(cd: ChartData, when=None,
+                   max_levels: int = 3) -> List[KPDasaLevel]:
+    """The running Vimsottari chain (MD, AD, PD, …) with KP chains.
+
+    ``when`` is a local ``datetime`` (or ``date``); it defaults to the current
+    instant. Each active lord is annotated with the Placidus bhava and KP
+    chain of its natal position.
+    """
+    annotations = _planet_annotations(cd)
+    target = _target_jd(cd, when)
+    rows: List[KPDasaLevel] = []
+    nodes = _vimsottari_periods(cd)
+    while nodes and len(rows) < max_levels:
+        active = next(
+            (p for p in nodes if p.start_jd <= target < p.end_jd), None)
+        if active is None:
+            break
+        try:
+            graha = Graha(active.lord_index)
+        except ValueError:
+            break
+        kp = annotations.get(graha)
+        if kp is None:
+            if graha not in cd.planets:
+                break
+            chain = lord_chain(cd.planets[graha].longitude)
+            house = house_of(cd.planets[graha].longitude, cusp_longitudes(cd))
+        else:
+            chain, house = kp.chain, kp.house
+        rows.append(KPDasaLevel(
+            level=_LEVEL_NAMES[min(len(rows), len(_LEVEL_NAMES) - 1)],
+            graha=graha,
+            start_jd=active.start_jd,
+            end_jd=active.end_jd,
+            house=house,
+            chain=chain,
+        ))
+        nodes = active.sub_periods or []
+    return rows
+
+
+def _target_jd(cd: ChartData, when) -> float:
+    """Julian day (UT) for a local date/datetime; now when ``when`` is None."""
+    import swisseph as swe
+
+    from datetime import date as _date, datetime as _datetime, timedelta
+
+    if when is None:
+        now = _datetime.now()
+    elif isinstance(when, _datetime):
+        now = when
+    elif isinstance(when, _date):
+        now = _datetime(when.year, when.month, when.day, 12, 0)
+    else:
+        raise TypeError("when must be a date/datetime or None")
+    offset = ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
+    utc = now + timedelta(hours=offset)
+    return swe.julday(
+        utc.year, utc.month, utc.day,
+        utc.hour + utc.minute / 60.0 + utc.second / 3600.0,
+    )
