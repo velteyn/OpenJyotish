@@ -825,3 +825,13 @@ def test_populate_remedies(main_window):
     main_window._on_remedies_compute()
     assert main_window.remedy_table.rowCount() > 0
     assert "Ishta Devata" in main_window.remedy_deity.text()
+
+
+def test_dasa_chart_entry_view(main_window, chart):
+    main_window.chart_data = chart
+    main_window._update_dasa_text()
+    assert main_window.dasa_chart_table.rowCount() > 0
+    assert len(main_window._dasa_chart_paths) == \
+        main_window.dasa_chart_table.rowCount()
+    main_window._on_dasa_chart_activated(0, 0)
+    assert "Entry" in main_window.dasa_entry_text.toPlainText()
