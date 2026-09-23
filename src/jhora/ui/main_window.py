@@ -398,6 +398,11 @@ class MainWindow(QMainWindow):
         self.dasa_timeline = DasaTimelineWidget()
         dl.addWidget(self.dasa_timeline)
 
+        dl.addWidget(QLabel("Dasa chart — the running branch (MD → AD → PD):"))
+        self.dasa_chart_table = QTableWidget()
+        self.dasa_chart_table.setAlternatingRowColors(True)
+        dl.addWidget(self.dasa_chart_table, stretch=2)
+
         # Varga tab
         self.varga_widget = QWidget()
         vg = QVBoxLayout(self.varga_widget)
@@ -1000,8 +1005,35 @@ class MainWindow(QMainWindow):
             for md in periods:
                 lines.extend(self._render_period_tree(md, se, 0))
             self.dasa_text.setText("\n".join(lines))
+            self._fill_dasa_chart(periods, se)
         except Exception as e:
             self.dasa_text.setText(f"Dasa computation error:\n{e}")
+
+    def _fill_dasa_chart(self, periods, se):
+        """Populate the dasa-chart table with the running branch."""
+        from datetime import datetime
+
+        import swisseph as swe
+
+        from jhora.calc.dasa_chart import dasa_chart_rows
+
+        now = datetime.now()
+        now_jd = swe.julday(now.year, now.month, now.day,
+                            now.hour + now.minute / 60.0)
+        rows = []
+        for r in dasa_chart_rows(periods, now_jd):
+            y1, m1, d1, _ = se.revjul(r.start_jd)
+            y2, m2, d2, _ = se.revjul(r.end_jd)
+            rows.append([
+                "  " * r.depth + r.lord,
+                f"{int(y1)}/{int(m1):02d}/{int(d1):02d}",
+                f"{int(y2)}/{int(m2):02d}/{int(d2):02d}",
+                r.level,
+                "◀" if r.active else "",
+            ])
+        self._fill_table(
+            self.dasa_chart_table,
+            ["Lord", "Start", "End", "Level", ""], rows)
 
     def _dasa_options(self):
         """Build DasaOptions from the dasa tab dropdowns (for nakshatra dasas)."""
