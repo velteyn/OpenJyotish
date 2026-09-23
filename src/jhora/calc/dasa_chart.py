@@ -12,7 +12,7 @@ produces (standard Vimsottari by default); this module only arranges them.
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Tuple
 
 from jhora.charts.chart import ChartData
 from jhora.dasas.base import DasaBase
@@ -34,6 +34,9 @@ class DasaChartRow:
     start_jd: float
     end_jd: float
     active: bool
+    #: Lord-name path from the top level (MD/AD/...) — lets a view map a
+    #: clicked row back to the period for its entry chart.
+    path: Tuple[str, ...] = ()
 
 
 def dasa_chart_rows(periods: Sequence[DasaPeriod], when_jd: float,
@@ -46,6 +49,7 @@ def dasa_chart_rows(periods: Sequence[DasaPeriod], when_jd: float,
     """
     rows: List[DasaChartRow] = []
     nodes: Sequence[DasaPeriod] = periods
+    prefix: Tuple[str, ...] = ()
     for level in range(max(1, depth)):
         active: Optional[DasaPeriod] = None
         for p in nodes:
@@ -57,12 +61,14 @@ def dasa_chart_rows(periods: Sequence[DasaPeriod], when_jd: float,
                 start_jd=p.start_jd,
                 end_jd=p.end_jd,
                 active=is_active,
+                path=prefix + (p.lord_name,),
             ))
             if is_active:
                 active = p
         if active is None or not active.sub_periods:
             break
         nodes = active.sub_periods
+        prefix = prefix + (active.lord_name,)
     return rows
 
 

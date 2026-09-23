@@ -72,3 +72,19 @@ class TestDasaChart:
         text = format_dasa_chart(dasa_chart(ref_chart, when=datetime(2026, 9, 23)))
         assert "◀" in text
         assert "[Mahadasa]" in text
+
+
+class TestDasaChartPaths:
+    def test_md_row_path_is_single_lord(self, ref_chart):
+        rows = dasa_chart_rows(_periods(ref_chart),
+                               ref_chart.julian_day + 365 * 30, depth=3)
+        for r in [x for x in rows if x.depth == 0]:
+            assert r.path == (r.lord,)
+
+    def test_child_path_extends_active_parent(self, ref_chart):
+        rows = dasa_chart_rows(_periods(ref_chart),
+                               ref_chart.julian_day + 365 * 30, depth=3)
+        active = {r.depth: r for r in rows if r.active}
+        for depth in (1, 2):
+            child, parent = active[depth], active[depth - 1]
+            assert child.path == parent.path + (child.lord,)

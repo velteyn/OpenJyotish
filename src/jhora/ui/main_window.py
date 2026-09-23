@@ -401,7 +401,15 @@ class MainWindow(QMainWindow):
         dl.addWidget(QLabel("Dasa chart — the running branch (MD → AD → PD):"))
         self.dasa_chart_table = QTableWidget()
         self.dasa_chart_table.setAlternatingRowColors(True)
+        self.dasa_chart_table.cellDoubleClicked.connect(
+            self._on_dasa_chart_activated)
         dl.addWidget(self.dasa_chart_table, stretch=2)
+
+        dl.addWidget(QLabel("Entry chart — double-click a period above:"))
+        self.dasa_entry_text = QTextEdit()
+        self.dasa_entry_text.setReadOnly(True)
+        apply_output_font(self.dasa_entry_text)
+        dl.addWidget(self.dasa_entry_text, stretch=1)
 
         # Varga tab
         self.varga_widget = QWidget()
@@ -1020,8 +1028,10 @@ class MainWindow(QMainWindow):
         now = datetime.now()
         now_jd = swe.julday(now.year, now.month, now.day,
                             now.hour + now.minute / 60.0)
+        chart_rows = dasa_chart_rows(periods, now_jd)
+        self._dasa_chart_paths = [r.path for r in chart_rows]
         rows = []
-        for r in dasa_chart_rows(periods, now_jd):
+        for r in chart_rows:
             y1, m1, d1, _ = se.revjul(r.start_jd)
             y2, m2, d2, _ = se.revjul(r.end_jd)
             rows.append([
@@ -1034,6 +1044,27 @@ class MainWindow(QMainWindow):
         self._fill_table(
             self.dasa_chart_table,
             ["Lord", "Start", "End", "Level", ""], rows)
+
+    def _on_dasa_chart_activated(self, row: int, _col: int) -> None:
+        """Show the entry chart for a double-clicked dasa-chart row."""
+        if not self.chart_data:
+            return
+        try:
+            paths = getattr(self, "_dasa_chart_paths", [])
+            if not (0 <= row < len(paths)) or not paths[row]:
+                return
+            from jhora.calc.dasa_entry import dasa_entry, format_dasa_entry
+            system = self.dasa_system_combo.currentText()
+            opts = self._dasa_options()
+            engine = self._get_dasa_engine(system, opts)
+            period, entry = dasa_entry(
+                self.chart_data, list(paths[row]),
+                engine=engine, opts=opts)
+            self.dasa_entry_text.setText(
+                format_dasa_entry(list(paths[row]), period,
+                                  self.chart_data, entry))
+        except Exception as e:
+            self.dasa_entry_text.setText(f"Entry chart error:\n{e}")
 
     def _dasa_options(self):
         """Build DasaOptions from the dasa tab dropdowns (for nakshatra dasas)."""
