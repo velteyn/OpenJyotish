@@ -1227,6 +1227,36 @@ def dasa_timeline(
     console.print(text)
 
 
+@app.command("dasa-chart")
+def dasa_chart_cmd(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    at: str = typer.Option("", "--at",
+                           help="Date (YYYY-MM-DD) whose branch to expand; default now"),
+    depth: int = typer.Option(3, "--depth", "-d",
+                              help="Levels to expand (1=MD, 2=+AD, 3=+PD)"),
+):
+    """Dasa chart — the period tree around the running period.
+
+    Lists all mahadasas, then expands the running mahadasa into its
+    antardasas, the running antardasa into its pratyantardasas, and so on,
+    flagging the period running at the given date (default: now).
+    """
+    from datetime import datetime
+
+    from jhora.calc.dasa_chart import dasa_chart, format_dasa_chart
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+    when = datetime.strptime(at, "%Y-%m-%d").date() if at else None
+    rows = dasa_chart(cd, when=when, depth=depth)
+    console.print(format_dasa_chart(rows))
+
+
 @app.command()
 def export(
     birthdata: str = typer.Argument(..., help="Birth data"),
