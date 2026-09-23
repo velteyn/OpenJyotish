@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Classical varga starts for D-5, D-6, D-8, D-11 (P.V.R. Rao ch. 6.2,
+  pinned on his worked examples) plus the Raman anti-zodiacal D-11
+  variant. Remaining unsourced levels unchanged.
 - Special sensitive points (`special-points` CLI): Baadhaka sthana/lord,
   Pushkara navamsa/bhaga, 64th navamsa (Khara), 22nd drekkana.
 - Mean/true lunar nodes option (the reference program exposes the same

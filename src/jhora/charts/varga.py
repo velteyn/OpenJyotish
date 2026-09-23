@@ -163,6 +163,9 @@ def _map_sign(sign: int, part: int, n: int, variant: VargaVariant) -> int:
     elif variant == VargaVariant.B:
         return sign  # bhava: same as rasi
     elif variant in (VargaVariant.RA, VargaVariant.RM, VargaVariant.RMM):
+        if n == 11:
+            # Raman Ekadasamsa (anti-zodiacal): mirror of the standard rule.
+            return (11 - (((12 - sign) % 12 + part) % 12)) % 12
         return (sign + part) % 12  # Raman variants
     elif variant == VargaVariant.V1_7:
         return _1_7_map(sign, part, n)
@@ -197,8 +200,10 @@ def _default_map(sign: int, part: int, n: int) -> int:
     unambiguous: D-2 (Hora), D-3 (Drekkana), D-4 (Chaturthamsa),
     D-7 (Saptamsa), D-9 (Navamsa), D-10 (Dasamsa), D-12 (Dwadasamsa),
     D-16 (Shodasamsa), D-20 (Vimsamsa), D-24 (Siddhamsa), D-27 (Bhamsa),
-    D-30 (Trimsamsa), D-40 (Khavedamsa) and D-45 (Akshavedamsa).
-    D-5, D-6, D-8, D-11, D-60, D-81, D-108, D-144 and D-150 still use the
+    D-30 (Trimsamsa), D-40 (Khavedamsa) and D-45 (Akshavedamsa);
+    per P.V.R. Rao ch. 6.2 for D-5 (Panchamsa), D-6 (Shashthamsa),
+    D-8 (Ashtamsa) and D-11 (Rudramsa).
+    D-60, D-81, D-108, D-144 and D-150 still use the
     generic odd/even fallback and need their own classical start rules.
     """
     if n == 9:
@@ -213,10 +218,23 @@ def _default_map(sign: int, part: int, n: int) -> int:
         return (sign + 4 * part) % 12
     if n == 4:   # Chaturthamsa: sign, 4th, 7th, 10th
         return (sign + 3 * part) % 12
+    if n == 5:   # Panchamsa (PVR 6.2.5): odd → Ar,Aq,Sg,Ge,Li;
+        # even → Ta,Vi,Pi,Cp,Sc
+        table = (0, 10, 8, 2, 6) if sign % 2 == 0 else (1, 5, 11, 9, 7)
+        return table[part % 5]
+    if n == 6:   # Shashthamsa (PVR 6.2.6): odd from Ar, even from Li
+        return (part if sign % 2 == 0 else 6 + part) % 12
     if n == 7:   # Saptamsa: odd (Aries..) from sign; even from the 7th
         return (sign + (0 if sign % 2 == 0 else 6) + part) % 12
+    if n == 8:   # Ashtamsa (PVR 6.2.8): movable from Ar, fixed from Sg,
+        # dual from Le
+        r = Rasi(sign)
+        start = 0 if r.is_movable else (8 if r.is_fixed else 4)
+        return (start + part) % 12
     if n == 10:  # Dasamsa: odd (Aries..) from sign; even from the 9th
         return (sign + (0 if sign % 2 == 0 else 8) + part) % 12
+    if n == 11:  # Rudramsa (PVR 6.2.11): mirror start, count forward
+        return ((12 - sign) % 12 + part) % 12
     if n == 12:  # Dwadasamsa: from the sign
         return (sign + part) % 12
     if n == 16:  # Shodasamsa: movable → Aries, fixed → Leo, dual → Sagittarius
