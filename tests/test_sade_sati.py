@@ -7,6 +7,8 @@ from typer.testing import CliRunner
 
 from jhora.cli.main import app
 from jhora.calc.gochara import (
+    current_phase,
+    next_sade_sati_start,
     sade_sati_status,
     sade_sati_timeline,
     saturn_phase_timeline,
@@ -73,6 +75,23 @@ class TestSadeSatiStructure:
     def test_empty_window(self):
         assert saturn_phase_timeline(
             0, "lahiri", date(2025, 1, 1), date(2025, 1, 1)) == []
+
+
+class TestHelpers:
+    def test_current_phase(self):
+        ph = saturn_phase_timeline(0, "lahiri",
+                                   date(2018, 1, 1), date(2030, 12, 31))
+        cur = current_phase(ph, date(2026, 1, 1))
+        assert cur is not None and cur.phase == "12th from Moon"
+        assert current_phase(ph, date(2019, 1, 1)) is None
+        assert current_phase([], date(2026, 1, 1)) is None
+
+    def test_next_sade_sati_start(self):
+        # Moon in Aquarius: Sade Sati opens with Saturn's Capricorn ingress.
+        ph = saturn_phase_timeline(10, "lahiri",
+                                   date(2018, 1, 1), date(2030, 12, 31))
+        assert next_sade_sati_start(ph, date(2019, 6, 1)) == date(2020, 1, 24)
+        assert next_sade_sati_start(ph, date(2028, 6, 1)) is None
 
 
 class TestSadeSatiCli:

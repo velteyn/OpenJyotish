@@ -360,3 +360,25 @@ def sade_sati_timeline(natal_moon_rasi: int,
     start = center - timedelta(days=int(365.25 * years_before))
     end = center + timedelta(days=int(365.25 * years_after))
     return saturn_phase_timeline(natal_moon_rasi, ayanamsa_name, start, end)
+
+
+def current_phase(phases: List[TransitPhase],
+                  today: Optional[date] = None) -> Optional[TransitPhase]:
+    """The timeline interval containing today, or None."""
+    if today is None:
+        today = datetime.now(timezone.utc).date()
+    for p in phases:
+        if p.start <= today <= p.end:
+            return p
+    return None
+
+
+def next_sade_sati_start(phases: List[TransitPhase],
+                         today: Optional[date] = None) -> Optional[date]:
+    """Start date of the next Sade Sati interval after today, or None."""
+    if today is None:
+        today = datetime.now(timezone.utc).date()
+    for p in phases:
+        if p.kind == "Sade Sati" and p.start > today:
+            return p.start
+    return None

@@ -2869,10 +2869,20 @@ class MainWindow(QMainWindow):
         self.tr_sav_table.setAlternatingRowColors(True)
         self.tr_sav_table.setMaximumHeight(60)
         layout.addWidget(self.tr_sav_table)
+
+        sade_label = QLabel("Sade Sati Timeline")
+        sade_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        layout.addWidget(sade_label)
+        self.tr_sade_table = QTableWidget()
+        self.tr_sade_table.setAlternatingRowColors(True)
+        self.tr_sade_table.setMaximumHeight(150)
+        layout.addWidget(self.tr_sade_table, stretch=1)
         return w
 
     def _populate_transit_table(self, cd: ChartData):
-        from jhora.calc.gochara import compute_transits
+        from datetime import date as _date
+
+        from jhora.calc.gochara import compute_transits, sade_sati_timeline
 
         result = compute_transits(cd)
 
@@ -2894,6 +2904,20 @@ class MainWindow(QMainWindow):
         sav_headers = [Rasi(r).short_name for r in range(12)]
         sav_row = [str(result.sav[r]) for r in range(12)]
         self._fill_table(self.tr_sav_table, sav_headers, [sav_row])
+
+        moon_rasi = int(cd.planet(Graha.MOON).longitude / 30)
+        phases = sade_sati_timeline(
+            moon_rasi, getattr(cd, "ayanamsa_name", "lahiri"))
+        today = _date.today()
+        sade_headers = ["Kind", "Phase", "Saturn in", "Start", "End", "Now"]
+        sade_rows = []
+        for p in phases:
+            now_mark = "← now" if p.start <= today <= p.end else ""
+            start_s = f"~{p.start}" if not p.start_exact else str(p.start)
+            end_s = f"~{p.end}" if not p.end_exact else str(p.end)
+            sade_rows.append([p.kind, p.phase, Rasi(p.sign).short_name,
+                              start_s, end_s, now_mark])
+        self._fill_table(self.tr_sade_table, sade_headers, sade_rows)
 
     # --- AI Chat ---
 
@@ -4264,7 +4288,7 @@ class MainWindow(QMainWindow):
         from jhora.calc.bhava_bala import BhavaBalaComputer
         from jhora.calc.dasa_timeline import (current_period, next_mahadasa,
                                               upcoming_sub_periods)
-        from jhora.calc.gochara import compute_transits, sade_sati_status
+        from jhora.calc.gochara import compute_transits
         from jhora.calc.shadbala import ShadbalaComputer
         from jhora.dasas.vimsottari import VimsottariDasa
         from jhora.ephemeris.swe import SweEngine
@@ -4404,17 +4428,26 @@ class MainWindow(QMainWindow):
         # natal Moon), never natal positions.
         kd_lines = ["[bold]Sade Sati Check:[/bold]"]
         try:
-            tr_now = compute_transits(cd)
-            by_graha = {e.graha: e for e in tr_now.entries}
-            sat_rasi = by_graha[Graha.SATURN].transit_rasi
+            from jhora.calc.gochara import (current_phase,
+                                            next_sade_sati_start,
+                                            sade_sati_timeline)
             moon_rasi = int(cd.planet(Graha.MOON).longitude / 30)
-            # Sade Sati: transit Saturn in 12th, 1st, 2nd from natal Moon
-            phase = sade_sati_status(moon_rasi, sat_rasi)
-            if phase:
-                kd_lines.append(f"  🟡 IN Sade Sati ({phase})")
+            phases = sade_sati_timeline(
+                moon_rasi, getattr(cd, "ayanamsa_name", "lahiri"))
+            cur = current_phase(
+                [p for p in phases if p.kind == "Sade Sati"])
+            if cur is not None:
+                kd_lines.append(
+                    f"  🟡 IN Sade Sati ({cur.phase}, "
+                    f"{cur.start} → {cur.end})")
             else:
-                dist = min((sat_rasi - moon_rasi) % 12, (moon_rasi - sat_rasi) % 12)
-                kd_lines.append(f"  Sade Sati in ~{dist * 2.5:.0f} years (Saturn at {dist} signs away)")
+                nxt = next_sade_sati_start(phases)
+                if nxt is not None:
+                    kd_lines.append(
+                        f"  Sade Sati starts {nxt} (12th from Moon)")
+                else:
+                    kd_lines.append(
+                        "  Sade Sati outside the computed window")
         except Exception:
             kd_lines.append("  Transit data unavailable")
 

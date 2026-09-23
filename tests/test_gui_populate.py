@@ -73,6 +73,7 @@ def test_populate_ashtakavarga_table(main_window, chart):
 
 def test_populate_transit_table(main_window, chart):
     main_window._populate_transit_table(chart)
+    assert main_window.tr_sade_table.rowCount() > 0
 
 
 def test_populate_tithi_pravesha(main_window, chart):

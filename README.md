@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 47 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-26-section JSON API for AI agents (+ JSON-LD)  |  1516 tests  |  GPL v3.0
+27-section JSON API for AI agents (+ JSON-LD)  |  1518 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -192,7 +192,7 @@ data = json.loads(subprocess.run(
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets + upagrahas + outer planets |
-| `analyze` | AI-friendly JSON dump (26 sections) |
+| `analyze` | AI-friendly JSON dump (27 sections, incl. Sade Sati timeline) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations |
