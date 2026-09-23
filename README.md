@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-47 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-27-section JSON API for AI agents (+ JSON-LD)  |  1520 tests  |  GPL v3.0
+48 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+27-section JSON API for AI agents (+ JSON-LD)  |  1531 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -200,6 +200,7 @@ data = json.loads(subprocess.run(
 | `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/shoola/trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/lagna-kendradi/drig/sudarshana/moola/tara/lagnamsaka/padanaathaamsa/rasi-bhukta-vimsottari (MD/AD; system positional, `--karaka-role` for karaka, `--house` for shoola) |
 | `dasa-timeline` | Text bar chart with now-marker |
 | `dasa-chart` | Period tree around the running period (MD → AD → PD; `--at`, `--depth`) |
+| `dasa-entry` | Entry chart — sky at a period's opening (`PATH` like `Jupiter/Saturn`; `--system`) |
 | `conditional-dasas` | List additional dasa systems that apply |
 | `transit` | Current transits with SAV scores and gochara vedha (obstruction) |
 | `sade-sati` | Sade Sati phase dates (12th/peak/2nd) + Kantaka/Ashtama Shani timeline |

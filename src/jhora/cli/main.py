@@ -1258,6 +1258,42 @@ def dasa_chart_cmd(
 
 
 @app.command()
+def dasa_entry(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    path: str = typer.Argument(..., help="Period path like 'Jupiter/Saturn' (MD/AD/...)"),
+    system: str = typer.Option("vimsottari", "--system", "-s",
+                               help="Dasa system (same names as the dasa command)"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Dasa entry chart — the sky at the moment a period opens.
+
+    Casts the chart for the start of the given period at the birth
+    place: entry lagna/Moon plus natal vs entry planet motion.
+    """
+    from jhora.calc.dasa_entry import dasa_entry as entry_for, format_dasa_entry, parse_path
+    from jhora.dasas.base import DasaOptions
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    builder.swe.set_sidereal_mode(ayanamsa)
+    cd = builder.build(year=bd["year"], month=bd["month"], day=bd["day"],
+                       hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+                       tz=bd["tz"], ayanamsa=ayanamsa)
+    segs = parse_path(path)
+    if not segs:
+        console.print("[red]Empty period path — e.g. 'Jupiter/Saturn'.[/red]")
+        raise typer.Exit(1)
+    engine = _get_dasa_engine(system, DasaOptions())
+    try:
+        period, entry = entry_for(cd, segs, engine=engine,
+                                  opts=DasaOptions())
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1)
+    console.print(format_dasa_entry(segs, period, cd, entry))
+
+
+@app.command()
 def export(
     birthdata: str = typer.Argument(..., help="Birth data"),
     output: str = typer.Option("chart_report.html", "--output", "-o", help="Output file path"),
