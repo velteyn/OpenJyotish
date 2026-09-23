@@ -754,6 +754,34 @@ class JhoraTui:
             rich.print(t)
         self._content_lines = cap.get().split("\n")
 
+    def _action_sade_sati(self):
+        if not self._check_chart():
+            return
+        from datetime import date as _date
+
+        from jhora.calc.gochara import sade_sati_timeline
+        with rich.capture() as cap:
+            moon_rasi = int(self.chart.planet(Graha.MOON).longitude / 30)
+            phases = sade_sati_timeline(
+                moon_rasi, getattr(self.chart, "ayanamsa_name", "lahiri"))
+            today = _date.today()
+            t = Table(title="Sade Sati Timeline (dates are UTC)",
+                      box=rich_box.SIMPLE)
+            t.add_column("Kind")
+            t.add_column("Phase")
+            t.add_column("Saturn in")
+            t.add_column("Start")
+            t.add_column("End")
+            t.add_column("Now")
+            for p in phases:
+                now_mark = "← now" if p.start <= today <= p.end else ""
+                start_s = f"~{p.start}" if not p.start_exact else str(p.start)
+                end_s = f"~{p.end}" if not p.end_exact else str(p.end)
+                t.add_row(p.kind, p.phase, Rasi(p.sign).short_name,
+                          start_s, end_s, now_mark)
+            rich.print(t)
+        self._content_lines = cap.get().split("\n")
+
     def _action_tajaka(self):
         if not self._check_chart():
             return
@@ -1251,8 +1279,9 @@ class JhoraTui:
             return
         items = [
             ("1", "Current Transits", self._action_transits),
-            ("2", "Tajaka Solar Return", self._action_tajaka),
-            ("3", "Mundane (World Events)", self._action_mundane),
+            ("2", "Sade Sati Timeline", self._action_sade_sati),
+            ("3", "Tajaka Solar Return", self._action_tajaka),
+            ("4", "Mundane (World Events)", self._action_mundane),
         ]
         self._sub_menu("Transits & Tajaka", items)
 

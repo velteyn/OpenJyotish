@@ -74,7 +74,7 @@ def test_new_report_sections_present():
     from jhora.export.report import _build_html
     html = _build_html(_chart(), "full")
     for heading in ["Special Lagnas", "Arudha Padas", "Chara Karakas",
-                    "Chalit (Bhava) Shifts"]:
+                    "Chalit (Bhava) Shifts", "Sade Sati Timeline"]:
         assert heading in html, f"missing report section: {heading}"
     assert "KP (Placidus" in html
     assert "Darapada" in html and "Upapada" in html
