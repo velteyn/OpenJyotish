@@ -152,3 +152,32 @@ def test_usl_name_fractional_factor():
 def test_usl_name_no_reverse():
     cfg = sl.UserSpecialLagnaConfig(Graha.SATURN, 2.0, reverse=False)
     assert sl.user_special_lagna_name(cfg) == "Sa2"
+
+
+def test_planet_rise_uses_the_correct_se_body():
+    """Regression: SE body IDs must follow SE order, not the Vedic order.
+
+    The old map used 2=Mars, 3=Mercury, 4=Jupiter, 5=Venus, so the special
+    lagna base for Mars/Mercury/Jupiter/Venus took the wrong planet's rise.
+    """
+    import swisseph as swe
+    from jhora.ephemeris.swe import SweEngine
+
+    expected = {
+        Graha.SUN: swe.SUN, Graha.MOON: swe.MOON, Graha.MERCURY: swe.MERCURY,
+        Graha.VENUS: swe.VENUS, Graha.MARS: swe.MARS,
+        Graha.JUPITER: swe.JUPITER, Graha.SATURN: swe.SATURN,
+    }
+    for g, body_id in expected.items():
+        assert sl._PLANET_BODY_MAP[g] == body_id
+
+    cd = _chart()
+    eng = SweEngine()
+    eng.set_sidereal_mode(cd.ayanamsa_name)
+    for g, body_id in expected.items():
+        lon, rise_jd = sl._planet_rise(cd, g)
+        if lon is None:
+            continue
+        true_lon = eng.calc_planet(body_id, rise_jd).longitude % 360
+        sep = abs(((lon - true_lon) + 180) % 360 - 180)
+        assert sep < 0.5, (g, lon, true_lon)

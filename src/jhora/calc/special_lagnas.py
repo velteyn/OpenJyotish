@@ -18,17 +18,19 @@ from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 from jhora.calc.muhurta import sunrise_sunset_hours
 
-# Graha → Swiss Ephemeris body ID (used by swe.rise_trans / calc_planet)
+# Graha → Swiss Ephemeris body ID (used by swe.rise_trans / calc_planet).
+# SE order is Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn — NOT the
+# Vedic weekday order. Rahu is the mean node; Ketu is Rahu + 180°.
 _PLANET_BODY_MAP: Dict[Graha, int] = {
     Graha.SUN:     0,
     Graha.MOON:    1,
-    Graha.MARS:    2,
-    Graha.MERCURY: 3,
-    Graha.JUPITER: 4,
-    Graha.VENUS:   5,
+    Graha.MERCURY: 2,
+    Graha.VENUS:   3,
+    Graha.MARS:    4,
+    Graha.JUPITER: 5,
     Graha.SATURN:  6,
-    Graha.RAHU:    10,   # swe.TRUE_NODE
-    Graha.KETU:    11,   # swe.OSCU_APOG
+    Graha.RAHU:    10,   # mean node
+    Graha.KETU:    11,
 }
 
 _PLANET_ABBREV: Dict[Graha, str] = {
