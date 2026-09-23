@@ -1689,6 +1689,8 @@ def tajaka(
                               help="One-based sub-period index (1 = period start)"),
     sunrise: bool = typer.Option(False, "--sunrise",
                                  help="Cast at sunrise of the computed day"),
+    vimshottari: str = typer.Option("none", "--vimshottari",
+                                    help="Vimsottari from the return Moon: none, sesham, full"),
 ):
     """Compute a Tajaka return chart for a given year.
 
@@ -1775,6 +1777,16 @@ def tajaka(
     for p in md:
         md_table.add_row(p.lord_name, f"{p.duration_years*365:.2f}")
     console.print(md_table)
+
+    if vimshottari.lower() not in ("none", "sesham", "full"):
+        console.print("[red]Unknown --vimshottari mode. Use: none, sesham, full.[/red]")
+        raise typer.Exit(code=2)
+    if vimshottari.lower() != "none":
+        from jhora.calc.tajaka import annual_vimsottari
+        av = annual_vimsottari(
+            chart, taj.moment_jd or taj.varsha_pravesh_jd,
+            sesham=(vimshottari.lower() == "sesham"))
+        _display_dasa_table(av, f"Annual Vimsottari ({vimshottari.lower()})")
 
 
 @app.command()

@@ -342,3 +342,59 @@ class TestLevelApparatus:
         assert t.moment_jd > t.anchor_jd
         assert t.level == TajakaLevel.FIVE_HOUR
         assert t.index == 5
+
+
+class TestAnnualVimsottari:
+    def _annual(self, year=2025):
+        from jhora.calc.tajaka import annual_vimsottari
+        cb, natal = _natal_chart()
+        taj = build_tajaka_level_chart(
+            cb.swe, cb, natal, year, TajakaLevel.ANNUAL, 1, False)
+        return taj, annual_vimsottari(
+            taj.chart, taj.moment_jd or taj.varsha_pravesh_jd, sesham=True)
+
+    def test_nine_mahadasas_from_pravesh(self):
+        taj, periods = self._annual()
+        assert len(periods) == 9
+        assert abs(periods[0].start_jd -
+                   (taj.moment_jd or taj.varsha_pravesh_jd)) < 1e-6
+        for a, b in zip(periods, periods[1:]):
+            assert abs(a.end_jd - b.start_jd) < 1e-6
+
+    def test_sesham_reduces_opening_md(self):
+        from jhora.calc.tajaka import annual_vimsottari
+        from jhora.dasas.vimsottari import VimsottariDasa
+        cb, natal = _natal_chart()
+        taj = build_tajaka_level_chart(
+            cb.swe, cb, natal, 2025, TajakaLevel.ANNUAL, 1, False)
+        moment = taj.moment_jd or taj.varsha_pravesh_jd
+        sesham = annual_vimsottari(taj.chart, moment, sesham=True)
+        full = annual_vimsottari(taj.chart, moment, sesham=False)
+        assert [p.lord_name for p in sesham] == \
+            [p.lord_name for p in full]
+        assert sesham[0].duration_years < full[0].duration_years
+        # Full cycle: opening MD runs its complete canonical length.
+        canon = dict(zip(
+            [g.full_name for g in VimsottariDasa.CYCLE_LORDS],
+            VimsottariDasa.CYCLE_YEARS))
+        assert full[0].duration_years == \
+            pytest.approx(canon[full[0].lord_name], rel=1e-3)
+
+
+class TestTajakaVimsottariCli:
+    def test_vimshottari_sesham(self):
+        from typer.testing import CliRunner
+        from jhora.cli.main import app
+        r = CliRunner().invoke(app, [
+            "tajaka", "2001-02-24 06:11:00 +0530 18.6333 77.2",
+            "2025", "--vimshottari", "sesham"])
+        assert r.exit_code == 0, r.output
+        assert "Annual Vimsottari (sesham)" in r.output
+
+    def test_vimshottari_bad_mode(self):
+        from typer.testing import CliRunner
+        from jhora.cli.main import app
+        r = CliRunner().invoke(app, [
+            "tajaka", "2001-02-24 06:11:00 +0530 18.6333 77.2",
+            "2025", "--vimshottari", "bogus"])
+        assert r.exit_code == 2

@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 48 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-28-section JSON API for AI agents (+ JSON-LD)  |  1535 tests  |  GPL v3.0
+28-section JSON API for AI agents (+ JSON-LD)  |  1539 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -204,7 +204,7 @@ data = json.loads(subprocess.run(
 | `conditional-dasas` | List additional dasa systems that apply |
 | `transit` | Current transits with SAV scores and gochara vedha (obstruction) |
 | `sade-sati` | Sade Sati phase dates (12th/peak/2nd) + Kantaka/Ashtama Shani timeline |
-| `tajaka` | Tajaka return charts — annual/monthly/2.5-day/5-hr/25-min/2-min (`--level`, `--index`, `--sunrise`) |
+| `tajaka` | Tajaka return charts — annual/monthly/2.5-day/5-hr/25-min/2-min (`--level`, `--index`, `--sunrise`, `--vimshottari` sesham/full from the return Moon) |
 | `tithi-pravesha` | Annual solar-tithi ingress |
 | `progression` | Secondary progressions (1 day = 1 year) |
 | `kuta` | Marriage compatibility (Porutham + Ashta Koota) |
