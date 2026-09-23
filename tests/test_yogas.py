@@ -8,6 +8,7 @@ from jhora.calc.yogas import (
     _pancha_mahapurusha, _gaja_kesari, _dhana_yogas,
     _raja_yogas, _viparita_raja_yogas, _parivartana,
     _sunapha_anapha_durudhara, _kemadruma,
+    _conjunction_yogas, _adhi_yoga, _lagnaadhi_yoga, _vasumati_yoga,
 )
 from jhora.charts.chart import ChartBuilder
 from jhora.types.graha import Graha
@@ -160,3 +161,79 @@ class TestInterpreterIntegration:
         interp = ChartInterpreter()
         text = interp.interpret_text(ref_chart)
         assert "Yogas Detected" in text
+
+
+class TestConjunctionYogas:
+    """Budha-Aditya and Chandra-Mangala (P.V.R. Rao, ch. 11.3)."""
+
+    def test_budha_aditya_same_sign(self):
+        rasi = {Graha.SUN: 4, Graha.MERCURY: 4, Graha.MOON: 0, Graha.MARS: 1}
+        names = [y.name for y in _conjunction_yogas(None, rasi)]
+        assert "Budha-Aditya Yoga" in names
+
+    def test_no_budha_aditya_in_different_signs(self):
+        rasi = {Graha.SUN: 4, Graha.MERCURY: 5, Graha.MOON: 0, Graha.MARS: 1}
+        names = [y.name for y in _conjunction_yogas(None, rasi)]
+        assert "Budha-Aditya Yoga" not in names
+
+    def test_chandra_mangala_same_sign(self):
+        rasi = {Graha.MOON: 2, Graha.MARS: 2}
+        names = [y.name for y in _conjunction_yogas(None, rasi)]
+        assert "Chandra-Mangala Yoga" in names
+
+
+class TestAdhiYoga:
+    """Benefics in the 6th/7th/8th from the Moon, graded (BPHS)."""
+
+    def _houses(self, moon, benefic_houses):
+        h = {Graha.MOON: moon}
+        for i, bh in enumerate(benefic_houses):
+            h[[Graha.JUPITER, Graha.VENUS, Graha.MERCURY][i]] = bh
+        return h
+
+    def test_all_three_houses(self):
+        # Moon in house 0; benefics in 6th, 7th, 8th (houses 5, 6, 7).
+        res = _adhi_yoga(None, self._houses(0, [5, 6, 7]))
+        assert len(res) == 1 and res[0].strength == "strong"
+
+    def test_two_houses(self):
+        res = _adhi_yoga(None, self._houses(0, [5, 6]))
+        assert res[0].strength == "medium"
+
+    def test_one_house(self):
+        res = _adhi_yoga(None, self._houses(0, [5]))
+        assert res[0].strength == "weak"
+
+    def test_none_when_benefics_elsewhere(self):
+        assert _adhi_yoga(None, self._houses(0, [0, 1, 2])) == []
+
+
+class TestLagnaadhiYoga:
+    """Benefics in the 7th and 8th from lagna, unafflicted (Rao, ch. 11.4)."""
+
+    def test_detected_when_unafflicted(self):
+        houses = {Graha.JUPITER: 6, Graha.VENUS: 7}
+        assert len(_lagnaadhi_yoga(None, houses)) == 1
+
+    def test_requires_both_houses(self):
+        houses = {Graha.JUPITER: 6, Graha.VENUS: 8}
+        assert _lagnaadhi_yoga(None, houses) == []
+
+    def test_malefic_conjunction_blocks(self):
+        houses = {Graha.JUPITER: 6, Graha.VENUS: 7, Graha.SATURN: 6}
+        assert _lagnaadhi_yoga(None, houses) == []
+
+
+class TestVasumatiYoga:
+    """Benefics in the upachaya houses (Rao, ch. 11.4)."""
+
+    def test_benefic_in_upachaya(self):
+        res = _vasumati_yoga(None, {Graha.JUPITER: 2})
+        assert len(res) == 1 and res[0].strength == "strong"
+
+    def test_malefic_in_upachaya_weakens(self):
+        res = _vasumati_yoga(None, {Graha.JUPITER: 2, Graha.SATURN: 5})
+        assert res[0].strength == "medium"
+
+    def test_none_without_benefic(self):
+        assert _vasumati_yoga(None, {Graha.JUPITER: 0, Graha.SATURN: 1}) == []

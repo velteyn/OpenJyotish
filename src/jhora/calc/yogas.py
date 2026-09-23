@@ -33,6 +33,14 @@ _KONA = {0, 4, 8}
 _TRIK = {5, 7, 11}
 _KENDRA_KONA = {0, 3, 4, 6, 8, 9}
 
+#: Natural benefics and malefics (Rahu/Ketu counted as malefics, as usual in
+#: yoga detection; the waning Moon's variation is not modelled here).
+_BENEFICS = {Graha.JUPITER, Graha.VENUS, Graha.MERCURY}
+_MALEFICS = {Graha.SUN, Graha.MARS, Graha.SATURN, Graha.RAHU, Graha.KETU}
+
+#: Upachaya (growth) houses, 0-indexed from the lagna.
+_UPACHAYA = {2, 5, 9, 10}
+
 _SPECIAL_ASPECTS = {
     Graha.MARS:    {3, 6, 7},
     Graha.JUPITER: {4, 6, 8},
@@ -112,6 +120,10 @@ def detect_all(cd: ChartData) -> List[YogaResult]:
     found.extend(_amala(cd, planet_rasi_map, planet_house_map))
     found.extend(_dharma_karma_adhipati(cd, planet_house_map))
     found.extend(_kala_sarpa(cd, planet_rasi_map))
+    found.extend(_conjunction_yogas(cd, planet_rasi_map))
+    found.extend(_adhi_yoga(cd, planet_house_map))
+    found.extend(_lagnaadhi_yoga(cd, planet_house_map))
+    found.extend(_vasumati_yoga(cd, planet_house_map))
 
     return found
 
@@ -454,6 +466,120 @@ def _dharma_karma_adhipati(
                 planets=(lord_9, lord_10), strength="strong",
             )]
     return []
+
+
+def _conjunction_yogas(
+    cd: ChartData,
+    planet_rasi_map: Dict[Graha, int],
+) -> List[YogaResult]:
+    """Same-sign conjunctions: Budha-Aditya (Sun+Mercury) and Chandra-Mangala.
+
+    Source: P.V.R. Rao, *Vedic Astrology: An Integrated Approach*, ch. 11.3.
+    Budha-Aditya loses strength when Mercury is combust, but the conjunction
+    itself is the yoga; combustion is not modelled here.
+    """
+    pairs = (
+        (Graha.SUN, Graha.MERCURY, "Budha-Aditya Yoga", "Sun-based",
+         "Sun and Mercury together (intelligence, skill, fame)"),
+        (Graha.MOON, Graha.MARS, "Chandra-Mangala Yoga", "Moon-based",
+         "Moon and Mars together (worldly wisdom, material success)"),
+    )
+    found = []
+    for a, b, name, category, desc in pairs:
+        if a in planet_rasi_map and b in planet_rasi_map \
+                and planet_rasi_map[a] == planet_rasi_map[b]:
+            found.append(YogaResult(
+                name=name, category=category, description=desc,
+                planets=(a, b), strength="strong",
+            ))
+    return found
+
+
+def _adhi_yoga(
+    cd: ChartData,
+    planet_house_map: Dict[Graha, int],
+) -> List[YogaResult]:
+    """Adhi Yoga — benefics in the 6th/7th/8th from the Moon.
+
+    Graded as in BPHS: benefics in all three houses → a king; in two → a
+    minister; in one → a leader (P.V.R. Rao, *Vedic Astrology*, ch. 11.3.6).
+    """
+    if Graha.MOON not in planet_house_map:
+        return []
+    moon_house = planet_house_map[Graha.MOON]
+    occupied = {
+        (house - moon_house) % 12
+        for g, house in planet_house_map.items()
+        if g in _BENEFICS and (house - moon_house) % 12 in (5, 6, 7)
+    }
+    if not occupied:
+        return []
+    grade = {1: ("weak", "a leader"),
+             2: ("medium", "a minister"),
+             3: ("strong", "a king")}[len(occupied)]
+    return [YogaResult(
+        name="Adhi Yoga", category="Moon-based",
+        description=("Benefics in "
+                     f"{len(occupied)} of the 6th/7th/8th from the Moon "
+                     f"— native becomes {grade[1]}"),
+        planets=tuple(g for g, house in planet_house_map.items()
+                      if g in _BENEFICS and (house - moon_house) % 12 in (5, 6, 7)),
+        strength=grade[0],
+    )]
+
+
+def _lagnaadhi_yoga(
+    cd: ChartData,
+    planet_house_map: Dict[Graha, int],
+) -> List[YogaResult]:
+    """Lagnaadhi Yoga — benefics in the 7th and 8th from the lagna, unafflicted.
+
+    Source: P.V.R. Rao, *Vedic Astrology*, ch. 11.4 ("Adhi Yoga from lagna").
+    """
+    for house in (6, 7):
+        if not any(h == house and g in _BENEFICS
+                   for g, h in planet_house_map.items()):
+            return []
+    for g, house in planet_house_map.items():
+        if g not in _BENEFICS or house not in (6, 7):
+            continue
+        for m, m_house in planet_house_map.items():
+            if m not in _MALEFICS:
+                continue
+            if m_house == house or aspects_planet(m, m_house, house):
+                return []
+    return [YogaResult(
+        name="Lagnaadhi Yoga", category="Raja",
+        description="Benefics in the 7th and 8th from lagna, unafflicted",
+        planets=tuple(g for g, h in planet_house_map.items()
+                      if g in _BENEFICS and h in (6, 7)),
+        strength="strong",
+    )]
+
+
+def _vasumati_yoga(
+    cd: ChartData,
+    planet_house_map: Dict[Graha, int],
+) -> List[YogaResult]:
+    """Vasumati Yoga — benefics in the upachaya houses from the lagna.
+
+    Source: P.V.R. Rao, *Vedic Astrology*, ch. 11.4. Full results require that
+    malefics do not occupy the upachayas and the benefics be strong.
+    """
+    in_upachaya = [g for g, h in planet_house_map.items()
+                   if g in _BENEFICS and h in _UPACHAYA]
+    if not in_upachaya:
+        return []
+    malefics_in_upachaya = any(g in _MALEFICS and h in _UPACHAYA
+                               for g, h in planet_house_map.items())
+    return [YogaResult(
+        name="Vasumati Yoga", category="Dhana",
+        description=("Benefics in upachaya houses (3/6/10/11)"
+                     + ("" if malefics_in_upachaya
+                        else " with no malefic in upachaya")),
+        planets=tuple(in_upachaya),
+        strength="medium" if malefics_in_upachaya else "strong",
+    )]
 
 
 def _kala_sarpa(
