@@ -76,10 +76,10 @@ def test_sade_sati_uses_transit_saturn(chart, dashboard_texts):
     if sat_rasi in ss:
         pos = ["12th from Moon", "1st from Moon (peak)",
                "2nd from Moon"][ss.index(sat_rasi)]
-        assert f"IN Sade Sati ({pos})" in keydates
+        assert f"IN Sade Sati ({pos}," in keydates
     else:
         assert "IN Sade Sati" not in keydates
-        assert "Sade Sati in" in keydates
+        assert "Sade Sati starts" in keydates
 
 
 def test_retro_watch_uses_transit_status(chart, dashboard_texts):
