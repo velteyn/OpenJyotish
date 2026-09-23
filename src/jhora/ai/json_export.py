@@ -156,10 +156,12 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     # ── Dasa ──
     try:
         dasa = VimsottariDasa()
+        # NB: the birth coordinates are intentionally NOT placed in this
+        # dict — Vimsottari does not use them, and they must not flow into
+        # the returned (and printed) analysis.
         cd_dict = {"planets": {g.value: {"longitude": p.longitude}
                                for g, p in cd.planets.items()},
                    "lagna_lon": cd.ascendant,
-                   "lat": cd.latitude, "lon": cd.longitude,
                    "tz": cd.timezone}
         if cd.hora_lagna is not None:
             # True Hora Lagna for Varnada dasa (Sun-sign fallback
