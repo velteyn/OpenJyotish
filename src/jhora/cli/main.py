@@ -1543,11 +1543,14 @@ def ashtakavarga(
         bala_table.add_column("BAV", style="white")
         bala_table.add_column("Trikona", style="green")
         bala_table.add_column("Ekadhipatya", style="green")
+        bala_table.add_column("Rasi Pinda", style="green")
+        bala_table.add_column("Graha Pinda", style="green")
         bala_table.add_column("Sodhya Pinda", style="yellow bold")
         for b in rows:
             bala_table.add_row(b.graha.full_name, str(b.bav_total),
                                str(b.trikona_total),
                                str(b.ekadhipatya_total),
+                               str(b.rasi_pinda), str(b.graha_pinda),
                                str(b.sodhya_pinda))
         console.print(bala_table)
 

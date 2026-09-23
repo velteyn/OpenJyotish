@@ -207,41 +207,93 @@ class TestTrikonaShodhana:
 
 
 class TestEkadhipatyaShodhana:
-    """Ekadhipatya Shodhana (lordship reduction) tests."""
+    """Ekadhipatya Shodhana (P.V.R. Rao ch. 12.7.2 rules).
+
+    Occupancy = rasis holding any of the 7 grahas. Cases (a)–(e) are
+    PVR's Example 42 verbatim (Venus owns Taurus=1 and Libra=6).
+    """
+
+    def _bavs(self, **over):
+        base = {g: [0] * 12 for g in
+                (Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                 Graha.JUPITER, Graha.VENUS, Graha.SATURN)}
+        for g, vals in over.items():
+            base[g] = list(vals)
+        return base
+
+    def _venus(self, ta, li):
+        bavs = self._bavs()
+        bavs[Graha.VENUS][1] = ta
+        bavs[Graha.VENUS][6] = li
+        return bavs
 
     def test_sun_moon_unchanged(self):
         """Sun and Moon own only one sign — their BAVs should pass through."""
-        bavs = {
-            Graha.SUN: [5, 3, 4, 2, 6, 1, 3, 4, 2, 5, 0, 3],
-            Graha.MOON: [4, 2, 3, 1, 5, 2, 4, 3, 1, 4, 1, 2],
-            Graha.MARS: [3, 4, 2, 3, 4, 2, 5, 3, 2, 3, 2, 4],
-            Graha.MERCURY: [2, 5, 1, 4, 3, 1, 2, 4, 3, 2, 3, 5],
-            Graha.JUPITER: [4, 3, 5, 2, 4, 3, 1, 5, 2, 4, 3, 2],
-            Graha.VENUS: [3, 2, 4, 1, 3, 2, 5, 4, 1, 3, 2, 4],
-            Graha.SATURN: [2, 4, 3, 5, 2, 4, 3, 1, 4, 2, 3, 1],
-        }
-        result = ekadhipatya_shodhana(bavs)
+        from jhora.calc.ashtakavarga import ekadhipatya_shodhana
+        bavs = self._bavs()
+        bavs[Graha.SUN] = [5, 3, 4, 2, 6, 1, 3, 4, 2, 5, 0, 3]
+        occupied = [False] * 12
+        result = ekadhipatya_shodhana(bavs, occupied)
         assert result[Graha.SUN] == bavs[Graha.SUN]
         assert result[Graha.MOON] == bavs[Graha.MOON]
 
-    def test_dual_lordship_reduction_logic(self):
-        """Mars owns Aries(0) and Scorpio(7). If bindus are 5 and 2,
-        the higher reduces to difference 3, lower stays 2."""
-        bavs = {
-            Graha.SUN: [5, 3, 4, 2, 6, 1, 3, 4, 2, 5, 0, 3],
-            Graha.MOON: [4, 2, 3, 1, 5, 2, 4, 3, 1, 4, 1, 2],
-            Graha.MARS: [5, 4, 2, 3, 4, 2, 5, 2, 2, 3, 2, 4],
-            Graha.MERCURY: [2, 5, 1, 4, 3, 1, 2, 4, 3, 2, 3, 5],
-            Graha.JUPITER: [4, 3, 5, 2, 4, 3, 1, 5, 2, 4, 3, 2],
-            Graha.VENUS: [3, 2, 4, 1, 3, 2, 5, 4, 1, 3, 2, 4],
-            Graha.SATURN: [2, 4, 3, 5, 2, 4, 3, 1, 4, 2, 3, 1],
-        }
-        result = ekadhipatya_shodhana(bavs)
-        mars_orig = bavs[Graha.MARS]
-        mars_new = result[Graha.MARS]
-        # Mars owns Aries(0) and Scorpio(7): orig [5, 2] → diff 3
-        assert mars_new[0] == 3  # 5 - 2 = 3
-        assert mars_new[7] == 2  # lower stays
+    def test_rule1_zero_skips(self):
+        from jhora.calc.ashtakavarga import ekadhipatya_shodhana
+        result = ekadhipatya_shodhana(
+            self._venus(4, 0), [False] * 12)
+        assert (result[Graha.VENUS][1], result[Graha.VENUS][6]) == (4, 0)
+
+    def test_rule2_both_occupied_skips(self):
+        """Example 42(a): Ta=4, Li=2, both occupied → unchanged."""
+        from jhora.calc.ashtakavarga import ekadhipatya_shodhana
+        occupied = [False] * 12
+        occupied[1] = occupied[6] = True
+        result = ekadhipatya_shodhana(self._venus(4, 2), occupied)
+        assert (result[Graha.VENUS][1], result[Graha.VENUS][6]) == (4, 2)
+
+    def test_rule3a_empty_lower_becomes_zero(self):
+        """Example 42(b): Ta=4 occupied, Li=2 empty → Li becomes 0."""
+        from jhora.calc.ashtakavarga import ekadhipatya_shodhana
+        occupied = [False] * 12
+        occupied[1] = True
+        result = ekadhipatya_shodhana(self._venus(4, 2), occupied)
+        assert (result[Graha.VENUS][1], result[Graha.VENUS][6]) == (4, 0)
+
+    def test_rule3b_empty_higher_takes_occupied(self):
+        """Example 42(c): Ta=4 empty, Li=2 occupied → Ta becomes 2."""
+        from jhora.calc.ashtakavarga import ekadhipatya_shodhana
+        occupied = [False] * 12
+        occupied[6] = True
+        result = ekadhipatya_shodhana(self._venus(4, 2), occupied)
+        assert (result[Graha.VENUS][1], result[Graha.VENUS][6]) == (2, 2)
+
+    def test_rule4b_both_empty_higher_takes_lower(self):
+        """Example 42(d): both empty, Ta=4, Li=2 → Ta becomes 2."""
+        from jhora.calc.ashtakavarga import ekadhipatya_shodhana
+        result = ekadhipatya_shodhana(
+            self._venus(4, 2), [False] * 12)
+        assert (result[Graha.VENUS][1], result[Graha.VENUS][6]) == (2, 2)
+
+    def test_rule4a_both_empty_equal_become_zero(self):
+        """Example 42(e): both empty, Ta=Li=2 → both become 0."""
+        from jhora.calc.ashtakavarga import ekadhipatya_shodhana
+        result = ekadhipatya_shodhana(
+            self._venus(2, 2), [False] * 12)
+        assert (result[Graha.VENUS][1], result[Graha.VENUS][6]) == (0, 0)
+
+
+class TestSodhyaPindaGold:
+    """PVR ch. 12 Example 43: Mercury SoAV [3,1,3,0,0,0,0,0,0,0,2,0]
+    gives rasi pinda 77, graha pinda 75, sodhya pinda 152."""
+
+    def test_mercury_152(self):
+        from jhora.calc.ashtakavarga import graha_pinda, rasi_pinda
+        soav = [3, 1, 3, 0, 0, 0, 0, 0, 0, 0, 2, 0]
+        assert rasi_pinda(soav) == 77
+        # Sun/Mars/Mercury in Ge(2), Venus in Ar(0); Moon Cn(3),
+        # Jupiter Vi(5), Saturn Li(6) — all zero-SoAV rasis.
+        assert graha_pinda(soav, [2, 3, 2, 2, 5, 0, 6]) == 75
+        assert rasi_pinda(soav) + graha_pinda(soav, [2, 3, 2, 2, 5, 0, 6]) == 152
 
 
 class TestSodhyaPinda:
@@ -354,7 +406,7 @@ class TestBalaView:
         from jhora.calc.ashtakavarga import ashtakavarga_bala
         for b in ashtakavarga_bala(chart):
             assert b.bav_total >= b.trikona_total >= b.ekadhipatya_total
-            assert b.ekadhipatya_total == b.sodhya_pinda
+            assert b.sodhya_pinda == b.rasi_pinda + b.graha_pinda
 
     def test_matches_sodhya_pinda(self, chart):
         from jhora.calc.ashtakavarga import ashtakavarga_bala, sodhya_pinda
