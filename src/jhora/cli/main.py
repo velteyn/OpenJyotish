@@ -2137,6 +2137,50 @@ def transit(
 
 
 @app.command()
+def special_points(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Special sensitive points — Baadhaka, Pushkara, Khara navamsa, 22nd drekkana."""
+    from jhora.calc.special_points import (
+        baadhaka_lord, baadhaka_sthana, drekkana_22, khara_navamsa_64,
+        planets_in_pushkara_bhaga, planets_in_pushkara_navamsa,
+    )
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    lagna_rasi = int(cd.ascendant // 30) % 12
+    badha = baadhaka_sthana(lagna_rasi)
+    lons = {g: p.longitude for g, p in cd.planets.items()}
+    moon_lon = cd.planet(Graha.MOON).longitude
+    table = Table(title="Special Points")
+    table.add_column("Point", style="cyan")
+    table.add_column("Sign", style="yellow")
+    table.add_column("Detail", style="white")
+    table.add_row("Baadhaka sthana",
+                  Rasi(badha).short_name,
+                  f"lord {baadhaka_lord(lagna_rasi).full_name}")
+    table.add_row("Pushkara navamsa", "—",
+                  ", ".join(g.full_name
+                            for g in planets_in_pushkara_navamsa(lons))
+                  or "none")
+    table.add_row("Pushkara bhaga", "—",
+                  ", ".join(g.full_name
+                            for g in planets_in_pushkara_bhaga(lons))
+                  or "none")
+    table.add_row("64th navamsa (Khara)",
+                  Rasi(khara_navamsa_64(moon_lon)).short_name, "from Moon")
+    table.add_row("22nd drekkana",
+                  Rasi(drekkana_22(moon_lon)).short_name, "from Moon")
+    console.print(table)
+
+
+@app.command()
 def sade_sati(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
