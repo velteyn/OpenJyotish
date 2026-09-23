@@ -124,8 +124,32 @@ def detect_all(cd: ChartData) -> List[YogaResult]:
     found.extend(_adhi_yoga(cd, planet_house_map))
     found.extend(_lagnaadhi_yoga(cd, planet_house_map))
     found.extend(_vasumati_yoga(cd, planet_house_map))
+    found.extend(_yogakaraka(cd, asc_rasi))
 
     return found
+
+
+def _yogakaraka(cd: ChartData, asc_rasi: int) -> List[YogaResult]:
+    """The Yogakaraka: one planet owning both a kendra and a trikona.
+
+    Fixed per lagna (Taurus/Libra Saturn; Cancer/Leo Mars;
+    Capricorn/Aquarius Venus); single source of truth shared with the
+    remedy engine. A functional benefic that gives Raja yoga.
+    """
+    from jhora.calc.remedies import _YOGAKARAKA
+
+    yk = _YOGAKARAKA.get(asc_rasi)
+    if yk is None:
+        return []
+    return [YogaResult(
+        name="Yogakaraka",
+        category="Raja",
+        planets=(yk,),
+        description=(
+            f"{yk.full_name} owns a kendra and a trikona from lagna; "
+            "a functional benefic giving Raja yoga (BPHS; standard "
+            "Parashari practice)"),
+    )]
 
 
 def _pancha_mahapurusha(
