@@ -22,17 +22,52 @@ class TestDefaultMap:
         assert _default_map(0, 0, 9) == 0
         assert _default_map(0, 3, 9) == 3
 
-    def test_odd_sign(self):
-        """Taurus (1, odd) with D-9: offset = 4, part 0 → 1+4=5→Virgo."""
-        assert _default_map(1, 0, 9) == 5  # Virgo
-        assert _default_map(1, 3, 9) == 8  # Sagittarius
+    def test_fixed_sign_navamsa(self):
+        """Taurus (fixed) starts its navamsa from the 9th — Capricorn."""
+        assert _default_map(1, 0, 9) == 9   # Capricorn
+        assert _default_map(1, 3, 9) == 0   # Aries
 
-    def test_d2(self):
-        """D-2 (2 divisions): odd signs have offset 1."""
-        assert _default_map(0, 0, 2) == 0  # Aries
-        assert _default_map(0, 1, 2) == 1  # Taurus
-        assert _default_map(1, 0, 2) == 2  # Gemini (1+1+0)
-        assert _default_map(1, 1, 2) == 3  # Cancer (1+1+1)
+    def test_dual_sign_navamsa(self):
+        """Gemini (dual) starts its navamsa from the 5th — Libra."""
+        assert _default_map(2, 0, 9) == 6   # Libra
+        assert _default_map(2, 1, 9) == 7   # Scorpio
+
+    def test_movable_sign_navamsa(self):
+        """Cancer (movable) starts its navamsa from itself."""
+        assert _default_map(3, 0, 9) == 3   # Cancer
+        assert _default_map(3, 8, 9) == 11  # Pisces
+
+    def test_d2_hora(self):
+        """D-2 Hora: odd signs run Leo then Cancer; even signs the reverse."""
+        assert _default_map(0, 0, 2) == 4  # Aries 1st half → Leo
+        assert _default_map(0, 1, 2) == 3  # Aries 2nd half → Cancer
+        assert _default_map(1, 0, 2) == 3  # Taurus 1st half → Cancer
+        assert _default_map(1, 1, 2) == 4  # Taurus 2nd half → Leo
+
+
+class TestClassicalDefaultStarts:
+    """The DEFAULT variant must use the classical per-varga start sign."""
+
+    def test_d3_drekkana(self):
+        # 1st = sign, 2nd = 5th, 3rd = 9th (Aries → Aries, Leo, Sagittarius)
+        assert [_default_map(0, k, 3) for k in range(3)] == [0, 4, 8]
+
+    def test_d4_chaturthamsa(self):
+        # 1st = sign, 2nd = 4th, 3rd = 7th, 4th = 10th
+        assert [_default_map(0, k, 4) for k in range(4)] == [0, 3, 6, 9]
+
+    def test_d7_saptamsa(self):
+        # Odd signs from the sign itself; even signs from the 7th.
+        assert _default_map(0, 0, 7) == 0   # Aries → Aries
+        assert _default_map(1, 0, 7) == 7   # Taurus → Scorpio
+
+    def test_d10_dasamsa(self):
+        # Odd signs from the sign itself; even signs from the 9th.
+        assert _default_map(0, 0, 10) == 0  # Aries → Aries
+        assert _default_map(1, 0, 10) == 9  # Taurus → Capricorn
+
+    def test_d12_dwadasamsa(self):
+        assert [_default_map(0, k, 12) for k in range(3)] == [0, 1, 2]
 
 
 class TestReverseMap:
@@ -144,17 +179,19 @@ class TestNavamsaDefault:
         assert p.rasi.full_name == "Leo"
 
     def test_rahu_navamsa(self, ref_navamsa):
+        # Rahu in Aquarius 16.9° (fixed → from Libra), 6th part → Pisces.
         p = ref_navamsa.positions[Graha.RAHU]
-        assert p.rasi.full_name == "Cancer"
+        assert p.rasi.full_name == "Pisces"
 
     def test_ketu_navamsa(self, ref_navamsa):
+        # Ketu in Leo 16.9° (fixed → from Aries), 6th part → Virgo.
         p = ref_navamsa.positions[Graha.KETU]
-        assert p.rasi.full_name == "Capricorn"
+        assert p.rasi.full_name == "Virgo"
 
     def test_lagna_navamsa(self, ref_navamsa):
-        # Sidereal asc = Sagittarius 1.26° (corrected via sidereal houses_ex);
-        # default odd/even map: even sign Sagittarius, part 0 → Sagittarius.
-        assert ref_navamsa.lagna_position.rasi.full_name == "Sagittarius"
+        # Sidereal asc = Sagittarius 1.26°; Sagittarius is dual, so its
+        # navamsa starts from the 5th (Aries), part 0 → Aries.
+        assert ref_navamsa.lagna_position.rasi.full_name == "Aries"
 
 
 class TestNavamsaVariants:

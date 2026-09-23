@@ -191,6 +191,32 @@ def _map_sign(sign: int, part: int, n: int, variant: VargaVariant) -> int:
 
 
 def _default_map(sign: int, part: int, n: int) -> int:
+    """The DEFAULT mapping for a division, following the classical starts.
+
+    Implemented per BPHS ch. 6 for the divisions whose start rule is
+    unambiguous: D-2 (Hora), D-3 (Drekkana), D-4 (Chaturthamsa),
+    D-7 (Saptamsa), D-9 (Navamsa), D-10 (Dasamsa) and D-12 (Dwadasamsa).
+    The remaining levels still use the older generic odd/even fallback below
+    and need their own classical start rules.
+    """
+    if n == 9:
+        r = Rasi(sign)
+        offset = 0 if r.is_movable else (8 if r.is_fixed else 4)
+        return (sign + offset + part) % 12
+    if n == 2:   # Hora: odd signs → Leo then Cancer; even → Cancer then Leo
+        if sign % 2 == 0:      # classically odd (Aries, Gemini, …)
+            return 4 if part == 0 else 3
+        return 3 if part == 0 else 4
+    if n == 3:   # Drekkana: sign, 5th, 9th
+        return (sign + 4 * part) % 12
+    if n == 4:   # Chaturthamsa: sign, 4th, 7th, 10th
+        return (sign + 3 * part) % 12
+    if n == 7:   # Saptamsa: odd (Aries..) from sign; even from the 7th
+        return (sign + (0 if sign % 2 == 0 else 6) + part) % 12
+    if n == 10:  # Dasamsa: odd (Aries..) from sign; even from the 9th
+        return (sign + (0 if sign % 2 == 0 else 8) + part) % 12
+    if n == 12:  # Dwadasamsa: from the sign
+        return (sign + part) % 12
     if sign % 2 == 0:
         return (sign + part) % 12
     else:

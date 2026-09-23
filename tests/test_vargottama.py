@@ -26,10 +26,16 @@ class TestVargottama:
             expected = d9.positions[g].rasi == d1_sign
             assert res.is_vargottama(g, VargaLevel.D_9) == expected
 
-    def test_lagna_vargottama_in_d9_for_the_1970_chart(self):
+    def test_lagna_d9_vargottama_matches_the_navamsa(self):
+        # Sagittarius 1.26° lagna maps to Aries in D-9 (dual sign → 5th), so
+        # the lagna is NOT vargottama; the flag must follow the navamsa.
         cd = _chart()
         res = compute_vargottama(cd)
-        assert VargaLevel.D_9 in res.lagna
+        d9 = VargaChartComputer().compute(cd, VargaLevel.D_9,
+                                          VargaVariant.DEFAULT)
+        d1_lagna = Rasi.from_longitude(cd.ascendant)
+        assert (VargaLevel.D_9 in res.lagna) == (
+            d9.lagna_position.rasi == d1_lagna)
 
     def test_d1_never_counts(self):
         cd = _chart()
