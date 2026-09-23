@@ -247,6 +247,27 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["dasa"] = {}
 
+    # ── Dasa entry charts (running MD/AD openings) ──
+    try:
+        from jhora.calc.dasa_entry import running_entry_charts
+        entries = []
+        for path, period, entry in running_entry_charts(cd):
+            entries.append({
+                "path": "/".join(path),
+                "lord": period.lord_name,
+                "start": period.start_date.strftime("%Y-%m-%d"),
+                "end": period.end_date.strftime("%Y-%m-%d"),
+                "entry_lagna": {
+                    "sign": Rasi.from_longitude(entry.ascendant).short_name,
+                    "longitude": round(entry.ascendant, 2),
+                },
+                "entry_moon_sign": Rasi.from_longitude(
+                    entry.planet(Graha.MOON).longitude).short_name,
+            })
+        result["dasa_entry"] = {"system": "vimsottari", "entries": entries}
+    except Exception:
+        result["dasa_entry"] = {}
+
     # ── Transits ──
     try:
         eng = SweEngine()

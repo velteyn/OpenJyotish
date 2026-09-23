@@ -147,3 +147,44 @@ def format_dasa_entry(path: Sequence[str], period: DasaPeriod,
     Console(file=buf, width=100).print(table)
     lines.append(buf.getvalue())
     return "\n".join(lines)
+
+
+def running_entry_charts(cd: ChartData,
+                         engine: Optional[DasaBase] = None,
+                         opts: Optional[DasaOptions] = None,
+                         ) -> List[Tuple[List[str], DasaPeriod, ChartData]]:
+    """Entry charts for the running MD and (when present) its running AD.
+
+    Snapshot helper for report surfaces (JSON/HTML): the periods an
+    astrologer is actually reading today, each paired with its
+    opening-moment chart.
+    """
+    from datetime import datetime
+
+    from jhora.dasas.vimsottari import VimsottariDasa
+    from jhora.ephemeris.swe import SweEngine
+
+    engine = engine or VimsottariDasa()
+    if opts is not None:
+        periods = engine.compute(cd.julian_day, _chart_to_dict(cd), opts)
+    else:
+        periods = engine.compute(cd.julian_day, _chart_to_dict(cd))
+    now = datetime.now()
+    now_jd = SweEngine().julday(now.year, now.month, now.day,
+                                now.hour + now.minute / 60.0)
+    out: List[Tuple[List[str], DasaPeriod, ChartData]] = []
+    for md in periods:
+        if not (md.start_jd <= now_jd < md.end_jd):
+            continue
+        _, md_entry = dasa_entry(cd, [md.lord_name], engine=engine,
+                                 opts=opts)
+        out.append(([md.lord_name], md, md_entry))
+        for ad in (md.sub_periods or []):
+            if ad.start_jd <= now_jd < ad.end_jd:
+                _, ad_entry = dasa_entry(
+                    cd, [md.lord_name, ad.lord_name],
+                    engine=engine, opts=opts)
+                out.append(([md.lord_name, ad.lord_name], ad, ad_entry))
+                break
+        break
+    return out

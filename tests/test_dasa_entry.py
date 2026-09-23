@@ -93,3 +93,16 @@ class TestDasaEntryCli:
     def test_dasa_entry_bad_path(self):
         result = runner.invoke(app, ["dasa-entry", JALKOT, "Rahu/Pluto"])
         assert result.exit_code == 1
+
+
+class TestRunningEntries:
+    def test_running_md_and_ad_entries(self):
+        from jhora.calc.dasa_entry import running_entry_charts
+        out = running_entry_charts(_jalkot())
+        assert 1 <= len(out) <= 2
+        path, period, entry = out[0]
+        assert path == [period.lord_name]
+        assert abs(entry.julian_day - period.start_jd) < 2e-4
+        if len(out) == 2:
+            assert out[1][0] == [out[0][1].lord_name, out[1][1].lord_name]
+            assert abs(out[1][2].julian_day - out[1][1].start_jd) < 2e-4
