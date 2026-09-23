@@ -477,3 +477,23 @@ def compute_mudda_dasa(
         start_jd = end_jd
 
     return periods
+
+
+def annual_vimsottari(return_chart: ChartData, moment_jd: float,
+                       sesham: bool = True) -> List[DasaPeriod]:
+    """Vimsottari seeded from a return chart's Moon at its moment.
+
+    The mundane-charts sesham choice: with sesham (default, mainstream
+    annual practice) the opening MD is reduced to the balance remaining
+    in the Moon's nakshatra; with sesham=False the cycle starts full.
+    """
+    from jhora.dasas.base import DasaOptions
+    from jhora.dasas.vimsottari import VimsottariDasa
+
+    chart = {
+        "planets": {g.value: {"longitude": p.longitude}
+                    for g, p in return_chart.planets.items()},
+        "lagna_lon": return_chart.ascendant,
+    }
+    opts = DasaOptions(sesham_method="moon" if sesham else "full")
+    return VimsottariDasa().compute(moment_jd, chart, opts)
