@@ -2,6 +2,7 @@
 
 from jhora.calc.angles import (
     normalize, diff, signed_diff, add, midpoint, aspect_angle,
+    is_aspected,
 )
 
 
@@ -106,3 +107,22 @@ class TestAspectAngle:
 
     def test_wrap_square(self):
         assert aspect_angle(350, 82) == 90
+
+
+class TestIsAspected:
+    """Whole-sign 7th-sign aspect (sign-based)."""
+
+    def test_opposite_sign_aspects(self):
+        assert is_aspected(10.0, 190.0)     # Aries → Libra
+        assert is_aspected(350.0, 160.0)    # Pisces → Virgo
+
+    def test_adjacent_sign_does_not_aspect(self):
+        assert not is_aspected(10.0, 40.0)  # Aries → Taurus
+
+    def test_same_sign_does_not_aspect(self):
+        assert not is_aspected(10.0, 20.0)
+
+    def test_sign_boundary_is_whole_sign(self):
+        # 29° Aries and 1° Libra are in opposite signs → aspect, even though
+        # the angular separation is ~152°, not ~180°.
+        assert is_aspected(29.0, 181.0)
