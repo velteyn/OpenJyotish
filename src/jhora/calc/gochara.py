@@ -22,9 +22,10 @@ from jhora.calc.ashtakavarga import (
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 
-# SE planet ID → Graha mapping
-_SE_TO_GRAHA = {0: Graha.SUN, 1: Graha.MOON, 2: Graha.MARS,
-                3: Graha.MERCURY, 4: Graha.JUPITER, 5: Graha.VENUS,
+# Swiss Ephemeris planet ID → Graha. SE order is Sun, Moon, Mercury,
+# Venus, Mars, Jupiter, Saturn (NOT the Vedic weekday order).
+_SE_TO_GRAHA = {0: Graha.SUN, 1: Graha.MOON, 2: Graha.MERCURY,
+                3: Graha.VENUS, 4: Graha.MARS, 5: Graha.JUPITER,
                 6: Graha.SATURN}
 _GRAHA_TO_SE = {v: k for k, v in _SE_TO_GRAHA.items()}
 
