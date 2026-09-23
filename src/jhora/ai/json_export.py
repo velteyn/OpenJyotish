@@ -9,7 +9,8 @@ from jhora.calc.shadbala import ShadbalaComputer
 from jhora.calc.bhava_bala import BhavaBalaComputer
 from jhora.calc.vimsopaka import VimsopakaComputer, VimsopakaScheme
 from jhora.calc.yogas import detect_all
-from jhora.calc.gochara import compute_transits
+from jhora.calc.gochara import (compute_transits, current_phase,
+                             sade_sati_timeline)
 from jhora.calc.karaka import compute_chara_karakas
 from jhora.calc.arudha import all_bhava_arudhas
 from jhora.calc.ashtakavarga import sarva_ashtakavarga
@@ -266,6 +267,28 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
             })
     except Exception:
         result["transits"] = []
+
+    # ── Sade Sati timeline ──
+    try:
+        moon_rasi = cd.planets[Graha.MOON].rasi.value
+        phases = sade_sati_timeline(
+            moon_rasi, getattr(cd, "ayanamsa_name", "lahiri"))
+        cur = current_phase(
+            [p for p in phases if p.kind == "Sade Sati"])
+
+        def _phase_dict(p):
+            return {"kind": p.kind, "phase": p.phase,
+                    "saturn_sign": Rasi(p.sign).short_name,
+                    "start": p.start.isoformat(), "end": p.end.isoformat()}
+
+        result["sade_sati"] = {
+            "moon_sign": Rasi(moon_rasi).short_name,
+            "current": _phase_dict(cur) if cur is not None else None,
+            "upcoming": [_phase_dict(p) for p in phases
+                         if p.start > now.date()][:6],
+        }
+    except Exception:
+        result["sade_sati"] = {}
 
     # ── Karakas ──
     try:
