@@ -57,3 +57,98 @@ def test_render_smoke(tmp_path):
     assert img.height() > 2000
     out = str(tmp_path / "trad.png")
     assert img.save(out) and os.path.getsize(out) > 100_000
+
+
+def _jalkot_lahiri():
+    b = ChartBuilder()
+    return b.build(2001, 2, 24, 6 + 11 / 60,
+                   lat=18 + 38 / 60, lon=77 + 12 / 60,
+                   tz="+0530", ayanamsa="lahiri")
+
+
+_YOGA_ALIASES = {
+    ("Vishkambha", "Vishkumbha"), ("Priti", "Preeti"),
+    ("Sukarma", "Sukarman"), ("Dhriti", "Dhrithi"),
+    ("Shula", "Shoola"), ("Variyana", "Varigha"),
+    ("Parigha", "Paridha"),
+}
+_KARANA_ALIASES = {("Taitila", "Taitula"), ("Gara", "Garaja")}
+
+
+def _same_or_alias(a, b, aliases):
+    return a == b or (a, b) in aliases or (b, a) in aliases
+
+
+class TestOnePagerEngineParity:
+    """Every value on the one-pager must equal the engine's value.
+
+    The page shows limbs at the birth moment (Janma tithi etc.); the
+    daily calendar shows sunrise limbs — different moments by design,
+    so these tests compare against the low-level limb functions at
+    birth longitudes, not against the calendar day.
+    """
+
+    def test_tithi_names_aligned(self):
+        # muhurta keeps its 15-name list local to _tithi; pin the shared
+        # convention explicitly (Poornima/Amavasya shared at index 14).
+        from jhora.export.traditional import _TITHI_NAMES as PAGE_TITHI
+        assert list(PAGE_TITHI) == [
+            "Prathama", "Dwitiya", "Tritiya", "Chaturthi", "Panchami",
+            "Shashthi", "Saptami", "Ashtami", "Navami", "Dashami",
+            "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi",
+            "Poornima/Amavasya",
+        ]
+
+    def test_yoga_lists_same_order_modulo_aliases(self):
+        from jhora.calc.muhurta import _YOGA_NAMES as ENG
+        from jhora.export.traditional import _YOGA_NAMES as PAGE
+        assert len(ENG) == len(PAGE) == 27
+        for e, p in zip(ENG, PAGE):
+            assert _same_or_alias(e, p, _YOGA_ALIASES), (e, p)
+
+    def test_karana_lists_same_order_modulo_aliases(self):
+        from jhora.calc.muhurta import _KARANA_NAMES as ENG
+        from jhora.export.traditional import _KARANA_NAMES as PAGE
+        assert len(ENG) == len(PAGE) == 11
+        for e, p in zip(ENG, PAGE):
+            assert _same_or_alias(e, p, _KARANA_ALIASES), (e, p)
+
+    def test_header_limbs_match_engine(self):
+        from jhora.calc.muhurta import _karana, _tithi, _yoga
+        from jhora.export.traditional import (
+            _YOGA_NAMES as PAGE_YOGA, _panchanga_fields)
+        from jhora.types.graha import Graha
+        for cd in (_chart(), _jalkot_lahiri()):
+            sun = cd.planet(Graha.SUN).longitude
+            moon = cd.planet(Graha.MOON).longitude
+            page = _panchanga_fields(cd)
+            tithi = _tithi(sun, moon)
+            assert page["tithi"] == tithi.name
+            assert PAGE_YOGA.index(page["yoga"]) == _yoga(sun, moon)
+            _, karana_name = _karana(sun, moon)
+            assert _same_or_alias(page["karana"], karana_name,
+                                  _KARANA_ALIASES)
+
+    def test_bav_sav_match_engine(self):
+        from jhora.calc.ashtakavarga import (
+            all_bhinna_ashtakavarga, sarva_ashtakavarga)
+        from jhora.export.traditional import _classical_bav
+        for cd in (_chart(), _jalkot_lahiri()):
+            bavs, sav = _classical_bav(cd)
+            eng_bavs = all_bhinna_ashtakavarga(cd)
+            assert sav == sarva_ashtakavarga(cd)
+            for g in bavs:
+                assert bavs[g] == eng_bavs[g]
+
+    def test_dasa_balance_matches_engine(self):
+        from jhora.dasas.vimsottari import VimsottariDasa
+        from jhora.export.traditional import _dasa_balance
+        for cd in (_chart(), _jalkot_lahiri()):
+            lord, balance = _dasa_balance(cd)
+            eng = VimsottariDasa()
+            chart = {"planets": {g.value: {"longitude": p.longitude}
+                                 for g, p in cd.planets.items()},
+                     "lagna_lon": cd.ascendant}
+            first = eng.compute(cd.julian_day, chart)[0]
+            assert lord.full_name == first.lord_name
+            assert balance == pytest.approx(first.duration_years, rel=1e-3)
