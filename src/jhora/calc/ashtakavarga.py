@@ -282,6 +282,14 @@ def trikona_shodhana_all(
 
 # ── Ekadhipatya Shodhana (Lordship Reduction) ──
 
+#: Rasi multipliers (Rasimana, BPHS; P.V.R. Rao ch. 12, Table 28),
+#: in rasi order Aries..Pisces.
+_RASIMANA = (7, 10, 8, 4, 10, 6, 7, 8, 9, 5, 11, 12)
+
+#: Planet multipliers (Grahamana, BPHS; P.V.R. Rao ch. 12, Table 29),
+#: in order Sun..Saturn.
+_GRAHAMANA = (5, 5, 8, 5, 10, 7, 5)
+
 def _lord_of(rasi_idx: int) -> Optional[Graha]:
     """Return the graha that owns a given rasi index (0-11)."""
     lordship = {
@@ -299,14 +307,21 @@ def _rasi_of_graha(g: Graha) -> List[int]:
 
 def ekadhipatya_shodhana(
     bavs: Dict[Graha, List[int]],
+    occupied: List[bool],
 ) -> Dict[Graha, List[int]]:
     """Ekadhipatya Shodhana — lordship reduction across all planets.
 
-    For planets owning two signs (Mars, Mercury, Jupiter, Venus, Saturn):
-      If the bindus in the two owned houses are both > 0 and unequal,
-      the higher-value house retains only the difference;
-      the lower-value house keeps its original value.
-      If both equal, both retain their values.
+    P.V.R. Rao ch. 12.7.2 (BPHS) rules, applied per dual-owned sign pair
+    after Trikona Shodhana. ``occupied`` marks the rasis holding any of
+    the 7 grahas (nodes excluded, matching the "7 planets" language of
+    the graha-pinda rule):
+
+    1. Either rasi has zero → no reduction.
+    2. Both rasis occupied → no reduction.
+    3. One occupied, one empty: empty-lower → empty becomes 0;
+       empty-higher → empty takes the occupied rasi's value.
+    4. Both empty: equal → both become 0; unequal → higher takes
+       the lower value.
 
     For Sun and Moon (single-sign owners): no reduction, pass through.
     """
@@ -314,15 +329,38 @@ def ekadhipatya_shodhana(
     dual_lords = [Graha.MARS, Graha.MERCURY, Graha.JUPITER,
                   Graha.VENUS, Graha.SATURN]
     for g in dual_lords:
-        houses = g.lordship_signs  # e.g., Mars -> [1, 8] (1-based)
-        h0, h1 = houses[0] - 1, houses[1] - 1  # convert to 0-based
+        houses = _rasi_of_graha(g)
+        h0, h1 = houses[0], houses[1]
         v0, v1 = result[g][h0], result[g][h1]
-        if v0 > 0 and v1 > 0 and v0 != v1:
-            if v0 > v1:
-                result[g][h0] = v0 - v1
+        if v0 == 0 or v1 == 0:
+            continue  # rule 1
+        if occupied[h0] and occupied[h1]:
+            continue  # rule 2
+        if occupied[h0] or occupied[h1]:
+            occ_h, empty_h = (h0, h1) if occupied[h0] else (h1, h0)
+            if result[g][empty_h] < result[g][occ_h]:
+                result[g][empty_h] = 0  # rule 3a
             else:
-                result[g][h1] = v1 - v0
+                result[g][empty_h] = result[g][occ_h]  # rule 3b
+        else:
+            if v0 == v1:
+                result[g][h0] = result[g][h1] = 0  # rule 4a
+            elif v0 > v1:
+                result[g][h0] = v1  # rule 4b
+            else:
+                result[g][h1] = v0  # rule 4b
     return result
+
+
+def rasi_pinda(soav: List[int]) -> int:
+    """Rasi Pinda: sum over rasis of SoAV bindus × Rasimana multiplier."""
+    return sum(v * m for v, m in zip(soav, _RASIMANA))
+
+
+def graha_pinda(soav: List[int], planet_rasis: List[int]) -> int:
+    """Graha Pinda: for each of the 7 planets (Sun..Saturn order), the
+    SoAV value in its rasi × its Grahamana multiplier."""
+    return sum(soav[r] * m for r, m in zip(planet_rasis, _GRAHAMANA))
 
 
 # ── Full Sodhana (Trikona + Ekadhipatya) ──
@@ -332,17 +370,22 @@ def sodhya_pinda(
     parasara_moon: bool = True,
     parasara_venus: bool = True,
 ) -> Dict[Graha, int]:
-    """Compute Sodhya Pinda (Yoga Pinda) for each planet.
+    """Compute Sodhya Pinda for each planet (BPHS; P.V.R. Rao ch. 12.7.3).
 
     1. Compute all BAVs
     2. Apply Trikona Shodhana
-    3. Apply Ekadhipatya Shodhana
-    4. Sum bindus per planet across all 12 houses → Sodhya Pinda
+    3. Apply Ekadhipatya Shodhana (occupation-aware)
+    4. Sodhya Pinda = Rasi Pinda + Graha Pinda
     """
     bavs = all_bhinna_ashtakavarga(chart, parasara_moon, parasara_venus)
+    occupied = [False] * 12
+    for g in _OCCUPANT_GRAHAS:
+        occupied[chart.planets[g].rasi.value] = True
     trikona = trikona_shodhana_all(bavs)
-    ekadhi = ekadhipatya_shodhana(trikona)
-    return {g: sum(ekadhi[g]) for g in _OCCUPANT_GRAHAS}
+    ekadhi = ekadhipatya_shodhana(trikona, occupied)
+    planet_rasis = [chart.planets[g].rasi.value for g in _OCCUPANT_GRAHAS]
+    return {g: rasi_pinda(ekadhi[g]) + graha_pinda(ekadhi[g], planet_rasis)
+            for g in _OCCUPANT_GRAHAS}
 
 
 @dataclass(frozen=True)
@@ -352,6 +395,8 @@ class AshtakavargaBala:
     bav_total: int
     trikona_total: int
     ekadhipatya_total: int
+    rasi_pinda: int
+    graha_pinda: int
     sodhya_pinda: int
 
 
@@ -362,18 +407,25 @@ def ashtakavarga_bala(
 ) -> List[AshtakavargaBala]:
     """Per-planet strength at each reduction stage (the Bala view).
 
-    Raw BAV total → Trikona Shodhana total → Ekadhipatya Shodhana total
-    (= Sodhya Pinda). Totals never increase across stages.
+    Raw BAV total → Trikona Shodhana total → Ekadhipatya Shodhana total,
+    then Rasi Pinda + Graha Pinda = Sodhya Pinda (BPHS; P.V.R. Rao ch. 12).
     """
     bavs = all_bhinna_ashtakavarga(chart, parasara_moon, parasara_venus)
+    occupied = [False] * 12
+    for g in _OCCUPANT_GRAHAS:
+        occupied[chart.planets[g].rasi.value] = True
     trikona = trikona_shodhana_all(bavs)
-    ekadhi = ekadhipatya_shodhana(trikona)
+    ekadhi = ekadhipatya_shodhana(trikona, occupied)
+    planet_rasis = [chart.planets[g].rasi.value for g in _OCCUPANT_GRAHAS]
     return [AshtakavargaBala(
         graha=g,
         bav_total=sum(bavs[g]),
         trikona_total=sum(trikona[g]),
         ekadhipatya_total=sum(ekadhi[g]),
-        sodhya_pinda=sum(ekadhi[g]),
+        rasi_pinda=rasi_pinda(ekadhi[g]),
+        graha_pinda=graha_pinda(ekadhi[g], planet_rasis),
+        sodhya_pinda=rasi_pinda(ekadhi[g]) +
+        graha_pinda(ekadhi[g], planet_rasis),
     ) for g in _OCCUPANT_GRAHAS]
 
 

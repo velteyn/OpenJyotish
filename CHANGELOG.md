@@ -2,6 +2,14 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
+## Unreleased
+
+### Fixed
+- Sodhya Pinda now follows BPHS / P.V.R. Rao ch. 12: occupation-aware
+  Ekadhipatya Shodhana (rules 1–4) and Rasi Pinda + Graha Pinda with the
+  Rasimana/Grahamana multipliers (verified: Mercury 152 = 77 + 75).
+  Values change accordingly wherever Sodhya Pinda is shown.
+
 ## v1.7.0 — 2026-09-23
 
 ### Added
