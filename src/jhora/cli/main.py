@@ -675,6 +675,8 @@ def kp(
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
     rp: bool = typer.Option(True, "--rp/--no-rp",
                             help="Show the KP Ruling Planets"),
+    when: str = typer.Option("", "--when",
+                             help="Date for the running dasa chain (YYYY-MM-DD; default now)"),
 ):
     """Krishnamurti Paddhati — cusps, lord chains and Ruling Planets.
 
@@ -735,6 +737,52 @@ def kp(
         for r in kpc.ruling_planets:
             rp_table.add_row(r.graha.full_name, r.role_string)
         console.print(rp_table)
+
+    _display_kp_dasa(cd, when)
+
+
+def _display_kp_dasa(cd, when: str = ""):
+    """Vimsottari periods read KP-style (sub-lord oriented)."""
+    from datetime import date, datetime
+
+    from jhora.calc.kp import kp_dasa_levels, kp_dasa_lords
+    from jhora.ephemeris.swe import SweEngine
+
+    se = SweEngine()
+
+    def _d(jd):
+        y, m, d, _ = se.revjul(jd)
+        return f"{int(y)}/{int(m):02d}/{int(d):02d}"
+
+    table = Table(title="Vimsottari Dasa — KP view (sub lord of the dasa lord)")
+    table.add_column("Lord", style="cyan")
+    table.add_column("Start", style="green")
+    table.add_column("End", style="yellow")
+    table.add_column("Years", style="white")
+    table.add_column("Bhava", style="cyan")
+    table.add_column("Sign-Star-Sub-SubSub", style="white")
+    for r in kp_dasa_lords(cd):
+        table.add_row(
+            r.graha.full_name, _d(r.start_jd), _d(r.end_jd),
+            f"{r.duration_years:.2f}", str(r.house), r.chain.string,
+        )
+    console.print(table)
+
+    target = None
+    if when:
+        target = datetime.strptime(when, "%Y-%m-%d").date()
+    chain = kp_dasa_levels(cd, target)
+    if chain:
+        chain_table = Table(title="Running chain (KP view)")
+        chain_table.add_column("Level", style="magenta")
+        chain_table.add_column("Lord", style="cyan")
+        chain_table.add_column("Bhava", style="cyan")
+        chain_table.add_column("Sign-Star-Sub-SubSub", style="white")
+        for r in chain:
+            chain_table.add_row(
+                r.level, r.graha.full_name, str(r.house), r.chain.string,
+            )
+        console.print(chain_table)
 
 
 @app.command()

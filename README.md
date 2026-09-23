@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 45 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-25-section JSON API for AI agents (+ JSON-LD)  |  1432 tests  |  GPL v3.0
+25-section JSON API for AI agents (+ JSON-LD)  |  1441 tests  |  GPL v3.0
 ```
 
 ## Quick Install
@@ -224,7 +224,7 @@ data = json.loads(subprocess.run(
 | `panchanga` | Monthly calendar (paksha/tithi/nakshatra/yoga/karana, sunrise/sunset, rahu kalam; `--adjuncts` adds Durmuhurta/Varjya) |
 | `chakras` | Sarvatobhadra + Kota chakras |
 | `lagnas` | All special lagnas with meanings |
-| `kp` | Krishnamurti Paddhati — Placidus cusp/planet lord chains + Ruling Planets (`--ayanamsa krishnamurti`) |
+| `kp` | Krishnamurti Paddhati — Placidus cusp/planet lord chains, Ruling Planets, and the KP view of the Vimsottari dasa (`--ayanamsa krishnamurti`, `--when`) |
 | `sphutas` | Prasna Marga auspicious points (Tri/Chatus/Pancha/Prana/Deha/Mrityu/Beeja/Kshetra/Yoga) |
 | `remedies` | Rule-based remedies — Ishta/Palana devata, gemstone, mantra, yantra, charity, dasha-lord, doshas; `--partner` adds marriage doshas (sourced) |
 | `learning` | Marana karaka, KP sub-lords, vaiseshikamsas |

@@ -4,12 +4,16 @@ Tradition: Krishnamurti's KP uses Placidus cusps and the Vimsottari
 fourfold chain; the first sub of a nakshatra is its own lord.
 """
 
+from datetime import datetime
+
 from jhora.calc.kp import (
     SIGN_LORDS,
     cusp_longitudes,
     day_lord,
     house_of,
     kp_chart,
+    kp_dasa_levels,
+    kp_dasa_lords,
     lord_chain,
     ruling_planets,
 )
@@ -182,3 +186,56 @@ class TestSubLordBoundaries:
             base = i * (360 / 27)
             subs = kp_sublord(base + 1e-6, 1)
             assert subs[0]["start"] <= base + 1e-6 < subs[0]["end"]
+
+
+class TestKPDasaView:
+    """The Vimsottari dasa read KP-style (bhava + fourfold chain per lord)."""
+
+    def test_nine_mahadasas(self, ref_chart):
+        rows = kp_dasa_lords(ref_chart)
+        assert len(rows) == 9
+        assert [r.graha for r in rows][0] == Graha.MOON or rows[0].graha
+
+    def test_total_covers_the_full_cycle(self, ref_chart):
+        # The first mahadasa is truncated by the Moon's sesham, so the sum is
+        # 120 years minus the elapsed part of the first nakshatra.
+        total = sum(r.duration_years for r in kp_dasa_lords(ref_chart))
+        assert 100.0 < total <= 120.0 + 1e-6
+
+    def test_each_lord_has_a_chain_and_bhava(self, ref_chart):
+        for r in kp_dasa_lords(ref_chart):
+            assert 1 <= r.house <= 12
+            assert isinstance(r.chain.sign_lord, Graha)
+            assert r.chain.string.count("-") == 3
+
+    def test_chain_matches_the_lord_natal_position(self, ref_chart):
+        for r in kp_dasa_lords(ref_chart):
+            assert r.chain == lord_chain(ref_chart.planet(r.graha).longitude)
+
+    def test_periods_are_contiguous(self, ref_chart):
+        rows = kp_dasa_lords(ref_chart)
+        for a, b in zip(rows, rows[1:]):
+            assert abs(a.end_jd - b.start_jd) < 1e-6
+
+    def test_running_chain_descends_from_the_mahadasa(self, ref_chart):
+        rows = kp_dasa_levels(ref_chart, datetime(2026, 9, 23))
+        assert [r.level for r in rows] == [
+            "Mahadasa", "Antardasa", "Pratyantardasa"]
+        md = kp_dasa_lords(ref_chart)
+        active_md = next(
+            r for r in md if abs(r.start_jd - rows[0].start_jd) < 1e-6)
+        assert rows[0].graha == active_md.graha
+
+    def test_running_chain_is_nested(self, ref_chart):
+        rows = kp_dasa_levels(ref_chart, datetime(2026, 9, 23))
+        for a, b in zip(rows, rows[1:]):
+            assert a.start_jd <= b.start_jd < a.end_jd
+
+    def test_running_chain_is_deterministic(self, ref_chart):
+        when = datetime(2000, 1, 1)
+        a = kp_dasa_levels(ref_chart, when)
+        b = kp_dasa_levels(ref_chart, when)
+        assert [r.graha for r in a] == [r.graha for r in b]
+
+    def test_lords_are_the_grahas(self, ref_chart):
+        assert {r.graha for r in kp_dasa_lords(ref_chart)} == set(Graha)

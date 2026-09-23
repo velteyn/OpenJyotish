@@ -14,7 +14,7 @@ from jhora.calc.karaka import compute_chara_karakas
 from jhora.calc.arudha import all_bhava_arudhas
 from jhora.calc.ashtakavarga import sarva_ashtakavarga
 from jhora.calc.upagraha import compute_solar_upagrahas
-from jhora.calc.kp import kp_chart
+from jhora.calc.kp import kp_chart, kp_dasa_lords
 from jhora.calc.special_lagnas import compute_special_lagnas, kp_sublord_string
 from jhora.calc.learning import marana_karaka_sthana, vaiseshikamsas, ishta_kashta_phala
 from jhora.dasas.vimsottari import VimsottariDasa
@@ -356,6 +356,20 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
             "ruling_planets": [
                 {"planet": r.graha.full_name, "roles": list(r.roles)}
                 for r in kp.ruling_planets
+            ],
+            "dasa_lords": [
+                {
+                    "lord": r.graha.full_name,
+                    "start_jd": round(r.start_jd, 4),
+                    "end_jd": round(r.end_jd, 4),
+                    "duration_years": round(r.duration_years, 4),
+                    "house": r.house,
+                    "sign_lord": r.chain.sign_lord.full_name,
+                    "star_lord": r.chain.star_lord.full_name,
+                    "sub_lord": r.chain.sub_lord.full_name,
+                    "sub_sub_lord": r.chain.sub_sub_lord.full_name,
+                }
+                for r in kp_dasa_lords(cd)
             ],
         }
     except Exception:

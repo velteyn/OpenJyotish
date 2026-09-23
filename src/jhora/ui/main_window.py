@@ -1484,6 +1484,11 @@ class MainWindow(QMainWindow):
         self.kp_planet_table.setAlternatingRowColors(True)
         layout.addWidget(self.kp_planet_table, stretch=3)
 
+        layout.addWidget(QLabel("Vimsottari Dasa — KP view (bhava and sub lord of each dasa lord):"))
+        self.kp_dasa_table = QTableWidget()
+        self.kp_dasa_table.setAlternatingRowColors(True)
+        layout.addWidget(self.kp_dasa_table, stretch=3)
+
         layout.addWidget(QLabel("Ruling Planets:"))
         self.kp_rp_table = QTableWidget()
         self.kp_rp_table.setAlternatingRowColors(True)
@@ -1514,6 +1519,22 @@ class MainWindow(QMainWindow):
             for p in kpc.planets
         ]
         self._fill_table(self.kp_planet_table, headers, rows)
+
+        from jhora.calc.kp import kp_dasa_lords
+
+        headers = ["Lord", "Start", "End", "Years", "Bhava",
+                   "Sign-Star-Sub-SubSub"]
+        rows = []
+        for r in kp_dasa_lords(cd):
+            y1, m1, d1, _ = SweEngine().revjul(r.start_jd)
+            y2, m2, d2, _ = SweEngine().revjul(r.end_jd)
+            rows.append([
+                r.graha.full_name,
+                f"{int(y1)}/{int(m1):02d}/{int(d1):02d}",
+                f"{int(y2)}/{int(m2):02d}/{int(d2):02d}",
+                f"{r.duration_years:.2f}", str(r.house), r.chain.string,
+            ])
+        self._fill_table(self.kp_dasa_table, headers, rows)
 
         self._fill_table(self.kp_rp_table, ["Planet", "Role"],
                          [[r.graha.full_name, r.role_string]
