@@ -76,18 +76,23 @@ def parse_birthdata(input_str: str) -> dict:
 def chart(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    nodes: str = typer.Option("mean", "--nodes",
+                              help="Lunar nodes: mean (default) or true"),
     chalit: bool = typer.Option(False, "--chalit", help="Show Bhava/Chalit house positions"),
     chalit_varga: Optional[str] = typer.Option(
         None, "--chalit-varga",
         help="Varga level for --chalit (e.g. D-1, D-9, D-60); default D-1 + D-9"),
 ):
     """Compute and display birth chart."""
+    if nodes not in ("mean", "true"):
+        console.print("[red]Unknown --nodes mode. Use: mean, true.[/red]")
+        raise typer.Exit(code=2)
     bd = parse_birthdata(birthdata)
     builder = ChartBuilder()
     chart_data = builder.build(
         year=bd["year"], month=bd["month"], day=bd["day"],
         hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
-        tz=bd["tz"], ayanamsa=ayanamsa,
+        tz=bd["tz"], ayanamsa=ayanamsa, nodes=nodes,
     )
     _display_chart(chart_data)
     _display_chart_yogas(chart_data)

@@ -118,9 +118,17 @@ class SweEngine:
             swe.set_ephe_path(ephe_path)
         self._ayanamsa_name: str = "lahiri"
         self._sidereal_mode: int = swe.SIDM_LAHIRI
+        #: Rahu/Ketu node kind. Mean is the historical default (all
+        #: reference vectors were pinned with it); true is offered
+        #: because the reference program exposes the same preference.
+        self._use_true_nodes: bool = False
         self._flags: int = SEFLG_DEFAULT
         self._cache: Dict = {}
         swe.set_sid_mode(self._sidereal_mode)
+
+    def set_use_true_nodes(self, flag: bool) -> None:
+        """Select true (True) or mean (False, default) lunar nodes."""
+        self._use_true_nodes = bool(flag)
 
     def set_sidereal_mode(self, name: str) -> None:
         """Set ayanamsa mode by name. Use 'tropical' for no ayanamsa."""
@@ -171,7 +179,8 @@ class SweEngine:
         # Outer planets
         for pid in [7, 8, 9]:  # Uranus, Neptune, Pluto
             planets[pid] = self.calc_planet(pid, jd)
-        rahu = self.calc_planet(swe.MEAN_NODE, jd)
+        node_id = swe.TRUE_NODE if self._use_true_nodes else swe.MEAN_NODE
+        rahu = self.calc_planet(node_id, jd)
         planets[10] = PlanetData(
             longitude=rahu.longitude, latitude=rahu.latitude,
             speed=rahu.speed, distance_au=rahu.distance_au,
