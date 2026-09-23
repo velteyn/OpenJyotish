@@ -59,6 +59,8 @@ class ChartWidget(QWidget):
         self.chart_style = ChartStyle.SOUTH_INDIAN
         self.navamsa_overlay = False
         self.navamsa_data: Optional[Dict[Graha, object]] = None
+        #: Packed mode: tighter cells, no special-lagna markers.
+        self.compact = False
         self.setMinimumSize(420, 420)
         self.setStyleSheet("background-color: #1a1a2e;")
 
@@ -112,6 +114,14 @@ class ChartWidget(QWidget):
         self.navamsa_data = data
         self.update()
 
+    def set_compact(self, enabled: bool):
+        """Packed chart mode: tighter cells, markers hidden."""
+        self.compact = bool(enabled)
+        self.update()
+
+    def _margin(self) -> float:
+        return 1.0 if self.compact else 3.0
+
     @staticmethod
     def _navamsa_label(val: object) -> str:
         if isinstance(val, VargaPosition):
@@ -144,12 +154,14 @@ class ChartWidget(QWidget):
         oy = (h - size) / 2
         return ox, oy, size / 4, size / 4
 
-    def _cell_rect(self, row: int, col: int, margin: float = 3) -> QRectF:
+    def _cell_rect(self, row: int, col: int, margin: Optional[float] = None) -> QRectF:
+        margin = self._margin() if margin is None else margin
         ox, oy, cw, ch = self._cell_grid()
         return QRectF(ox + col * cw + margin, oy + row * ch + margin,
                       cw - 2 * margin, ch - 2 * margin)
 
-    def _center_rect(self, margin: float = 3) -> QRectF:
+    def _center_rect(self, margin: Optional[float] = None) -> QRectF:
+        margin = self._margin() if margin is None else margin
         ox, oy, cw, ch = self._cell_grid()
         return QRectF(ox + cw + margin, oy + ch + margin,
                       cw * 2 - 2 * margin, ch * 2 - 2 * margin)
@@ -176,8 +188,8 @@ class ChartWidget(QWidget):
             if planets:
                 self._draw_planets(painter, rect, planets)
 
-            # Draw special lagna/upagraha markers
-            markers = self._markers.get(rasi, [])
+            # Draw special lagna/upagraha markers (hidden in packed mode)
+            markers = [] if self.compact else self._markers.get(rasi, [])
             if markers:
                 self._draw_markers(painter, rect, markers)
 

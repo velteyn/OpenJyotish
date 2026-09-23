@@ -835,3 +835,37 @@ def test_dasa_chart_entry_view(main_window, chart):
         main_window.dasa_chart_table.rowCount()
     main_window._on_dasa_chart_activated(0, 0)
     assert "Entry" in main_window.dasa_entry_text.toPlainText()
+
+
+def test_packed_toggle_compacts_widgets(main_window):
+    main_window._on_packed_toggle(True)
+    assert main_window.chart_widget.compact
+    assert main_window.cons_chart.compact
+    assert main_window.cons_navamsa.compact
+    main_window._on_packed_toggle(False)
+    assert not main_window.chart_widget.compact
+    assert not main_window.cons_chart.compact
+    assert not main_window.cons_navamsa.compact
+
+
+def test_two_chart_styles(main_window):
+    from jhora.ui.chart_widget import ChartStyle
+    main_window.cons_style_combo.setCurrentText("North Indian")
+    assert main_window.cons_chart.chart_style == ChartStyle.NORTH_INDIAN
+    assert main_window.cons_navamsa.chart_style == ChartStyle.NORTH_INDIAN
+    main_window.cons_two_styles.setChecked(True)
+    main_window.cons_navamsa_style_combo.setCurrentText("East Indian")
+    assert main_window.cons_navamsa.chart_style == ChartStyle.EAST_INDIAN
+    assert main_window.cons_chart.chart_style == ChartStyle.NORTH_INDIAN
+    main_window.cons_two_styles.setChecked(False)
+    assert main_window.cons_navamsa.chart_style == ChartStyle.NORTH_INDIAN
+
+
+def test_chart_widget_paints_both_modes(main_window, chart):
+    w = main_window.chart_widget
+    w.set_chart_data(chart)
+    w.show()
+    w.set_compact(True)
+    w.grab()
+    w.set_compact(False)
+    w.grab()
