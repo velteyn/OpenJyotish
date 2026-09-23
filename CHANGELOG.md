@@ -2,7 +2,7 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
-## Unreleased → v1.7.0
+## v1.7.0 — 2026-09-23
 
 ### Added
 - Sade Sati phase timeline with dates — new `sade-sati` CLI, Transits-tab
