@@ -4,10 +4,9 @@ A variation of Vimsottari where the **antardasas are the twelve rasis**
 (equal parts), instead of the Vimsottari sub-lords. The mahadasas are the
 standard Vimsottari nine planets from the Moon's nakshatra balance; within
 each mahadasa the twelve rasis run zodiacally from the **mahadasa lord's
-sign**.
+sign** (Rasi-Bhukta as taught in the Jaimini/Narayana literature).
 
-Decoded from the reference builder and validated structurally (see
-``tools/emu`` and ``REFERENCE.md``). Pratyantardasas belong to eight planets
+Pratyantardasas belong to eight planets
 in kakshya order — not implemented here (MD/AD only).
 """
 

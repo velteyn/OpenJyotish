@@ -11,7 +11,6 @@ Components:
 References:
   - Brihat Parasara Hora Sastra, Ashtakavarga adhyaya
   - "Ashtakavarga System of Prediction" by Dr. B.V. Raman
-  - Classical Vedic 9.0 binary (function 0x00460bd0)
 """
 
 from dataclasses import dataclass
