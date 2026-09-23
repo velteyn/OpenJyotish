@@ -226,6 +226,12 @@ class MainWindow(QMainWindow):
         self.navamsa_toggle.setFixedWidth(80)
         self.navamsa_toggle.toggled.connect(self._on_navamsa_toggle)
 
+        self.packed_toggle = QPushButton("Packed")
+        self.packed_toggle.setCheckable(True)
+        self.packed_toggle.setFixedWidth(80)
+        self.packed_toggle.setToolTip("Packed chart mode: tighter cells, no markers")
+        self.packed_toggle.toggled.connect(self._on_packed_toggle)
+
         self.calc_btn = QPushButton("Calculate")
         self.calc_btn.setObjectName("primary")
         self.calc_btn.setFixedWidth(110)
@@ -234,6 +240,7 @@ class MainWindow(QMainWindow):
         ctrl.addWidget(self.style_combo)
         ctrl.addWidget(self.ayanamsa_combo)
         ctrl.addWidget(self.navamsa_toggle)
+        ctrl.addWidget(self.packed_toggle)
         ctrl.addStretch()
         ctrl.addWidget(self.calc_btn)
         form.addRow(ctrl)
@@ -857,6 +864,10 @@ class MainWindow(QMainWindow):
             comp = VargaChartComputer()
             vcd = comp.compute(self.chart_data, VargaLevel.D_9, VargaVariant.DEFAULT)
             self.chart_widget.set_navamsa_data(dict(vcd.positions))
+
+    def _on_packed_toggle(self, checked: bool):
+        for w in (self.chart_widget, self.cons_chart, self.cons_navamsa):
+            w.set_compact(checked)
 
     def _on_calculate(self):
         try:
@@ -4538,7 +4549,56 @@ class MainWindow(QMainWindow):
         self.cons_navamsa = ChartWidget()
         self.cons_navamsa.setMinimumSize(250, 250)
         layout.addWidget(self.cons_navamsa, stretch=1)
+
+        style_row = QHBoxLayout()
+        style_row.setSpacing(8)
+        self.cons_style_combo = QComboBox()
+        self.cons_style_combo.addItems(
+            ["South Indian", "North Indian", "East Indian"])
+        self.cons_style_combo.currentTextChanged.connect(
+            self._on_cons_style_changed)
+        self.cons_two_styles = QCheckBox("Two styles")
+        self.cons_two_styles.setToolTip(
+            "Render D-1 and D-9 in different chart styles")
+        self.cons_two_styles.toggled.connect(
+            self._on_cons_two_styles_toggled)
+        self.cons_navamsa_style_combo = QComboBox()
+        self.cons_navamsa_style_combo.addItems(
+            ["South Indian", "North Indian", "East Indian"])
+        self.cons_navamsa_style_combo.setEnabled(False)
+        self.cons_navamsa_style_combo.currentTextChanged.connect(
+            self._on_cons_navamsa_style_changed)
+        style_row.addWidget(QLabel("D-1:"))
+        style_row.addWidget(self.cons_style_combo, 1)
+        style_row.addWidget(self.cons_two_styles)
+        style_row.addWidget(QLabel("D-9:"))
+        style_row.addWidget(self.cons_navamsa_style_combo, 1)
+        layout.addLayout(style_row)
         return w
+
+    def _cons_style(self, text: str):
+        return {"South Indian": ChartStyle.SOUTH_INDIAN,
+                "North Indian": ChartStyle.NORTH_INDIAN,
+                "East Indian": ChartStyle.EAST_INDIAN}.get(
+                    text, ChartStyle.SOUTH_INDIAN)
+
+    def _on_cons_style_changed(self, text: str):
+        self.cons_chart.set_chart_style(self._cons_style(text))
+        if not self.cons_two_styles.isChecked():
+            self.cons_navamsa.set_chart_style(self._cons_style(text))
+
+    def _on_cons_two_styles_toggled(self, checked: bool):
+        self.cons_navamsa_style_combo.setEnabled(checked)
+        if checked:
+            self.cons_navamsa.set_chart_style(
+                self._cons_style(self.cons_navamsa_style_combo.currentText()))
+        else:
+            self.cons_navamsa.set_chart_style(
+                self._cons_style(self.cons_style_combo.currentText()))
+
+    def _on_cons_navamsa_style_changed(self, text: str):
+        if self.cons_two_styles.isChecked():
+            self.cons_navamsa.set_chart_style(self._cons_style(text))
 
     def _build_consolidated_center(self):
         w = QWidget()
