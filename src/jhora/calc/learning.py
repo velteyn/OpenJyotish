@@ -50,7 +50,8 @@ class LearningReport:
 
 
 def _house_from_lagna(lon: float, lagna: float) -> int:
-    return (int((lon - lagna) / 30) % 12) + 1
+    """Whole-sign house (1-12) of a longitude from the lagna's sign."""
+    return (int(lon // 30) - int(lagna // 30)) % 12 + 1
 
 
 def marana_karaka_sthana(cd: ChartData) -> List[dict]:
