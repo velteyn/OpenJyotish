@@ -69,6 +69,35 @@ class TestClassicalDefaultStarts:
     def test_d12_dwadasamsa(self):
         assert [_default_map(0, k, 12) for k in range(3)] == [0, 1, 2]
 
+    def test_d16_shodasamsa(self):
+        # movable → Aries, fixed → Leo, dual → Sagittarius
+        assert [_default_map(s, 0, 16) for s in (0, 1, 2)] == [0, 4, 8]
+
+    def test_d20_vimsamsa(self):
+        # movable → Aries, fixed → Sagittarius, dual → Leo
+        assert [_default_map(s, 0, 20) for s in (0, 1, 2)] == [0, 8, 4]
+
+    def test_d24_siddhamsa(self):
+        assert _default_map(0, 0, 24) == 4  # odd → Leo
+        assert _default_map(1, 0, 24) == 3  # even → Cancer
+
+    def test_d27_bhamsa(self):
+        # fire → Aries, earth → Cancer, air → Libra, water → Capricorn
+        assert [_default_map(s, 0, 27) for s in (0, 1, 2, 3)] == [0, 3, 6, 9]
+
+    def test_d30_trimsamsa_bands(self):
+        # odd: Mars, Saturn, Jupiter, Mercury, Venus (5/5/8/7/5 degrees)
+        assert [_default_map(0, k, 30) for k in (0, 5, 10, 18, 25)] == [0, 10, 8, 2, 6]
+        # even: reversed lords with mirrored widths
+        assert [_default_map(1, k, 30) for k in (0, 5, 12, 20, 25)] == [1, 5, 11, 9, 7]
+
+    def test_d40_khavedamsa(self):
+        assert _default_map(0, 0, 40) == 0  # odd → Aries
+        assert _default_map(1, 0, 40) == 6  # even → Libra
+
+    def test_d45_akshavedamsa(self):
+        assert [_default_map(s, 0, 45) for s in (0, 1, 2)] == [0, 4, 8]
+
 
 class TestReverseMap:
     def test_even_sign(self):
