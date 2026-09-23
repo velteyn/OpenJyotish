@@ -33,6 +33,36 @@ SAV_GOOD_THRESHOLD = 30
 SAV_BAD_THRESHOLD = 25
 BAV_GOOD_THRESHOLD = 4
 
+#: Gochara favourable transit houses counted from the natal Moon
+#: (Phaladeepika ch. 26; the classical "good positions" table).
+GOCHARA_GOOD: Dict[Graha, Tuple[int, ...]] = {
+    Graha.SUN: (3, 6, 10, 11),
+    Graha.MOON: (1, 3, 6, 7, 10, 11),
+    Graha.MARS: (3, 6, 11),
+    Graha.MERCURY: (2, 4, 6, 8, 10, 11),
+    Graha.JUPITER: (2, 5, 7, 9, 11),
+    Graha.VENUS: (1, 2, 3, 4, 5, 8, 9, 11, 12),
+    Graha.SATURN: (3, 6, 11),
+}
+
+#: Vedha (obstruction): the house from the Moon whose occupation by any other
+#: transiting planet cancels the benefit of a favourable house. The pairs are
+#: mutual (Phaladeepika ch. 26); Rahu/Ketu have no vedha.
+GOCHARA_VEDHA: Dict[Graha, Dict[int, int]] = {
+    Graha.SUN: {3: 9, 6: 12, 10: 4, 11: 5},
+    Graha.MOON: {1: 5, 3: 9, 6: 12, 7: 2, 10: 4, 11: 8},
+    Graha.MARS: {3: 12, 6: 9, 11: 5},
+    Graha.MERCURY: {2: 5, 4: 3, 6: 9, 8: 1, 10: 8, 11: 12},
+    Graha.JUPITER: {2: 12, 5: 4, 7: 3, 9: 10, 11: 8},
+    Graha.VENUS: {1: 8, 2: 7, 3: 1, 4: 10, 5: 9, 8: 5, 9: 11, 11: 3, 12: 6},
+    Graha.SATURN: {3: 12, 6: 9, 11: 5},
+}
+
+
+def vedha_house(graha: Graha, house_from_moon: int) -> int:
+    """The vedha (obstructing) house for a planet's transit house, or 0."""
+    return GOCHARA_VEDHA.get(graha, {}).get(house_from_moon, 0)
+
 
 def sade_sati_status(natal_moon_rasi: int, transit_saturn_rasi: int) -> str:
     """Sade Sati phase of transit Saturn against the natal Moon.
@@ -61,6 +91,9 @@ class TransitEntry:
     bav_score: int
     is_favorable: bool
     is_ashtakavarga_good: bool
+    is_good_transit: bool = False
+    vedha_house: int = 0
+    is_vedha: bool = False
 
 
 @dataclass
@@ -133,6 +166,30 @@ def compute_transits(
             is_favorable=is_favorable,
             is_ashtakavarga_good=is_av_good,
         ))
+
+    # Gochara vedha: a favourable house is obstructed when another transiting
+    # planet — or a node — occupies its paired vedha house. The Sun and
+    # Saturn, and the Moon and Mercury, are exempt from obstructing each
+    # other (Raman, Hindu Predictive Astrology ch. 34).
+    occupants: Dict[int, set] = {}
+    for e in entries:
+        occupants.setdefault(e.house_from_moon, set()).add(e.graha)
+    rahu = se.calc_planet(10, transit_jd)  # mean node (Rahu); Ketu = +180
+    for node, rasi in ((Graha.RAHU, rahu.rasi_index),
+                       (Graha.KETU, (rahu.rasi_index + 6) % 12)):
+        occupants.setdefault(
+            (rasi - natal_moon_rasi) % 12 + 1, set()).add(node)
+
+    _EXEMPT = (frozenset((Graha.SUN, Graha.SATURN)),
+               frozenset((Graha.MOON, Graha.MERCURY)))
+    for e in entries:
+        e.is_good_transit = e.house_from_moon in GOCHARA_GOOD.get(e.graha, ())
+        vedha = vedha_house(e.graha, e.house_from_moon)
+        e.vedha_house = vedha
+        blockers = occupants.get(vedha, set()) - {e.graha}
+        blockers = {b for b in blockers
+                    if frozenset((b, e.graha)) not in _EXEMPT}
+        e.is_vedha = bool(e.is_good_transit and vedha and blockers)
 
     ts = datetime.now(timezone.utc)
     if transit_jd:
