@@ -425,3 +425,17 @@ class TestPanchamsaShashthamsaAshtamsaRudramsa:
         from jhora.charts.varga import _map_sign
         std = _map_sign(2, 4, 11, VargaVariant.DEFAULT)
         assert _map_sign(2, 4, 11, VargaVariant.RA) == (11 - std) % 12
+
+
+class TestShashtiamsa:
+    """D-60 per P.V.R. Rao ch. 6.2.20: count forward from the sign.
+    Gold: Jupiter at 222°58' (Sc, part 26) → Sg."""
+
+    def test_worked_example(self):
+        from jhora.charts.varga import _map_sign
+        assert _map_sign(7, 25, 60, VargaVariant.DEFAULT) == 8
+
+    def test_part_one_stays(self):
+        from jhora.charts.varga import _map_sign
+        for sign in range(12):
+            assert _map_sign(sign, 0, 60, VargaVariant.DEFAULT) == sign

@@ -203,7 +203,9 @@ def _default_map(sign: int, part: int, n: int) -> int:
     D-30 (Trimsamsa), D-40 (Khavedamsa) and D-45 (Akshavedamsa);
     per P.V.R. Rao ch. 6.2 for D-5 (Panchamsa), D-6 (Shashthamsa),
     D-8 (Ashtamsa) and D-11 (Rudramsa).
-    D-60, D-81, D-108, D-144 and D-150 still use the
+    D-60 (Shashtiamsa, count forward from the sign per P.V.R. Rao
+    ch. 6.2.20).
+    D-81, D-108, D-144 and D-150 still use the
     generic odd/even fallback and need their own classical start rules.
     """
     if n == 9:
@@ -258,6 +260,8 @@ def _default_map(sign: int, part: int, n: int) -> int:
         r = Rasi(sign)
         start = 0 if r.is_movable else (4 if r.is_fixed else 8)
         return (start + part) % 12
+    if n == 60:  # Shashtiamsa (PVR 6.2.20): count forward from the sign
+        return (sign + part) % 12
     if sign % 2 == 0:
         return (sign + part) % 12
     else:

@@ -5,6 +5,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- D-60 Shashtiamsa start (count forward from the sign, P.V.R. Rao
+  ch. 6.2.20, Jupiter-in-Sg worked example).
 - Classical varga starts for D-5, D-6, D-8, D-11 (P.V.R. Rao ch. 6.2,
   pinned on his worked examples) plus the Raman anti-zodiacal D-11
   variant. Remaining unsourced levels unchanged.
