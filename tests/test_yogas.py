@@ -237,3 +237,31 @@ class TestVasumatiYoga:
 
     def test_none_without_benefic(self):
         assert _vasumati_yoga(None, {Graha.JUPITER: 0, Graha.SATURN: 1}) == []
+
+
+class TestYogakaraka:
+    def _jalkot(self):
+        from jhora.charts.chart import ChartBuilder
+        return ChartBuilder().build(
+            2001, 2, 24, 6 + 11 / 60,
+            lat=18 + 38 / 60, lon=77 + 12 / 60,
+            tz="+0530", ayanamsa="lahiri")
+
+    def test_aquarius_lagna_gives_venus(self):
+        from jhora.calc.yogas import detect_all
+        from jhora.types.graha import Graha
+        yk = [r for r in detect_all(self._jalkot())
+              if r.name == "Yogakaraka"]
+        assert len(yk) == 1
+        assert yk[0].planets == (Graha.VENUS,)
+
+    def test_scorpio_lagna_has_none(self, ref_chart):
+        from jhora.calc.yogas import detect_all
+        assert [r for r in detect_all(ref_chart)
+                if r.name == "Yogakaraka"] == []
+
+    def test_every_result_has_a_definition(self, ref_chart):
+        from jhora.calc.yogas import detect_all
+        for cd in (self._jalkot(), ref_chart):
+            for r in detect_all(cd):
+                assert r.name and r.description
