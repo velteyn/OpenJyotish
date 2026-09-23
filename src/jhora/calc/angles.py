@@ -48,12 +48,15 @@ def aspect_angle(a: float, b: float) -> float:
     return 0
 
 
-def is_aspected(planet_lon: float, target_lon: float, special_only: bool = False) -> bool:
-    """Check if planet aspects a target point.
-    For special aspects (Mars: 4th, 8th; Jupiter: 5th, 9th; Saturn: 3rd, 10th), 
-    we check the specific aspect angles.
-    """
-    d = diff(planet_lon, target_lon)
-    return int(d // 30) in _special_aspects or diff < 8  # conjunction
+def is_aspected(planet_lon: float, target_lon: float,
+                special_only: bool = False) -> bool:
+    """Whether a planet aspects a target by the 7th-sign (whole-sign) rule.
 
-_special_aspects = {4, 5, 7, 8, 10}
+    This is the common sign-based aspect; planet-specific special aspects
+    (Mars 4/8, Jupiter 5/9, Saturn 3/10) live in :mod:`jhora.calc.drishti`,
+    which is graha-aware. ``special_only`` is kept for signature
+    compatibility and has no effect here.
+    """
+    from_sign = int(planet_lon // 30) % 12
+    to_sign = int(target_lon // 30) % 12
+    return to_sign == (from_sign + 6) % 12
