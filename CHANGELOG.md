@@ -5,6 +5,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Special sensitive points (`special-points` CLI): Baadhaka sthana/lord,
+  Pushkara navamsa/bhaga, 64th navamsa (Khara), 22nd drekkana.
 - Mean/true lunar nodes option (the reference program exposes the same
   preference): `SweEngine.set_use_true_nodes`, `ChartBuilder.build(...,
   nodes=...)`, `chart --nodes`, GUI nodes combo; transit Rahu/Ketu follow
