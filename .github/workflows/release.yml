@@ -30,13 +30,14 @@ jobs:
           RELEASE = f'openjyotish-v{VERSION}-windows'
           os.makedirs(f'/tmp/{RELEASE}', exist_ok=True)
 
-          # Copy source
+          # Copy source (never ship data/jhora.db: the app creates a
+          # fresh database on first use; the repo copy is test churn)
           for item in ['src', 'tests', 'data', 'requirements.txt', 'pyproject.toml',
                        'install.bat', 'run.bat', 'download_ephe.sh', 'README.md', 'LICENSE']:
               if os.path.exists(item):
                   dest = f'/tmp/{RELEASE}/{item}'
                   if os.path.isdir(item):
-                      shutil.copytree(item, dest, ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+                      shutil.copytree(item, dest, ignore=shutil.ignore_patterns('__pycache__','*.pyc','jhora.db'))
                   else:
                       shutil.copy2(item, dest)
 

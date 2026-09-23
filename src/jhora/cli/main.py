@@ -2965,8 +2965,20 @@ def remedies(
     console.print(table)
 
 
+def _version_callback(value: bool) -> None:
+    if value:
+        from jhora import __version__
+        console.print(f"OpenJyotish {__version__}")
+        raise typer.Exit()
+
+
 @app.callback()
-def cli():
+def cli(
+    version: bool = typer.Option(
+        False, "--version", "-V",
+        help="Show the version and exit.",
+        callback=_version_callback, is_eager=True),
+):
     """OpenJyotish — Vedic astrology calculator (implementation)."""
 
 

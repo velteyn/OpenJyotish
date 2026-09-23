@@ -222,3 +222,11 @@ def test_chalit_varga_rejects_unknown_level():
     ])
     assert result.exit_code != 0
     assert "Unknown varga level" in result.stdout
+
+
+class TestVersionFlag:
+    def test_version_matches_package(self):
+        from jhora import __version__
+        r = runner.invoke(app, ["--version"])
+        assert r.exit_code == 0, r.output
+        assert __version__ in r.output
