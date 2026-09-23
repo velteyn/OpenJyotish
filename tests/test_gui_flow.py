@@ -157,11 +157,17 @@ def test_chalit(chart):
 def test_json_export(chart):
     from jhora.ai.json_export import chart_to_json
     data = chart_to_json(chart)
-    assert len(data) == 27
+    assert len(data) == 28
     assert "planets" in data
     assert "varga_strength" in data
     assert "dasa" in data
     assert "transits" in data
+    assert "dasa_entry" in data
+    assert data["dasa_entry"]["system"] == "vimsottari"
+    assert 1 <= len(data["dasa_entry"]["entries"]) <= 2
+    for e in data["dasa_entry"]["entries"]:
+        assert {"path", "lord", "start", "end", "entry_lagna",
+                "entry_moon_sign"} <= set(e)
     assert "sade_sati" in data
     sade = data["sade_sati"]
     assert {"moon_sign", "current", "upcoming"} <= set(sade)

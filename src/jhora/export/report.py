@@ -325,6 +325,30 @@ def _vimsottari_table(cd: ChartData) -> str:
         return ""
 
 
+def _dasa_entry_table(cd: ChartData) -> str:
+    """Entry charts of the running Vimsottari MD/AD (period openings)."""
+    try:
+        from jhora.calc.dasa_entry import running_entry_charts
+        rows = []
+        for path, period, entry in running_entry_charts(cd):
+            lagna = Rasi.from_longitude(entry.ascendant)
+            moon = Rasi.from_longitude(
+                entry.planet(Graha.MOON).longitude)
+            rows.append(
+                f"<tr><td>{'/'.join(path)}</td>"
+                f"<td>{period.start_date.strftime('%Y-%m-%d')}</td>"
+                f"<td>{lagna.short_name} {entry.ascendant:.1f}°</td>"
+                f"<td>{moon.short_name}</td></tr>"
+            )
+        if not rows:
+            return ""
+        return f"""<h2>Dasa Entry Charts (running periods)</h2>
+<table><tr><th>Period</th><th>Opens</th><th>Entry Lagna</th><th>Entry Moon</th></tr>
+{"".join(rows)}</table>"""
+    except Exception:
+        return ""
+
+
 def _transit_table(cd: ChartData) -> str:
     try:
         eng = SweEngine()
@@ -619,6 +643,7 @@ def _build_html(cd: ChartData, style: str) -> str:
             _varga_strength_table(cd),
             _ashtakavarga_table(cd),
             _vimsottari_table(cd),
+            _dasa_entry_table(cd),
             _yogas_list(cd),
             _sahamas_table(cd),
             _vimsopaka_table(cd),
