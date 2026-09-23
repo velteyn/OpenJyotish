@@ -348,3 +348,48 @@ class TestVargaChartData:
     def test_lagna_type(self, ref_navamsa):
         from jhora.charts.chart import VargaPosition
         assert isinstance(ref_navamsa.lagna_position, VargaPosition)
+
+
+class TestVariantWiring:
+    """Every listed variant must dispatch and compute deterministically.
+
+    This pins WIRING (no crash, distinct deterministic maps), not
+    correctness of the variant definitions: the D-7/D-10 offset
+    variants (V1_7/V7_1, V5_8/V6_9/V9_12) apply their offsets to
+    0-based even `sign` (i.e. classically ODD signs). If those names
+    denote even-sign variants, the parity is suspect — resolving it
+    needs a published variant table with worked examples, which is
+    not available here.
+    """
+
+    def test_all_variants_compute(self, ref_chart):
+        from jhora.charts.varga import _VARIANTS_BY_LEVEL
+        comp = VargaChartComputer()
+        for vl, variants in _VARIANTS_BY_LEVEL.items():
+            if vl == VargaLevel.D_1:
+                continue
+            for var in variants:
+                first = comp.compute(ref_chart, vl, var)
+                comp.clear_cache()
+                second = comp.compute(ref_chart, vl, var)
+                for g in first.positions:
+                    assert first.positions[g].longitude == \
+                        second.positions[g].longitude
+
+    def test_d10_offset_variants_characterization(self):
+        from jhora.charts.varga import _map_sign
+        # Part 0 of Taurus (even sign): all three keep the sign.
+        for var in (VargaVariant.V5_8, VargaVariant.V6_9,
+                    VargaVariant.V9_12):
+            assert _map_sign(1, 0, 10, var) == 1
+        # Part 0 of Aries (odd sign): offsets 5 / 6 / 9.
+        assert _map_sign(0, 0, 10, VargaVariant.V5_8) == 5
+        assert _map_sign(0, 0, 10, VargaVariant.V6_9) == 6
+        assert _map_sign(0, 0, 10, VargaVariant.V9_12) == 9
+
+    def test_d7_offset_variants_characterization(self):
+        from jhora.charts.varga import _map_sign
+        assert _map_sign(1, 0, 7, VargaVariant.V1_7) == 1
+        assert _map_sign(0, 0, 7, VargaVariant.V1_7) == 1
+        assert _map_sign(1, 0, 7, VargaVariant.V7_1) == 1
+        assert _map_sign(0, 0, 7, VargaVariant.V7_1) == 7
