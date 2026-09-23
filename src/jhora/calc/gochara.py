@@ -9,7 +9,7 @@ References:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 
 from jhora.charts.chart import ChartBuilder, ChartData
@@ -206,3 +206,157 @@ def compute_transits(
         entries=entries,
         sav=sav,
     )
+
+
+# ── Sade Sati / Kantaka / Ashtama timeline ──
+# A working astrologer's daily question is not "is Saturn there now" but
+# "when does each phase start and end". Saturn spends ~2.5 years per sign,
+# so the three Sade Sati phases span ~7.5 years; retrograde motion can split
+# a phase into separate intervals, which are reported as-is (mainstream
+# panchangas do the same). Houses are counted whole-sign from natal Moon.
+
+#: (kind, phase label, sign offset from natal Moon) for tracked transits.
+_SADE_SATI_PHASES = (
+    ("Sade Sati", "12th from Moon", -1),
+    ("Sade Sati", "1st from Moon (peak)", 0),
+    ("Sade Sati", "2nd from Moon", +1),
+)
+_SMALL_PANOTI = (
+    ("Kantaka Shani", "4th from Moon", +3),
+    ("Ashtama Shani", "8th from Moon", +7),
+)
+_TIMELINE_KINDS = _SADE_SATI_PHASES + _SMALL_PANOTI
+
+#: Grid step for the ingress search. Saturn never exceeds ~0.2°/day, so a
+#: 3-day grid cannot skip a 30° sign; boundaries are then refined by bisection.
+_TIMELINE_GRID_DAYS = 3
+
+
+@dataclass
+class TransitPhase:
+    """One dated interval of a Saturn transit phase from natal Moon."""
+    kind: str      # "Sade Sati" | "Kantaka Shani" | "Ashtama Shani"
+    phase: str     # e.g. "12th from Moon", "1st from Moon (peak)"
+    sign: int      # Saturn's sidereal rasi index during the interval
+    start: date
+    end: date
+    start_exact: bool = True  # False when clipped by the search window
+    end_exact: bool = True
+
+
+def saturn_sidereal_longitude(jd: float,
+                              ayanamsa_name: str = "lahiri") -> float:
+    """Saturn's sidereal longitude at a Julian Day."""
+    se = SweEngine()
+    se.set_sidereal_mode(ayanamsa_name)
+    return se.calc_planet(6, jd).longitude % 360.0
+
+
+def saturn_sidereal_rasi(jd: float, ayanamsa_name: str = "lahiri") -> int:
+    """Saturn's sidereal rasi index (0 = Aries) at a Julian Day."""
+    return int(saturn_sidereal_longitude(jd, ayanamsa_name) // 30) % 12
+
+
+def _unwrapped_delta(lon: float, ref: float) -> float:
+    """Signed angular distance of lon from ref, in (-180, 180]."""
+    return (lon - ref + 540.0) % 360.0 - 180.0
+
+
+def _refine_ingress(se: SweEngine, jd_lo: float, jd_hi: float,
+                    boundary_lon: float) -> float:
+    """Bisect to the JD of Saturn's crossing of a sign cusp (~1 minute)."""
+    lon_lo = se.calc_planet(6, jd_lo).longitude % 360.0
+    target = _unwrapped_delta(boundary_lon, lon_lo)
+    for _ in range(25):
+        mid = (jd_lo + jd_hi) / 2.0
+        lon = se.calc_planet(6, mid).longitude % 360.0
+        if (_unwrapped_delta(lon, lon_lo) < target) == (target > 0):
+            jd_lo = mid
+        else:
+            jd_hi = mid
+    return (jd_lo + jd_hi) / 2.0
+
+
+def saturn_phase_timeline(natal_moon_rasi: int,
+                          ayanamsa_name: str = "lahiri",
+                          start: Optional[date] = None,
+                          end: Optional[date] = None) -> List[TransitPhase]:
+    """Dated Sade Sati / Kantaka / Ashtama intervals in [start, end].
+
+    Scans Saturn's sidereal sign on a coarse grid, groups consecutive days
+    by phase, and refines each boundary to the true ingress by bisection.
+    Retrograde re-entries surface as separate intervals with the same label.
+    """
+    today = datetime.now(timezone.utc).date()
+    if start is None:
+        start = today - timedelta(days=int(365.25 * 8))
+    if end is None:
+        end = today + timedelta(days=int(365.25 * 8))
+    if end <= start:
+        return []
+
+    se = SweEngine()
+    se.set_sidereal_mode(ayanamsa_name)
+
+    label_of = {(natal_moon_rasi + off) % 12: (kind, phase)
+                for kind, phase, off in _TIMELINE_KINDS}
+
+    # Coarse grid: (jd_noon, rasi, label|None).
+    grid = []
+    day = start
+    while day <= end:
+        jd = se.julday(day.year, day.month, day.day, 12.0)
+        rasi = int(se.calc_planet(6, jd).longitude % 360.0 // 30) % 12
+        grid.append((jd, day, rasi, label_of.get(rasi)))
+        day += timedelta(days=_TIMELINE_GRID_DAYS)
+
+    def jd_to_date(jd: float) -> date:
+        y, m, d, _h = se.revjul(jd)
+        return date(int(y), int(m), int(d))
+
+    phases: List[TransitPhase] = []
+    i = 0
+    while i < len(grid):
+        label = grid[i][3]
+        if label is None:
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(grid) and grid[j + 1][3] == label:
+            j += 1
+        kind, phase = label
+        sign = grid[i][2]
+        # Refine the entry boundary (between grid[i-1] and grid[i]) ...
+        if i == 0:
+            start_d, start_exact = start, False
+        else:
+            cusp = (sign * 30.0) % 360.0
+            jd_in = _refine_ingress(se, grid[i - 1][0], grid[i][0], cusp)
+            start_d, start_exact = jd_to_date(jd_in), True
+        # ... and the exit boundary (between grid[j] and grid[j+1]).
+        if j == len(grid) - 1:
+            end_d, end_exact = end, False
+        else:
+            cusp = ((sign + 1) * 30.0) % 360.0
+            jd_out = _refine_ingress(se, grid[j][0], grid[j + 1][0], cusp)
+            end_d, end_exact = jd_to_date(jd_out), True
+        phases.append(TransitPhase(
+            kind=kind, phase=phase, sign=sign,
+            start=start_d, end=end_d,
+            start_exact=start_exact, end_exact=end_exact,
+        ))
+        i = j + 1
+    return phases
+
+
+def sade_sati_timeline(natal_moon_rasi: int,
+                       ayanamsa_name: str = "lahiri",
+                       center: Optional[date] = None,
+                       years_before: int = 8,
+                       years_after: int = 8) -> List[TransitPhase]:
+    """Sade Sati / Kantaka / Ashtama intervals around a central date."""
+    if center is None:
+        center = datetime.now(timezone.utc).date()
+    start = center - timedelta(days=int(365.25 * years_before))
+    end = center + timedelta(days=int(365.25 * years_after))
+    return saturn_phase_timeline(natal_moon_rasi, ayanamsa_name, start, end)
