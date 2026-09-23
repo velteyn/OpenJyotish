@@ -354,6 +354,35 @@ def _transit_table(cd: ChartData) -> str:
         return ""
 
 
+def _sade_sati_table(cd: ChartData) -> str:
+    try:
+        from datetime import date as _date
+
+        from jhora.calc.gochara import sade_sati_timeline
+        moon_rasi = int(cd.planet(Graha.MOON).longitude / 30)
+        phases = sade_sati_timeline(
+            moon_rasi, getattr(cd, "ayanamsa_name", "lahiri"))
+        today = _date.today()
+        rows = []
+        for p in phases:
+            now_mark = "← now" if p.start <= today <= p.end else ""
+            start_s = f"~{p.start}" if not p.start_exact else str(p.start)
+            end_s = f"~{p.end}" if not p.end_exact else str(p.end)
+            rows.append(
+                f"<tr><td>{p.kind}</td><td>{p.phase}</td>"
+                f"<td>{Rasi(p.sign).short_name}</td>"
+                f"<td>{start_s}</td><td>{end_s}</td>"
+                f"<td>{now_mark}</td></tr>"
+            )
+        if not rows:
+            return ""
+        return f"""<h2>Sade Sati Timeline (dates are UTC)</h2>
+<table><tr><th>Kind</th><th>Phase</th><th>Saturn in</th><th>Start</th><th>End</th><th>Now</th></tr>
+{"".join(rows)}</table>"""
+    except Exception:
+        return ""
+
+
 def _special_lagnas_table(cd: ChartData) -> str:
     try:
         from jhora.calc.special_lagnas import compute_special_lagnas
@@ -594,6 +623,7 @@ def _build_html(cd: ChartData, style: str) -> str:
             _sahamas_table(cd),
             _vimsopaka_table(cd),
             _transit_table(cd),
+            _sade_sati_table(cd),
             _special_lagnas_table(cd),
             _arudha_pada_table(cd),
             _karaka_table(cd),

@@ -85,3 +85,26 @@ def test_save_db_stores_true_birth_time(tmp_path):
         assert (row["day"], row["month"], row["year"]) == (7, 7, 2026)
     finally:
         _restore_db(old)
+
+
+def test_sade_sati_menu_item_present():
+    """Sade Sati Timeline is a reachable entry in the Transits menu."""
+    tui = JhoraTui()
+    tui.chart = object()  # bypass _check_chart guard
+    from unittest import mock
+    with mock.patch.object(tui, "_sub_menu") as sub:
+        tui._show_transits_menu()
+        items = sub.call_args[0][1]
+    labels = [label for _, label, _ in items]
+    assert any("Sade Sati" in label for label in labels)
+
+
+def test_sade_sati_action_renders():
+    from jhora.charts.chart import ChartBuilder
+    tui = JhoraTui()
+    tui.chart = ChartBuilder().build(
+        2001, 2, 24, 6 + 11 / 60, lat=18.63, lon=77.2, tz="+0530")
+    tui._action_sade_sati()
+    text = "\n".join(tui._content_lines)
+    assert "Sade Sati" in text
+    assert "12th from Moon" in text or "2nd from Moon" in text
