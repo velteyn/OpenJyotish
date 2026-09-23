@@ -73,6 +73,27 @@ class TestHarshaBala(unittest.TestCase):
                    Graha.JUPITER, Graha.VENUS, Graha.SATURN]:
             self.assertIn(g, bala)
 
+    def _chart_all_at(self, lon: float, moon_lon: float):
+        planets = {g: _fake_planet(lon) for g in Graha}
+        planets[Graha.MOON] = _fake_planet(moon_lon)
+        return ChartData(
+            birth_date=datetime(2000, 1, 1), julian_day=2451545.0,
+            latitude=0.0, longitude=0.0, timezone="UTC",
+            ayanamsa_name="lahiri", ayanamsa_value=23.5,
+            planets=planets, lagna=_fake_planet(lon), ascendant=lon,
+        )
+
+    def test_exaltation_bonus_uses_the_exaltation_sign(self):
+        # Regression: the exaltation check used `sign == value // 30` with a
+        # garbled table, so only the Sun scored and others wrongly scored in
+        # Aries. Here the Moon is in the same house in both charts, but moves
+        # from Aries to its exaltation sign Taurus.
+        aries = compute_harsha_bala(
+            self._chart_all_at(0.0, 0.0), 2451545.0)      # Moon in Aries
+        taurus = compute_harsha_bala(
+            self._chart_all_at(30.0, 30.0), 2451545.0)    # Moon in Taurus
+        self.assertEqual(taurus[Graha.MOON] - aries[Graha.MOON], 5)
+
     def test_mercury_in_lagna_gets_house_bonus(self):
         planets = {}
         for g in Graha:

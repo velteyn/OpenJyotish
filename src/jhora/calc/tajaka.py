@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple
 import swisseph as swe
 
 from jhora.ephemeris.swe import SweEngine, SEFLG_DEFAULT, SEFLG_SIDEREAL, SEFLG_SWIEPH, SEFLG_SPEED
+from jhora.calc.dignities import EXALTATION
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.types.graha import Graha
 from jhora.types.nakshatra import Nakshatra
@@ -334,10 +335,7 @@ def compute_harsha_bala(
         if g == lord_of_sign:
             scores[g] += 5
             continue
-        exaltations = {Graha.SUN: 0, Graha.MOON: 2, Graha.MARS: 9,
-                        Graha.MERCURY: 5, Graha.JUPITER: 3, Graha.VENUS: 26,
-                        Graha.SATURN: 20}
-        if g in exaltations and sign == exaltations[g] // 30:
+        if g in EXALTATION and sign == EXALTATION[g][0]:
             scores[g] += 5
     if Graha.KETU in scores:
         del scores[Graha.KETU]
