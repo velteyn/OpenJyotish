@@ -393,3 +393,35 @@ class TestVariantWiring:
         assert _map_sign(0, 0, 7, VargaVariant.V1_7) == 1
         assert _map_sign(1, 0, 7, VargaVariant.V7_1) == 1
         assert _map_sign(0, 0, 7, VargaVariant.V7_1) == 7
+
+
+class TestPanchamsaShashthamsaAshtamsaRudramsa:
+    """Classical starts per P.V.R. Rao ch. 6.2, pinned on his worked
+    examples (Mercury Ge, Jupiter Sc)."""
+
+    def test_d5_panchamsa_tables(self):
+        from jhora.charts.varga import _map_sign
+        assert [_map_sign(0, p, 5, VargaVariant.DEFAULT) for p in range(5)] == \
+            [0, 10, 8, 2, 6]
+        assert [_map_sign(1, p, 5, VargaVariant.DEFAULT) for p in range(5)] == \
+            [1, 5, 11, 9, 7]
+
+    def test_d6_shashthamsa_example(self):
+        from jhora.charts.varga import _map_sign
+        assert _map_sign(2, 2, 6, VargaVariant.DEFAULT) == 2  # Ge 11° → Ge
+        assert _map_sign(7, 3, 6, VargaVariant.DEFAULT) == 9  # Sc 19° → Cp
+
+    def test_d8_ashtamsa_example(self):
+        from jhora.charts.varga import _map_sign
+        assert _map_sign(2, 2, 8, VargaVariant.DEFAULT) == 6  # Ge 10° → Li
+        assert _map_sign(7, 5, 8, VargaVariant.DEFAULT) == 1  # Sc 19° → Ta
+
+    def test_d11_rudramsa_example(self):
+        from jhora.charts.varga import _map_sign
+        assert _map_sign(2, 4, 11, VargaVariant.DEFAULT) == 2  # Ge 11° → Ge
+        assert _map_sign(7, 6, 11, VargaVariant.DEFAULT) == 11  # Sc 19° → Pi
+
+    def test_d11_raman_mirror(self):
+        from jhora.charts.varga import _map_sign
+        std = _map_sign(2, 4, 11, VargaVariant.DEFAULT)
+        assert _map_sign(2, 4, 11, VargaVariant.RA) == (11 - std) % 12
