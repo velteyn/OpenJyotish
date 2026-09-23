@@ -336,15 +336,19 @@ def _transit_table(cd: ChartData) -> str:
         rows = []
         for e in entries[:9]:
             fav = "✓" if e.is_favorable else "✗"
+            vedha = (f"H{e.vedha_house} obstructs" if e.is_vedha
+                     else (f"H{e.vedha_house}" if e.vedha_house else "—"))
             rows.append(
                 f"<tr><td>{e.graha.full_name if hasattr(e.graha,'full_name') else e.graha.short_name}</td>"
                 f"<td>{e.transit_rasi_name}</td>"
                 f"<td>H{e.house_from_lagna}</td>"
+                f"<td>H{e.house_from_moon}</td>"
                 f"<td>{e.sav_score}</td>"
-                f"<td>{fav}</td></tr>"
+                f"<td>{fav}</td>"
+                f"<td>{vedha}</td></tr>"
             )
         return f"""<h2>Current Transits ({now.strftime('%Y-%m-%d')})</h2>
-<table><tr><th>Planet</th><th>Sign</th><th>House</th><th>SAV</th><th>Fav</th></tr>
+<table><tr><th>Planet</th><th>Sign</th><th>House</th><th>From Moon</th><th>SAV</th><th>Fav</th><th>Vedha</th></tr>
 {"".join(rows)}</table>"""
     except Exception:
         return ""

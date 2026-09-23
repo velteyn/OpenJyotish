@@ -2033,16 +2033,22 @@ def transit(
     table.add_column("BAV", style="magenta")
     table.add_column("SAV", style="magenta")
     table.add_column("Fav", style="bold")
+    table.add_column("Vedha", style="red")
 
     for e in result.entries:
         ret = "R" if e.is_retrograde else ""
-        fav = "✓" if e.is_favorable else "✗"
         fav_s = "[green]✓[/green]" if e.is_favorable else "[red]✗[/red]"
+        if e.is_vedha:
+            vedha_s = f"[red]H{e.vedha_house} obstructs[/red]"
+        elif e.vedha_house:
+            vedha_s = f"[dim]H{e.vedha_house}[/dim]"
+        else:
+            vedha_s = ""
         table.add_row(
             e.graha.short_name, e.transit_rasi_name,
             f"{e.transit_degrees:.1f}", ret,
             str(e.house_from_lagna), str(e.house_from_moon),
-            str(e.bav_score), str(e.sav_score), fav_s,
+            str(e.bav_score), str(e.sav_score), fav_s, vedha_s,
         )
     console.print(table)
 

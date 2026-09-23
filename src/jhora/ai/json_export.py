@@ -257,8 +257,12 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
                 "planet": e.graha.short_name if hasattr(e.graha, 'short_name') else str(e.graha),
                 "sign": e.transit_rasi_name,
                 "house": e.house_from_lagna,
+                "house_from_moon": e.house_from_moon,
                 "sav": e.sav_score,
                 "favorable": e.is_favorable,
+                "good_transit": e.is_good_transit,
+                "vedha_house": e.vedha_house,
+                "is_vedha": e.is_vedha,
             })
     except Exception:
         result["transits"] = []
