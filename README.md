@@ -8,6 +8,10 @@ Free, open-source, cross-platform Vedic astrology software.
 28-section JSON API for AI agents (+ JSON-LD)  |  1558 tests  |  GPL v3.0
 ```
 
+> **Showcase: [the Gandhi retrospective](docs/gandhi-retrospective.md)** —
+> a pre-registered validation study. Fixed chart, seven datable life events,
+> dashas/transits/yogas checked in the open, miss included.
+
 ## Quick Install
 
 ### Option 1: Release (Windows — no Python needed)
