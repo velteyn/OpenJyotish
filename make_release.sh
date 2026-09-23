@@ -3,7 +3,10 @@
 # Creates openjyotish-windows.zip with everything needed to run
 set -e
 
-VERSION=$(python3 -c "import jhora; print(jhora.__version__)" 2>/dev/null || echo "1.1.0")
+VERSION=$(python3 -c "import jhora; print(jhora.__version__)" 2>/dev/null) || {
+    echo "ERROR: cannot determine version (is jhora installed?)" >&2
+    exit 1
+}
 RELEASE="openjyotish-v${VERSION}-windows"
 TMPDIR="/tmp/$RELEASE"
 
@@ -33,8 +36,14 @@ for f in jhcore/ephe/sepl_*.se1 jhcore/ephe/semo_*.se1; do
     fi
 done
 
-# Copy database
-cp data/jhora.db "$TMPDIR/data/" 2>/dev/null || true
+# Do NOT ship data/jhora.db: the app creates a fresh database with all
+# tables on first use; the repo copy only carries test churn.
+# Ship the rest of data/ (sample charts etc.) without it.
+mkdir -p "$TMPDIR/data"
+for f in data/*; do
+    [ "$(basename "$f")" = "jhora.db" ] && continue
+    cp -r "$f" "$TMPDIR/data/" 2>/dev/null || true
+done
 
 # Create Windows launcher batch file
 cat > "$TMPDIR/OpenJyotish.bat" << 'EOF'

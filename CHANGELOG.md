@@ -1,0 +1,54 @@
+# Changelog — OpenJyotish
+
+All notable changes, newest first. Release tags: `vX.Y.Z`.
+
+## Unreleased → v1.7.0
+
+### Added
+- Sade Sati phase timeline with dates — new `sade-sati` CLI, Transits-tab
+  table, dashboard KEY DATES with exact dates, TUI menu entry, HTML report
+  section, and `sade_sati` block in the `analyze` JSON; Kantaka/Ashtama Shani
+  included, retrograde re-entries as separate intervals.
+- Dasa entry chart — new `dasa-entry` CLI (period path like `Jupiter/Saturn`,
+  any dasa engine); double-click a period in the GUI dasa-chart table to see
+  its entry chart; `dasa_entry` block in the `analyze` JSON; HTML report section.
+- Tajaka annual Vimshottari from the return Moon (`tajaka --vimshottari
+  sesham|full|none`).
+- Ashtakavarga Bala view (`ashtakavarga --bala`): per-planet strength at each
+  reduction stage (BAV → Trikona → Ekadhipatya = Sodhya Pinda).
+- GUI packed chart mode + per-widget D-1/D-9 styles ("Two styles").
+- Yogakaraka reported as a detected yoga (flows to CLI/GUI/JSON).
+- Rasi-Bhukta Vimsottari dasa system.
+- Rule-based remedy engine (sourced): yantra, dasha-lord, timing, doshas,
+  partner-aware marriage remedies; Remedies GUI panel.
+- KP Vimsottari presentation (`kp --when`) and bhava significators
+  ( CLI table, GUI tab, AI JSON).
+- Five classical yogas: Budha-Aditya, Chandra-Mangala, Adhi (graded),
+  Lagnaadhi, Vasumati.
+- Dasa chart view (running period tree): `dasa-chart` CLI + GUI dasa tab.
+- Per-varga Shadbala and Bhava Bala matrices (report + `varga_strength` JSON).
+- Gochara vedha (transit obstruction, Raman ch. 34 exemptions).
+- `jhora --version` / `-V`.
+
+### Fixed
+- Swiss Ephemeris planet mapping order (transits at birth now equal natal).
+- Special-lagna SE body map; Tajaka Harsha Bala exaltation scoring.
+- Whole-sign house counting in learning/comparison, Kuja dosha, and aspects.
+- Classical varga start signs for the default mapping (D-2/3/4/7/9/10/12 and
+  D-16/20/24/27/30/40/45); navamsa/vargottama corrected.
+- `compute_all_upagrahas` sunrise call (temporal upagrahas were silently dropped).
+- `analyze` redaction no longer blanks astrological longitudes.
+- Kalachakra rewritten to the Raghavaacharya method (nine mahadasas).
+- Rasi-dasa seeds (Lagnamsaka, Narayana) from the stronger of lagna and 7th.
+
+### Changed
+- Release packaging never ships `data/jhora.db` (app creates a fresh
+  database); `make_release.sh` fails loudly when the version is unknown.
+- Varga variant wiring verified; D-7/D-10 offset parity flagged as needing
+  published variant tables (no behavior change).
+- Traditional one-pager values pinned against their engines (test-only).
+
+## v1.6.3 and earlier
+
+See GitHub Releases and the git history (`git log --oneline v1.6.2..v1.6.3`).
+Detailed per-PR notes for the v1.7.0 cycle are the PR bodies (#160–#199).
