@@ -4,6 +4,13 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Added
+- Mean/true lunar nodes option (the reference program exposes the same
+  preference): `SweEngine.set_use_true_nodes`, `ChartBuilder.build(...,
+  nodes=...)`, `chart --nodes`, GUI nodes combo; transit Rahu/Ketu follow
+  the chart mode and are now reported on the transit result. Default stays
+  mean (all reference vectors were pinned with it).
+
 ### Fixed
 - Sodhya Pinda now follows BPHS / P.V.R. Rao ch. 12: occupation-aware
   Ekadhipatya Shodhana (rules 1–4) and Rasi Pinda + Graha Pinda with the

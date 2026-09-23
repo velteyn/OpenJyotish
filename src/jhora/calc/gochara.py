@@ -103,6 +103,8 @@ class TransitResult:
     timestamp: datetime
     entries: List[TransitEntry] = field(default_factory=list)
     sav: List[int] = field(default_factory=list)
+    transit_rahu_rasi: int = -1
+    transit_ketu_rasi: int = -1
 
 
 def compute_transits(
@@ -122,6 +124,8 @@ def compute_transits(
         TransitResult with per-planet entries.
     """
     se = SweEngine()
+    use_true_nodes = getattr(chart, "node_mode", "mean") == "true"
+    se.set_use_true_nodes(use_true_nodes)
     if transit_jd is None:
         now = datetime.now(timezone.utc)
         transit_jd = se.julday(now.year, now.month, now.day,
@@ -174,7 +178,7 @@ def compute_transits(
     occupants: Dict[int, set] = {}
     for e in entries:
         occupants.setdefault(e.house_from_moon, set()).add(e.graha)
-    rahu = se.calc_planet(10, transit_jd)  # mean node (Rahu); Ketu = +180
+    rahu = se.calc_planet(11 if use_true_nodes else 10, transit_jd)  # Rahu; Ketu = +180
     for node, rasi in ((Graha.RAHU, rahu.rasi_index),
                        (Graha.KETU, (rahu.rasi_index + 6) % 12)):
         occupants.setdefault(
@@ -205,6 +209,8 @@ def compute_transits(
         timestamp=ts,
         entries=entries,
         sav=sav,
+        transit_rahu_rasi=rahu.rasi_index,
+        transit_ketu_rasi=(rahu.rasi_index + 6) % 12,
     )
 
 

@@ -100,3 +100,26 @@ class TestSadeSatiCli:
         assert result.exit_code == 0, result.output
         assert "Sade Sati" in result.output
         assert "← now" in result.output or "Now" in result.output
+
+
+class TestNodeModeTransit:
+    def test_transit_nodes_honor_chart_mode(self):
+        import swisseph as _swe
+        from jhora.charts.chart import ChartBuilder
+        from jhora.calc.gochara import compute_transits
+        from jhora.ephemeris.swe import SweEngine
+        kw = dict(year=2001, month=2, day=24, hour=6 + 11 / 60,
+                  lat=18.63, lon=77.2, tz="+0530", ayanamsa="lahiri")
+        mean_cd = ChartBuilder().build(**kw)
+        true_cd = ChartBuilder().build(**kw, nodes="true")
+        se = SweEngine()
+        jd = se.julday(2026, 5, 1, 12.0)
+        tr_mean = compute_transits(mean_cd, jd)
+        tr_true = compute_transits(true_cd, jd)
+        assert tr_mean.transit_rahu_rasi == \
+            int(se.calc_planet(_swe.MEAN_NODE, jd).longitude // 30) % 12
+        se.set_use_true_nodes(True)
+        assert tr_true.transit_rahu_rasi == \
+            int(se.calc_planet(_swe.TRUE_NODE, jd).longitude // 30) % 12
+        assert tr_true.transit_ketu_rasi == \
+            (tr_true.transit_rahu_rasi + 6) % 12

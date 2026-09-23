@@ -305,3 +305,33 @@ class TestParseTzIana:
     def test_no_ref_still_returns_float(self):
         # Back-compat: without a reference date today's offset is used.
         assert isinstance(ChartBuilder._parse_tz("Europe/Rome"), float)
+
+
+class TestNodeMode:
+    def test_default_is_mean(self, ref_chart):
+        assert ref_chart.node_mode == "mean"
+
+    def test_true_differs_from_mean(self):
+        from jhora.types.graha import Graha as _G
+        b = ChartBuilder()
+        mean_cd = b.build(2001, 2, 24, 6 + 11 / 60, lat=18.63,
+                          lon=77.2, tz="+0530", ayanamsa="lahiri")
+        true_cd = b.build(2001, 2, 24, 6 + 11 / 60, lat=18.63,
+                          lon=77.2, tz="+0530", ayanamsa="lahiri",
+                          nodes="true")
+        assert true_cd.node_mode == "true"
+        delta = abs((true_cd.planet(_G.RAHU).longitude -
+                     mean_cd.planet(_G.RAHU).longitude + 180.0) % 360.0
+                    - 180.0)
+        assert 0.0 < delta < 3.0
+        assert true_cd.planet(_G.KETU).longitude == pytest.approx(
+            (true_cd.planet(_G.RAHU).longitude + 180.0) % 360.0)
+        # Non-node planets are unaffected by the mode.
+        assert true_cd.planet(_G.SUN).longitude == pytest.approx(
+            mean_cd.planet(_G.SUN).longitude)
+
+    def test_bad_mode_rejected(self):
+        import pytest as _pt
+        with _pt.raises(ValueError, match="nodes"):
+            ChartBuilder().build(2001, 2, 24, 6.0, lat=18.0, lon=77.0,
+                                 tz="+0530", nodes="bogus")

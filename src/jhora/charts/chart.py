@@ -83,6 +83,9 @@ class ChartData:
     # Metadata
     sex: str = ""
 
+    #: Lunar nodes: "mean" (default, matches all reference vectors) or "true".
+    node_mode: str = "mean"
+
     def planet(self, graha: Graha) -> PlanetChartData:
         return self.planets[graha]
 
@@ -211,8 +214,13 @@ class ChartBuilder:
         ayanamsa: str = "lahiri",
         house_sys: bytes = b'P',
         sex: str = "",
+        nodes: str = "mean",
     ) -> ChartData:
+        if nodes not in ("mean", "true"):
+            raise ValueError(
+                f"Unknown nodes mode {nodes!r}: use 'mean' or 'true'.")
         self.swe.set_sidereal_mode(ayanamsa)
+        self.swe.set_use_true_nodes(nodes == "true")
         _hh, _mm = int(hour), int((hour % 1) * 60)
         tz_offset = self._parse_tz(tz, datetime(year, month, day, _hh, _mm))
         utc_hour = hour + tz_offset  # local → UTC via signed offset
@@ -269,7 +277,7 @@ class ChartBuilder:
             julian_day=jd, latitude=lat, longitude=lon,
             timezone=tz, ayanamsa_name=ayanamsa,
             ayanamsa_value=ayanamsa_val,
-            sex=sex,
+            sex=sex, node_mode=nodes,
             planets=planet_data, lagna=lagna,
             house_cusps=tuple(hd.cusps),
             ascendant=hd.ascendant, mc=hd.mc,

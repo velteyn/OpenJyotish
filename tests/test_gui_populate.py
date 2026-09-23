@@ -869,3 +869,9 @@ def test_chart_widget_paints_both_modes(main_window, chart):
     w.grab()
     w.set_compact(False)
     w.grab()
+
+
+def test_nodes_combo_defaults_mean(main_window):
+    assert main_window.nodes_combo.currentText() == "mean"
+    main_window.nodes_combo.setCurrentText("true")
+    assert main_window.nodes_combo.currentText() == "true"

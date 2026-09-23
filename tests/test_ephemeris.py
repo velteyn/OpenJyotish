@@ -113,3 +113,31 @@ class TestChartBuilder:
         )
         for g, p in cd.planets.items():
             assert isinstance(p.is_retrograde, bool)
+
+
+class TestNodeMode:
+    def test_mean_is_default(self):
+        from jhora.ephemeris.swe import SweEngine
+        assert SweEngine()._use_true_nodes is False
+
+    def test_true_differs_within_bound(self):
+        import swisseph as _swe
+        from jhora.ephemeris.swe import SweEngine
+        se = SweEngine()
+        jd = se.julday(2001, 2, 24, 0.0)
+        mean_lon = se.calc_planet(_swe.MEAN_NODE, jd).longitude
+        se.set_use_true_nodes(True)
+        true_lon = se.calc_planet(_swe.TRUE_NODE, jd).longitude
+        delta = abs((true_lon - mean_lon + 180.0) % 360.0 - 180.0)
+        assert 0.0 <= delta < 3.0
+
+    def test_calc_planets_honors_mode(self):
+        from jhora.ephemeris.swe import SweEngine
+        se = SweEngine()
+        jd = se.julday(2001, 2, 24, 0.0)
+        mean_rahu = se.calc_planets(jd)[10].longitude
+        se.set_use_true_nodes(True)
+        out = se.calc_planets(jd)
+        assert out[10].longitude != mean_rahu
+        assert out[11].longitude == pytest.approx(
+            (out[10].longitude + 180.0) % 360.0)

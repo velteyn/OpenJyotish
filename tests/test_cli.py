@@ -230,3 +230,15 @@ class TestVersionFlag:
         r = runner.invoke(app, ["--version"])
         assert r.exit_code == 0, r.output
         assert __version__ in r.output
+
+
+class TestNodesFlag:
+    BD = "2001-02-24 06:11:00 +0530 18.6333 77.2"
+
+    def test_chart_true_nodes(self):
+        r = runner.invoke(app, ["chart", self.BD, "--nodes", "true"])
+        assert r.exit_code == 0, r.output
+
+    def test_chart_bad_nodes(self):
+        r = runner.invoke(app, ["chart", self.BD, "--nodes", "bogus"])
+        assert r.exit_code == 2

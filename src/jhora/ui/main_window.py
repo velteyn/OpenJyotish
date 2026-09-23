@@ -220,6 +220,10 @@ class MainWindow(QMainWindow):
         self.ayanamsa_combo = QComboBox()
         self.ayanamsa_combo.addItems(["lahiri", "raman", "krishnamurti", "sss"])
         self.ayanamsa_combo.setMaximumWidth(120)
+        self.nodes_combo = QComboBox()
+        self.nodes_combo.addItems(["mean", "true"])
+        self.nodes_combo.setMaximumWidth(80)
+        self.nodes_combo.setToolTip("Lunar nodes: mean (default) or true")
 
         self.navamsa_toggle = QPushButton("Navamsa")
         self.navamsa_toggle.setCheckable(True)
@@ -239,6 +243,7 @@ class MainWindow(QMainWindow):
 
         ctrl.addWidget(self.style_combo)
         ctrl.addWidget(self.ayanamsa_combo)
+        ctrl.addWidget(self.nodes_combo)
         ctrl.addWidget(self.navamsa_toggle)
         ctrl.addWidget(self.packed_toggle)
         ctrl.addStretch()
@@ -894,6 +899,7 @@ class MainWindow(QMainWindow):
                 year=year, month=month, day=day,
                 hour=hour, lat=lat, lon=lon,
                 tz=tz, ayanamsa=ayanamsa,
+                nodes=self.nodes_combo.currentText(),
                 sex=sex_val,
             )
             self.chart_widget.set_chart_data(self.chart_data)
