@@ -64,3 +64,26 @@ class TestGochara:
     def test_timestamp_present(self, chart):
         result = compute_transits(chart)
         assert result.timestamp is not None
+
+
+class TestSwissEphemerisIdMapping:
+    """Regression: SE IDs must map to the right graha.
+
+    The SE order is Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn; using
+    the Vedic order instead swapped Mercury/Mars and Venus/Jupiter.
+    """
+
+    def test_transits_at_birth_match_natal(self, chart):
+        result = compute_transits(chart, transit_jd=chart.julian_day)
+        for e in result.entries:
+            natal = chart.planets[e.graha]
+            assert e.transit_rasi_name == natal.rasi.short_name, e.graha
+            lon = e.transit_rasi * 30 + e.transit_degrees
+            assert abs(lon - natal.longitude) < 0.01
+
+    def test_mapping_is_se_order(self):
+        from jhora.calc.gochara import _SE_TO_GRAHA
+        assert _SE_TO_GRAHA == {
+            0: Graha.SUN, 1: Graha.MOON, 2: Graha.MERCURY, 3: Graha.VENUS,
+            4: Graha.MARS, 5: Graha.JUPITER, 6: Graha.SATURN,
+        }
