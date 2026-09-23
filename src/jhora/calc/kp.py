@@ -369,6 +369,83 @@ def kp_dasa_levels(cd: ChartData, when=None,
     return rows
 
 
+# ── KP significators ────────────────────────────────────────────────────────
+#
+# A bhava's significators are the planets that "speak for" it, ranked by
+# Krishnamurti's order: planets in the star of an occupant, then the occupants
+# themselves, then planets in the star of the owner, then the owner. The owner
+# is the lord of the sign in which the bhava cusp falls (Placidus). Rahu/Ketu
+# take part as ordinary occupants/stars; KP additionally reads them as agents
+# of the planets they are in the star of or conjoined with, which is an
+# interpretation layer on top of this table.
+
+_SIG_GROUPS: Tuple[str, ...] = (
+    "in star of occupant",
+    "occupant",
+    "in star of owner",
+    "owner",
+)
+
+
+@dataclass(frozen=True)
+class KPSignificator:
+    """A planet that signifies a bhava, with every role it plays."""
+
+    graha: Graha
+    roles: Tuple[str, ...]
+
+    @property
+    def role_string(self) -> str:
+        return ", ".join(self.roles)
+
+
+def significators(cd: ChartData) -> Dict[int, List[KPSignificator]]:
+    """The KP significators of each bhava (1-12), strongest role first."""
+    cusps = cusp_longitudes(cd)
+
+    occupants: Dict[int, List[Graha]] = {h: [] for h in range(1, 13)}
+    star_lord: Dict[Graha, Graha] = {}
+    for g in cd.planets:
+        lon = cd.planets[g].longitude
+        occupants[house_of(lon, cusps)].append(g)
+        star_lord[g] = _GRAHA_BY_NAME[Nakshatra.from_longitude(lon)[0].lord]
+
+    result: Dict[int, List[KPSignificator]] = {}
+    for h in range(1, 13):
+        owner = SIGN_LORDS[Rasi.from_longitude(cusps[h - 1])]
+        roles: Dict[Graha, List[str]] = {}
+        order: List[Graha] = []
+
+        def _add(graha: Graha, role: str) -> None:
+            if graha not in roles:
+                roles[graha] = []
+                order.append(graha)
+            if role not in roles[graha]:
+                roles[graha].append(role)
+
+        for g in cd.planets:
+            if star_lord.get(g) in occupants[h]:
+                _add(g, _SIG_GROUPS[0])
+        for g in occupants[h]:
+            _add(g, _SIG_GROUPS[1])
+        for g in cd.planets:
+            if star_lord.get(g) == owner:
+                _add(g, _SIG_GROUPS[2])
+        _add(owner, _SIG_GROUPS[3])
+
+        result[h] = [KPSignificator(g, tuple(roles[g])) for g in order]
+    return result
+
+
+def significator_houses(cd: ChartData) -> Dict[Graha, List[int]]:
+    """Map each planet to the bhavas it signifies (KP inverse view)."""
+    out: Dict[Graha, List[int]] = {g: [] for g in cd.planets}
+    for house, sigs in significators(cd).items():
+        for s in sigs:
+            out.setdefault(s.graha, []).append(house)
+    return out
+
+
 def _target_jd(cd: ChartData, when) -> float:
     """Julian day (UT) for a local date/datetime; now when ``when`` is None."""
     import swisseph as swe

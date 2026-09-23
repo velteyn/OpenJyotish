@@ -16,6 +16,8 @@ from jhora.calc.kp import (
     kp_dasa_lords,
     lord_chain,
     ruling_planets,
+    significator_houses,
+    significators,
 )
 from jhora.calc.special_lagnas import kp_sublord
 from jhora.types.graha import Graha
@@ -239,3 +241,59 @@ class TestKPDasaView:
 
     def test_lords_are_the_grahas(self, ref_chart):
         assert {r.graha for r in kp_dasa_lords(ref_chart)} == set(Graha)
+
+
+class TestSignificators:
+    """Krishnamurti's bhava significators (occupants, stars, owners)."""
+
+    def test_twelve_bhavas(self, ref_chart):
+        assert set(significators(ref_chart)) == set(range(1, 13))
+
+    def test_owner_is_the_cusp_sign_lord(self, ref_chart):
+        cusps = cusp_longitudes(ref_chart)
+        for h, sigs in significators(ref_chart).items():
+            owner = SIGN_LORDS[Rasi.from_longitude(cusps[h - 1])]
+            assert any(s.graha == owner and "owner" in s.roles
+                       for s in sigs)
+
+    def test_occupants_are_significators(self, ref_chart):
+        cusps = cusp_longitudes(ref_chart)
+        for g in ref_chart.planets:
+            h = house_of(ref_chart.planet(g).longitude, cusps)
+            entry = next(s for s in significators(ref_chart)[h]
+                         if s.graha == g)
+            assert "occupant" in entry.roles
+
+    def test_star_of_occupant_group(self, ref_chart):
+        cusps = cusp_longitudes(ref_chart)
+        occupants = {
+            h: [g for g in ref_chart.planets
+                if house_of(ref_chart.planet(g).longitude, cusps) == h]
+            for h in range(1, 13)
+        }
+        for g in ref_chart.planets:
+            star = lord_chain(ref_chart.planet(g).longitude).star_lord
+            if any(star in occupants[h] for h in range(1, 13)):
+                h = house_of(ref_chart.planet(g).longitude, cusps)
+                # The planet is in the star of some occupant; where that
+                # occupant sits, the planet is a significator.
+                for hh in range(1, 13):
+                    if star in occupants[hh]:
+                        entry = next(s for s in significators(ref_chart)[hh]
+                                     if s.graha == g)
+                        assert "in star of occupant" in entry.roles
+
+    def test_roles_are_non_empty(self, ref_chart):
+        for sigs in significators(ref_chart).values():
+            for s in sigs:
+                assert s.roles
+                assert s.role_string
+
+    def test_inverse_is_consistent(self, ref_chart):
+        inv = significator_houses(ref_chart)
+        for h, sigs in significators(ref_chart).items():
+            for s in sigs:
+                assert h in inv[s.graha]
+
+    def test_deterministic(self, ref_chart):
+        assert significators(ref_chart) == significators(ref_chart)

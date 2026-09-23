@@ -738,14 +738,32 @@ def kp(
             rp_table.add_row(r.graha.full_name, r.role_string)
         console.print(rp_table)
 
+    _display_kp_significators(cd)
     _display_kp_dasa(cd, when)
+
+
+def _display_kp_significators(cd):
+    """The KP significators of each bhava."""
+    from jhora.calc.kp import significators
+
+    table = Table(title="KP Significators (strongest role first)")
+    table.add_column("Bhava", style="cyan")
+    table.add_column("Planets", style="white")
+    for h, sigs in significators(cd).items():
+        table.add_row(
+            str(h),
+            ", ".join(f"{s.graha.short_name} ({s.role_string})" for s in sigs)
+            or "—",
+        )
+    console.print(table)
 
 
 def _display_kp_dasa(cd, when: str = ""):
     """Vimsottari periods read KP-style (sub-lord oriented)."""
-    from datetime import date, datetime
+    from datetime import datetime
 
-    from jhora.calc.kp import kp_dasa_levels, kp_dasa_lords
+    from jhora.calc.kp import (
+        kp_dasa_levels, kp_dasa_lords, significator_houses)
     from jhora.ephemeris.swe import SweEngine
 
     se = SweEngine()
@@ -754,6 +772,11 @@ def _display_kp_dasa(cd, when: str = ""):
         y, m, d, _ = se.revjul(jd)
         return f"{int(y)}/{int(m):02d}/{int(d):02d}"
 
+    inv = significator_houses(cd)
+
+    def _sig(graha):
+        return ",".join(str(h) for h in inv.get(graha, [])) or "—"
+
     table = Table(title="Vimsottari Dasa — KP view (sub lord of the dasa lord)")
     table.add_column("Lord", style="cyan")
     table.add_column("Start", style="green")
@@ -761,10 +784,12 @@ def _display_kp_dasa(cd, when: str = ""):
     table.add_column("Years", style="white")
     table.add_column("Bhava", style="cyan")
     table.add_column("Sign-Star-Sub-SubSub", style="white")
+    table.add_column("Signifies", style="magenta")
     for r in kp_dasa_lords(cd):
         table.add_row(
             r.graha.full_name, _d(r.start_jd), _d(r.end_jd),
             f"{r.duration_years:.2f}", str(r.house), r.chain.string,
+            _sig(r.graha),
         )
     console.print(table)
 
@@ -778,9 +803,11 @@ def _display_kp_dasa(cd, when: str = ""):
         chain_table.add_column("Lord", style="cyan")
         chain_table.add_column("Bhava", style="cyan")
         chain_table.add_column("Sign-Star-Sub-SubSub", style="white")
+        chain_table.add_column("Signifies", style="magenta")
         for r in chain:
             chain_table.add_row(
                 r.level, r.graha.full_name, str(r.house), r.chain.string,
+                _sig(r.graha),
             )
         console.print(chain_table)
 
