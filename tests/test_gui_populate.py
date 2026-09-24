@@ -899,6 +899,26 @@ def test_points_tab_populate(main_window, chart):
     assert main_window.pts_maitri_table.rowCount() == 7
 
 
+def test_chakra_tab_populate(main_window, chart):
+    from jhora.calc.chakras import sarvatobhadra_vedha
+    main_window.chart_data = chart
+    main_window._populate_chakra_tab(chart)
+    assert main_window.ch_grid.rowCount() == 9
+    assert main_window.ch_grid.columnCount() == 9
+    ref = main_window.ch_ref_combo.currentIndex()
+    assert (main_window.ch_vedha_table.rowCount()
+            == len(sarvatobhadra_vedha(ref)))
+    assert "Kota Chakra" in main_window.ch_kota_text.toPlainText()
+    # Re-render paths: reference change + transit overlay toggle.
+    main_window.ch_ref_combo.setCurrentIndex(0)
+    assert (main_window.ch_vedha_table.rowCount()
+            == len(sarvatobhadra_vedha(0)))
+    main_window.ch_transit_check.setChecked(False)
+    main_window.ch_transit_check.setChecked(True)
+    assert (main_window.ch_vedha_table.rowCount()
+            == len(sarvatobhadra_vedha(0)))
+
+
 def test_varga_table_vargottama_column(main_window, chart):
     main_window.chart_data = chart
     main_window._on_varga_show()

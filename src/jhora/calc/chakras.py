@@ -69,6 +69,16 @@ def sarvatobhadra_grid() -> List[List[str]]:
     return [[_NAK_NAMES[idx][:4] for idx in row] for row in _SARVATOBHADRA]
 
 
+def nakshatra_names() -> List[str]:
+    """Full nakshatra names in index order (0 = Asvini .. 26 = Revati)."""
+    return list(_NAK_NAMES)
+
+
+def grid_indices() -> List[List[int]]:
+    """9×9 Sarvatobhadra grid as nakshatra indices (0-26)."""
+    return [list(row) for row in _SARVATOBHADRA]
+
+
 def sarvatobhadra_vedha(target_nak: int) -> List[dict]:
     """Find which nakshatras obstruct (vedha) the target nakshatra.
 

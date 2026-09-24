@@ -489,6 +489,7 @@ class MainWindow(QMainWindow):
         trans_sub.addTab(self._build_transit_tab(), "Transits")
         trans_sub.addTab(self._build_tajaka_tab(), "Tajaka & TP")
         trans_sub.addTab(self._build_mundane_tab(), "Mundane")
+        trans_sub.addTab(self._build_chakra_tab(), "Chakras")
         self.page_stack.addWidget(trans_sub)
 
         # 6. Special Topics
@@ -929,6 +930,7 @@ class MainWindow(QMainWindow):
             self._update_cons_navamsa(self.chart_data)
             self._populate_dashboard(self.chart_data)
             self._populate_points_tab(self.chart_data)
+            self._populate_chakra_tab(self.chart_data)
             # A new chart means a new thread scope: the open threads (already
             # persisted) belong to the previous chart.
             self._reset_ai_thread_view()
@@ -3158,6 +3160,125 @@ class MainWindow(QMainWindow):
             sade_rows.append([p.kind, p.phase, Rasi(p.sign).short_name,
                               start_s, end_s, now_mark])
         self._fill_table(self.tr_sade_table, sade_headers, sade_rows)
+
+    def _build_chakra_tab(self):
+        from jhora.calc.chakras import nakshatra_names
+        self._chakra_cd = None
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        controls = QHBoxLayout()
+        ref_label = QLabel("Reference (Janma) nakshatra")
+        ref_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        controls.addWidget(ref_label)
+        self.ch_ref_combo = QComboBox()
+        self.ch_ref_combo.addItems(nakshatra_names())
+        self.ch_ref_combo.currentIndexChanged.connect(self._render_chakra_grid)
+        controls.addWidget(self.ch_ref_combo)
+        self.ch_transit_check = QCheckBox("Overlay current transits")
+        self.ch_transit_check.setChecked(True)
+        self.ch_transit_check.toggled.connect(self._render_chakra_grid)
+        controls.addWidget(self.ch_transit_check)
+        controls.addStretch()
+        layout.addLayout(controls)
+
+        body = QHBoxLayout()
+        self.ch_grid = QTableWidget(9, 9)
+        self.ch_grid.horizontalHeader().setVisible(False)
+        self.ch_grid.verticalHeader().setVisible(False)
+        self.ch_grid.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Fixed)
+        self.ch_grid.verticalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Fixed)
+        for i in range(9):
+            self.ch_grid.setColumnWidth(i, 56)
+            self.ch_grid.setRowHeight(i, 40)
+        self.ch_grid.setMaximumWidth(9 * 56 + 4)
+        body.addWidget(self.ch_grid)
+
+        side = QVBoxLayout()
+        vedha_label = QLabel("Vedha (obstruction) of the reference")
+        vedha_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        side.addWidget(vedha_label)
+        self.ch_vedha_table = QTableWidget()
+        self.ch_vedha_table.setAlternatingRowColors(True)
+        side.addWidget(self.ch_vedha_table, stretch=1)
+        kota_label = QLabel("Kota Chakra")
+        kota_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        side.addWidget(kota_label)
+        self.ch_kota_text = QTextEdit()
+        self.ch_kota_text.setReadOnly(True)
+        self.ch_kota_text.setMaximumHeight(120)
+        side.addWidget(self.ch_kota_text)
+        body.addLayout(side, stretch=1)
+        layout.addLayout(body, stretch=1)
+        return w
+
+    def _populate_chakra_tab(self, cd: ChartData):
+        from jhora.types.nakshatra import Nakshatra
+        self._chakra_cd = cd
+        janma, _ = Nakshatra.from_longitude(cd.planet(Graha.MOON).longitude)
+        self.ch_ref_combo.blockSignals(True)
+        self.ch_ref_combo.setCurrentIndex(int(janma))
+        self.ch_ref_combo.blockSignals(False)
+        self._render_chakra_grid()
+
+    def _render_chakra_grid(self, *args):
+        cd = getattr(self, "_chakra_cd", None)
+        if cd is None:
+            return
+        from jhora.calc.chakras import (grid_indices, kota_chakra,
+                                        nakshatra_names, sarvatobhadra_vedha)
+        from jhora.types.nakshatra import Nakshatra
+        ref = self.ch_ref_combo.currentIndex()
+        vedha = sarvatobhadra_vedha(ref)
+        vedha_dir = {v["nakshatra"]: v["direction"] for v in vedha}
+        transit_map = {}
+        if self.ch_transit_check.isChecked():
+            try:
+                from jhora.calc.gochara import compute_transits
+                for e in compute_transits(cd).entries:
+                    lon = (e.transit_rasi * 30 + e.transit_degrees) % 360
+                    nak, _ = Nakshatra.from_longitude(lon)
+                    transit_map.setdefault(int(nak), []).append(
+                        e.graha.short_name)
+            except Exception:
+                pass
+        names = nakshatra_names()
+        base_bg = QBrush(QColor("#151a28"))
+        vedha_bg = QBrush(QColor("#3d3413"))
+        ref_bg = QBrush(QColor(ACCENT))
+        white = QBrush(QColor("#ffffff"))
+        black = QBrush(QColor("#000000"))
+        for r, row in enumerate(grid_indices()):
+            for c, idx in enumerate(row):
+                text = names[idx][:4]
+                tip = names[idx]
+                if idx in transit_map:
+                    text += "\n" + ",".join(transit_map[idx])
+                    tip += " — transit: " + ", ".join(transit_map[idx])
+                if idx in vedha_dir:
+                    tip += f" — vedha {vedha_dir[idx]}"
+                item = QTableWidgetItem(text)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item.setToolTip(tip)
+                if idx == ref:
+                    item.setForeground(black)
+                    item.setBackground(ref_bg)
+                elif idx in vedha_dir:
+                    item.setForeground(white)
+                    item.setBackground(vedha_bg)
+                else:
+                    item.setForeground(white)
+                    item.setBackground(base_bg)
+                self.ch_grid.setItem(r, c, item)
+        self._fill_table(self.ch_vedha_table, ["Nakshatra", "Direction"],
+                         [[names[v["nakshatra"]], v["direction"]]
+                          for v in vedha])
+        self.ch_kota_text.setPlainText(kota_chakra(ref))
 
     # --- AI Chat ---
 

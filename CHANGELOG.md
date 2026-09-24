@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- GUI Chakras tab (Transits & Tajaka page): interactive 9x9
+  Sarvatobhadra grid with Janma-nakshatra reference, vedha table,
+  Kota Chakra summary and a current-transit overlay.
 - Buddhi Gati dasa (Agni Purana tradition): chart-read MD order swept
   from the 4th from lagna, descending-longitude planets, count years
   ± dignity, configurable base varga (`dasa ... buddhi-gati
