@@ -2,6 +2,15 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
+## v1.8.1 — 2026-09-24
+
+### Fixed
+- Windows installer build: the frozen CLI is built as `openjyotish`
+  again (the rename missed the PyInstaller spec, pointing smoke and the
+  installer shortcut at an unbuilt file); smoke hardens with a dist
+  listing, `--version` probe and timeout. Debian ships both
+  `openjyotish` and `jhora` symlinks.
+
 ## v1.8.0 — 2026-09-24
 
 ### Added
