@@ -5,6 +5,12 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- GUI learning sections on the Points tab: Marana Karaka Sthana
+  table and Vaiseshikamsa ranks (scores shown alongside).
+
+### Fixed
+- Marana Karaka Sthana drops the Ketu assignment (Jataka Parijata
+  17.34-36 lists eight planets; Ketu carries no classical MKS).
 - GUI Compare view (Chart & Varga page): second birth-data form with
   Copy-from-A, two charts side by side in a splitter, A side mirroring
   the main chart; Packed toggle and chart style apply to both.

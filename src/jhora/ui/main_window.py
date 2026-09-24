@@ -2995,6 +2995,18 @@ class MainWindow(QMainWindow):
         self.pts_maitri_table = QTableWidget()
         self.pts_maitri_table.setAlternatingRowColors(True)
         layout.addWidget(self.pts_maitri_table, stretch=1)
+
+        layout.addWidget(QLabel("Marana Karaka Sthana (planets in death-houses)"))
+        self.pts_marana_table = QTableWidget()
+        self.pts_marana_table.setAlternatingRowColors(True)
+        self.pts_marana_table.setMaximumHeight(120)
+        layout.addWidget(self.pts_marana_table)
+
+        layout.addWidget(QLabel("Vaiseshikamsa Ranks"))
+        self.pts_vaiseshika_table = QTableWidget()
+        self.pts_vaiseshika_table.setAlternatingRowColors(True)
+        self.pts_vaiseshika_table.setMaximumHeight(150)
+        layout.addWidget(self.pts_vaiseshika_table, stretch=1)
         return w
 
     def _populate_points_tab(self, cd: ChartData):
@@ -3089,6 +3101,20 @@ class MainWindow(QMainWindow):
         m_rows = [[a.short_name] +
                   [names_m[(a, b)] for b in _MG] for a in _MG]
         self._fill_table(self.pts_maitri_table, m_headers, m_rows)
+
+        # Learning: marana + vaiseshikamsa ranks.
+        from jhora.calc.learning import (marana_karaka_sthana,
+                                         vaiseshikamsas)
+        mk_rows = [[m["graha"], str(m["house"]), m["sign"],
+                    f"{m['longitude']:.2f}°"]
+                   for m in marana_karaka_sthana(cd)]
+        self._fill_table(self.pts_marana_table,
+                         ["Planet", "House", "Sign", "Longitude"],
+                         mk_rows or [["—", "none in marana", "", ""]])
+        va_rows = [[v["graha"], f"{v['score']:.1f}", v["rank"]]
+                   for v in vaiseshikamsas(cd)]
+        self._fill_table(self.pts_vaiseshika_table,
+                         ["Planet", "Score", "Rank"], va_rows)
 
     def _build_remedies_tab(self):
         w = QWidget()
