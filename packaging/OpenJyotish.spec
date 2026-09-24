@@ -76,7 +76,7 @@ gui_exe = EXE(
 cli_exe = EXE(
     cli_pyz, cli_analysis.scripts, [],
     exclude_binaries=True,
-    name="jhora",
+    name="openjyotish",
     debug=False,
     strip=False,
     upx=False,
