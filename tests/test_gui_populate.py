@@ -924,3 +924,30 @@ def test_varga_table_vargottama_column(main_window, chart):
     main_window._on_varga_show()
     assert main_window.varga_table.columnCount() == 6
     assert main_window.varga_table.rowCount() > 0
+
+
+def test_calendar_tab_populate(main_window, chart):
+    import datetime as _dt
+    main_window.chart_data = chart
+    main_window.cal_lat.setText("18.63")
+    main_window.cal_lon.setText("77.2")
+    main_window.cal_tz.setText("+0530")
+    main_window.cal_month_combo.setCurrentIndex(8)  # September
+    main_window.cal_year_spin.setValue(2026)
+    main_window._refresh_calendar()
+    assert len(main_window.cal_cells) == 30
+    assert main_window.cal_grid.columnCount() == 7
+    # Click the first filled cell → detail renders with limbs.
+    (r, c), _d = sorted(main_window.cal_cells.items())[0]
+    main_window._on_calendar_cell(r, c)
+    detail = main_window.cal_detail.toPlainText()
+    assert "Nakshatra" in detail and "Rahu" in detail
+    # Adjuncts path + month navigation keep working.
+    main_window.cal_adjuncts_check.setChecked(True)
+    main_window._shift_calendar(1)
+    assert main_window.cal_month_combo.currentIndex() == 9
+    assert len(main_window.cal_cells) == 31
+    today = _dt.date.today()
+    main_window.cal_month_combo.setCurrentIndex(today.month - 1)
+    main_window.cal_year_spin.setValue(today.year)
+    main_window._refresh_calendar()
