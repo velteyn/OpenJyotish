@@ -2144,7 +2144,8 @@ def special_points(
     """Special sensitive points — Baadhaka, Pushkara, Khara navamsa, 22nd drekkana."""
     from jhora.calc.special_points import (
         baadhaka_lord, baadhaka_sthana, drekkana_22, khara_navamsa_64,
-        planets_in_pushkara_bhaga, planets_in_pushkara_navamsa,
+        planets_in_mrityu_bhaga, planets_in_pushkara_bhaga,
+        planets_in_pushkara_navamsa,
     )
 
     bd = parse_birthdata(birthdata)
@@ -2177,6 +2178,32 @@ def special_points(
                   Rasi(khara_navamsa_64(moon_lon)).short_name, "from Moon")
     table.add_row("22nd drekkana",
                   Rasi(drekkana_22(moon_lon)).short_name, "from Moon")
+    try:
+        import datetime as _dt
+        import math as _math
+
+        from jhora.calc.muhurta import _sunrise_sunset
+        from jhora.calc.upagraha import compute_temporal_upagrahas
+        day = _dt.datetime(bd["year"], bd["month"], bd["day"])
+        tz_offset = -ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
+        sr, ss = _sunrise_sunset(day, cd.latitude, cd.longitude,
+                                 tz_offset)
+        temporal = {r.name: r.longitude
+                    for r in compute_temporal_upagrahas(cd, sr, ss)}
+        mandi_lon = temporal.get("Mandi", _math.nan)
+    except Exception:
+        mandi_lon = _math.nan
+    bodies = [cd.planet(g).longitude for g in
+              (Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+               Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU,
+               Graha.KETU)]
+    bodies += [mandi_lon, cd.ascendant]
+    names = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus",
+             "Saturn", "Rahu", "Ketu", "Mandi", "Lagna"]
+    table.add_row("Mrityu bhaga", "—",
+                  ", ".join(names[i]
+                            for i in planets_in_mrityu_bhaga(bodies))
+                  or "none")
     console.print(table)
 
 
