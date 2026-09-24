@@ -125,6 +125,8 @@ def detect_all(cd: ChartData) -> List[YogaResult]:
     found.extend(_lagnaadhi_yoga(cd, planet_house_map))
     found.extend(_vasumati_yoga(cd, planet_house_map))
     found.extend(_yogakaraka(cd, asc_rasi))
+    from jhora.calc.naabhasa import naabhasa_yogas
+    found.extend(naabhasa_yogas(cd))
 
     return found
 

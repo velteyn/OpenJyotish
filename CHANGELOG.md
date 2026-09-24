@@ -2,6 +2,13 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
+## Unreleased
+
+### Added
+- Naabhasa yogas, all 32 (P.V.R. Rao ch. 11.5): Asraya, Dala, Akriti,
+  Sankhya (fallback-only per doctrine) — flowing into detect_all and
+  every yoga surface.
+
 ## v1.8.1 — 2026-09-24
 
 ### Fixed
