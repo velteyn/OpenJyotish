@@ -498,6 +498,7 @@ class MainWindow(QMainWindow):
         spec_sub.addTab(self._build_muhurta_tab(), "Muhurta")
         spec_sub.addTab(self._build_kp_tab(), "KP")
         spec_sub.addTab(self._build_remedies_tab(), "Remedies")
+        spec_sub.addTab(self._build_points_tab(), "Points & Maitri")
         self.page_stack.addWidget(spec_sub)
 
         # 7. AI & Knowledge
@@ -927,6 +928,7 @@ class MainWindow(QMainWindow):
             self._populate_consolidated(self.chart_data)
             self._update_cons_navamsa(self.chart_data)
             self._populate_dashboard(self.chart_data)
+            self._populate_points_tab(self.chart_data)
             # A new chart means a new thread scope: the open threads (already
             # persisted) belong to the previous chart.
             self._reset_ai_thread_view()
@@ -1282,18 +1284,32 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Varga Error", str(e))
 
     def _update_varga_table(self, vcd: VargaChartData):
-        headers = ["Planet", "Rasi", "Degrees", "Lord", "Longitude"]
+        from jhora.calc.vargottama import compute_vargottama
+
+        try:
+            vtt = compute_vargottama(self.chart_data)
+        except Exception:
+            vtt = None
+        headers = ["Planet", "Rasi", "Degrees", "Lord", "Longitude",
+                   "Vargottama"]
         rows = []
         for g in Graha:
             if g in vcd.positions:
                 p = vcd.positions[g]
+                mark = ""
+                if vtt is not None:
+                    try:
+                        if vtt.is_vargottama(g, vcd.varga_level):
+                            mark = "✓"
+                    except Exception:
+                        pass
                 rows.append([g.full_name, p.rasi.full_name,
                              f"{p.degrees_in_rasi:.2f}", p.rasi.lord,
-                             f"{p.longitude:.2f}"])
+                             f"{p.longitude:.2f}", mark])
         rows.append(["Lagna", vcd.lagna_position.rasi.full_name,
                      f"{vcd.lagna_position.degrees_in_rasi:.2f}",
                      vcd.lagna_position.rasi.lord,
-                     f"{vcd.lagna_position.longitude:.2f}"])
+                     f"{vcd.lagna_position.longitude:.2f}", ""])
         self._fill_table(self.varga_table, headers, rows)
 
     # --- Yogas ---
@@ -2764,6 +2780,129 @@ class MainWindow(QMainWindow):
         interpreter = ChartInterpreter()
         text = interpreter.interpret_text(cd, style=style)
         self.int_output.setText(text)
+
+    def _build_points_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        layout.addWidget(QLabel("Upagrahas"))
+        self.pts_upagraha_table = QTableWidget()
+        self.pts_upagraha_table.setAlternatingRowColors(True)
+        self.pts_upagraha_table.setMaximumHeight(180)
+        layout.addWidget(self.pts_upagraha_table)
+
+        layout.addWidget(QLabel("Sphutas (Prasna Marga auspicious points)"))
+        self.pts_sphuta_table = QTableWidget()
+        self.pts_sphuta_table.setAlternatingRowColors(True)
+        self.pts_sphuta_table.setMaximumHeight(180)
+        layout.addWidget(self.pts_sphuta_table)
+
+        layout.addWidget(QLabel("Special Points"))
+        self.pts_special_table = QTableWidget()
+        self.pts_special_table.setAlternatingRowColors(True)
+        self.pts_special_table.setMaximumHeight(150)
+        layout.addWidget(self.pts_special_table, stretch=1)
+
+        layout.addWidget(QLabel("Panchadha Maitri (row → column)"))
+        self.pts_maitri_table = QTableWidget()
+        self.pts_maitri_table.setAlternatingRowColors(True)
+        layout.addWidget(self.pts_maitri_table, stretch=1)
+        return w
+
+    def _populate_points_tab(self, cd: ChartData):
+        import datetime as _dt
+
+        from jhora.calc.maitri import GRAHAS as _MG, maitri_table
+        from jhora.calc.special_points import (
+            baadhaka_lord, baadhaka_sthana, drekkana_22,
+            khara_navamsa_64, planets_in_mrityu_bhaga,
+            planets_in_pushkara_bhaga, planets_in_pushkara_navamsa)
+        from jhora.calc.sphuta import compute_sphutas, compute_yogi
+        from jhora.calc.upagraha import (compute_solar_upagrahas,
+                                         compute_temporal_upagrahas)
+
+        # Upagrahas: solar always, temporal when sunrise resolves.
+        upa_rows = [[u.name, f"{u.longitude:.2f}°", u.rasi, u.source]
+                    for u in compute_solar_upagrahas(
+                        cd.planet(Graha.SUN).longitude)]
+        try:
+            from jhora.calc.muhurta import _sunrise_sunset
+            day = cd.birth_date.replace(hour=0, minute=0, second=0,
+                                        microsecond=0)
+            tz_offset = -ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
+            sr, ss = _sunrise_sunset(day, cd.latitude, cd.longitude,
+                                     tz_offset)
+            upa_rows += [[u.name, f"{u.longitude:.2f}°", u.rasi, u.source]
+                         for u in compute_temporal_upagrahas(cd, sr, ss)]
+        except Exception:
+            pass
+        self._fill_table(self.pts_upagraha_table,
+                         ["Upagraha", "Longitude", "Rasi", "Source"],
+                         upa_rows)
+
+        # Sphutas need Gulika; fall back to solar-only points without it.
+        lon = lambda g: cd.planet(g).longitude  # noqa: E731
+        gulika = next((float(u[1].rstrip("°")) for u in upa_rows
+                       if u[0] == "Gulika"), None)
+        sph = compute_sphutas(
+            lagna=cd.ascendant, sun=lon(Graha.SUN), moon=lon(Graha.MOON),
+            mars=lon(Graha.MARS), jupiter=lon(Graha.JUPITER),
+            venus=lon(Graha.VENUS), rahu=lon(Graha.RAHU),
+            gulika=gulika if gulika is not None else 0.0)
+        sph_rows = [[name, f"{val:.2f}°",
+                     Rasi.from_longitude(val).short_name]
+                    for name, val in sph.items()]
+        yg = compute_yogi(lon(Graha.MOON), lon(Graha.SUN))
+        sph_rows.append(["Yogi", yg["Yogi"], ""])
+        self._fill_table(self.pts_sphuta_table,
+                         ["Sphuta", "Longitude", "Rasi"], sph_rows)
+
+        # Special points.
+        lagna_rasi = int(cd.ascendant // 30) % 12
+        badha = baadhaka_sthana(lagna_rasi)
+        lons = {g: cd.planet(g).longitude for g in _MG}
+        moon_lon = lon(Graha.MOON)
+        sp_rows = [
+            ["Baadhaka sthana", Rasi(badha).short_name,
+             f"lord {baadhaka_lord(lagna_rasi).full_name}"],
+            ["Pushkara navamsa", "—",
+             ", ".join(g.full_name
+                       for g in planets_in_pushkara_navamsa(lons)) or "none"],
+            ["Pushkara bhaga", "—",
+             ", ".join(g.full_name
+                       for g in planets_in_pushkara_bhaga(lons)) or "none"],
+            ["64th navamsa (Khara)",
+             Rasi(khara_navamsa_64(moon_lon)).short_name, "from Moon"],
+            ["22nd drekkana",
+             Rasi(drekkana_22(moon_lon)).short_name, "from Moon"],
+        ]
+        try:
+            mandi = next(float(u[1].rstrip("°")) for u in upa_rows
+                         if u[0] == "Mandi")
+        except StopIteration:
+            import math as _math
+            mandi = _math.nan
+        bodies = [lon(g) for g in
+                  (Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                   Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU,
+                   Graha.KETU)] + [mandi, cd.ascendant]
+        names = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus",
+                 "Saturn", "Rahu", "Ketu", "Mandi", "Lagna"]
+        sp_rows.append(["Mrityu bhaga", "—",
+                        ", ".join(names[i] for i in
+                                  planets_in_mrityu_bhaga(bodies)) or "none"])
+        self._fill_table(self.pts_special_table,
+                         ["Point", "Sign", "Detail"], sp_rows)
+
+        # Maitri matrix.
+        rasis = {g: cd.planet(g).rasi.value for g in _MG}
+        names_m = maitri_table(rasis)
+        m_headers = [""] + [g.short_name for g in _MG]
+        m_rows = [[a.short_name] +
+                  [names_m[(a, b)] for b in _MG] for a in _MG]
+        self._fill_table(self.pts_maitri_table, m_headers, m_rows)
 
     def _build_remedies_tab(self):
         w = QWidget()

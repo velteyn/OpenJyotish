@@ -5,6 +5,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- GUI Points & Maitri tab (Upagrahas, Sphutas, Special Points, Maitri
+  matrix) + `upagrahas` CLI + Vargottama column on the Varga tab.
 - Graha Maitri (`maitri` CLI): Naisargika (asymmetric BPHS tables),
   Tatkalika and Panchadha compound tables with scores.
 - Sripati bhava option for chalit (`chart --chalit --bhava-method

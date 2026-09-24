@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-50 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-28-section JSON API for AI agents (+ JSON-LD)  |  1628 tests  |  GPL v3.0
+51 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+28-section JSON API for AI agents (+ JSON-LD)  |  1631 tests  |  GPL v3.0
 ```
 
 > **Showcase: [the Gandhi retrospective](docs/gandhi-retrospective.md)** —
@@ -235,6 +235,7 @@ data = json.loads(subprocess.run(
 | `lagnas` | All special lagnas with meanings |
 | `kp` | Krishnamurti Paddhati — Placidus cusp/planet lord chains, Ruling Planets, bhava significators, and the KP view of the Vimsottari dasa (`--ayanamsa krishnamurti`, `--when`) |
 | `sphutas` | Prasna Marga auspicious points (Tri/Chatus/Pancha/Prana/Deha/Mrityu/Beeja/Kshetra/Yoga) |
+| `upagrahas` | Solar + temporal (Gulika/Mandi) sub-planets |
 | `remedies` | Rule-based remedies — Ishta/Palana devata, gemstone, mantra, yantra, charity, dasha-lord, doshas; `--partner` adds marriage doshas (sourced) |
 | `learning` | Marana karaka, KP sub-lords, vaiseshikamsas |
 | `tui` | Launch interactive terminal UI |
