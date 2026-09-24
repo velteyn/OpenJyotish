@@ -195,6 +195,7 @@ def dasa(
     tara_dir_star: bool = typer.Option(False, "--tara-direction-from-star", help="Tara: reckon direction from the nakshatra instead of the sign"),
     chara_exalt_exc: bool = typer.Option(False, "--chara-exaltation-exception/--no-chara-exaltation-exception", help="Chara dasa: adjust a sign's years when its lord is exalted/debilitated"),
     sudarshana_ad_lord: bool = typer.Option(True, "--sudarshana-ad-from-lord/--no-sudarshana-ad-from-lord", help="Sudarshana Chakra: antardasas run from the MD sign's lord (default) or the MD sign"),
+    buddhi_gati_varga: str = typer.Option("D-1", "--buddhi-gati-varga", help="Buddhi Gati dasa base varga (e.g. D-1, D-9, D-60)"),
 ):
     """Compute dasa periods for a chart.
 
@@ -203,7 +204,7 @@ def dasa(
     kalachakra, brahma, karaka, shoola, trikona, varnada,
     sthira, navamsa, yogardha, niryana-shoola, lagna-kendradi,
     kaala, chakra, mandooka, drig, sudarshana, tithi-ashtottari, tithi-yogini,
-    karana-chaturaaseeti, yoga-vimsottari, naisargika, moola, tara.
+    karana-chaturaaseeti, yoga-vimsottari, naisargika, moola, tara, buddhi-gati.
     Seed/sesham/year options apply
     to the nakshatra dasas (vimsottari, ashtottari, yogini); --karaka-role
     selects the Karaka Dasa seed; --house selects the Shoola Dasa seed
@@ -230,6 +231,19 @@ def dasa(
                        tara_direction_from_star=tara_dir_star,
                        chara_exaltation_exception=chara_exalt_exc,
                        sudarshana_ad_from_lord=sudarshana_ad_lord)
+    if system == "buddhi-gati" and buddhi_gati_varga:
+        try:
+            vl = _parse_varga_level(buddhi_gati_varga)
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=2)
+        vcd = VargaChartComputer().compute(chart_data, vl,
+                                           VargaVariant.DEFAULT)
+        chart_dict["buddhi_gati_varga"] = {
+            "planets": {g: {"longitude": p.longitude}
+                        for g, p in vcd.positions.items()},
+            "lagna_lon": vcd.lagna_position.longitude,
+        }
     engine = _get_dasa_engine(system, opts)
     periods = engine.compute(chart_data.julian_day, chart_dict, opts)
     _display_dasa_table(periods, f"{system.title()} Dasa Periods")
@@ -501,6 +515,9 @@ def _get_dasa_engine(system: str, options=None):
     if s == "mandooka":
         from jhora.dasas.mandooka import MandookaDasa
         return MandookaDasa(options)
+    if s == "buddhi-gati":
+        from jhora.dasas.buddhi_gati import BuddhiGatiDasa
+        return BuddhiGatiDasa(options)
     if s == "drig":
         from jhora.dasas.drig import DrigDasa
         return DrigDasa(options)

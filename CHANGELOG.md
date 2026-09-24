@@ -5,6 +5,10 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Buddhi Gati dasa (Agni Purana tradition): chart-read MD order swept
+  from the 4th from lagna, descending-longitude planets, count years
+  ± dignity, configurable base varga (`dasa ... buddhi-gati
+  --buddhi-gati-varga D-9`); CLI/TUI/GUI/JSON wired.
 - Naabhasa yogas, all 32 (P.V.R. Rao ch. 11.5): Asraya, Dala, Akriti,
   Sankhya (fallback-only per doctrine) — flowing into detect_all and
   every yoga surface.
