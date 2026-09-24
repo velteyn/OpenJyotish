@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 51 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-28-section JSON API for AI agents (+ JSON-LD)  |  1662 tests  |  GPL v3.0
+28-section JSON API for AI agents (+ JSON-LD)  |  1663 tests  |  GPL v3.0
 ```
 
 > **Showcase: [the Gandhi retrospective](docs/gandhi-retrospective.md)** —
@@ -121,7 +121,7 @@ All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 | **Strengths** | Shadbala, Arudha & Karaka, Ashtakavarga |
 | **Dasas** | Dasa Periods with interactive bar chart |
 | **Transits & Tajaka** | Transits, Tajaka & TP, Mundane, Chakras |
-| **Special** | Matchmaking, Prasna, Muhurta (incl. Choghadiya), KP, Remedies |
+| **Special** | Matchmaking, Prasna, Muhurta (incl. Choghadiya), Calendar, KP, Remedies |
 | **AI & Learn** | AI Chat, AI Teacher, Knowledge, Reading |
 | **Tools** | Ephemeris |
 
@@ -256,7 +256,7 @@ Tattva dignities · Jaimini rasi strength · Graha-drishti API (give/receive) ·
 ### Forecasting
 Transits with SAV scores · Tajaka solar return · Tithi Pravesha ·
 Progressions · Dasa timeline · Mundane (ingresses/eclipses/conjunctions) ·
-Matchmaking (10 Porutham + Ashta Koota 36pt) · Muhurta · Choghadiya · Hora · Prasna
+Matchmaking (10 Porutham + Ashta Koota 36pt) · Muhurta · Monthly calendar · Choghadiya · Hora · Prasna
 
 ### AI & Data
 Local LLM (Ollama/LM Studio/Unsloth) · RAG pipeline with textbook citations ·

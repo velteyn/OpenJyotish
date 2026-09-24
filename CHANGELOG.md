@@ -5,6 +5,11 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- GUI monthly Calendar tab (Special Topics page): 7x6 panchanga grid
+  (tithi + nakshatra per day, today highlighted), prev/next + month/
+  year navigation, place fields synced from birth data, click-a-day
+  detail (limbs, sunrise/sunset, Rahu/Gulika/Yama, optional
+  Durmuhurta/Varjya adjuncts).
 - GUI Chakras tab (Transits & Tajaka page): interactive 9x9
   Sarvatobhadra grid with Janma-nakshatra reference, vedha table,
   Kota Chakra summary and a current-transit overlay.

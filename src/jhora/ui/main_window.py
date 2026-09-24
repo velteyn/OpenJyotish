@@ -497,6 +497,7 @@ class MainWindow(QMainWindow):
         spec_sub.addTab(self._build_kuta_tab(), "Matchmaking")
         spec_sub.addTab(self._build_prasna_tab(), "Prasna")
         spec_sub.addTab(self._build_muhurta_tab(), "Muhurta")
+        spec_sub.addTab(self._build_calendar_tab(), "Calendar")
         spec_sub.addTab(self._build_kp_tab(), "KP")
         spec_sub.addTab(self._build_remedies_tab(), "Remedies")
         spec_sub.addTab(self._build_points_tab(), "Points & Maitri")
@@ -931,6 +932,7 @@ class MainWindow(QMainWindow):
             self._populate_dashboard(self.chart_data)
             self._populate_points_tab(self.chart_data)
             self._populate_chakra_tab(self.chart_data)
+            self._sync_calendar_place()
             # A new chart means a new thread scope: the open threads (already
             # persisted) belong to the previous chart.
             self._reset_ai_thread_view()
@@ -1579,6 +1581,178 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.sahama_table, stretch=3)
 
         return w
+
+    def _build_calendar_tab(self):
+        import datetime as _dt
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        nav = QHBoxLayout()
+        self.cal_prev_btn = QPushButton("◀")
+        self.cal_prev_btn.setMaximumWidth(40)
+        self.cal_prev_btn.clicked.connect(lambda: self._shift_calendar(-1))
+        nav.addWidget(self.cal_prev_btn)
+        self.cal_month_combo = QComboBox()
+        self.cal_month_combo.addItems(
+            ["January", "February", "March", "April", "May", "June",
+             "July", "August", "September", "October", "November",
+             "December"])
+        self.cal_month_combo.currentIndexChanged.connect(
+            self._refresh_calendar)
+        nav.addWidget(self.cal_month_combo)
+        self.cal_year_spin = QSpinBox()
+        self.cal_year_spin.setRange(1900, 2100)
+        self.cal_year_spin.valueChanged.connect(self._refresh_calendar)
+        nav.addWidget(self.cal_year_spin)
+        self.cal_next_btn = QPushButton("▶")
+        self.cal_next_btn.setMaximumWidth(40)
+        self.cal_next_btn.clicked.connect(lambda: self._shift_calendar(1))
+        nav.addWidget(self.cal_next_btn)
+        self.cal_adjuncts_check = QCheckBox("Durmuhurta/Varjya")
+        self.cal_adjuncts_check.toggled.connect(self._refresh_calendar)
+        nav.addWidget(self.cal_adjuncts_check)
+        nav.addStretch()
+        nav.addWidget(QLabel("Lat"))
+        self.cal_lat = QLineEdit()
+        self.cal_lat.setMaximumWidth(70)
+        self.cal_lat.editingFinished.connect(self._refresh_calendar)
+        nav.addWidget(self.cal_lat)
+        nav.addWidget(QLabel("Lon"))
+        self.cal_lon = QLineEdit()
+        self.cal_lon.setMaximumWidth(70)
+        self.cal_lon.editingFinished.connect(self._refresh_calendar)
+        nav.addWidget(self.cal_lon)
+        nav.addWidget(QLabel("TZ"))
+        self.cal_tz = QLineEdit()
+        self.cal_tz.setMaximumWidth(70)
+        self.cal_tz.editingFinished.connect(self._refresh_calendar)
+        nav.addWidget(self.cal_tz)
+        layout.addLayout(nav)
+
+        self.cal_grid = QTableWidget(6, 7)
+        self.cal_grid.setHorizontalHeaderLabels(
+            ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"])
+        self.cal_grid.verticalHeader().setVisible(False)
+        self.cal_grid.setAlternatingRowColors(False)
+        self.cal_grid.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers)
+        self.cal_grid.cellClicked.connect(self._on_calendar_cell)
+        layout.addWidget(self.cal_grid, stretch=1)
+
+        detail_label = QLabel("Day detail (click a day)")
+        detail_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        layout.addWidget(detail_label)
+        self.cal_detail = QTextEdit()
+        self.cal_detail.setReadOnly(True)
+        self.cal_detail.setMaximumHeight(130)
+        layout.addWidget(self.cal_detail)
+
+        today = _dt.date.today()
+        self.cal_lat.setText(self.lat_input.text() or "28.61")
+        self.cal_lon.setText(self.lon_input.text() or "77.21")
+        self.cal_tz.setText(self.tz_input.text() or "+0530")
+        self.cal_cells = {}
+        self.cal_month_combo.blockSignals(True)
+        self.cal_month_combo.setCurrentIndex(today.month - 1)
+        self.cal_month_combo.blockSignals(False)
+        self.cal_year_spin.blockSignals(True)
+        self.cal_year_spin.setValue(today.year)
+        self.cal_year_spin.blockSignals(False)
+        self._refresh_calendar()
+        return w
+
+    def _shift_calendar(self, delta: int):
+        m = self.cal_month_combo.currentIndex() + delta
+        y = self.cal_year_spin.value()
+        if m < 0:
+            m, y = 11, y - 1
+        elif m > 11:
+            m, y = 0, y + 1
+        self.cal_month_combo.blockSignals(True)
+        self.cal_month_combo.setCurrentIndex(m)
+        self.cal_month_combo.blockSignals(False)
+        self.cal_year_spin.blockSignals(True)
+        self.cal_year_spin.setValue(y)
+        self.cal_year_spin.blockSignals(False)
+        self._refresh_calendar()
+
+    def _sync_calendar_place(self):
+        if self.lat_input.text():
+            self.cal_lat.setText(self.lat_input.text())
+        if self.lon_input.text():
+            self.cal_lon.setText(self.lon_input.text())
+        if self.tz_input.text():
+            self.cal_tz.setText(self.tz_input.text())
+        self._refresh_calendar()
+
+    def _refresh_calendar(self, *args):
+        import calendar as _cal
+        import datetime as _dt
+        from jhora.calc.monthly_panchanga import monthly_panchanga
+        year = self.cal_year_spin.value()
+        month = self.cal_month_combo.currentIndex() + 1
+        try:
+            lat = float(self.cal_lat.text())
+            lon = float(self.cal_lon.text())
+            tz_offset = -ChartBuilder._parse_tz(
+                self.cal_tz.text(), _dt.datetime(year, month, 1))
+        except (ValueError, TypeError):
+            return
+        try:
+            days = monthly_panchanga(
+                year, month, lat, lon, tz_offset,
+                with_adjuncts=self.cal_adjuncts_check.isChecked())
+        except Exception:
+            return
+        self.cal_days = {d.date: d for d in days}
+        self.cal_cells = {}
+        first_mon0, _ndays = _cal.monthrange(year, month)
+        col0 = (first_mon0 + 1) % 7  # Sun-first columns
+        today = _dt.date.today()
+        white = QBrush(QColor("#ffffff"))
+        base_bg = QBrush(QColor("#151a28"))
+        today_bg = QBrush(QColor(ACCENT))
+        black = QBrush(QColor("#000000"))
+        for r in range(6):
+            for c in range(7):
+                dayn = r * 7 + c - col0 + 1
+                if 1 <= dayn <= len(days):
+                    d = days[dayn - 1]
+                    item = QTableWidgetItem(
+                        f"{dayn}\n{d.tithi[:12]}\n{d.nakshatra[:10]}")
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    item.setToolTip(
+                        f"{d.date} ({d.weekday}) — {d.paksha} {d.tithi}, "
+                        f"{d.nakshatra}")
+                    is_today = (today.year == year and today.month == month
+                                and today.day == dayn)
+                    item.setForeground(black if is_today else white)
+                    item.setBackground(today_bg if is_today else base_bg)
+                    self.cal_grid.setItem(r, c, item)
+                    self.cal_cells[(r, c)] = d
+                else:
+                    item = QTableWidgetItem("")
+                    item.setFlags(item.flags()
+                                  & ~Qt.ItemFlag.ItemIsEnabled)
+                    self.cal_grid.setItem(r, c, item)
+        self.cal_grid.resizeColumnsToContents()
+
+    def _on_calendar_cell(self, row: int, col: int):
+        d = self.cal_cells.get((row, col))
+        if d is None:
+            return
+        lines = [f"{d.date} ({d.weekday}) — {d.paksha} {d.tithi}",
+                 f"Nakshatra {d.nakshatra} | Yoga {d.yoga} | "
+                 f"Karana {d.karana} | Moon in {d.moon_sign}",
+                 f"Sunrise {d.sunrise} Sunset {d.sunset}",
+                 f"Rahu {d.rahu_kalam} | Gulika {d.gulika_kalam} | "
+                 f"Yama {d.yama_gandam}"]
+        if d.varjya1 != "—" or d.durmuhurta1 != "—":
+            lines.append(f"Varjya {d.varjya1}, {d.varjya2} | "
+                         f"Durmuhurta {d.durmuhurta1}, {d.durmuhurta2}")
+        self.cal_detail.setPlainText("\n".join(lines))
 
     def _build_kp_tab(self):
         w = QWidget()
