@@ -2,7 +2,7 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
-## Unreleased
+## v1.8.0 — 2026-09-24
 
 ### Added
 - GUI Points & Maitri tab (Upagrahas, Sphutas, Special Points, Maitri
