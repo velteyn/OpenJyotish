@@ -2180,6 +2180,50 @@ def transit(
 
 
 @app.command()
+def maitri(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Graha Maitri — natural, temporal and compound (Panchadha) friendships."""
+    from jhora.calc.maitri import GRAHAS, maitri_table, naisargika, tatkalika
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    rasis = {g: cd.planet(g).rasi.value for g in GRAHAS}
+    table = Table(title="Panchadha Maitri (row → column)")
+    table.add_column("", style="cyan")
+    for g in GRAHAS:
+        table.add_column(g.short_name, style="yellow")
+    names = maitri_table(rasis)
+    for a in GRAHAS:
+        table.add_row(a.short_name,
+                      *[names[(a, b)] for b in GRAHAS])
+    console.print(table)
+    nat = Table(title="Naisargika (natural)")
+    nat.add_column("", style="cyan")
+    for g in GRAHAS:
+        nat.add_column(g.short_name, style="green")
+    for a in GRAHAS:
+        nat.add_row(a.short_name,
+                    *[naisargika(a, b) if a != b else "—" for b in GRAHAS])
+    console.print(nat)
+    tmp = Table(title="Tatkalika (temporal)")
+    tmp.add_column("", style="cyan")
+    for g in GRAHAS:
+        tmp.add_column(g.short_name, style="magenta")
+    for a in GRAHAS:
+        tmp.add_row(a.short_name,
+                    *["—" if a == b else tatkalika(rasis[a], rasis[b])
+                      for b in GRAHAS])
+    console.print(tmp)
+
+
+@app.command()
 def special_points(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),

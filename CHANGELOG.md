@@ -5,6 +5,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Graha Maitri (`maitri` CLI): Naisargika (asymmetric BPHS tables),
+  Tatkalika and Panchadha compound tables with scores.
 - Sripati bhava option for chalit (`chart --chalit --bhava-method
   sripati`, GUI Houses combo); default behavior unchanged. Sripati
   spans now live in `calc/chalit.py` (single source).
