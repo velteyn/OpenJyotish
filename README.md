@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-49 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-28-section JSON API for AI agents (+ JSON-LD)  |  1619 tests  |  GPL v3.0
+50 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+28-section JSON API for AI agents (+ JSON-LD)  |  1628 tests  |  GPL v3.0
 ```
 
 > **Showcase: [the Gandhi retrospective](docs/gandhi-retrospective.md)** —
@@ -209,6 +209,7 @@ data = json.loads(subprocess.run(
 | `transit` | Current transits with SAV scores and gochara vedha (obstruction) |
 | `sade-sati` | Sade Sati phase dates (12th/peak/2nd) + Kantaka/Ashtama Shani timeline |
 | `special-points` | Baadhaka sthana, Pushkara navamsa/bhaga, Mrityu bhaga, 64th navamsa, 22nd drekkana |
+| `maitri` | Graha Maitri — natural, temporal and compound (Panchadha) friendship tables |
 | `tajaka` | Tajaka return charts — annual/monthly/2.5-day/5-hr/25-min/2-min (`--level`, `--index`, `--sunrise`, `--vimshottari` sesham/full from the return Moon) + Tajaka yogas on CLI/GUI |
 | `tithi-pravesha` | Annual solar-tithi ingress |
 | `progression` | Secondary progressions (1 day = 1 year) |
