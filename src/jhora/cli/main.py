@@ -2180,6 +2180,53 @@ def transit(
 
 
 @app.command()
+def upagrahas(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Upagrahas — solar points plus time-based Gulika/Mandi."""
+    import datetime as _dt
+
+    from jhora.calc.upagraha import (compute_solar_upagrahas,
+                                     compute_temporal_upagrahas)
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    table = Table(title="Solar Upagrahas (from Sun)")
+    table.add_column("Upagraha", style="cyan")
+    table.add_column("Longitude", style="yellow")
+    table.add_column("Rasi", style="green")
+    for u in compute_solar_upagrahas(cd.planet(Graha.SUN).longitude):
+        table.add_row(u.name, f"{u.longitude:.2f}°", u.rasi)
+    console.print(table)
+
+    try:
+        from jhora.calc.muhurta import _sunrise_sunset
+        day = _dt.datetime(bd["year"], bd["month"], bd["day"])
+        tz_offset = -ChartBuilder._parse_tz(cd.timezone, cd.birth_date)
+        sr, ss = _sunrise_sunset(day, cd.latitude, cd.longitude,
+                                 tz_offset)
+        temporal = compute_temporal_upagrahas(cd, sr, ss)
+    except Exception:
+        temporal = []
+    if temporal:
+        ttable = Table(title="Temporal Upagrahas (weekday portions)")
+        ttable.add_column("Upagraha", style="cyan")
+        ttable.add_column("Longitude", style="yellow")
+        ttable.add_column("Rasi", style="green")
+        for u in temporal:
+            ttable.add_row(u.name, f"{u.longitude:.2f}°", u.rasi)
+        console.print(ttable)
+    else:
+        console.print("[dim]Temporal upagrahas unavailable for this chart.[/dim]")
+
+
+@app.command()
 def maitri(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),

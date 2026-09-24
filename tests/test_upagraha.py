@@ -48,3 +48,15 @@ class TestComputeAll:
         via_all = {r.name: r.longitude for r in compute_all_upagrahas(cd)
                    if r.source == "solar"}
         assert via_all == solar
+
+
+class TestUpagrahasCli:
+    def test_command(self):
+        from typer.testing import CliRunner
+        from jhora.cli.main import app
+        r = CliRunner().invoke(app, [
+            "upagrahas", "2001-02-24 06:11:00 +0530 18.6333 77.2"])
+        assert r.exit_code == 0, r.output
+        assert "Solar Upagrahas" in r.output
+        assert "Dhuma" in r.output
+        assert "Gulika" in r.output

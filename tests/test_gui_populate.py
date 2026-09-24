@@ -888,3 +888,19 @@ def test_chalit_method_combo(main_window, chart):
     main_window.chart_data = chart
     main_window.chalit_method_combo.setCurrentText("sripati")
     main_window._update_house_table()
+
+
+def test_points_tab_populate(main_window, chart):
+    main_window.chart_data = chart
+    main_window._populate_points_tab(chart)
+    assert main_window.pts_upagraha_table.rowCount() >= 5
+    assert main_window.pts_sphuta_table.rowCount() >= 9
+    assert main_window.pts_special_table.rowCount() == 6
+    assert main_window.pts_maitri_table.rowCount() == 7
+
+
+def test_varga_table_vargottama_column(main_window, chart):
+    main_window.chart_data = chart
+    main_window._on_varga_show()
+    assert main_window.varga_table.columnCount() == 6
+    assert main_window.varga_table.rowCount() > 0
