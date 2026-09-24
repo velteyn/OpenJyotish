@@ -77,8 +77,9 @@ jobs:
         run: |
           # NOTE: no pipes here — `| head` SIGPIPEs the frozen binary into
           # a false failure.
-          if [ "$RUNNER_OS" = "Windows" ]; then ./dist/OpenJyotish/openjyotish.exe --help > /dev/null
-          else ./dist/OpenJyotish/jhora --help > /dev/null
+          ls dist/OpenJyotish/
+          if [ "$RUNNER_OS" = "Windows" ]; then timeout 300 ./dist/OpenJyotish/openjyotish.exe --version
+          else timeout 300 ./dist/OpenJyotish/openjyotish --version
           fi
 
       - name: Windows installer (Inno Setup)
@@ -104,7 +105,8 @@ jobs:
           mkdir -p "$PKG/opt/openjyotish" "$PKG/usr/bin" \
             "$PKG/usr/share/applications" "$PKG/DEBIAN"
           cp -R dist/OpenJyotish/. "$PKG/opt/openjyotish/"
-          ln -s /opt/openjyotish/jhora "$PKG/usr/bin/jhora"
+          ln -s /opt/openjyotish/openjyotish "$PKG/usr/bin/openjyotish"
+          ln -s /opt/openjyotish/openjyotish "$PKG/usr/bin/jhora"
           cat > "$PKG/usr/share/applications/openjyotish.desktop" <<EOF
           [Desktop Entry]
           Name=OpenJyotish
