@@ -303,6 +303,15 @@ class MainWindow(QMainWindow):
             lambda _i: self._update_house_table()
             if self.chart_data else None)
         chalit_top.addWidget(self.chalit_varga_combo)
+        chalit_top.addWidget(QLabel("Bhava:"))
+        self.chalit_method_combo = QComboBox()
+        self.chalit_method_combo.addItems(["default", "sripati"])
+        self.chalit_method_combo.setToolTip(
+            "default: Placidus D-1, equal-house vargas; sripati: Sripati spans (D-1)")
+        self.chalit_method_combo.currentIndexChanged.connect(
+            lambda _i: self._update_house_table()
+            if self.chart_data else None)
+        chalit_top.addWidget(self.chalit_method_combo)
         hl.addLayout(chalit_top)
         self.chalit_table = QTableWidget()
         self.chalit_table.setMaximumHeight(260)
@@ -993,7 +1002,9 @@ class MainWindow(QMainWindow):
         cc = ChalitComputer(self.chart_data)
         varga_level = (self.chalit_varga_combo.currentData()
                        if hasattr(self, "chalit_varga_combo") else None)
-        chalit = cc.compute(varga_level or VargaLevel.D_1)
+        method = (self.chalit_method_combo.currentText()
+                  if hasattr(self, "chalit_method_combo") else "default")
+        chalit = cc.compute(varga_level or VargaLevel.D_1, method=method)
         ch_headers = ["Planet", "Sign", "Sign H", "Cusp H", "Shift"]
         self.chalit_table.setColumnCount(len(ch_headers))
         self.chalit_table.setHorizontalHeaderLabels(ch_headers)

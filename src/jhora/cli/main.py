@@ -82,6 +82,9 @@ def chart(
     chalit_varga: Optional[str] = typer.Option(
         None, "--chalit-varga",
         help="Varga level for --chalit (e.g. D-1, D-9, D-60); default D-1 + D-9"),
+    bhava_method: str = typer.Option(
+        "default", "--bhava-method",
+        help="Bhava system for --chalit: default (Placidus D-1, equal vargas) or sripati (D-1)"),
 ):
     """Compute and display birth chart."""
     if nodes not in ("mean", "true"):
@@ -105,7 +108,7 @@ def chart(
                 raise typer.Exit(code=2)
         else:
             levels = [VargaLevel.D_1, VargaLevel.D_9]
-        _display_chalit(chart_data, levels=levels)
+        _display_chalit(chart_data, levels=levels, method=bhava_method)
 
 
 @app.command("download-ephe")
@@ -355,11 +358,15 @@ def _lord_name(idx: int) -> str:
         return str(idx)
 
 
-def _display_chalit(cd: ChartData, levels=None):
+def _display_chalit(cd: ChartData, levels=None, method: str = "default"):
     cc = ChalitComputer(cd)
     for vl in (levels if levels is not None
                else [VargaLevel.D_1, VargaLevel.D_9]):
-        r = cc.compute(vl)
+        try:
+            r = cc.compute(vl, method=method)
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=2)
         table = Table(title=f"{vl.name} Chalit Chakra — Bhava (cusp) vs Rasi (sign)")
         table.add_column("Planet", style="cyan")
         table.add_column("Sign", style="yellow")

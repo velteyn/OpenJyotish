@@ -881,3 +881,10 @@ def test_tajaka_yogas_table(main_window, chart):
     main_window.chart_data = chart
     main_window._on_tajaka_find()
     assert main_window.taj_yoga_table.rowCount() > 0
+
+
+def test_chalit_method_combo(main_window, chart):
+    assert main_window.chalit_method_combo.currentText() == "default"
+    main_window.chart_data = chart
+    main_window.chalit_method_combo.setCurrentText("sripati")
+    main_window._update_house_table()
