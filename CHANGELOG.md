@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Sripati bhava option for chalit (`chart --chalit --bhava-method
+  sripati`, GUI Houses combo); default behavior unchanged. Sripati
+  spans now live in `calc/chalit.py` (single source).
 - Tajaka yogas (P.V.R. Rao ch. 29.2, worked numbers as tests): Ithasala
   (Vartamaana/Poorna/Bhavishya, retrograde-aware), Eesarpha, Nakta,
   Yamaya, Manahoo, Kamboola, Radda, Ishkavala, Induvara, Khallasara —

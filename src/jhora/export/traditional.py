@@ -353,31 +353,8 @@ def _ashtakavarga_rows(cd: ChartData) -> Tuple[List[str], List[List[str]]]:
 
 def _sripati_bhavas(cd: ChartData) -> List[Tuple[float, float]]:
     """Return [(bhava_begin, bhava_madhya)] for houses 1..12 (Sripati)."""
-    asc = cd.ascendant % 360.0
-    mc = cd.mc % 360.0
-    mid = [0.0] * 13  # 1-indexed
-    mid[1] = asc
-    mid[10] = mc
-    mid[7] = (asc + 180.0) % 360.0
-    mid[4] = (mc + 180.0) % 360.0
-
-    def _fill(anchor_from: int, anchor_to: int, targets: Tuple[int, int]):
-        arc = (mid[anchor_to] - mid[anchor_from]) % 360.0
-        mid[targets[0]] = (mid[anchor_from] + arc / 3.0) % 360.0
-        mid[targets[1]] = (mid[anchor_from] + 2.0 * arc / 3.0) % 360.0
-
-    _fill(10, 1, (11, 12))
-    _fill(1, 4, (2, 3))
-    _fill(4, 7, (5, 6))
-    _fill(7, 10, (8, 9))
-
-    result = []
-    for h in range(1, 13):
-        prev_mid = mid[12] if h == 1 else mid[h - 1]
-        arc = (mid[h] - prev_mid) % 360.0
-        begin = (prev_mid + arc / 2.0) % 360.0
-        result.append((begin, mid[h]))
-    return result
+    from jhora.calc.chalit import sripati_bhavas
+    return sripati_bhavas(cd.ascendant, cd.mc)
 
 
 def _chalit_rows(cd: ChartData) -> List[List[str]]:
