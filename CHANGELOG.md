@@ -5,6 +5,10 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Tajaka yogas (P.V.R. Rao ch. 29.2, worked numbers as tests): Ithasala
+  (Vartamaana/Poorna/Bhavishya, retrograde-aware), Eesarpha, Nakta,
+  Yamaya, Manahoo, Kamboola, Radda, Ishkavala, Induvara, Khallasara —
+  on the `tajaka` CLI and the GUI Tajaka tab.
 - D-60 Shashtiamsa start (count forward from the sign, P.V.R. Rao
   ch. 6.2.20, Jupiter-in-Sg worked example).
 - Classical varga starts for D-5, D-6, D-8, D-11 (P.V.R. Rao ch. 6.2,

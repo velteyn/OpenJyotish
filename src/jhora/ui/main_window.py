@@ -1788,6 +1788,11 @@ class MainWindow(QMainWindow):
         self.taj_mudda_table.setAlternatingRowColors(True)
         layout.addWidget(self.taj_mudda_table, stretch=1)
 
+        layout.addWidget(QLabel("Tajaka Yogas"))
+        self.taj_yoga_table = QTableWidget()
+        self.taj_yoga_table.setAlternatingRowColors(True)
+        layout.addWidget(self.taj_yoga_table, stretch=1)
+
         # Tithi Pravesha section
         self.tp_label = QLabel("Tithi Pravesha — Annual Tithi-Solar Return")
         self.tp_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold; margin-top: 8px;")
@@ -1949,6 +1954,40 @@ class MainWindow(QMainWindow):
                 f"{p.start_jd:.4f}", f"{p.end_jd:.4f}",
             ])
         self._fill_table(self.taj_mudda_table, md_headers, md_rows)
+
+        from jhora.calc.tajaka_yoga import tajaka_yogas
+        yogas = tajaka_yogas(chart)
+        yg_headers = ["Yoga", "Planets", "Detail"]
+        yg_rows = []
+        for r in yogas.ithasalas:
+            flags = []
+            if r.manahoo_by:
+                flags.append(f"Manahoo by {r.manahoo_by.full_name}")
+            if r.radda:
+                flags.append("Radda")
+            if r.kamboola:
+                flags.append("Kamboola")
+            yg_rows.append([f"Ithasala ({r.itype})",
+                            f"{r.g1.short_name}–{r.g2.short_name}",
+                            "; ".join(flags)])
+        for a, b in yogas.eesarphas:
+            yg_rows.append(["Eesarpha", f"{a.short_name}–{b.short_name}", ""])
+        for a, b, m in yogas.naktas:
+            yg_rows.append(["Nakta",
+                            f"{a.short_name}–{b.short_name} via {m.short_name}",
+                            ""])
+        for a, b, m in yogas.yamayas:
+            yg_rows.append(["Yamaya",
+                            f"{a.short_name}–{b.short_name} via {m.short_name}",
+                            ""])
+        if yogas.ishkavala:
+            yg_rows.append(["Ishkavala", "all", "kendras + panapharas"])
+        if yogas.induvara:
+            yg_rows.append(["Induvara", "all", "apoklimas only"])
+        for ll, x in yogas.khallasaras:
+            yg_rows.append(["Khallasara",
+                            f"{ll.short_name} blocks {x.short_name}", ""])
+        self._fill_table(self.taj_yoga_table, yg_headers, yg_rows)
 
     # --- Kuta / Matchmaking tab ---
 

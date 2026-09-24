@@ -875,3 +875,9 @@ def test_nodes_combo_defaults_mean(main_window):
     assert main_window.nodes_combo.currentText() == "mean"
     main_window.nodes_combo.setCurrentText("true")
     assert main_window.nodes_combo.currentText() == "true"
+
+
+def test_tajaka_yogas_table(main_window, chart):
+    main_window.chart_data = chart
+    main_window._on_tajaka_find()
+    assert main_window.taj_yoga_table.rowCount() > 0
