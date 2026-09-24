@@ -398,3 +398,14 @@ class TestTajakaVimsottariCli:
             "tajaka", "2001-02-24 06:11:00 +0530 18.6333 77.2",
             "2025", "--vimshottari", "bogus"])
         assert r.exit_code == 2
+
+
+class TestTajakaYogasCli:
+    def test_yogas_table_shown(self):
+        from typer.testing import CliRunner
+        from jhora.cli.main import app
+        r = CliRunner().invoke(app, [
+            "tajaka", "2001-02-24 06:11:00 +0530 18.6333 77.2", "2025"])
+        assert r.exit_code == 0, r.output
+        assert "Tajaka Yogas" in r.output
+        assert "Ithasala" in r.output

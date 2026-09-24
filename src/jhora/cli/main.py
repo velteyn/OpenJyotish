@@ -1815,6 +1815,42 @@ def tajaka(
             sesham=(vimshottari.lower() == "sesham"))
         _display_dasa_table(av, f"Annual Vimsottari ({vimshottari.lower()})")
 
+    from jhora.calc.tajaka_yoga import tajaka_yogas
+    yogas = tajaka_yogas(chart)
+    yg_table = Table(title="Tajaka Yogas")
+    yg_table.add_column("Yoga", style="cyan")
+    yg_table.add_column("Planets", style="yellow")
+    yg_table.add_column("Detail", style="white")
+    for r in yogas.ithasalas:
+        flags = []
+        if r.manahoo_by:
+            flags.append(f"Manahoo by {r.manahoo_by.full_name}")
+        if r.radda:
+            flags.append("Radda")
+        if r.kamboola:
+            flags.append("Kamboola")
+        yg_table.add_row(f"Ithasala ({r.itype})",
+                         f"{r.g1.short_name}–{r.g2.short_name}",
+                         "; ".join(flags))
+    for a, b in yogas.eesarphas:
+        yg_table.add_row("Eesarpha", f"{a.short_name}–{b.short_name}", "")
+    for a, b, m in yogas.naktas:
+        yg_table.add_row("Nakta",
+                         f"{a.short_name}–{b.short_name} via {m.short_name}",
+                         "")
+    for a, b, m in yogas.yamayas:
+        yg_table.add_row("Yamaya",
+                         f"{a.short_name}–{b.short_name} via {m.short_name}",
+                         "")
+    if yogas.ishkavala:
+        yg_table.add_row("Ishkavala", "all", "kendras + panapharas only")
+    if yogas.induvara:
+        yg_table.add_row("Induvara", "all", "apoklimas only")
+    for ll, x in yogas.khallasaras:
+        yg_table.add_row("Khallasara",
+                         f"{ll.short_name} blocks {x.short_name}", "")
+    console.print(yg_table)
+
 
 @app.command()
 def progression(
