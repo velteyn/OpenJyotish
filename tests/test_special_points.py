@@ -59,3 +59,31 @@ class TestSpecialPointsCli:
         assert "Baadhaka sthana" in result.output
         assert "Pushkara navamsa" in result.output
         assert "64th navamsa" in result.output
+
+
+class TestMrityuBhaga:
+    def test_sun_in_aries_base(self):
+        from jhora.calc.special_points import planets_in_mrityu_bhaga
+        lons = [0.0] * 11
+        lons[0] = 20.1  # Sun in Aries at 20.1° (base 20, tol 1/3)
+        assert planets_in_mrityu_bhaga(lons) == [0]
+
+    def test_outside_tolerance(self):
+        from jhora.calc.special_points import planets_in_mrityu_bhaga
+        lons = [0.0] * 11
+        lons[0] = 21.0
+        assert planets_in_mrityu_bhaga(lons) == []
+
+    def test_mandi_and_lagna(self):
+        from jhora.calc.special_points import planets_in_mrityu_bhaga
+        lons = [29.9] * 11  # Aries 29.9° matches no base degree.
+        # Mandi (idx 9) in Cancer (sign 3): base 12, tol 0.25.
+        lons[9] = 3 * 30 + 12.1
+        # Lagna (idx 10) in Leo (sign 4): base 25, tol 2/3.
+        lons[10] = 4 * 30 + 25.4
+        assert planets_in_mrityu_bhaga(lons) == [9, 10]
+
+    def test_cli_row_present(self):
+        result = runner.invoke(app, ["special-points", JALKOT])
+        assert result.exit_code == 0, result.output
+        assert "Mrityu bhaga" in result.output
