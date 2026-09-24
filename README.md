@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 51 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-28-section JSON API for AI agents (+ JSON-LD)  |  1649 tests  |  GPL v3.0
+28-section JSON API for AI agents (+ JSON-LD)  |  1661 tests  |  GPL v3.0
 ```
 
 > **Showcase: [the Gandhi retrospective](docs/gandhi-retrospective.md)** —
@@ -201,7 +201,7 @@ data = json.loads(subprocess.run(
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations (incl. 32 Naabhasa) |
 | `ashtakavarga` | BAV, SAV, Sodhya Pinda, Kakshya bindu, Bala reduction stages (`--bala`) |
-| `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/shoola/trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/lagna-kendradi/drig/sudarshana/moola/tara/lagnamsaka/padanaathaamsa/rasi-bhukta-vimsottari (MD/AD; system positional, `--karaka-role` for karaka, `--house` for shoola) |
+| `dasa` | Dasa periods for any system: vimsottari/ashtottari/yogini/sudasa/chara/narayana/kalachakra/brahma/karaka/shoola/trikona/varnada/sthira/navamsa/yogardha/niryana-shoola/lagna-kendradi/drig/sudarshana/moola/tara/buddhi-gati/lagnamsaka/padanaathaamsa/rasi-bhukta-vimsottari (MD/AD; system positional, `--karaka-role` for karaka, `--house` for shoola, `--buddhi-gati-varga` for buddhi-gati) |
 | `dasa-timeline` | Text bar chart with now-marker |
 | `dasa-chart` | Period tree around the running period (MD → AD → PD; `--at`, `--depth`) |
 | `dasa-entry` | Entry chart — sky at a period's opening (`PATH` like `Jupiter/Saturn`; `--system`) |

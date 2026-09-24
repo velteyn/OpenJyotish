@@ -328,7 +328,7 @@ class MainWindow(QMainWindow):
             "Chara", "Narayana", "Lagnamsaka", "Padanaathaamsa", "Rasi-Bhukta Vimsottari", "Kalachakra", "Brahma",
             "Karaka", "Shoola", "Trikona", "Varnada",
             "Sthira", "Navamsa", "Yogardha", "Niryana-Shoola",
-            "Lagna-Kendradi", "Kaala", "Chakra", "Mandooka",
+            "Lagna-Kendradi", "Kaala", "Chakra", "Mandooka", "Buddhi-Gati",
             "Drig", "Sudarshana", "Tithi-Ashtottari", "Tithi-Yogini", "Karana-Chaturaaseeti",
             "Yoga-Vimsottari", "Naisargika",
         ])
@@ -1230,6 +1230,9 @@ class MainWindow(QMainWindow):
         elif system == "Mandooka":
             from jhora.dasas.mandooka import MandookaDasa
             return MandookaDasa(options)
+        elif system == "Buddhi-Gati":
+            from jhora.dasas.buddhi_gati import BuddhiGatiDasa
+            return BuddhiGatiDasa(options)
         elif system == "Drig":
             from jhora.dasas.drig import DrigDasa
             return DrigDasa(options)
