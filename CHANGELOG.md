@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- GUI Compare view (Chart & Varga page): second birth-data form with
+  Copy-from-A, two charts side by side in a splitter, A side mirroring
+  the main chart; Packed toggle and chart style apply to both.
 - GUI monthly Calendar tab (Special Topics page): 7x6 panchanga grid
   (tithi + nakshatra per day, today highlighted), prev/next + month/
   year navigation, place fields synced from birth data, click-a-day

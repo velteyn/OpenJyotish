@@ -951,3 +951,31 @@ def test_calendar_tab_populate(main_window, chart):
     main_window.cal_month_combo.setCurrentIndex(today.month - 1)
     main_window.cal_year_spin.setValue(today.year)
     main_window._refresh_calendar()
+
+
+def test_compare_tab(main_window, chart):
+    from PyQt6.QtCore import QDate, QTime
+    main_window.chart_data = chart
+    main_window.cmp_chart_a.set_chart_data(chart)
+    # Known-good A inputs, then copy A → B and compare.
+    main_window.date_input.setDate(QDate(1973, 3, 13))
+    main_window.time_input.setTime(QTime(13, 55))
+    main_window.tz_input.setText("+0100")
+    main_window.lat_input.setText("45.41")
+    main_window.lon_input.setText("11.88")
+    main_window._on_compare_copy_a()
+    assert main_window.cmp_lat.text() == "45.41"
+    main_window._on_compare()
+    assert main_window.cmp_chart_a.chart_data is chart
+    assert main_window.cmp_chart_b.chart_data is not None
+    assert main_window.cmp_b_label.text().startswith("B — ")
+    # Shared toggles propagate to both compare widgets.
+    main_window.packed_toggle.setChecked(True)
+    assert main_window.cmp_chart_a.compact
+    assert main_window.cmp_chart_b.compact
+    main_window.packed_toggle.setChecked(False)
+    assert not main_window.cmp_chart_a.compact
+    main_window._on_style_changed("North Indian")
+    from jhora.ui.chart_widget import ChartStyle
+    assert (main_window.cmp_chart_b.chart_style
+            == ChartStyle.NORTH_INDIAN)

@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 51 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-28-section JSON API for AI agents (+ JSON-LD)  |  1663 tests  |  GPL v3.0
+28-section JSON API for AI agents (+ JSON-LD)  |  1664 tests  |  GPL v3.0
 ```
 
 > **Showcase: [the Gandhi retrospective](docs/gandhi-retrospective.md)** —
@@ -117,7 +117,7 @@ All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 | Category | Contains |
 |----------|----------|
 | **Dashboard** | Current dasa, transits, strengths, upcoming |
-| **Chart & Varga** | Chart View (Planets & Data, Ashtakavarga), Planets, Houses & Chalit, Varga Charts, Yogas |
+| **Chart & Varga** | Chart View (Planets & Data, Ashtakavarga), Compare, Planets, Houses & Chalit, Varga Charts, Yogas |
 | **Strengths** | Shadbala, Arudha & Karaka, Ashtakavarga |
 | **Dasas** | Dasa Periods with interactive bar chart |
 | **Transits & Tajaka** | Transits, Tajaka & TP, Mundane, Chakras |

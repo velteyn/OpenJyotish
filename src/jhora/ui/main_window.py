@@ -466,6 +466,7 @@ class MainWindow(QMainWindow):
         # 2. Chart & Varga
         chart_sub = QTabWidget()
         chart_sub.addTab(self._build_consolidated_tab(), "Chart View")
+        chart_sub.addTab(self._build_compare_tab(), "Compare")
         chart_sub.addTab(self.planet_table, "Planets")
         chart_sub.addTab(self.house_widget, "Houses & Chalit")
         chart_sub.addTab(self.varga_widget, "Varga Charts")
@@ -873,7 +874,10 @@ class MainWindow(QMainWindow):
         m = {"South Indian": ChartStyle.SOUTH_INDIAN,
              "North Indian": ChartStyle.NORTH_INDIAN,
              "East Indian": ChartStyle.EAST_INDIAN}
-        self.chart_widget.set_chart_style(m.get(text, ChartStyle.SOUTH_INDIAN))
+        style = m.get(text, ChartStyle.SOUTH_INDIAN)
+        self.chart_widget.set_chart_style(style)
+        self.cmp_chart_a.set_chart_style(style)
+        self.cmp_chart_b.set_chart_style(style)
 
     def _on_navamsa_toggle(self, checked: bool):
         self.chart_widget.set_navamsa_overlay(checked)
@@ -883,7 +887,8 @@ class MainWindow(QMainWindow):
             self.chart_widget.set_navamsa_data(dict(vcd.positions))
 
     def _on_packed_toggle(self, checked: bool):
-        for w in (self.chart_widget, self.cons_chart, self.cons_navamsa):
+        for w in (self.chart_widget, self.cons_chart, self.cons_navamsa,
+                  self.cmp_chart_a, self.cmp_chart_b):
             w.set_compact(checked)
 
     def _on_calculate(self):
@@ -915,6 +920,8 @@ class MainWindow(QMainWindow):
                 sex=sex_val,
             )
             self.chart_widget.set_chart_data(self.chart_data)
+            self.cmp_chart_a.set_chart_data(self.chart_data)
+            self.cmp_a_label.setText(f"A — {self._main_birth_label()}")
             self._update_planet_table()
             self._update_house_table()
             self._update_dasa_text()
@@ -5007,6 +5014,127 @@ class MainWindow(QMainWindow):
         kd_lines.append("  Ekadasi tithi days (check panchanga)")
 
         self.dash_keydates.setHtml(_to_html(kd_lines))
+
+    # --- Compare View (two charts side by side) ---
+
+    def _build_compare_tab(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        form = QHBoxLayout()
+        form.addWidget(QLabel("B date"))
+        self.cmp_date = QDateEdit()
+        self.cmp_date.setCalendarPopup(True)
+        self.cmp_date.setDate(self.date_input.date())
+        form.addWidget(self.cmp_date)
+        form.addWidget(QLabel("Time"))
+        self.cmp_time = QTimeEdit()
+        self.cmp_time.setDisplayFormat("HH:mm")
+        form.addWidget(self.cmp_time)
+        form.addWidget(QLabel("TZ"))
+        self.cmp_tz = QLineEdit()
+        self.cmp_tz.setMaximumWidth(70)
+        form.addWidget(self.cmp_tz)
+        form.addWidget(QLabel("Lat"))
+        self.cmp_lat = QLineEdit()
+        self.cmp_lat.setMaximumWidth(70)
+        form.addWidget(self.cmp_lat)
+        form.addWidget(QLabel("Lon"))
+        self.cmp_lon = QLineEdit()
+        self.cmp_lon.setMaximumWidth(70)
+        form.addWidget(self.cmp_lon)
+        self.cmp_copy_btn = QPushButton("Copy from A")
+        self.cmp_copy_btn.clicked.connect(self._on_compare_copy_a)
+        form.addWidget(self.cmp_copy_btn)
+        self.cmp_go_btn = QPushButton("Compare")
+        self.cmp_go_btn.setObjectName("primary")
+        self.cmp_go_btn.clicked.connect(self._on_compare)
+        form.addWidget(self.cmp_go_btn)
+        form.addStretch()
+        layout.addLayout(form)
+
+        split = QSplitter(Qt.Orientation.Horizontal)
+        left = QWidget()
+        left_layout = QVBoxLayout(left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        self.cmp_a_label = QLabel("A — press Calculate")
+        self.cmp_a_label.setStyleSheet(
+            f"color: {ACCENT}; font-weight: bold;")
+        left_layout.addWidget(self.cmp_a_label)
+        self.cmp_chart_a = ChartWidget()
+        self.cmp_chart_a.setMinimumSize(300, 300)
+        left_layout.addWidget(self.cmp_chart_a, stretch=1)
+        split.addWidget(left)
+        right = QWidget()
+        right_layout = QVBoxLayout(right)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        self.cmp_b_label = QLabel("B — enter data and press Compare")
+        self.cmp_b_label.setStyleSheet(
+            f"color: {ACCENT}; font-weight: bold;")
+        right_layout.addWidget(self.cmp_b_label)
+        self.cmp_chart_b = ChartWidget()
+        self.cmp_chart_b.setMinimumSize(300, 300)
+        right_layout.addWidget(self.cmp_chart_b, stretch=1)
+        split.addWidget(right)
+        split.setSizes([400, 400])
+        layout.addWidget(split, stretch=1)
+        return w
+
+    def _main_birth_label(self) -> str:
+        qd = self.date_input.date()
+        qt = self.time_input.time()
+        return (f"{qd.year():04d}-{qd.month():02d}-{qd.day():02d} "
+                f"{qt.hour():02d}:{qt.minute():02d} "
+                f"{self.tz_input.text().strip()} "
+                f"{self.lat_input.text().strip()} "
+                f"{self.lon_input.text().strip()}")
+
+    def _on_compare_copy_a(self):
+        self.cmp_date.setDate(self.date_input.date())
+        self.cmp_time.setTime(self.time_input.time())
+        self.cmp_tz.setText(self.tz_input.text())
+        self.cmp_lat.setText(self.lat_input.text())
+        self.cmp_lon.setText(self.lon_input.text())
+
+    def _on_compare(self):
+        if not self.chart_data:
+            QMessageBox.warning(self, "Missing Chart",
+                                "Calculate chart A first.")
+            return
+        tz = self.cmp_tz.text().strip()
+        lat_s = self.cmp_lat.text().strip()
+        lon_s = self.cmp_lon.text().strip()
+        if not tz or not lat_s or not lon_s:
+            QMessageBox.warning(self, "Missing Fields",
+                                "Fill B date/time/tz/lat/lon or Copy from A.")
+            return
+        try:
+            lat, lon = float(lat_s), float(lon_s)
+        except ValueError:
+            QMessageBox.warning(self, "Bad Coordinates",
+                                "B lat/lon must be numbers.")
+            return
+        qd = self.cmp_date.date()
+        qt = self.cmp_time.time()
+        hour = qt.hour() + qt.minute() / 60.0 + qt.second() / 3600.0
+        sex_val = "Male" if self.sex_male.isChecked() else "Female"
+        try:
+            cd_b = self.builder.build(
+                year=qd.year(), month=qd.month(), day=qd.day(),
+                hour=hour, lat=lat, lon=lon, tz=tz,
+                ayanamsa=self.ayanamsa_combo.currentText().lower(),
+                nodes=self.nodes_combo.currentText(), sex=sex_val)
+        except Exception as exc:
+            QMessageBox.warning(self, "Compare Failed", str(exc))
+            return
+        self.cmp_chart_a.set_chart_data(self.chart_data)
+        self.cmp_a_label.setText(f"A — {self._main_birth_label()}")
+        self.cmp_chart_b.set_chart_data(cd_b)
+        self.cmp_b_label.setText(
+            f"B — {qd.year():04d}-{qd.month():02d}-{qd.day():02d} "
+            f"{qt.hour():02d}:{qt.minute():02d} {tz} {lat_s} {lon_s}")
 
     # --- Consolidated View (three-column layout) ---
 
