@@ -16,6 +16,8 @@ from jhora.types.rasi import Rasi
 
 
 # ── Marana Karaka Sthana — houses where planets are "dead" (weak) ─────────────
+# Jataka Parijata 17.34-36 (the SJC-taught list): eight planets only.
+# Ketu carries no classical MKS assignment, so none is given (no guesses).
 _MARANA_KARAKA: Dict[Graha, int] = {
     Graha.SUN: 12,      # Sun dies in 12th
     Graha.MOON: 8,      # Moon dies in 8th
@@ -25,7 +27,6 @@ _MARANA_KARAKA: Dict[Graha, int] = {
     Graha.VENUS: 6,     # Venus dies in 6th
     Graha.SATURN: 1,    # Saturn dies in 1st
     Graha.RAHU: 9,      # Rahu dies in 9th
-    Graha.KETU: 9,      # Ketu dies in 9th
 }
 
 

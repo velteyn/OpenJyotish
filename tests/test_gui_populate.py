@@ -897,6 +897,12 @@ def test_points_tab_populate(main_window, chart):
     assert main_window.pts_sphuta_table.rowCount() >= 9
     assert main_window.pts_special_table.rowCount() == 6
     assert main_window.pts_maitri_table.rowCount() == 7
+    from jhora.calc.learning import (marana_karaka_sthana, vaiseshikamsas)
+    assert (main_window.pts_vaiseshika_table.rowCount()
+            == len(vaiseshikamsas(chart)) == 7)
+    # Fixture chart has no marana placements → placeholder row.
+    assert marana_karaka_sthana(chart) == []
+    assert main_window.pts_marana_table.rowCount() == 1
 
 
 def test_chakra_tab_populate(main_window, chart):
