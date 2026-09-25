@@ -4,6 +4,11 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Changed
+- GUI: birth-data inputs moved off the persistent rail onto their own
+  Birth Data page (form + confirmation chart); every other page is now
+  full-width. Calculate lands on Chart View.
+
 ### Added
 - Wheel settings panel: zoom knob (crisp vector scaling), layer
   toggles (drishti/nodes/transits/sign colors), transit-date scrubber

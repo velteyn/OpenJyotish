@@ -86,7 +86,7 @@ class TestWheelPage:
         labels = [main_window.nav_list.item(i).text()
                   for i in range(main_window.nav_list.count())]
         assert any("Wheel" in label for label in labels)
-        assert main_window.page_stack.count() == 9
+        assert main_window.page_stack.count() == 10
 
     def test_populate(self, main_window, chart):
         main_window.chart_data = chart
