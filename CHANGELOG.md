@@ -5,6 +5,10 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Circular bi-wheel chart (sidebar Wheel section): natal + transit
+  rings, Lagna-left, bundled OFL glyph fonts (Zodiac Free + Noto
+  Symbols 2, no system fonts), decluttered labels with leader ticks,
+  semantic colors, drishti/nodes/transit toggles.
 - Drishti surfaces on the existing aspect engine (give/receive/point
   views, SJC node trines): CLI `drishti` (56 commands), Points tab
   table, `aspects` in JSON planets.
