@@ -4,6 +4,10 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Changed
+- Dasa entry chart is a real table (summary + Planet/Natal/Entry/
+  Moved rows) instead of monospace text.
+
 ### Fixed
 - Points single-table sub-tabs (Upagrahas, Sphutas, Special) no
   longer cap table height — all rows visible.
