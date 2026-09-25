@@ -3020,6 +3020,12 @@ class MainWindow(QMainWindow):
         self.pts_vaiseshika_table.setAlternatingRowColors(True)
         self.pts_vaiseshika_table.setMaximumHeight(150)
         layout.addWidget(self.pts_vaiseshika_table, stretch=1)
+
+        layout.addWidget(QLabel("Planetary Wars (Graha Yuddha)"))
+        self.pts_yuddha_table = QTableWidget()
+        self.pts_yuddha_table.setAlternatingRowColors(True)
+        self.pts_yuddha_table.setMaximumHeight(110)
+        layout.addWidget(self.pts_yuddha_table)
         return w
 
     def _populate_points_tab(self, cd: ChartData):
@@ -3128,6 +3134,19 @@ class MainWindow(QMainWindow):
                    for v in vaiseshikamsas(cd)]
         self._fill_table(self.pts_vaiseshika_table,
                          ["Planet", "Score", "Rank"], va_rows)
+
+        # Planetary wars.
+        from jhora.calc.yuddha import planetary_wars
+        yw_rows = [[f"{w['pair'][0].full_name}–{w['pair'][1].full_name}",
+                    f"{w['separation']:.2f}°", w["winner"].full_name]
+                   for w in planetary_wars(
+                       {g: cd.planet(g).longitude for g in Graha
+                        if g in cd.planets},
+                       {g: cd.planet(g).latitude for g in Graha
+                        if g in cd.planets})]
+        self._fill_table(self.pts_yuddha_table,
+                         ["Pair", "Separation", "Winner"],
+                         yw_rows or [["—", "no wars", ""]])
 
     def _build_remedies_tab(self):
         w = QWidget()

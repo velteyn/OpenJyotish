@@ -903,6 +903,8 @@ def test_points_tab_populate(main_window, chart):
     # Fixture chart has no marana placements → placeholder row.
     assert marana_karaka_sthana(chart) == []
     assert main_window.pts_marana_table.rowCount() == 1
+    # Fixture chart has no wars → placeholder row.
+    assert main_window.pts_yuddha_table.rowCount() == 1
 
 
 def test_chakra_tab_populate(main_window, chart):

@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Graha Yuddha: five-planet wars inside 1° (Venus exception, then
+  northern latitude, disc tiebreak) — CLI `chart` footer, Points tab
+  table, new JSON `yuddha` section (29 sections).
 - Avasthas (Balaadi set, odd/even bands) in CLI `chart`, the GUI
   planet table and JSON.
 - Gandanta: water-fire junction zones flagged in CLI `chart` (Gnd
