@@ -985,7 +985,7 @@ class MainWindow(QMainWindow):
                 item.setForeground(white)
                 item.setBackground(bg_alt if r % 2 else bg)
                 table.setItem(r, c, item)
-        table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table.resizeColumnsToContents()
         table.verticalHeader().setVisible(False)
 
@@ -1390,7 +1390,7 @@ class MainWindow(QMainWindow):
         headers = ["Yoga", "Category", "Planets", "Strength", "Description"]
         self.yoga_table.setColumnCount(len(headers))
         self.yoga_table.setHorizontalHeaderLabels(headers)
-        self.yoga_table.horizontalHeader().setStretchLastSection(True)
+        self.yoga_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.yoga_table.setAlternatingRowColors(True)
         layout.addWidget(self.yoga_table)
         return w
@@ -1427,7 +1427,7 @@ class MainWindow(QMainWindow):
                    "Naisargika (R)", "Drik (R)", "Total (R)", "Total (V)", "Rel Str"]
         self.shadbala_table.setColumnCount(len(headers))
         self.shadbala_table.setHorizontalHeaderLabels(headers)
-        self.shadbala_table.horizontalHeader().setStretchLastSection(True)
+        self.shadbala_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.shadbala_table.setAlternatingRowColors(True)
         layout.addWidget(self.shadbala_table)
 
@@ -1440,7 +1440,7 @@ class MainWindow(QMainWindow):
                       "Adhipati", "Drig", "Total"]
         self.bhava_bala_table.setColumnCount(len(bh_headers))
         self.bhava_bala_table.setHorizontalHeaderLabels(bh_headers)
-        self.bhava_bala_table.horizontalHeader().setStretchLastSection(True)
+        self.bhava_bala_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.bhava_bala_table.setAlternatingRowColors(True)
         layout.addWidget(self.bhava_bala_table)
 
@@ -1452,7 +1452,7 @@ class MainWindow(QMainWindow):
         vi_headers = ["Planet", "Total (/20)", "%", "D1", "D2", "D3", "D7", "D9"]
         self.vimsopaka_table.setColumnCount(len(vi_headers))
         self.vimsopaka_table.setHorizontalHeaderLabels(vi_headers)
-        self.vimsopaka_table.horizontalHeader().setStretchLastSection(True)
+        self.vimsopaka_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.vimsopaka_table.setAlternatingRowColors(True)
         layout.addWidget(self.vimsopaka_table)
 
@@ -2093,7 +2093,7 @@ class MainWindow(QMainWindow):
         self.tp_table.setColumnCount(len(headers))
         self.tp_table.setHorizontalHeaderLabels(headers)
         self.tp_table.setRowCount(len(entries))
-        self.tp_table.horizontalHeader().setStretchLastSection(True)
+        self.tp_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         for i, e in enumerate(entries):
             if e.chart is None:
                 continue
@@ -2121,7 +2121,7 @@ class MainWindow(QMainWindow):
         self.prog_table.setColumnCount(len(headers))
         self.prog_table.setHorizontalHeaderLabels(headers)
         self.prog_table.setRowCount(9)
-        self.prog_table.horizontalHeader().setStretchLastSection(True)
+        self.prog_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         for i, g in enumerate([Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
                                Graha.JUPITER, Graha.VENUS, Graha.SATURN,
                                Graha.RAHU, Graha.KETU]):
@@ -4667,7 +4667,7 @@ class MainWindow(QMainWindow):
         table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table.setAlternatingRowColors(True)
         for i, ch in enumerate(charts):
             dt = f"{ch.get('day','')}/{ch.get('month','')}/{ch.get('year','')}"
@@ -4764,7 +4764,7 @@ class MainWindow(QMainWindow):
         self.mun_ingress_table = QTableWidget()
         self.mun_ingress_table.setColumnCount(4)
         self.mun_ingress_table.setHorizontalHeaderLabels(["Sign", "Date/Time (UT)", "Lagna", "Planets"])
-        self.mun_ingress_table.horizontalHeader().setStretchLastSection(True)
+        self.mun_ingress_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.mun_ingress_table.setAlternatingRowColors(True)
         layout.addWidget(self.mun_ingress_table)
 
@@ -4775,7 +4775,7 @@ class MainWindow(QMainWindow):
         self.mun_eclipse_table = QTableWidget()
         self.mun_eclipse_table.setColumnCount(2)
         self.mun_eclipse_table.setHorizontalHeaderLabels(["Event", "Date/Time (UT)"])
-        self.mun_eclipse_table.horizontalHeader().setStretchLastSection(True)
+        self.mun_eclipse_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.mun_eclipse_table.setAlternatingRowColors(True)
         layout.addWidget(self.mun_eclipse_table)
 
@@ -4786,7 +4786,7 @@ class MainWindow(QMainWindow):
         self.mun_asta_table = QTableWidget()
         self.mun_asta_table.setColumnCount(3)
         self.mun_asta_table.setHorizontalHeaderLabels(["Planet", "Asta (combust from)", "Udaya (rises)"])
-        self.mun_asta_table.horizontalHeader().setStretchLastSection(True)
+        self.mun_asta_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.mun_asta_table.setAlternatingRowColors(True)
         layout.addWidget(self.mun_asta_table)
 
