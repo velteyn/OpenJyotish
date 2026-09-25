@@ -990,7 +990,10 @@ class MainWindow(QMainWindow):
             {g: p.longitude for g, p in cd.planets.items()},
             cd.planet(Graha.SUN).longitude,
             {g: p.is_retrograde for g, p in cd.planets.items()})
-        headers = ["Planet", "Longitude", "Rasi", "Deg", "Nakshatra", "Pada", "Dignity", "Asta"]
+        from jhora.calc.gandanta import gandanta_planets
+        _gand = gandanta_planets(
+            {g: p.longitude for g, p in cd.planets.items()})
+        headers = ["Planet", "Longitude", "Rasi", "Deg", "Nakshatra", "Pada", "Dignity", "Asta", "Gnd"]
         rows = []
         for g in Graha:
             if g in self.chart_data.planets:
@@ -998,12 +1001,12 @@ class MainWindow(QMainWindow):
                 rows.append([g.full_name, f"{p.longitude:.2f}", p.rasi_name,
                              f"{p.degrees_in_rasi:.2f}", p.nakshatra_name,
                              str(p.nakshatra_pada), self._dignity_short(p.dignity),
-                             "C" if g in _comb else ""])
+                             "C" if g in _comb else "", "G" if g in _gand else ""])
         rows.append(["Lagna", f"{self.chart_data.ascendant:.2f}",
                      self.chart_data.lagna.rasi_name,
                      f"{self.chart_data.lagna.degrees_in_rasi:.2f}",
                      self.chart_data.lagna.nakshatra_name,
-                     str(self.chart_data.lagna.nakshatra_pada), "Lg", ""])
+                     str(self.chart_data.lagna.nakshatra_pada), "Lg", "", ""])
         self._fill_table(self.planet_table, headers, rows)
         self.planet_table.setColumnWidth(6, 50)
 

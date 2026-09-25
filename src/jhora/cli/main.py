@@ -321,6 +321,10 @@ def _display_chart(cd: ChartData):
         {g: p.longitude for g, p in cd.planets.items()},
         cd.planet(Graha.SUN).longitude,
         {g: p.is_retrograde for g, p in cd.planets.items()})
+    from jhora.calc.gandanta import gandanta_planets
+    _gand = gandanta_planets(
+        {g: p.longitude for g, p in cd.planets.items()})
+    table.add_column("Gnd", style="red")
     for g in Graha:
         if g in cd.planets:
             p = cd.planets[g]
@@ -329,6 +333,7 @@ def _display_chart(cd: ChartData):
                 p.rasi_name, f"{p.degrees_in_rasi:.2f}",
                 p.nakshatra_name, str(p.nakshatra_pada),
                 p.dignity, "C" if g in _comb else "",
+                "G" if g in _gand else "",
             )
     table.add_row(
         "Lagna", f"{cd.ascendant:.2f}",

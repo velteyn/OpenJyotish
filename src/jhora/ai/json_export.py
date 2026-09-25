@@ -46,6 +46,7 @@ def full_analysis(birthdata: str, ayanamsa: str = "lahiri",
 def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     now = datetime.now()
     result: Dict[str, Any] = {}
+    from jhora.calc.gandanta import gandanta_zone
 
     # ── Meta ──
     lr = Rasi.from_longitude(cd.ascendant)
@@ -58,16 +59,20 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
         "ayanamsa": cd.ayanamsa_name,
         "ayanamsa_value": round(cd.ayanamsa_value, 4),
         "lagna": {"sign": lr.full_name, "short": lr.short_name,
-                   "longitude": round(cd.ascendant, 4)},
+                   "longitude": round(cd.ascendant, 4),
+                   "gandanta": gandanta_zone(cd.ascendant)},
     }
 
     # ── Planets ──
     result["planets"] = {}
     from jhora.calc.combustion import combust_planets
+    from jhora.calc.gandanta import gandanta_planets, gandanta_zone
     _comb = combust_planets(
         {g: p.longitude for g, p in cd.planets.items()},
         cd.planet(Graha.SUN).longitude,
         {g: p.is_retrograde for g, p in cd.planets.items()})
+    _gand = gandanta_planets(
+        {g: p.longitude for g, p in cd.planets.items()})
     for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
               Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
         p = cd.planet(g)
@@ -86,6 +91,7 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
             "retrograde": p.is_retrograde,
             "dignity": p.dignity,
             "combust": g in _comb,
+            "gandanta": _gand.get(g),
         }
 
     # ── Houses ──
