@@ -7,8 +7,8 @@ from jhora.types.graha import Graha
 
 class TestHouses:
     def test_mars_from_lagna(self):
-        # Mars in Aries (signs 3,6,7), lagna Leo (sign 4).
-        assert houses_aspected(Graha.MARS, 0, 4) == [12, 3, 4]
+        # Mars in Aries (signs 3,6,7), lagna Leo (sign 4), ascending.
+        assert houses_aspected(Graha.MARS, 0, 4) == [3, 4, 12]
 
     def test_all_grahas_covered(self):
         assert set(ALL_GRAHAS) == set(Graha)
