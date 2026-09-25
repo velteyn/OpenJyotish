@@ -444,10 +444,14 @@ class MainWindow(QMainWindow):
         chart_row.addWidget(self.dasa_chart_table, stretch=1)
         entry_col = QVBoxLayout()
         entry_col.addWidget(QLabel("Entry chart — double-click a period above:"))
-        self.dasa_entry_text = QTextEdit()
-        self.dasa_entry_text.setReadOnly(True)
-        apply_output_font(self.dasa_entry_text)
-        entry_col.addWidget(self.dasa_entry_text, stretch=1)
+        self.dasa_entry_summary = QLabel("")
+        self.dasa_entry_summary.setWordWrap(True)
+        self.dasa_entry_summary.setStyleSheet(
+            f"color: {ACCENT}; font-weight: bold;")
+        entry_col.addWidget(self.dasa_entry_summary)
+        self.dasa_entry_table = QTableWidget()
+        self.dasa_entry_table.setAlternatingRowColors(True)
+        entry_col.addWidget(self.dasa_entry_table, stretch=1)
         chart_row.addLayout(entry_col, stretch=1)
         dl.addLayout(chart_row)
         dl_outer.addWidget(dasa_scroll)
@@ -1159,11 +1163,37 @@ class MainWindow(QMainWindow):
             self.dasa_chart_table.horizontalHeader().height() + shown + 8,
             500))
 
-    def _set_entry_text(self, text: str) -> None:
-        """Entry-chart output sized to its content (never a 1-line slit)."""
-        self.dasa_entry_text.setText(text)
-        doc_h = int(self.dasa_entry_text.document().size().height()) + 16
-        self.dasa_entry_text.setMinimumHeight(min(max(doc_h, 120), 420))
+    def _show_entry(self, path, period, natal, entry) -> None:
+        """Entry-chart summary + planet table (natal → entry motion)."""
+        import swisseph as swe
+
+        from jhora.types.rasi import Rasi
+        y, m, d, h = swe.revjul(period.start_jd)
+        self.dasa_entry_summary.setText(
+            f"Entry: {'/'.join(path)} opens "
+            f"{int(y):04d}-{int(m):02d}-{int(d):02d} {h:05.2f} UT\n"
+            f"Entry lagna: "
+            f"{Rasi.from_longitude(entry.ascendant).short_name} "
+            f"{entry.ascendant:.2f}° (natal "
+            f"{Rasi.from_longitude(natal.ascendant).short_name} "
+            f"{natal.ascendant:.2f}°) · Entry Moon: "
+            f"{Rasi.from_longitude(entry.planet(Graha.MOON).longitude).short_name} "
+            f"(natal "
+            f"{Rasi.from_longitude(natal.planet(Graha.MOON).longitude).short_name})")
+        rows = []
+        for g in (Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+                  Graha.JUPITER, Graha.VENUS, Graha.SATURN):
+            nlon = natal.planet(g).longitude
+            elon = entry.planet(g).longitude
+            rows.append([
+                g.short_name,
+                f"{Rasi.from_longitude(nlon).short_name} {nlon % 30:.1f}°",
+                f"{Rasi.from_longitude(elon).short_name} {elon % 30:.1f}°",
+                f"{(elon - nlon) % 360.0:.1f}°",
+            ])
+        self._fill_table(self.dasa_entry_table,
+                         ["Planet", "Natal", "Entry", "Moved"], rows)
+        self._fit_table_height(self.dasa_entry_table)
 
     def _on_dasa_chart_activated(self, row: int, _col: int) -> None:
         """Show the entry chart for a double-clicked dasa-chart row."""
@@ -1173,18 +1203,19 @@ class MainWindow(QMainWindow):
             paths = getattr(self, "_dasa_chart_paths", [])
             if not (0 <= row < len(paths)) or not paths[row]:
                 return
-            from jhora.calc.dasa_entry import dasa_entry, format_dasa_entry
+            from jhora.calc.dasa_entry import dasa_entry
             system = self.dasa_system_combo.currentText()
             opts = self._dasa_options()
             engine = self._get_dasa_engine(system, opts)
             period, entry = dasa_entry(
                 self.chart_data, list(paths[row]),
                 engine=engine, opts=opts)
-            self._set_entry_text(
-                format_dasa_entry(list(paths[row]), period,
-                                  self.chart_data, entry))
+            self._show_entry(list(paths[row]), period,
+                             self.chart_data, entry)
         except Exception as e:
-            self._set_entry_text(f"Entry chart error:\n{e}")
+            self.dasa_entry_summary.setText(f"Entry chart error:\n{e}")
+            self._fill_table(self.dasa_entry_table,
+                             ["Planet", "Natal", "Entry", "Moved"], [])
 
     def _dasa_options(self):
         """Build DasaOptions from the dasa tab dropdowns (for nakshatra dasas)."""
