@@ -2,7 +2,7 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
-## Unreleased
+## v1.9.0 — 2026-09-25
 
 ### Added
 - Wheel rulers and numbers (AstroChart grammar): 5° ruler ticks,
