@@ -69,10 +69,19 @@ class TestWheel:
 
     def test_hit_records(self, widget):
         assert widget._hit
-        grahas = {g for g, _, _, _, _ in widget._hit}
+        grahas = {g for g, _, _, _, _, _ in widget._hit}
         assert Graha.SUN in grahas and Graha.SATURN in grahas
-        tips = [tip for _, _, _, _, tip in widget._hit]
+        tips = [tip for _, _, _, _, tip, _ in widget._hit]
         assert any("Jupiter" in tip for tip in tips)
+
+    def test_select_and_hub(self, widget):
+        widget.grab()
+        hits = {g: (x, y) for g, x, y, _, _, natal in widget._hit
+                if natal}
+        x, y = hits[Graha.JUPITER]
+        assert widget._select_at(x, y) == (Graha.JUPITER, True)
+        assert widget.grab() is not None
+        assert widget._select_at(5.0, 5.0) is None
 
 
 @pytest.fixture(scope="module")
