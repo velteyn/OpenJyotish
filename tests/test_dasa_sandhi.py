@@ -2,7 +2,8 @@
 
 from types import SimpleNamespace
 
-from jhora.calc.dasa_sandhi import SANDHI_FRACTION, sandhi_periods
+from jhora.calc.dasa_sandhi import (SANDHI_FRACTION, chidra_periods,
+                                    sandhi_periods)
 from jhora.charts.chart import ChartBuilder
 from jhora.dasas.base import DasaOptions
 from jhora.dasas.vimsottari import VimsottariDasa
@@ -62,3 +63,26 @@ class TestVimsottari:
         assert abs(first["start_jd"]
                    - (mds[0].end_jd - 0.10 * mds[0].duration_years
                       * 365.2425)) < 1e-6
+
+
+class TestChidra:
+    def test_last_ad_is_chidra(self):
+        cd = ChartBuilder().build(2001, 2, 24, 6 + 11 / 60,
+                                  lat=18 + 38 / 60, lon=77 + 12 / 60,
+                                  tz="+0530", ayanamsa="lahiri")
+        d = {"planets": {g: {"longitude": p.longitude}
+                         for g, p in cd.planets.items()},
+             "lagna_lon": cd.ascendant}
+        opts = DasaOptions(subdivision_level=PL.ANTARDASA)
+        mds = [p for p in VimsottariDasa(opts).compute(
+            cd.julian_day, d, opts) if p.level == PL.MAHADASA]
+        out = chidra_periods(mds)
+        assert len(out) == len(mds)
+        first = out[0]
+        # Rahu MD's antardasas end with Mars.
+        assert first["md_lord"] == "Rahu"
+        assert first["chidra_lord"] == "Mars"
+        assert abs(first["end_jd"] - mds[0].end_jd) < 1e-6
+
+    def test_no_subs_skipped(self):
+        assert chidra_periods([_md("A", 0.0, 10.0)]) == []

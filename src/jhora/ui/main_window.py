@@ -1083,6 +1083,17 @@ class MainWindow(QMainWindow):
                         f"{s['outgoing']} → {s['incoming']}: "
                         f"{f(s['start_jd'])} – {f(s['end_jd'])} "
                         f"(junction {f(s['junction_jd'])})")
+            from jhora.calc.dasa_sandhi import chidra_periods
+            _chidra = chidra_periods(
+                [p for p in periods if p.level == _PL.MAHADASA])
+            if _chidra:
+                lines += ["", "Chidra (final bhukti)", "─" * 48]
+                for c in _chidra:
+                    f = lambda jd: "{:04d}/{:02d}/{:02d}".format(
+                        *se.revjul(jd)[:3])
+                    lines.append(
+                        f"{c['md_lord']}/{c['chidra_lord']}: "
+                        f"{f(c['start_jd'])} – {f(c['end_jd'])}")
             self.dasa_text.setText("\n".join(lines))
             self._fill_dasa_chart(periods, se)
         except Exception as e:

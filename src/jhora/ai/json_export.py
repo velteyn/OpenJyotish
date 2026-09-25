@@ -250,6 +250,14 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
                  "end": "{:04d}-{:02d}-{:02d}".format(
                      *_se.revjul(s["end_jd"])[:3])}
                 for s in sandhi_periods(_mds)]
+            from jhora.calc.dasa_sandhi import chidra_periods
+            result["dasa"]["chidra"] = [
+                {"mahadasa": c["md_lord"], "chidra": c["chidra_lord"],
+                 "start": "{:04d}-{:02d}-{:02d}".format(
+                     *_se.revjul(c["start_jd"])[:3]),
+                 "end": "{:04d}-{:02d}-{:02d}".format(
+                     *_se.revjul(c["end_jd"])[:3])}
+                for c in chidra_periods(_mds)]
         except Exception:
             result["dasa"]["sandhi"] = []
 

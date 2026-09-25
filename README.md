@@ -213,7 +213,7 @@ data = json.loads(subprocess.run(
 | `argala` | Planetary intervention on the bhavas (Jaimini 1-1-5/10; `--house`) |
 | `avakahada` | Birth identity — rasi, nakshatra, pada, nama syllable, gana, yoni, nadi |
 | `asta-udaya` | Venus/Jupiter combust + rising windows for a year (marriage blockers) |
-| `dasa-sandhi` | MD junction windows — last 10% outgoing + first 10% incoming (`--system`) |
+| `dasa-sandhi` | MD junctions (10% rule) + `--chidra` final bhukti (`--system`) |
 | `tajaka` | Tajaka return charts — annual/monthly/2.5-day/5-hr/25-min/2-min (`--level`, `--index`, `--sunrise`, `--vimshottari` sesham/full from the return Moon) + Tajaka yogas on CLI/GUI |
 | `tithi-pravesha` | Annual solar-tithi ingress |
 | `progression` | Secondary progressions (1 day = 1 year) |

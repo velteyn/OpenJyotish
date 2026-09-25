@@ -1016,3 +1016,4 @@ def test_dasa_text_sandhi(main_window, chart):
     text = main_window.dasa_text.toPlainText()
     assert "Sandhi junctions (10% rule)" in text
     assert "→" in text
+    assert "Chidra (final bhukti)" in text
