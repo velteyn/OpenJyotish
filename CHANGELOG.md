@@ -5,6 +5,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Gandanta: water-fire junction zones flagged in CLI `chart` (Gnd
+  column), the GUI planet table and JSON (per planet + lagna).
 - Combustion (Asta): per-planet orbs (Mercury/Venus retro-aware),
   flagged in CLI `chart`, the GUI planet table and the JSON planets
   block.
