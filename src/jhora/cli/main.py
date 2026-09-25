@@ -2398,6 +2398,24 @@ def avakahada(
 
 
 @app.command()
+def asta_udaya(
+    year: int = typer.Argument(..., help="Year (e.g. 2026)"),
+):
+    """Venus/Jupiter combust (asta) and rising (udaya) windows — marriage blockers."""
+    from jhora.calc.asta_udaya import asta_periods
+
+    rows = asta_periods(year)
+    table = Table(title=f"Asta-Udaya {year} (±1 day)")
+    table.add_column("Planet", style="cyan")
+    table.add_column("Asta (combust from)", style="red")
+    table.add_column("Udaya (rises)", style="green")
+    for r in rows:
+        table.add_row(r["planet"].full_name, str(r["asta"]),
+                      str(r["udaya"]) if r["udaya"] else "—")
+    console.print(table)
+
+
+@app.command()
 def special_points(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),

@@ -917,6 +917,17 @@ def test_points_tab_populate(main_window, chart):
     assert main_window.pts_avakahada_table.rowCount() == 7
 
 
+def test_mundane_asta_udaya(main_window, chart):
+    main_window.chart_data = chart
+    main_window.mun_year.setText("2026")
+    main_window._on_mundane_compute()
+    assert "Asta-Udaya 2026" in main_window.mun_asta_label.text()
+    assert main_window.mun_asta_table.rowCount() == 3
+    planets = {main_window.mun_asta_table.item(r, 0).text()
+               for r in range(3)}
+    assert planets == {"Venus", "Jupiter"}
+
+
 def test_chakra_tab_populate(main_window, chart):
     from jhora.calc.chakras import sarvatobhadra_vedha
     main_window.chart_data = chart
