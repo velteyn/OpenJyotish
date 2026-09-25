@@ -5,6 +5,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Fixed
+- Tables size columns to content (`ResizeToContents`) instead of
+  stretching the last column across the page.
 - Theme audit: BAV scroll viewport, calendar header strip and table
   corner buttons painted light — all now follow the dark theme.
   Screenshot-swept every page.
