@@ -1067,6 +1067,22 @@ class MainWindow(QMainWindow):
             lines = [f"{system} Dasa Periods", "─" * 48, ""]
             for md in periods:
                 lines.extend(self._render_period_tree(md, se, 0))
+            from jhora.calc.dasa_sandhi import sandhi_periods
+            from jhora.types.dasa import PeriodLevel as _PL
+            _ypd = {"solar": 365.2425, "savana": 360.0,
+                    "tithi": 354.367}.get(
+                        self._dasa_options().year_definition, 365.2425)
+            _sandhi = sandhi_periods(
+                [p for p in periods if p.level == _PL.MAHADASA], _ypd)
+            if _sandhi:
+                lines += ["", "Sandhi junctions (10% rule)", "─" * 48]
+                for s in _sandhi:
+                    f = lambda jd: "{:04d}/{:02d}/{:02d}".format(
+                        *se.revjul(jd)[:3])
+                    lines.append(
+                        f"{s['outgoing']} → {s['incoming']}: "
+                        f"{f(s['start_jd'])} – {f(s['end_jd'])} "
+                        f"(junction {f(s['junction_jd'])})")
             self.dasa_text.setText("\n".join(lines))
             self._fill_dasa_chart(periods, se)
         except Exception as e:

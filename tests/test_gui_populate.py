@@ -1008,3 +1008,11 @@ def test_compare_tab(main_window, chart):
     from jhora.ui.chart_widget import ChartStyle
     assert (main_window.cmp_chart_b.chart_style
             == ChartStyle.NORTH_INDIAN)
+
+
+def test_dasa_text_sandhi(main_window, chart):
+    main_window.chart_data = chart
+    main_window._update_dasa_text()
+    text = main_window.dasa_text.toPlainText()
+    assert "Sandhi junctions (10% rule)" in text
+    assert "→" in text

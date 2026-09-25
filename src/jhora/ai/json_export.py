@@ -235,6 +235,24 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
                     })
             result["dasa"]["mahadashas"].append(md_data)
 
+        try:
+            from jhora.calc.dasa_sandhi import sandhi_periods
+            from jhora.ephemeris.swe import SweEngine as _SE
+            from jhora.types.dasa import PeriodLevel as _PL
+            _se = _SE()
+            _mds = [p for p in periods if p.level == _PL.MAHADASA]
+            result["dasa"]["sandhi"] = [
+                {"outgoing": s["outgoing"], "incoming": s["incoming"],
+                 "start": "{:04d}-{:02d}-{:02d}".format(
+                     *_se.revjul(s["start_jd"])[:3]),
+                 "junction": "{:04d}-{:02d}-{:02d}".format(
+                     *_se.revjul(s["junction_jd"])[:3]),
+                 "end": "{:04d}-{:02d}-{:02d}".format(
+                     *_se.revjul(s["end_jd"])[:3])}
+                for s in sandhi_periods(_mds)]
+        except Exception:
+            result["dasa"]["sandhi"] = []
+
         # Other dasa systems: current mahadasha ruler in each available system.
         from jhora.ai.analysis import _dasa_engine
         result["dasa"]["systems"] = {}

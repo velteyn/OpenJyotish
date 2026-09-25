@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Dasa Sandhi (10% rule, most-used reading): junction windows in CLI
+  `dasa-sandhi` (55 commands, `--system`), the GUI dasa text and the
+  JSON dasa block.
 - Asta-Udaya: Venus/Jupiter combust + rising windows per year (daily
   elongation scan, ±1 day) — CLI `asta-udaya` (54 commands), Mundane
   tab table. Annual data stays out of the natal JSON.

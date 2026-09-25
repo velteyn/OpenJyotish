@@ -252,6 +252,45 @@ def dasa(
                       f" · AD: {ad_method}[/dim]")
 
 
+@app.command("dasa-sandhi")
+def dasa_sandhi(
+    birthdata: str = typer.Argument(..., help="Birth data"),
+    system: str = typer.Argument("vimsottari", help="Dasa system"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Dasa Sandhi junctions (last 10% outgoing + first 10% incoming MD)."""
+    from jhora.calc.dasa_sandhi import sandhi_periods
+    from jhora.dasas.base import DasaOptions
+    from jhora.ephemeris.swe import SweEngine
+    from jhora.types.dasa import PeriodLevel
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    chart_data = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    chart_dict = _chart_to_dict(chart_data)
+    opts = DasaOptions(subdivision_level=PeriodLevel.MAHADASA,
+                       include_subperiods=False)
+    engine = _get_dasa_engine(system, opts)
+    mds = [p for p in engine.compute(chart_data.julian_day, chart_dict, opts)
+           if p.level == PeriodLevel.MAHADASA]
+    se = SweEngine()
+    table = Table(title=f"{system.title()} Dasa Sandhi (10% rule)")
+    table.add_column("Outgoing", style="cyan")
+    table.add_column("Incoming", style="green")
+    table.add_column("Sandhi start", style="white")
+    table.add_column("Junction", style="yellow")
+    table.add_column("Sandhi end", style="white")
+    for s in sandhi_periods(mds):
+        fmt = lambda jd: "{:04d}/{:02d}/{:02d}".format(*se.revjul(jd)[:3])
+        table.add_row(s["outgoing"], s["incoming"], fmt(s["start_jd"]),
+                      fmt(s["junction_jd"]), fmt(s["end_jd"]))
+    console.print(table)
+
+
 @app.command()
 def navamsa(
     birthdata: str = typer.Argument(..., help="Birth data"),
