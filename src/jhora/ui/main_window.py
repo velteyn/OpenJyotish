@@ -3039,6 +3039,12 @@ class MainWindow(QMainWindow):
         self.pts_omens_table.setAlternatingRowColors(True)
         self.pts_omens_table.setMaximumHeight(110)
         layout.addWidget(self.pts_omens_table)
+
+        layout.addWidget(QLabel("Avakahada (Birth Identity)"))
+        self.pts_avakahada_table = QTableWidget()
+        self.pts_avakahada_table.setAlternatingRowColors(True)
+        self.pts_avakahada_table.setMaximumHeight(170)
+        layout.addWidget(self.pts_avakahada_table, stretch=1)
         return w
 
     def _populate_points_tab(self, cd: ChartData):
@@ -3188,6 +3194,15 @@ class MainWindow(QMainWindow):
              + (" (Vishti/Bhadra)" if _om["vishti"] else "")],
         ]
         self._fill_table(self.pts_omens_table, ["Omen", "Detail"], om_rows)
+
+        # Avakahada birth identity.
+        from jhora.calc.avakahada import avakahada as _avakahada
+        _av = _avakahada(cd.planet(Graha.MOON).longitude)
+        self._fill_table(
+            self.pts_avakahada_table, ["Attribute", "Value"],
+            [[k.replace("_", " ").title(), _av[k]]
+             for k in ("rasi", "nakshatra", "pada", "nama_syllable",
+                       "gana", "yoni", "nadi")])
 
     def _build_remedies_tab(self):
         w = QWidget()

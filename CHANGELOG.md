@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Avakahada birth identity (108-syllable nama table, gana/yoni/nadi
+  off the shared tables): new CLI `avakahada` (53 commands), Points
+  tab table, folded into JSON `omens` (still 31 sections).
 - Birth omens: Ganda Moola nakshatras (Moon + lagna) and Vishti
   karana — CLI `chart` footer, Points tab table, JSON `omens`
   section (31). Lagna row now carries its Gnd flag in chart/GUI.
