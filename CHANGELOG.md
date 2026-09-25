@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Wheel annotations (LUNA grammar): inline degree + retro marks,
+  Ascendant degree on the lagna line, click-to-select with hub
+  readout (sign/house/dignity/state).
 - Dashboard fills out: Yoga/Karana/sunrise/sunset today, next Dasa
   Sandhi, Watchouts (marana/combust/gandanta), next solar ingress —
   one line each, no scrolling.

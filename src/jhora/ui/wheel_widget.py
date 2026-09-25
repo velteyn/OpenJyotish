@@ -41,8 +41,10 @@ class WheelWidget(QWidget):
         self.settings = settings or WheelSettings()
         self.chart_data: Optional[ChartData] = None
         self.transit_lons: Dict[Graha, float] = {}
-        #: Hit records for hover: (graha or None, x, y, radius, tooltip).
-        self._hit: List[Tuple[Optional[Graha], float, float, float, str]] = []
+        #: Hit records for hover: (graha, x, y, radius, tooltip, natal).
+        self._hit: List[Tuple[Graha, float, float, float, str, bool]] = []
+        #: Click selection: (graha, natal) or None.
+        self.selected: Optional[Tuple[Graha, bool]] = None
         self.setMinimumSize(300, 300)
         self.setMouseTracking(True)
         glyphs.ensure_fonts()
@@ -57,21 +59,37 @@ class WheelWidget(QWidget):
 
     def mouseMoveEvent(self, event):
         pos = event.position()
-        for _g, x, y, r, tip in self._hit:
+        for _g, x, y, r, tip, _natal in self._hit:
             if (pos.x() - x) ** 2 + (pos.y() - y) ** 2 <= r * r:
                 QToolTip.showText(
                     event.globalPosition().toPoint(), tip, self)
                 return
         QToolTip.hideText()
 
-    def _tip_for(self, g: Graha, lon: float, lagna: int,
-                 natal: bool) -> str:
+    def mousePressEvent(self, event):
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        pos = event.position()
+        self._select_at(pos.x(), pos.y())
+        self.update()
+
+    def _select_at(self, x: float, y: float):
+        """Select the glyph at a point; None when the sky is clicked."""
+        self.selected = None
+        for g, hx, hy, r, _tip, natal in self._hit:
+            if (x - hx) ** 2 + (y - hy) ** 2 <= r * r:
+                self.selected = (g, natal)
+                break
+        return self.selected
+
+    def _details(self, g: Graha, lon: float, lagna: int,
+                 natal: bool) -> Tuple[str, str]:
         rasi = Rasi(int(lon // 30) % 12)
         house = ((int(lon // 30) - lagna) % 12) + 1
-        tip = f"{g.full_name} — {rasi.full_name} {lon % 30:.1f}° · H{house}"
+        head = f"{g.full_name}{'' if natal else ' (transit)'}"
         if natal and self.chart_data is not None:
             cd = self.chart_data
-            p = cd.planets[g]
+            p = cd.planet(g)
             flags = []
             av = avastha_of(g, lon)
             if av is not None:
@@ -83,8 +101,16 @@ class WheelWidget(QWidget):
                 flags.append("combust")
             if g in gandanta_planets({g: lon}):
                 flags.append("gandanta")
-            tip += f" · {p.dignity} · {', '.join(flags)}"
-        return tip
+            sub = (f"{rasi.full_name} {lon % 30:.1f}° · H{house} · "
+                   f"{p.dignity} · {', '.join(flags)}")
+        else:
+            sub = f"{rasi.full_name} {lon % 30:.1f}° · H{house}"
+        return head, sub
+
+    def _tip_for(self, g: Graha, lon: float, lagna: int,
+                 natal: bool) -> str:
+        head, sub = self._details(g, lon, lagna, natal)
+        return f"{head} — {sub}"
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -111,6 +137,39 @@ class WheelWidget(QWidget):
                                     natal=False)
         self._paint_ruler(painter, cx, cy, radius, lagna)
         self._paint_circles(painter, cx, cy, radius)
+        if self.selected is not None:
+            self._paint_selection(painter, cx, cy, lagna)
+
+    def _paint_selection(self, painter: QPainter, cx: float, cy: float,
+                         lagna: float):
+        s = self.settings
+        g, natal = self.selected
+        if natal:
+            if g not in self.chart_data.planets:
+                self.selected = None
+                return
+            lon = self.chart_data.planet(g).longitude
+        else:
+            lon = self.transit_lons.get(g)
+            if lon is None:
+                self.selected = None
+                return
+        for hg, hx, hy, hr, _tip, hn in self._hit:
+            if hg == g and hn == natal:
+                painter.setPen(QPen(QColor(s.colors["benefic"]), 2))
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawEllipse(int(hx - hr - 5), int(hy - hr - 5),
+                                    int(2 * (hr + 5)), int(2 * (hr + 5)))
+                break
+        head, sub = self._details(g, lon, int(lagna // 30) % 12, natal)
+        painter.setPen(QColor(s.colors["benefic"]))
+        painter.setFont(QFont("sans-serif", 13, QFont.Weight.Bold))
+        painter.drawText(int(cx) - 200, int(cy) - 34, 400, 24,
+                         Qt.AlignmentFlag.AlignCenter, head)
+        painter.setPen(QColor(s.colors["text"]))
+        painter.setFont(QFont("sans-serif", 10))
+        painter.drawText(int(cx) - 200, int(cy) - 8, 400, 22,
+                         Qt.AlignmentFlag.AlignCenter, sub)
 
     def _paint_drishti(self, painter: QPainter, cx: float, cy: float,
                        radius: float, lagna: float):
@@ -170,6 +229,16 @@ class WheelWidget(QWidget):
         lx, ly = project(lagna, lagna, cx, cy, radius)
         painter.setPen(QPen(QColor(s.colors["benefic"]), 3))
         painter.drawLine(int(lx0), int(ly0), int(lx), int(ly))
+        # Ascendant degree beside the line (offset perpendicular).
+        import math as _math
+        _theta = _math.radians(180.0)
+        _nx, _ny = _math.sin(_theta), _math.cos(_theta)
+        painter.setPen(QColor(s.colors["benefic"]))
+        painter.setFont(QFont("sans-serif", int(9 * s.symbol_scale)))
+        painter.drawText(int((lx0 + lx) / 2 + _nx * 16) - 40,
+                         int((ly0 + ly) / 2 + _ny * 16) - 10, 80, 20,
+                         Qt.AlignmentFlag.AlignCenter,
+                         f"Asc {lagna % 30:.1f}°")
 
     def _paint_arc_segment(self, painter: QPainter, cx: float, cy: float,
                            inner: float, outer: float, start_lon: float,
@@ -251,21 +320,19 @@ class WheelWidget(QWidget):
             painter.setFont(QFont(family, glyph_px))
             painter.drawText(int(x) - 30, int(y) - 30, 60, 60,
                              Qt.AlignmentFlag.AlignCenter, text)
-            # Degree-within-sign from the true longitude (AstroChart-style).
-            painter.setFont(QFont("sans-serif", int(8 * s.symbol_scale)))
-            painter.setPen(QColor(s.colors["text"]))
-            painter.drawText(int(x) + 10, int(y) - 26, 34, 16,
+            # Inline annotation: degree + retro mark (LUNA grammar).
+            painter.setFont(QFont("sans-serif", int(9 * s.symbol_scale)))
+            painter.setPen(QColor(s.colors["retro"]) if g in retro
+                           else QColor(s.colors["text"]))
+            painter.drawText(int(x) + 10, int(y) - 28, 48, 18,
                              Qt.AlignmentFlag.AlignLeft,
-                             f"{true_lon % 30:.0f}")
+                             f"{true_lon % 30:.0f}°"
+                             + (" R" if g in retro else ""))
             self._hit.append(
                 (g, x, y, 22.0 * s.symbol_scale,
                  self._tip_for(g, true_lon, int(lagna // 30) % 12,
-                               natal)))
-            if g in retro:
-                painter.setFont(QFont("sans-serif", int(9 * s.symbol_scale)))
-                painter.setPen(QColor(s.colors["retro"]))
-                painter.drawText(int(x) + 8, int(y) - 14, 30, 20,
-                                 Qt.AlignmentFlag.AlignLeft, "R")
+                               natal),
+                 natal))
             if g in gand:
                 painter.setPen(QPen(QColor(s.colors["retro"]), 2))
                 painter.drawLine(int(x) - 6, int(y) + 16,
