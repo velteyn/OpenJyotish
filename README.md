@@ -5,8 +5,10 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 56 CLI commands  |  10 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-31-section JSON API for AI agents (+ JSON-LD)  |  1747 tests  |  GPL v3.0
+31-section JSON API for AI agents (+ JSON-LD)  |  1749 tests  |  GPL v3.0
 ```
+
+<img src="docs/images/wheel.png" width="600" alt="Circular natal + transit bi-wheel with drishti lines">
 
 > **Showcase: [the Gandhi retrospective](docs/gandhi-retrospective.md)** —
 > a pre-registered validation study. Fixed chart, seven datable life events,
