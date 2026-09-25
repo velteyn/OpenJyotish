@@ -2,7 +2,7 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
-## Unreleased
+## v1.10.0 — 2026-09-25
 
 ### Added
 - Wheel annotations (LUNA grammar): inline degree + retro marks,
