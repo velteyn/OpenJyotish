@@ -913,6 +913,7 @@ def test_points_tab_populate(main_window, chart):
         {g: (int(chart.planet(g).longitude // 30) - _lsi) % 12 + 1
          for g in Graha if g in chart.planets}))
     assert main_window.pts_argala_table.rowCount() == _n
+    assert main_window.pts_omens_table.rowCount() == 3
 
 
 def test_chakra_tab_populate(main_window, chart):
