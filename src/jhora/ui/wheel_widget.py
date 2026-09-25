@@ -275,7 +275,7 @@ class WheelWidget(QWidget):
         painter.setPen(QPen(QColor(s.colors["ring"]), 1))
         # The sign segments leave a tinted brush behind; outlines only.
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        for ratio in (s.sign_ring_ratio, s.natal_ring_ratio,
+        for ratio in (s.hub_ratio, s.sign_ring_ratio, s.natal_ring_ratio,
                       s.transit_ring_ratio, 1.0):
             r = radius * ratio
             painter.drawEllipse(int(cx - r), int(cy - r),
