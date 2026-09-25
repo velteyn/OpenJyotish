@@ -682,4 +682,21 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["yuddha"] = []
 
+    # ── Argala ──
+    try:
+        from jhora.calc.argala import argala_all
+        _lagna_si = int(cd.ascendant // 30) % 12
+        result["argala"] = [
+            {"house": a["house"],
+             "via": a["argala_house"],
+             "planets": [g.short_name for g in a["planets"]],
+             "virodha": [g.short_name for g in a["obstructors"]],
+             "effective": a["effective"],
+             "grade": a["grade"]}
+            for a in argala_all(
+                {g: (int(p.longitude // 30) - _lagna_si) % 12 + 1
+                 for g, p in cd.planets.items()})]
+    except Exception:
+        result["argala"] = []
+
     return result

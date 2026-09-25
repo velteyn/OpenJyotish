@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-51 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-29-section JSON API for AI agents (+ JSON-LD)  |  1693 tests  |  GPL v3.0
+52 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+30-section JSON API for AI agents (+ JSON-LD)  |  1701 tests  |  GPL v3.0
 ```
 
 > **Showcase: [the Gandhi retrospective](docs/gandhi-retrospective.md)** —
@@ -196,7 +196,7 @@ data = json.loads(subprocess.run(
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets (combustion, gandanta, avastha) + upagrahas + outer planets (`--nodes` mean/true, `--chalit` + `--bhava-method` default/sripati) |
-| `analyze` | AI-friendly JSON dump (29 sections, incl. Sade Sati timeline, dasa entry) |
+| `analyze` | AI-friendly JSON dump (30 sections, incl. Sade Sati timeline, dasa entry) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations (incl. 32 Naabhasa) |
@@ -210,6 +210,7 @@ data = json.loads(subprocess.run(
 | `sade-sati` | Sade Sati phase dates (12th/peak/2nd) + Kantaka/Ashtama Shani timeline |
 | `special-points` | Baadhaka sthana, Pushkara navamsa/bhaga, Mrityu bhaga, 64th navamsa, 22nd drekkana |
 | `maitri` | Graha Maitri — natural, temporal and compound (Panchadha) friendship tables |
+| `argala` | Planetary intervention on the bhavas (Jaimini 1-1-5/10; `--house`) |
 | `tajaka` | Tajaka return charts — annual/monthly/2.5-day/5-hr/25-min/2-min (`--level`, `--index`, `--sunrise`, `--vimshottari` sesham/full from the return Moon) + Tajaka yogas on CLI/GUI |
 | `tithi-pravesha` | Annual solar-tithi ingress |
 | `progression` | Secondary progressions (1 day = 1 year) |
