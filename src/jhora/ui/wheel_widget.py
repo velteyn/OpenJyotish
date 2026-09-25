@@ -130,13 +130,15 @@ class WheelWidget(QWidget):
         sx = cx + outer * math.cos(math.radians(end_deg))
         sy = cy - outer * math.sin(math.radians(end_deg))
         path.moveTo(sx, sy)
+        # NOTE: QPainterPath.arcTo takes plain degrees (unlike
+        # QPainter.drawPie which takes sixteenths).
         path.arcTo(cx - outer, cy - outer, 2 * outer, 2 * outer,
-                   end_deg * 16, 30 * 16)
+                   end_deg, 30)
         ex = cx + inner * math.cos(math.radians(start_deg))
         ey = cy - inner * math.sin(math.radians(start_deg))
         path.lineTo(ex, ey)
         path.arcTo(cx - inner, cy - inner, 2 * inner, 2 * inner,
-                   start_deg * 16, -30 * 16)
+                   start_deg, -30)
         path.closeSubpath()
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(QColor(color)))
@@ -230,6 +232,8 @@ class WheelWidget(QWidget):
                        radius: float):
         s = self.settings
         painter.setPen(QPen(QColor(s.colors["ring"]), 1))
+        # The sign segments leave a tinted brush behind; outlines only.
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         for ratio in (s.sign_ring_ratio, s.natal_ring_ratio,
                       s.transit_ring_ratio, 1.0):
             r = radius * ratio
