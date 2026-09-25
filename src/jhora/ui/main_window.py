@@ -40,6 +40,7 @@ from jhora.types.rasi import Rasi
 from jhora.types.varga import VargaLevel, VargaVariant
 from jhora.ui.chart_widget import ChartStyle, ChartWidget
 from jhora.ui.dasa_timeline_widget import DasaTimelineWidget
+from jhora.ui.wheel_widget import WheelWidget
 from jhora.ui import theme
 
 # Legacy aliases — older code below references these names.
@@ -518,6 +519,9 @@ class MainWindow(QMainWindow):
         tool_sub.addTab(self._build_ephemeris_tab(), "Ephemeris")
         self.page_stack.addWidget(tool_sub)
 
+        # 9. Wheel
+        self.page_stack.addWidget(self._build_wheel_page())
+
         right_layout.addWidget(self.page_stack)
 
         # --- Sidebar navigation rail ---
@@ -564,6 +568,7 @@ class MainWindow(QMainWindow):
             ("♥", "Special"),
             ("✦", "AI & Learn"),
             ("⚙", "Tools"),
+            ("☉", "Wheel"),
         ]:
             item = QListWidgetItem(f"{icon}  {label}")
             self.nav_list.addItem(item)
@@ -939,6 +944,7 @@ class MainWindow(QMainWindow):
             self._populate_dashboard(self.chart_data)
             self._populate_points_tab(self.chart_data)
             self._populate_chakra_tab(self.chart_data)
+            self._populate_wheel_page(self.chart_data)
             self._sync_calendar_place()
             # A new chart means a new thread scope: the open threads (already
             # persisted) belong to the previous chart.
@@ -4850,6 +4856,52 @@ class MainWindow(QMainWindow):
         self.mun_asta_table.resizeColumnsToContents()
 
     # --- Ephemeris Tab ---
+
+    def _build_wheel_page(self):
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
+        toggles = QHBoxLayout()
+        self.wheel_drishti_check = QCheckBox("Drishti lines")
+        self.wheel_drishti_check.setChecked(True)
+        self.wheel_drishti_check.toggled.connect(self._on_wheel_toggles)
+        toggles.addWidget(self.wheel_drishti_check)
+        self.wheel_nodes_check = QCheckBox("Nodes")
+        self.wheel_nodes_check.setChecked(True)
+        self.wheel_nodes_check.toggled.connect(self._on_wheel_toggles)
+        toggles.addWidget(self.wheel_nodes_check)
+        self.wheel_transits_check = QCheckBox("Transits")
+        self.wheel_transits_check.setChecked(True)
+        self.wheel_transits_check.toggled.connect(self._on_wheel_toggles)
+        toggles.addWidget(self.wheel_transits_check)
+        toggles.addStretch()
+        layout.addLayout(toggles)
+
+        self.wheel_widget = WheelWidget()
+        layout.addWidget(self.wheel_widget, stretch=1)
+        return w
+
+    def _on_wheel_toggles(self):
+        self.wheel_widget.settings.show_drishti = (
+            self.wheel_drishti_check.isChecked())
+        self.wheel_widget.settings.show_nodes = (
+            self.wheel_nodes_check.isChecked())
+        self.wheel_widget.settings.show_transits = (
+            self.wheel_transits_check.isChecked())
+        self.wheel_widget.update()
+
+    def _populate_wheel_page(self, cd: ChartData):
+        self.wheel_widget.set_chart_data(cd)
+        try:
+            from jhora.calc.gochara import compute_transits
+            result = compute_transits(cd)
+            self.wheel_widget.set_transit_data({
+                e.graha: (e.transit_rasi * 30 + e.transit_degrees) % 360.0
+                for e in result.entries})
+        except Exception:
+            self.wheel_widget.set_transit_data({})
 
     def _build_ephemeris_tab(self):
         w = QWidget()

@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-56 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-31-section JSON API for AI agents (+ JSON-LD)  |  1726 tests  |  GPL v3.0
+56 CLI commands  |  9 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+31-section JSON API for AI agents (+ JSON-LD)  |  1747 tests  |  GPL v3.0
 ```
 
 > **Showcase: [the Gandhi retrospective](docs/gandhi-retrospective.md)** —
@@ -112,7 +112,7 @@ All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 
 ## GUI
 
-`openjyotish gui` or `./run.sh` — 8 main categories with sub-tabs:
+`openjyotish gui` or `./run.sh` — 9 main categories with sub-tabs:
 
 | Category | Contains |
 |----------|----------|
@@ -124,6 +124,7 @@ All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 | **Special** | Matchmaking, Prasna, Muhurta (incl. Choghadiya), Calendar, KP, Remedies, Points & Maitri (incl. Marana, Vaiseshikamsa) |
 | **AI & Learn** | AI Chat, AI Teacher, Knowledge, Reading |
 | **Tools** | Ephemeris |
+| **Wheel** | Circular natal + transit bi-wheel (Lagna-left, glyphs, drishti) |
 
 **Getting started**: Fill form → "Find" city → "Now" button → "Calculate"
 
