@@ -1027,3 +1027,9 @@ def test_dasa_text_sandhi(main_window, chart):
     assert "Sandhi junctions (10% rule)" in text
     assert "→" in text
     assert "Chidra (final bhukti)" in text
+    # Running-branch table and entry output size to content.
+    assert main_window.dasa_chart_table.rowCount() > 5
+    assert main_window.dasa_chart_table.minimumHeight() > 200
+    main_window._on_dasa_chart_activated(0, 0)
+    assert main_window.dasa_entry_text.minimumHeight() >= 120
+    assert "Entry" in main_window.dasa_entry_text.toPlainText()

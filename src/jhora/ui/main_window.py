@@ -1149,6 +1149,17 @@ class MainWindow(QMainWindow):
         self._fill_table(
             self.dasa_chart_table,
             ["Lord", "Start", "End", "Level", ""], rows)
+        shown = sum(self.dasa_chart_table.rowHeight(r)
+                    for r in range(self.dasa_chart_table.rowCount()))
+        self.dasa_chart_table.setMinimumHeight(min(
+            self.dasa_chart_table.horizontalHeader().height() + shown + 8,
+            500))
+
+    def _set_entry_text(self, text: str) -> None:
+        """Entry-chart output sized to its content (never a 1-line slit)."""
+        self.dasa_entry_text.setText(text)
+        doc_h = int(self.dasa_entry_text.document().size().height()) + 16
+        self.dasa_entry_text.setMinimumHeight(min(max(doc_h, 120), 420))
 
     def _on_dasa_chart_activated(self, row: int, _col: int) -> None:
         """Show the entry chart for a double-clicked dasa-chart row."""
@@ -1165,11 +1176,11 @@ class MainWindow(QMainWindow):
             period, entry = dasa_entry(
                 self.chart_data, list(paths[row]),
                 engine=engine, opts=opts)
-            self.dasa_entry_text.setText(
+            self._set_entry_text(
                 format_dasa_entry(list(paths[row]), period,
                                   self.chart_data, entry))
         except Exception as e:
-            self.dasa_entry_text.setText(f"Entry chart error:\n{e}")
+            self._set_entry_text(f"Entry chart error:\n{e}")
 
     def _dasa_options(self):
         """Build DasaOptions from the dasa tab dropdowns (for nakshatra dasas)."""
