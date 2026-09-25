@@ -2,6 +2,15 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
+## Unreleased
+
+### Fixed
+- Tab labels with `&` rendered as mnemonics (e.g. `Tajaka_TP`);
+  escaped across all tab bars.
+- Points tab split into sub-tabs (Upagrahas, Sphutas, Special,
+  Maitri, Learning, Omens) — the eleven stacked tables were
+  unusable; scroll areas use the theme background.
+
 ## v1.9.0 — 2026-09-25
 
 ### Added

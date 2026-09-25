@@ -478,7 +478,7 @@ class MainWindow(QMainWindow):
         chart_sub.addTab(self._build_consolidated_tab(), "Chart View")
         chart_sub.addTab(self._build_compare_tab(), "Compare")
         chart_sub.addTab(self.planet_table, "Planets")
-        chart_sub.addTab(self.house_widget, "Houses & Chalit")
+        chart_sub.addTab(self.house_widget, "Houses && Chalit")
         chart_sub.addTab(self.varga_widget, "Varga Charts")
         chart_sub.addTab(self._build_yoga_tab(), "Yogas")
         self.page_stack.addWidget(chart_sub)
@@ -486,7 +486,7 @@ class MainWindow(QMainWindow):
         # 3. Strengths
         str_sub = QTabWidget()
         str_sub.addTab(self._build_shadbala_tab(), "Shadbala")
-        str_sub.addTab(self._build_arudha_tab(), "Arudha & Karaka")
+        str_sub.addTab(self._build_arudha_tab(), "Arudha && Karaka")
         str_sub.addTab(self._build_ashtakavarga_tab(), "Ashtakavarga")
         self.page_stack.addWidget(str_sub)
 
@@ -498,7 +498,7 @@ class MainWindow(QMainWindow):
         # 5. Transits & Tajaka
         trans_sub = QTabWidget()
         trans_sub.addTab(self._build_transit_tab(), "Transits")
-        trans_sub.addTab(self._build_tajaka_tab(), "Tajaka & TP")
+        trans_sub.addTab(self._build_tajaka_tab(), "Tajaka && TP")
         trans_sub.addTab(self._build_mundane_tab(), "Mundane")
         trans_sub.addTab(self._build_chakra_tab(), "Chakras")
         self.page_stack.addWidget(trans_sub)
@@ -511,7 +511,7 @@ class MainWindow(QMainWindow):
         spec_sub.addTab(self._build_calendar_tab(), "Calendar")
         spec_sub.addTab(self._build_kp_tab(), "KP")
         spec_sub.addTab(self._build_remedies_tab(), "Remedies")
-        spec_sub.addTab(self._build_points_tab(), "Points & Maitri")
+        spec_sub.addTab(self._build_points_tab(), "Points && Maitri")
         self.page_stack.addWidget(spec_sub)
 
         # 7. AI & Knowledge
@@ -3027,71 +3027,64 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
-        layout.addWidget(QLabel("Upagrahas"))
-        self.pts_upagraha_table = QTableWidget()
-        self.pts_upagraha_table.setAlternatingRowColors(True)
-        self.pts_upagraha_table.setMaximumHeight(180)
-        layout.addWidget(self.pts_upagraha_table)
-
-        layout.addWidget(QLabel("Sphutas (Prasna Marga auspicious points)"))
-        self.pts_sphuta_table = QTableWidget()
-        self.pts_sphuta_table.setAlternatingRowColors(True)
-        self.pts_sphuta_table.setMaximumHeight(180)
-        layout.addWidget(self.pts_sphuta_table)
-
-        layout.addWidget(QLabel("Special Points"))
-        self.pts_special_table = QTableWidget()
-        self.pts_special_table.setAlternatingRowColors(True)
-        self.pts_special_table.setMaximumHeight(150)
-        layout.addWidget(self.pts_special_table, stretch=1)
-
-        layout.addWidget(QLabel("Panchadha Maitri (row → column)"))
-        self.pts_maitri_table = QTableWidget()
-        self.pts_maitri_table.setAlternatingRowColors(True)
-        layout.addWidget(self.pts_maitri_table, stretch=1)
-
-        layout.addWidget(QLabel("Marana Karaka Sthana (planets in death-houses)"))
-        self.pts_marana_table = QTableWidget()
-        self.pts_marana_table.setAlternatingRowColors(True)
-        self.pts_marana_table.setMaximumHeight(120)
-        layout.addWidget(self.pts_marana_table)
-
-        layout.addWidget(QLabel("Vaiseshikamsa Ranks"))
-        self.pts_vaiseshika_table = QTableWidget()
-        self.pts_vaiseshika_table.setAlternatingRowColors(True)
-        self.pts_vaiseshika_table.setMaximumHeight(150)
-        layout.addWidget(self.pts_vaiseshika_table, stretch=1)
-
-        layout.addWidget(QLabel("Planetary Wars (Graha Yuddha)"))
-        self.pts_yuddha_table = QTableWidget()
-        self.pts_yuddha_table.setAlternatingRowColors(True)
-        self.pts_yuddha_table.setMaximumHeight(110)
-        layout.addWidget(self.pts_yuddha_table)
-
-        layout.addWidget(QLabel("Argala (Planetary Intervention)"))
-        self.pts_argala_table = QTableWidget()
-        self.pts_argala_table.setAlternatingRowColors(True)
-        self.pts_argala_table.setMaximumHeight(180)
-        layout.addWidget(self.pts_argala_table, stretch=1)
-
-        layout.addWidget(QLabel("Birth Omens"))
-        self.pts_omens_table = QTableWidget()
-        self.pts_omens_table.setAlternatingRowColors(True)
-        self.pts_omens_table.setMaximumHeight(110)
-        layout.addWidget(self.pts_omens_table)
-
-        layout.addWidget(QLabel("Avakahada (Birth Identity)"))
-        self.pts_avakahada_table = QTableWidget()
-        self.pts_avakahada_table.setAlternatingRowColors(True)
-        self.pts_avakahada_table.setMaximumHeight(170)
-        layout.addWidget(self.pts_avakahada_table, stretch=1)
-
-        layout.addWidget(QLabel("Drishti (Parashara Aspects)"))
-        self.pts_drishti_table = QTableWidget()
-        self.pts_drishti_table.setAlternatingRowColors(True)
-        self.pts_drishti_table.setMaximumHeight(170)
-        layout.addWidget(self.pts_drishti_table, stretch=1)
+        subs = QTabWidget()
+        subs.addTab(self._points_page([
+            ("Upagrahas", "pts_upagraha_table", 180),
+        ]), "Upagrahas")
+        subs.addTab(self._points_page([
+            ("Sphutas (Prasna Marga auspicious points)", "pts_sphuta_table",
+             180),
+        ]), "Sphutas")
+        subs.addTab(self._points_page([
+            ("Special Points", "pts_special_table", 150),
+        ]), "Special")
+        subs.addTab(self._points_page([
+            ("Panchadha Maitri (row → column)", "pts_maitri_table", 0),
+        ]), "Maitri")
+        subs.addTab(self._points_page([
+            ("Marana Karaka Sthana (planets in death-houses)",
+             "pts_marana_table", 120),
+            ("Vaiseshikamsa Ranks", "pts_vaiseshika_table", 150),
+            ("Planetary Wars (Graha Yuddha)", "pts_yuddha_table", 110),
+            ("Argala (Planetary Intervention)", "pts_argala_table", 180),
+        ]), "Learning")
+        subs.addTab(self._points_page([
+            ("Birth Omens", "pts_omens_table", 110),
+            ("Avakahada (Birth Identity)", "pts_avakahada_table", 170),
+            ("Drishti (Parashara Aspects)", "pts_drishti_table", 170),
+        ]), "Omens")
+        layout.addWidget(subs, stretch=1)
         return w
+
+    def _points_page(self, sections):
+        """One Points sub-tab: scrollable stack of (label, table) sections.
+
+        Tables are created here and kept as same-named attributes so the
+        populate path is untouched.
+        """
+        page = QWidget()
+        outer = QVBoxLayout(page)
+        outer.setContentsMargins(0, 0, 0, 0)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.viewport().setStyleSheet(f"background-color: {BG};")
+        body = QWidget()
+        layout = QVBoxLayout(body)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(8)
+        for label, attr, cap in sections:
+            layout.addWidget(QLabel(label))
+            table = QTableWidget()
+            table.setAlternatingRowColors(True)
+            if cap:
+                table.setMaximumHeight(cap)
+            setattr(self, attr, table)
+            layout.addWidget(table, stretch=0 if cap else 1)
+        layout.addStretch()
+        scroll.setWidget(body)
+        outer.addWidget(scroll)
+        return page
 
     def _populate_points_tab(self, cd: ChartData):
         import datetime as _dt
@@ -5455,7 +5448,7 @@ class MainWindow(QMainWindow):
 
         # Right side: two tabs so planet table and Ashtakavarga don't compete for width
         self.cons_right_tabs = QTabWidget()
-        self.cons_right_tabs.addTab(self._build_consolidated_center(), "Planets & Data")
+        self.cons_right_tabs.addTab(self._build_consolidated_center(), "Planets && Data")
         self.cons_right_tabs.addTab(self._build_consolidated_ashtakavarga(), "Ashtakavarga")
         splitter.addWidget(self.cons_right_tabs)
 
