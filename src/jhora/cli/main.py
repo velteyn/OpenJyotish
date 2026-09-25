@@ -346,6 +346,21 @@ def _display_chart(cd: ChartData):
     )
     console.print(table)
 
+    from jhora.calc.yuddha import planetary_wars
+    _wars = planetary_wars(
+        {g: p.longitude for g, p in cd.planets.items()},
+        {g: p.latitude for g, p in cd.planets.items()})
+    if _wars:
+        wt = Table(title="Planetary Wars (Graha Yuddha)")
+        wt.add_column("Pair", style="cyan")
+        wt.add_column("Separation", style="white")
+        wt.add_column("Winner", style="green")
+        for w in _wars:
+            a, b = w["pair"]
+            wt.add_row(f"{a.full_name}–{b.full_name}",
+                       f"{w['separation']:.2f}°", w["winner"].full_name)
+        console.print(wt)
+
     # Upagrahas
     sun_lon = cd.planet(Graha.SUN).longitude
     upas = compute_solar_upagrahas(sun_lon)

@@ -667,4 +667,19 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["muhurta_adjuncts"] = {}
 
+    # ── Planetary wars ──
+    try:
+        from jhora.calc.yuddha import planetary_wars
+        result["yuddha"] = [
+            {"pair": [a.short_name for a in w["pair"]],
+             "separation": round(w["separation"], 4),
+             "winner": w["winner"].short_name,
+             "loser": w["loser"].short_name,
+             "reason": w["reason"]}
+            for w in planetary_wars(
+                {g: p.longitude for g, p in cd.planets.items()},
+                {g: p.latitude for g, p in cd.planets.items()})]
+    except Exception:
+        result["yuddha"] = []
+
     return result
