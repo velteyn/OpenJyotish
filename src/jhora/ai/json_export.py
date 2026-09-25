@@ -73,6 +73,8 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
         {g: p.is_retrograde for g, p in cd.planets.items()})
     _gand = gandanta_planets(
         {g: p.longitude for g, p in cd.planets.items()})
+    from jhora.calc.avastha import avasthas as _avasthas
+    _avs = _avasthas({g: p.longitude for g, p in cd.planets.items()})
     for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
               Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
         p = cd.planet(g)
@@ -92,6 +94,7 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
             "dignity": p.dignity,
             "combust": g in _comb,
             "gandanta": _gand.get(g),
+            "avastha": _avs.get(g),
         }
 
     # ── Houses ──

@@ -324,7 +324,10 @@ def _display_chart(cd: ChartData):
     from jhora.calc.gandanta import gandanta_planets
     _gand = gandanta_planets(
         {g: p.longitude for g, p in cd.planets.items()})
+    from jhora.calc.avastha import avasthas as _avasthas
+    _avs = _avasthas({g: p.longitude for g, p in cd.planets.items()})
     table.add_column("Gnd", style="red")
+    table.add_column("Avastha", style="white")
     for g in Graha:
         if g in cd.planets:
             p = cd.planets[g]
@@ -333,7 +336,7 @@ def _display_chart(cd: ChartData):
                 p.rasi_name, f"{p.degrees_in_rasi:.2f}",
                 p.nakshatra_name, str(p.nakshatra_pada),
                 p.dignity, "C" if g in _comb else "",
-                "G" if g in _gand else "",
+                "G" if g in _gand else "", _avs.get(g, ""),
             )
     table.add_row(
         "Lagna", f"{cd.ascendant:.2f}",
