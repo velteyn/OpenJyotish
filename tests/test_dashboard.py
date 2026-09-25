@@ -97,3 +97,68 @@ def test_retro_watch_uses_transit_status(chart, dashboard_texts):
             assert line not in keydates
     if not retro:
         assert "No major planet retrograde" in keydates
+
+
+def test_now_shows_yoga_karaka_sun(window, chart):
+    from jhora.calc.muhurta import _karana, _yoga, _YOGA_NAMES
+    window._populate_dashboard(chart)
+    text = window.dash_now.toPlainText()
+    sun = chart.planet(Graha.SUN).longitude
+    moon = chart.planet(Graha.MOON).longitude
+    assert f"Yoga {_YOGA_NAMES[_yoga(sun, moon)]}" in text
+    assert f"Karana {_karana(sun, moon)[1]}" in text
+    assert "Sunrise" in text and "Sunset" in text
+
+
+def test_upcoming_sandhi_wired(window, chart):
+    from jhora.calc.dasa_sandhi import sandhi_periods
+    from jhora.ephemeris.swe import SweEngine
+    from jhora.types.dasa import PeriodLevel
+    window._populate_dashboard(chart)
+    text = window.dash_upcoming.toPlainText()
+    se = SweEngine()
+    now = datetime.now()
+    now_jd = se.julday(now.year, now.month, now.day,
+                       now.hour + now.minute / 60.0)
+    expected = [s for s in sandhi_periods(
+        [p for p in _periods(chart) if p.level == PeriodLevel.MAHADASA])
+        if s["end_jd"] > now_jd]
+    if expected:
+        s = expected[0]
+        assert f"Next Sandhi: {s['outgoing']}→{s['incoming']}" in text
+    else:
+        assert "Next Sandhi:" not in text
+
+
+def test_watchouts_wired(window, chart):
+    from jhora.calc.combustion import combust_planets
+    from jhora.calc.gandanta import gandanta_zone
+    from jhora.calc.learning import marana_karaka_sthana
+    window._populate_dashboard(chart)
+    text = window.dash_strengths.toPlainText()
+    assert "Watchouts:" in text
+    sun = chart.planet(Graha.SUN).longitude
+    lons = {g: chart.planet(g).longitude for g in Graha
+            if g in chart.planets}
+    for g in combust_planets(
+            lons, sun, {g: chart.planets[g].is_retrograde for g in lons}):
+        assert g.full_name in text
+    for m in marana_karaka_sthana(chart):
+        assert m["graha"] in text
+
+
+def test_next_ingress_wired(window, chart):
+    from jhora.calc.mundane import MundaneCalculator
+    from jhora.ephemeris.swe import SweEngine
+    window._populate_dashboard(chart)
+    text = window.dash_keydates.toPlainText()
+    now = datetime.now()
+    se = SweEngine()
+    now_jd = se.julday(now.year, now.month, now.day,
+                       now.hour + now.minute / 60.0)
+    upcoming = [e for e in
+                MundaneCalculator().solar_ingresses(now.year)
+                + MundaneCalculator().solar_ingresses(now.year + 1)
+                if e.julian_day > now_jd]
+    assert "Next ingress:" in text
+    assert f"Sun → {upcoming[0].sign}" in text

@@ -5204,7 +5204,7 @@ class MainWindow(QMainWindow):
 
         self.dash_upcoming = QTextEdit()
         self.dash_upcoming.setReadOnly(True)
-        self.dash_upcoming.setMaximumHeight(300)
+        self.dash_upcoming.setMaximumHeight(340)
         self.dash_upcoming.setWordWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
         right.addWidget(QLabel("UPCOMING"))
         right.addWidget(self.dash_upcoming)
@@ -5291,6 +5291,20 @@ class MainWindow(QMainWindow):
             f"Rahu Kalam: {int(rahu_start):02d}:{int((rahu_start%1)*60):02d} – {int(rahu_end):02d}:{int((rahu_end%1)*60):02d}",
             "",
         ]
+        try:
+            from jhora.calc.muhurta import (_karana, _yoga, _YOGA_NAMES,
+                                            sunrise_sunset_hours)
+            from jhora.charts.chart import ChartBuilder as _CB
+            _tz = -_CB._parse_tz(cd.timezone, cd.birth_date)
+            _sr, _ss = sunrise_sunset_hours(now, cd.latitude,
+                                            cd.longitude, _tz)
+            now_lines.append(
+                f"Yoga {_YOGA_NAMES[_yoga(sun, moon)]} | "
+                f"Karana {_karana(sun, moon)[1]} | "
+                f"Sunrise {int(_sr):02d}:{int((_sr % 1) * 60):02d} "
+                f"Sunset {int(_ss):02d}:{int((_ss % 1) * 60):02d}")
+        except Exception:
+            pass
         if current_md:
             time_left = current_md.end_date - now
             months_left = time_left.days / 30
@@ -5322,6 +5336,23 @@ class MainWindow(QMainWindow):
                 ri = house_rasi_index(cd.ascendant, h)
                 bar = "█" * int(val / 12) + "░" * (18 - int(val / 12))
                 str_lines.append(f"  H{h} {Rasi(ri).short_name} {bar} {val:.0f}")
+            from jhora.calc.combustion import combust_planets
+            from jhora.calc.gandanta import gandanta_zone
+            from jhora.calc.learning import marana_karaka_sthana
+            _mk = [m["graha"] for m in marana_karaka_sthana(cd)]
+            _all_lons = {g: cd.planet(g).longitude for g in Graha
+                         if g in cd.planets}
+            _cb = [g.full_name for g in combust_planets(
+                _all_lons, sun,
+                {g: cd.planets[g].is_retrograde for g in _all_lons})]
+            _gd = (["Moon"] if gandanta_zone(moon) else []) + (
+                ["Lagna"] if gandanta_zone(cd.ascendant) else [])
+            _watch = "; ".join([s for s in [
+                ("marana " + ",".join(_mk)) if _mk else "",
+                ("combust " + ",".join(_cb)) if _cb else "",
+                ("gandanta " + ",".join(_gd)) if _gd else ""] if s])
+            str_lines.append("")
+            str_lines.append(f"[bold]Watchouts:[/bold] {_watch or 'none'}")
             self.dash_strengths.setHtml(_to_html(str_lines))
         except Exception:
             self.dash_strengths.setText("")
@@ -5337,6 +5368,22 @@ class MainWindow(QMainWindow):
             next_md = next_mahadasa(periods, current_md)
             if next_md:
                 up_lines.append(f"[bold]Next Mahadasha: {next_md.lord_name}[/bold] — {next_md.start_date.strftime('%b %Y')}")
+        try:
+            from jhora.calc.dasa_sandhi import sandhi_periods
+            from jhora.types.dasa import PeriodLevel as _PL
+            _eng = SweEngine()
+            _now_jd = _eng.julday(now.year, now.month, now.day,
+                                  now.hour + now.minute / 60.0)
+            for _s in sandhi_periods(
+                    [p for p in periods if p.level == _PL.MAHADASA]):
+                if _s["end_jd"] > _now_jd:
+                    _e = _eng.revjul(_s["end_jd"])
+                    up_lines.append(
+                        f"Next Sandhi: {_s['outgoing']}→{_s['incoming']} "
+                        f"ends {int(_e[0])}/{int(_e[1]):02d}/{int(_e[2]):02d}")
+                    break
+        except Exception:
+            pass
         up_lines.append("")
         up_lines.append("[bold]Major Transits (next 6 months):[/bold]")
         try:
@@ -5406,6 +5453,22 @@ class MainWindow(QMainWindow):
         kd_lines.append("[bold]Auspicious Days (this month):[/bold]")
         kd_lines.append("  Every Monday, Thursday, Friday")
         kd_lines.append("  Ekadasi tithi days (check panchanga)")
+        try:
+            from jhora.calc.mundane import MundaneCalculator
+            _se3 = SweEngine()
+            _ejd = _se3.julday(now.year, now.month, now.day,
+                               now.hour + now.minute / 60.0)
+            _ings = [e for e in
+                     MundaneCalculator().solar_ingresses(now.year)
+                     + MundaneCalculator().solar_ingresses(now.year + 1)
+                     if e.julian_day > _ejd]
+            if _ings:
+                _g = _se3.revjul(_ings[0].julian_day)
+                kd_lines.append(
+                    f"Next ingress: Sun → {_ings[0].sign} "
+                    f"{int(_g[0])}/{int(_g[1]):02d}/{int(_g[2]):02d}")
+        except Exception:
+            pass
 
         self.dash_keydates.setHtml(_to_html(kd_lines))
 
