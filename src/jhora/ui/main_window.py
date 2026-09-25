@@ -3138,7 +3138,8 @@ class MainWindow(QMainWindow):
                 if cap:
                     table.setMaximumHeight(cap)
                 setattr(self, attr, table)
-                layout.addWidget(table, stretch=0 if cap else 1)
+                layout.addWidget(table, stretch=1)
+            layout.addStretch(1)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(8)
         scroll.setWidget(body)
