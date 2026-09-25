@@ -4,6 +4,11 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Added
+- Wheel rulers and numbers (AstroChart grammar): 5° ruler ticks,
+  degree numerals beside every glyph, whole-sign house numbers,
+  sign divider lines.
+
 ### Changed
 - GUI: birth-data inputs moved off the persistent rail onto their own
   Birth Data page (form + confirmation chart); every other page is now
