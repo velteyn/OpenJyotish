@@ -4,6 +4,11 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Added
+- Dashboard fills out: Yoga/Karana/sunrise/sunset today, next Dasa
+  Sandhi, Watchouts (marana/combust/gandanta), next solar ingress —
+  one line each, no scrolling.
+
 ### Changed
 - Dasa entry chart is a real table (summary + Planet/Natal/Entry/
   Moved rows) instead of monospace text.
