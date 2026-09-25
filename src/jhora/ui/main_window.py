@@ -2032,9 +2032,23 @@ class MainWindow(QMainWindow):
 
     # --- Transit tab ---
 
+    @staticmethod
+    def _fit_table_height(table, cap=420):
+        """Minimum height fitting all rows (capped for very long tables)."""
+        shown = sum(table.rowHeight(r) for r in range(table.rowCount()))
+        table.setMinimumHeight(min(
+            table.horizontalHeader().height() + shown + 8, cap))
+
     def _build_tajaka_tab(self):
         w = QWidget()
-        layout = QVBoxLayout(w)
+        outer = QVBoxLayout(w)
+        outer.setContentsMargins(0, 0, 0, 0)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.viewport().setStyleSheet(f"background-color: {BG};")
+        inner = QWidget()
+        layout = QVBoxLayout(inner)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
@@ -2069,7 +2083,6 @@ class MainWindow(QMainWindow):
 
         self.taj_harsha_table = QTableWidget()
         self.taj_harsha_table.setAlternatingRowColors(True)
-        self.taj_harsha_table.setMaximumHeight(140)
         layout.addWidget(self.taj_harsha_table)
 
         self.taj_patyayini_table = QTableWidget()
@@ -2092,7 +2105,6 @@ class MainWindow(QMainWindow):
 
         self.tp_table = QTableWidget()
         self.tp_table.setAlternatingRowColors(True)
-        self.tp_table.setMaximumHeight(100)
         layout.addWidget(self.tp_table)
 
         # Progressions section
@@ -2102,9 +2114,10 @@ class MainWindow(QMainWindow):
 
         self.prog_table = QTableWidget()
         self.prog_table.setAlternatingRowColors(True)
-        self.prog_table.setMaximumHeight(200)
         layout.addWidget(self.prog_table)
 
+        outer.addWidget(scroll)
+        scroll.setWidget(inner)
         return w
 
     def _populate_tithi_pravesha(self, cd: ChartData):
@@ -2134,6 +2147,7 @@ class MainWindow(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.tp_table.setItem(i, j, item)
         self.tp_table.resizeColumnsToContents()
+        self._fit_table_height(self.tp_table)
 
     def _populate_progressions(self, cd: ChartData):
         from jhora.calc.progressions import ProgressionCalculator
@@ -2165,6 +2179,7 @@ class MainWindow(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.prog_table.setItem(i, j, item)
         self.prog_table.resizeColumnsToContents()
+        self._fit_table_height(self.prog_table)
 
     def _on_tajaka_find(self):
         if not self.chart_data:
@@ -2280,6 +2295,10 @@ class MainWindow(QMainWindow):
             yg_rows.append(["Khallasara",
                             f"{ll.short_name} blocks {x.short_name}", ""])
         self._fill_table(self.taj_yoga_table, yg_headers, yg_rows)
+        for _t in (self.taj_chart_table, self.taj_harsha_table,
+                   self.taj_patyayini_table, self.taj_mudda_table,
+                   self.taj_yoga_table):
+            self._fit_table_height(_t)
 
     # --- Kuta / Matchmaking tab ---
 

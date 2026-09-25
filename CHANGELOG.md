@@ -9,6 +9,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
   instead of in a full-width strip below it.
 
 ### Fixed
+- Tajaka tab: all seven tables size to content (shared fit helper)
+  and the tab scrolls; Find Tajaka no longer shows one-row slits.
 - Chakra grid enlarged (80px cells, bold glyphs, rebalanced split)
   so full nakshatra names render.
 - Dasa tab readability: high-contrast bar labels (luminance switch,

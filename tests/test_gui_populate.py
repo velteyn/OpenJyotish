@@ -1035,3 +1035,14 @@ def test_dasa_text_sandhi(main_window, chart):
     main_window._on_dasa_chart_activated(0, 0)
     assert main_window.dasa_entry_text.minimumHeight() >= 120
     assert "Entry" in main_window.dasa_entry_text.toPlainText()
+
+
+def test_tajaka_tables_fit_content(main_window, chart):
+    main_window.chart_data = chart
+    main_window._on_tajaka_find()
+    for attr in ("taj_chart_table", "taj_harsha_table",
+                 "taj_patyayini_table", "taj_mudda_table",
+                 "taj_yoga_table", "tp_table", "prog_table"):
+        table = getattr(main_window, attr)
+        assert table.rowCount() >= 3, attr
+        assert table.minimumHeight() > 100, attr
