@@ -2471,6 +2471,33 @@ def asta_udaya(
 
 
 @app.command()
+def drishti(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Graha drishti (Parashara aspects) — houses from lagna each planet aspects."""
+    from jhora.calc.drishti import ALL_GRAHAS, houses_aspected
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    lagna = int(cd.ascendant // 30) % 12
+    table = Table(title="Graha Drishti (houses from lagna)")
+    table.add_column("Planet", style="cyan")
+    table.add_column("In", style="yellow")
+    table.add_column("Aspects", style="white")
+    for g in ALL_GRAHAS:
+        sign = int(cd.planet(g).longitude // 30) % 12
+        table.add_row(g.full_name, Rasi(sign).short_name,
+                      ", ".join(str(h) for h in houses_aspected(g, sign, lagna)))
+    console.print(table)
+
+
+@app.command()
 def special_points(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
