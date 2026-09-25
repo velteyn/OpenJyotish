@@ -705,6 +705,9 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
         result["omens"] = birth_omens(
             cd.planet(Graha.MOON).longitude, cd.ascendant,
             cd.planet(Graha.SUN).longitude)
+        from jhora.calc.avakahada import avakahada as _avakahada
+        result["omens"]["avakahada"] = _avakahada(
+            cd.planet(Graha.MOON).longitude)
     except Exception:
         result["omens"] = {}
 

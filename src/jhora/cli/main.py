@@ -2373,6 +2373,31 @@ def argala(
 
 
 @app.command()
+def avakahada(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Avakahada birth identity — rasi, nakshatra, pada, nama syllable, gana, yoni, nadi."""
+    from jhora.calc.avakahada import avakahada as _avakahada
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    av = _avakahada(cd.planet(Graha.MOON).longitude)
+    table = Table(title="Avakahada (Birth Identity)")
+    table.add_column("Attribute", style="cyan")
+    table.add_column("Value", style="white")
+    for key in ("rasi", "nakshatra", "pada", "nama_syllable",
+                "gana", "yoni", "nadi"):
+        table.add_row(key.replace("_", " ").title(), av[key])
+    console.print(table)
+
+
+@app.command()
 def special_points(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),

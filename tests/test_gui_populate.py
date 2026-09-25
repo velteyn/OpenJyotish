@@ -914,6 +914,7 @@ def test_points_tab_populate(main_window, chart):
          for g in Graha if g in chart.planets}))
     assert main_window.pts_argala_table.rowCount() == _n
     assert main_window.pts_omens_table.rowCount() == 3
+    assert main_window.pts_avakahada_table.rowCount() == 7
 
 
 def test_chakra_tab_populate(main_window, chart):
