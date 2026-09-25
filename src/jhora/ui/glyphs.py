@@ -41,12 +41,21 @@ _NOTO_GRAHAS = {
 }
 
 _loaded: Optional[Dict[str, str]] = None
+_loaded_app = None
 
 
 def ensure_fonts() -> Dict[str, str]:
-    """Load bundled fonts once; return {key: family} (idempotent)."""
-    global _loaded
-    if _loaded is not None:
+    """Load bundled fonts for the current QApplication; return {key: family}.
+
+    Idempotent per application instance. The cache is keyed on
+    ``QApplication.instance()`` because application fonts die with
+    their application (notably across test modules that each build
+    their own offscreen QApplication).
+    """
+    global _loaded, _loaded_app
+    from PyQt6.QtWidgets import QApplication
+    app = QApplication.instance()
+    if _loaded is not None and _loaded_app is app:
         return _loaded
     from PyQt6.QtGui import QFontDatabase
     out = {}
@@ -57,7 +66,7 @@ def ensure_fonts() -> Dict[str, str]:
         fid = QFontDatabase.addApplicationFont(path)
         fams = QFontDatabase.applicationFontFamilies(fid) if fid >= 0 else []
         out[key] = fams[0] if fams else ""
-    _loaded = out
+    _loaded, _loaded_app = out, app
     return out
 
 

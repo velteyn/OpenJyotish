@@ -53,3 +53,15 @@ class TestProvider:
         assert glyphs._NOTO_GRAHAS[Graha.SUN] == 0x2609
         assert glyphs._NOTO_SIGNS[Rasi.ARIES] == 0x2648
         assert glyphs._NOTO_SIGNS[Rasi.PISCES] == 0x2653
+
+    def test_reloads_for_new_application(self, _qapp, _fonts):
+        # Application fonts die with their QApplication: a stale cache
+        # must reload instead of serving dead family names.
+        glyphs._loaded_app = object()
+        try:
+            fresh = glyphs.ensure_fonts()
+            assert fresh["zodiac"]
+            text, family, is_glyph = glyphs.glyph_for_graha(Graha.MARS)
+            assert is_glyph and family == fresh["zodiac"]
+        finally:
+            glyphs._loaded_app = _qapp
