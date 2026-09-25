@@ -3072,6 +3072,12 @@ class MainWindow(QMainWindow):
         self.pts_avakahada_table.setAlternatingRowColors(True)
         self.pts_avakahada_table.setMaximumHeight(170)
         layout.addWidget(self.pts_avakahada_table, stretch=1)
+
+        layout.addWidget(QLabel("Drishti (Parashara Aspects)"))
+        self.pts_drishti_table = QTableWidget()
+        self.pts_drishti_table.setAlternatingRowColors(True)
+        self.pts_drishti_table.setMaximumHeight(170)
+        layout.addWidget(self.pts_drishti_table, stretch=1)
         return w
 
     def _populate_points_tab(self, cd: ChartData):
@@ -3230,6 +3236,16 @@ class MainWindow(QMainWindow):
             [[k.replace("_", " ").title(), _av[k]]
              for k in ("rasi", "nakshatra", "pada", "nama_syllable",
                        "gana", "yoni", "nadi")])
+
+        # Parashara drishti.
+        from jhora.calc.drishti import ALL_GRAHAS, houses_aspected
+        _lagna_si = int(cd.ascendant // 30) % 12
+        self._fill_table(
+            self.pts_drishti_table, ["Planet", "In", "Aspects"],
+            [[g.full_name, Rasi(int(cd.planet(g).longitude // 30) % 12).short_name,
+              ", ".join(str(h) for h in houses_aspected(
+                  g, int(cd.planet(g).longitude // 30) % 12, _lagna_si))]
+             for g in ALL_GRAHAS if g in cd.planets])
 
     def _build_remedies_tab(self):
         w = QWidget()

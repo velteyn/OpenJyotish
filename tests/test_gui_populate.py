@@ -915,6 +915,7 @@ def test_points_tab_populate(main_window, chart):
     assert main_window.pts_argala_table.rowCount() == _n
     assert main_window.pts_omens_table.rowCount() == 3
     assert main_window.pts_avakahada_table.rowCount() == 7
+    assert main_window.pts_drishti_table.rowCount() == 9
 
 
 def test_mundane_asta_udaya(main_window, chart):

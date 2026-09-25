@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Drishti surfaces on the existing aspect engine (give/receive/point
+  views, SJC node trines): CLI `drishti` (56 commands), Points tab
+  table, `aspects` in JSON planets.
 - Dasa Sandhi (10% rule, most-used reading): junction windows in CLI
   `dasa-sandhi` (55 commands, `--system`), the GUI dasa text and the
   JSON dasa block. Chidra-dasha (final bhukti) rides along: `--chidra`

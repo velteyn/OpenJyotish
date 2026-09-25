@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-55 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-31-section JSON API for AI agents (+ JSON-LD)  |  1721 tests  |  GPL v3.0
+56 CLI commands  |  8 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+31-section JSON API for AI agents (+ JSON-LD)  |  1726 tests  |  GPL v3.0
 ```
 
 > **Showcase: [the Gandhi retrospective](docs/gandhi-retrospective.md)** —
@@ -214,6 +214,7 @@ data = json.loads(subprocess.run(
 | `avakahada` | Birth identity — rasi, nakshatra, pada, nama syllable, gana, yoni, nadi |
 | `asta-udaya` | Venus/Jupiter combust + rising windows for a year (marriage blockers) |
 | `dasa-sandhi` | MD junctions (10% rule) + `--chidra` final bhukti (`--system`) |
+| `drishti` | Parashara aspects — houses from lagna each planet aspects |
 | `tajaka` | Tajaka return charts — annual/monthly/2.5-day/5-hr/25-min/2-min (`--level`, `--index`, `--sunrise`, `--vimshottari` sesham/full from the return Moon) + Tajaka yogas on CLI/GUI |
 | `tithi-pravesha` | Annual solar-tithi ingress |
 | `progression` | Secondary progressions (1 day = 1 year) |
