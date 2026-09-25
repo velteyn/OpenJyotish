@@ -3558,10 +3558,9 @@ class MainWindow(QMainWindow):
         self.ch_grid.verticalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Fixed)
         for i in range(9):
-            self.ch_grid.setColumnWidth(i, 56)
-            self.ch_grid.setRowHeight(i, 40)
-        self.ch_grid.setMaximumWidth(9 * 56 + 4)
-        body.addWidget(self.ch_grid)
+            self.ch_grid.setColumnWidth(i, 80)
+            self.ch_grid.setRowHeight(i, 54)
+        body.addWidget(self.ch_grid, stretch=2)
 
         side = QVBoxLayout()
         vedha_label = QLabel("Vedha (obstruction) of the reference")
@@ -3629,6 +3628,7 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(text)
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item.setFont(QFont("sans-serif", 11, QFont.Weight.Bold))
                 item.setToolTip(tip)
                 if idx == ref:
                     item.setForeground(black)
