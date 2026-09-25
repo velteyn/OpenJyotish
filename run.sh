@@ -6,9 +6,8 @@
 }
 
 # Try openjyotish CLI first, then fall back to python -m
-openjyotish --gui 2>/dev/null && exit 0
-python3 -m openjyotish --gui 2>/dev/null && exit 0
-python -m jhora --gui 2>/dev/null && exit 0
+openjyotish gui 2>/dev/null && exit 0
+python -m jhora gui 2>/dev/null && exit 0
 
-echo "Could not launch GUI. Try: source venv/bin/activate && python3 -m openjyotish --gui"
+echo "Could not launch GUI. Try: source venv/bin/activate && openjyotish gui"
 exit 1

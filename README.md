@@ -38,8 +38,8 @@ run.bat
 
 **Requires**: Python 3.11+
 
-Ephemeris data is auto-downloaded by `install.sh` / `install.bat` (2 files, ~1MB).
-pip installs: the app offers the one-time download on first Calculate
+Ephemeris data is auto-downloaded by `install.bat` on Windows (2 files, ~1MB).
+On Linux/Mac the app offers the one-time download on first Calculate
 (or Tools → Ephemeris → Download, or `openjyotish download-ephe`). Your own
 textbook `.txt` files go in the books folder inside your per-user data
 directory (Knowledge tab → "Import books…" or `openjyotish knowledge-import
