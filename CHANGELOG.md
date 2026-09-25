@@ -8,7 +8,7 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 - Dasa tab readability: high-contrast bar labels (luminance switch,
   system fonts), dynamic timeline height (no clipped rows), scrollable
   tab with a taller period tree; click-to-expand AD rows mapped
-  correctly.
+  correctly. Running-branch table and entry output size to content.
 - Tables size columns to content (`ResizeToContents`) instead of
   stretching the last column across the page.
 - Theme audit: BAV scroll viewport, calendar header strip and table
