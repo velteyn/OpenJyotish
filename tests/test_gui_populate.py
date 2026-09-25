@@ -935,6 +935,8 @@ def test_chakra_tab_populate(main_window, chart):
     main_window._populate_chakra_tab(chart)
     assert main_window.ch_grid.rowCount() == 9
     assert main_window.ch_grid.columnCount() == 9
+    assert main_window.ch_grid.columnWidth(0) >= 80
+    assert main_window.ch_grid.rowHeight(0) >= 52
     ref = main_window.ch_ref_combo.currentIndex()
     assert (main_window.ch_vedha_table.rowCount()
             == len(sarvatobhadra_vedha(ref)))

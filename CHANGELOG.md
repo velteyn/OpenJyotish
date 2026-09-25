@@ -5,6 +5,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Fixed
+- Chakra grid enlarged (80px cells, bold glyphs, rebalanced split)
+  so full nakshatra names render.
 - Dasa tab readability: high-contrast bar labels (luminance switch,
   system fonts), dynamic timeline height (no clipped rows), scrollable
   tab with a taller period tree; click-to-expand AD rows mapped
