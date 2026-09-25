@@ -143,6 +143,11 @@ class WheelWidget(QWidget):
                     else "#22222f")
             self._paint_arc_segment(painter, cx, cy, inner, outer,
                                     start_lon, lagna, tint)
+            # Sign boundary divider across the sign band.
+            bx, by = project(start_lon, lagna, cx, cy, outer)
+            ix, iy = project(start_lon, lagna, cx, cy, inner)
+            painter.setPen(QPen(QColor(s.colors["ring"]), 1))
+            painter.drawLine(int(bx), int(by), int(ix), int(iy))
             mx, my = project(start_lon + 15.0, lagna, cx, cy,
                              (inner + outer) / 2.0)
             text, family, is_glyph = glyphs.glyph_for_rasi(rasi)
@@ -152,6 +157,14 @@ class WheelWidget(QWidget):
             painter.setFont(font)
             painter.drawText(int(mx) - 20, int(my) - 20, 40, 40,
                              Qt.AlignmentFlag.AlignCenter, text)
+            # Whole-sign house number at the segment's inner edge.
+            hx, hy = project(start_lon + 15.0, lagna, cx, cy, inner + 2)
+            painter.setFont(QFont("sans-serif", int(9 * s.symbol_scale)))
+            painter.setPen(QColor(s.colors["ring"]))
+            painter.drawText(int(hx) - 20, int(hy) - 10, 40, 20,
+                             Qt.AlignmentFlag.AlignCenter,
+                             str(((int(start_lon // 30)
+                                   - int(lagna // 30)) % 12) + 1))
         # Lagna marker from the sign ring out to the edge.
         lx0, ly0 = project(lagna, lagna, cx, cy, radius * s.sign_ring_ratio)
         lx, ly = project(lagna, lagna, cx, cy, radius)
@@ -238,6 +251,12 @@ class WheelWidget(QWidget):
             painter.setFont(QFont(family, glyph_px))
             painter.drawText(int(x) - 30, int(y) - 30, 60, 60,
                              Qt.AlignmentFlag.AlignCenter, text)
+            # Degree-within-sign from the true longitude (AstroChart-style).
+            painter.setFont(QFont("sans-serif", int(8 * s.symbol_scale)))
+            painter.setPen(QColor(s.colors["text"]))
+            painter.drawText(int(x) + 10, int(y) - 26, 34, 16,
+                             Qt.AlignmentFlag.AlignLeft,
+                             f"{true_lon % 30:.0f}")
             self._hit.append(
                 (g, x, y, 22.0 * s.symbol_scale,
                  self._tip_for(g, true_lon, int(lagna // 30) % 12,
@@ -260,13 +279,16 @@ class WheelWidget(QWidget):
                      radius: float, lagna: float):
         s = self.settings
         painter.setPen(QPen(QColor(s.colors["ring"]), 1))
-        for deg in range(0, 360, 30):
-            lon = (int(lagna // 30) * 30 + deg) % 360.0
+        base = int(lagna // 30) * 30
+        for step in range(0, 360, 5):
+            lon = (base + step) % 360.0
             theta = math.radians(180.0 - (lon - lagna))
+            wide = step % 30 == 0
+            length = 8 if wide else 4
             x0 = cx + radius * math.cos(theta)
             y0 = cy - radius * math.sin(theta)
-            x1 = cx + (radius - 6) * math.cos(theta)
-            y1 = cy - (radius - 6) * math.sin(theta)
+            x1 = cx + (radius - length) * math.cos(theta)
+            y1 = cy - (radius - length) * math.sin(theta)
             painter.drawLine(int(x0), int(y0), int(x1), int(y1))
 
     def _paint_circles(self, painter: QPainter, cx: float, cy: float,
