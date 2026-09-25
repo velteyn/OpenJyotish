@@ -3073,14 +3073,14 @@ class MainWindow(QMainWindow):
 
         subs = QTabWidget()
         subs.addTab(self._points_page([
-            ("Upagrahas", "pts_upagraha_table", 180),
+            ("Upagrahas", "pts_upagraha_table", 0),
         ]), "Upagrahas")
         subs.addTab(self._points_page([
             ("Sphutas (Prasna Marga auspicious points)", "pts_sphuta_table",
-             180),
+             0),
         ]), "Sphutas")
         subs.addTab(self._points_page([
-            ("Special Points", "pts_special_table", 150),
+            ("Special Points", "pts_special_table", 0),
         ]), "Special")
         subs.addTab(self._points_page([
             ("Panchadha Maitri (row → column)", "pts_maitri_table", 0),

@@ -5,6 +5,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Fixed
+- Points single-table sub-tabs (Upagrahas, Sphutas, Special) no
+  longer cap table height — all rows visible.
 - Points sub-tabs: section labels no longer absorb layout space —
   tables sit directly under their headings.
 - Wheel font vendored as TTF (was WOFF2): Qt on Windows renders via
