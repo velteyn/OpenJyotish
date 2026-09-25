@@ -24,6 +24,13 @@ _PLANET_COLORS = {
 }
 
 
+def _label_pen(hex_color: str) -> QColor:
+    """Black on light bars, white on dark ones (luminance switch)."""
+    c = QColor(hex_color)
+    lum = (0.299 * c.red() + 0.587 * c.green() + 0.114 * c.blue()) / 255.0
+    return QColor("#111111") if lum > 0.6 else QColor("#ffffff")
+
+
 class DasaTimelineWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -31,8 +38,16 @@ class DasaTimelineWidget(QWidget):
         self._mds: List = []
         self._expanded_md_index: Optional[int] = None
         self._now = datetime.now()
-        self.setMinimumHeight(250)
+        self.setMinimumHeight(120)
         self.setMouseTracking(True)
+
+    def _update_height(self):
+        rows = len(self._mds)
+        extra = 0
+        if self._expanded_md_index is not None and self._mds:
+            ads = self._mds[self._expanded_md_index].sub_periods or []
+            extra = len(ads) * 16 + 8
+        self.setMinimumHeight(10 + rows * 26 + 24 + extra)
 
     def set_chart(self, cd: ChartData):
         self.chart_data = cd
@@ -46,6 +61,8 @@ class DasaTimelineWidget(QWidget):
             self._mds = dasa.compute(cd.julian_day, chart_dict)
         except Exception:
             self._mds = []
+        self._expanded_md_index = None
+        self._update_height()
         self.update()
 
     def paintEvent(self, event):
@@ -79,7 +96,7 @@ class DasaTimelineWidget(QWidget):
 
             # Label
             p.setPen(QColor("#e0e0e0"))
-            font = QFont("Segoe UI", 10)
+            font = QFont("sans-serif", 10)
             font.setBold(md.start_date <= self._now <= md.end_date)
             p.setFont(font)
             p.drawText(QRectF(0, y + i * (bar_h + gap), 130, bar_h),
@@ -94,15 +111,17 @@ class DasaTimelineWidget(QWidget):
                 p.drawLine(marker_x, y + i * (bar_h + gap) - 3,
                           marker_x, y + i * (bar_h + gap) + bar_h + 3)
                 p.setPen(QColor("#ffffff"))
-                p.setFont(QFont("Segoe UI", 8))
+                p.setFont(QFont("sans-serif", 8))
                 p.drawText(marker_x - 15, y + i * (bar_h + gap) + bar_h + 14, "NOW")
 
-            # Age labels
+            # Age labels (only when clear of the lord-name column)
             age_start = (md.start_date - self.chart_data.birth_date).total_seconds() / (365.25 * 86400) if self.chart_data else 0
             age_end = (md.end_date - self.chart_data.birth_date).total_seconds() / (365.25 * 86400) if self.chart_data else 0
-            if bw > 40:
-                p.setPen(QColor("#888"))
-                p.setFont(QFont("Segoe UI", 7))
+            if bw > 64 and 10 + x > 140:
+                p.setPen(_label_pen(_PLANET_COLORS.get(md.lord_name, "#666")))
+                age_font = QFont("sans-serif", 9)
+                age_font.setBold(True)
+                p.setFont(age_font)
                 p.drawText(QRectF(10 + x + 4, y + i * (bar_h + gap), bw - 8, bar_h),
                           Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                           f"age {age_start:.0f}")
@@ -117,13 +136,16 @@ class DasaTimelineWidget(QWidget):
                     ad_end = (ad.end_date - first).total_seconds()
                     ax = int((ad_start / total_secs) * w)
                     aw = max(1, int(((ad_end - ad_start) / total_secs) * w))
-                    ac = QColor(_PLANET_COLORS.get(ad.lord_name, "#666"))
+                    ac_hex = _PLANET_COLORS.get(ad.lord_name, "#666")
+                    ac = QColor(ac_hex)
                     ac.setAlpha(150)
                     p.setBrush(QBrush(ac))
                     p.drawRoundedRect(QRectF(10 + ax, ad_y + j * (ad_h + 2), aw, ad_h), 2, 2)
-                    if aw > 30:
-                        p.setPen(QColor("#aaa"))
-                        p.setFont(QFont("Segoe UI", 6))
+                    if aw > 44:
+                        p.setPen(_label_pen(ac_hex))
+                        ad_font = QFont("sans-serif", 8)
+                        ad_font.setBold(True)
+                        p.setFont(ad_font)
                         p.drawText(QRectF(10 + ax + 2, ad_y + j * (ad_h + 2), aw - 4, ad_h),
                                   Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                                   ad.lord_name)
@@ -133,13 +155,19 @@ class DasaTimelineWidget(QWidget):
     def mousePressEvent(self, event):
         if not self._mds:
             return
-        y = event.pos().y()
-        bar_h = 22
-        gap = 4
-        index = (y - 10) // (bar_h + gap)
-        if 0 <= index < len(self._mds):
-            if self._expanded_md_index == index:
-                self._expanded_md_index = None
-            else:
-                self._expanded_md_index = index
-            self.update()
+        y = event.pos().y() - 10
+        bar_h, gap = 22, 4
+        cursor = 0
+        for i in range(len(self._mds)):
+            if cursor <= y < cursor + bar_h:
+                if self._expanded_md_index == i:
+                    self._expanded_md_index = None
+                else:
+                    self._expanded_md_index = i
+                self._update_height()
+                self.update()
+                return
+            cursor += bar_h + gap
+            if self._expanded_md_index == i:
+                ads = self._mds[i].sub_periods or []
+                cursor += len(ads) * 16 + 8
