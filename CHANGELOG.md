@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Birth omens: Ganda Moola nakshatras (Moon + lagna) and Vishti
+  karana — CLI `chart` footer, Points tab table, JSON `omens`
+  section (31). Lagna row now carries its Gnd flag in chart/GUI.
 - Argala (Jaimini 1-1-5/10): primary/virodha pairs, strict-majority
   rule, trikona secondary, visesha, Ketu mirror — new CLI `argala`
   (52 commands), Points tab table, JSON `argala` section (30).

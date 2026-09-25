@@ -338,13 +338,32 @@ def _display_chart(cd: ChartData):
                 p.dignity, "C" if g in _comb else "",
                 "G" if g in _gand else "", _avs.get(g, ""),
             )
+    from jhora.calc.omens import birth_omens
+    from jhora.calc.gandanta import gandanta_zone as _gz
+    _lagna_gnd = "G" if _gz(cd.ascendant) else ""
     table.add_row(
         "Lagna", f"{cd.ascendant:.2f}",
         cd.lagna.rasi_name, f"{cd.lagna.degrees_in_rasi:.2f}",
         cd.lagna.nakshatra_name, str(cd.lagna.nakshatra_pada),
-        "",
+        "", "", _lagna_gnd, "",
     )
     console.print(table)
+
+    _om = birth_omens(cd.planet(Graha.MOON).longitude, cd.ascendant,
+                      cd.planet(Graha.SUN).longitude)
+    _om_lines = []
+    if _om["moon_ganda_moola"]:
+        _om_lines.append(f"Moon in {_om['moon_ganda_moola']} (ganda-moola)")
+    if _om["lagna_ganda_moola"]:
+        _om_lines.append(f"Lagna in {_om['lagna_ganda_moola']} (ganda-moola)")
+    if _om["vishti"]:
+        _om_lines.append("born in Vishti (Bhadra) karana")
+    if _om_lines:
+        ot = Table(title="Birth Omens")
+        ot.add_column("Omen", style="red")
+        for line in _om_lines:
+            ot.add_row(line)
+        console.print(ot)
 
     from jhora.calc.yuddha import planetary_wars
     _wars = planetary_wars(

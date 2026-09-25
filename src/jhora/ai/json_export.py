@@ -699,4 +699,13 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["argala"] = []
 
+    # ── Birth omens ──
+    try:
+        from jhora.calc.omens import birth_omens
+        result["omens"] = birth_omens(
+            cd.planet(Graha.MOON).longitude, cd.ascendant,
+            cd.planet(Graha.SUN).longitude)
+    except Exception:
+        result["omens"] = {}
+
     return result

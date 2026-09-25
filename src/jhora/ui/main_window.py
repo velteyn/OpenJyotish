@@ -990,9 +990,10 @@ class MainWindow(QMainWindow):
             {g: p.longitude for g, p in cd.planets.items()},
             cd.planet(Graha.SUN).longitude,
             {g: p.is_retrograde for g, p in cd.planets.items()})
-        from jhora.calc.gandanta import gandanta_planets
+        from jhora.calc.gandanta import gandanta_planets, gandanta_zone
         _gand = gandanta_planets(
             {g: p.longitude for g, p in cd.planets.items()})
+        _lagna_gnd = "G" if gandanta_zone(cd.ascendant) else ""
         from jhora.calc.avastha import avasthas as _avasthas
         _avs = _avasthas({g: p.longitude for g, p in cd.planets.items()})
         headers = ["Planet", "Longitude", "Rasi", "Deg", "Nakshatra", "Pada", "Dignity", "Asta", "Gnd", "Avastha"]
@@ -1009,7 +1010,7 @@ class MainWindow(QMainWindow):
                      self.chart_data.lagna.rasi_name,
                      f"{self.chart_data.lagna.degrees_in_rasi:.2f}",
                      self.chart_data.lagna.nakshatra_name,
-                     str(self.chart_data.lagna.nakshatra_pada), "Lg", "", "", ""])
+                     str(self.chart_data.lagna.nakshatra_pada), "Lg", "", _lagna_gnd, ""])
         self._fill_table(self.planet_table, headers, rows)
         self.planet_table.setColumnWidth(6, 50)
 
@@ -3032,6 +3033,12 @@ class MainWindow(QMainWindow):
         self.pts_argala_table.setAlternatingRowColors(True)
         self.pts_argala_table.setMaximumHeight(180)
         layout.addWidget(self.pts_argala_table, stretch=1)
+
+        layout.addWidget(QLabel("Birth Omens"))
+        self.pts_omens_table = QTableWidget()
+        self.pts_omens_table.setAlternatingRowColors(True)
+        self.pts_omens_table.setMaximumHeight(110)
+        layout.addWidget(self.pts_omens_table)
         return w
 
     def _populate_points_tab(self, cd: ChartData):
@@ -3165,6 +3172,22 @@ class MainWindow(QMainWindow):
                         for g in Graha if g in cd.planets})]
         self._fill_table(self.pts_argala_table,
                          ["House", "Via", "Planets", "Status"], ar_rows)
+
+        # Birth omens.
+        from jhora.calc.omens import birth_omens
+        _om = birth_omens(cd.planet(Graha.MOON).longitude, cd.ascendant,
+                          cd.planet(Graha.SUN).longitude)
+        om_rows = [
+            ["Moon nakshatra",
+             _om["moon_nakshatra"]
+             + (" (ganda-moola)" if _om["moon_ganda_moola"] else "")],
+            ["Lagna nakshatra",
+             _om["lagna_nakshatra"]
+             + (" (ganda-moola)" if _om["lagna_ganda_moola"] else "")],
+            ["Karana", _om["karana"]
+             + (" (Vishti/Bhadra)" if _om["vishti"] else "")],
+        ]
+        self._fill_table(self.pts_omens_table, ["Omen", "Detail"], om_rows)
 
     def _build_remedies_tab(self):
         w = QWidget()
