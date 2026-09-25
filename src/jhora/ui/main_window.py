@@ -443,7 +443,7 @@ class MainWindow(QMainWindow):
         chart_row.setSpacing(8)
         chart_row.addWidget(self.dasa_chart_table, stretch=1)
         entry_col = QVBoxLayout()
-        entry_col.addWidget(QLabel("Entry chart — double-click a period above:"))
+        entry_col.addWidget(QLabel("Entry chart — double-click the left table:"))
         self.dasa_entry_summary = QLabel("")
         self.dasa_entry_summary.setWordWrap(True)
         self.dasa_entry_summary.setStyleSheet(
