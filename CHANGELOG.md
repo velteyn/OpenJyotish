@@ -5,6 +5,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Fixed
+- Points sub-tabs: section labels no longer absorb layout space —
+  tables sit directly under their headings.
 - Wheel font vendored as TTF (was WOFF2): Qt on Windows renders via
   DirectWrite, which cannot create a face from WOFF2 data. Same
   glyphs, no more font errors.
