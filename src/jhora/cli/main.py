@@ -314,7 +314,13 @@ def _display_chart(cd: ChartData):
     table.add_column("Nakshatra", style="magenta")
     table.add_column("Pada", style="white")
     table.add_column("Dignity", style="blue")
+    table.add_column("Asta", style="red")
 
+    from jhora.calc.combustion import combust_planets
+    _comb = combust_planets(
+        {g: p.longitude for g, p in cd.planets.items()},
+        cd.planet(Graha.SUN).longitude,
+        {g: p.is_retrograde for g, p in cd.planets.items()})
     for g in Graha:
         if g in cd.planets:
             p = cd.planets[g]
@@ -322,7 +328,7 @@ def _display_chart(cd: ChartData):
                 g.full_name, f"{p.longitude:.2f}",
                 p.rasi_name, f"{p.degrees_in_rasi:.2f}",
                 p.nakshatra_name, str(p.nakshatra_pada),
-                p.dignity,
+                p.dignity, "C" if g in _comb else "",
             )
     table.add_row(
         "Lagna", f"{cd.ascendant:.2f}",

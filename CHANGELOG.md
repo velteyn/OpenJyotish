@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Combustion (Asta): per-planet orbs (Mercury/Venus retro-aware),
+  flagged in CLI `chart`, the GUI planet table and the JSON planets
+  block.
 - GUI learning sections on the Points tab: Marana Karaka Sthana
   table and Vaiseshikamsa ranks (scores shown alongside).
 
