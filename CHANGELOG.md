@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Wheel settings panel: zoom knob (crisp vector scaling), layer
+  toggles (drishti/nodes/transits/sign colors), transit-date scrubber
+  with Now reset. Hover any glyph for its dignity, state and house.
 - Circular bi-wheel chart (sidebar Wheel section): natal + transit
   rings, Lagna-left, bundled OFL glyph fonts (Zodiac Free + Noto
   Symbols 2, no system fonts), decluttered labels with leader ticks,

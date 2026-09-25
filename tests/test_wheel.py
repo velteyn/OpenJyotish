@@ -67,6 +67,13 @@ class TestWheel:
         widget.set_transit_data({g: (float(g.value) * 40.0) % 360.0
                                  for g in Graha})
 
+    def test_hit_records(self, widget):
+        assert widget._hit
+        grahas = {g for g, _, _, _, _ in widget._hit}
+        assert Graha.SUN in grahas and Graha.SATURN in grahas
+        tips = [tip for _, _, _, _, tip in widget._hit]
+        assert any("Jupiter" in tip for tip in tips)
+
 
 @pytest.fixture(scope="module")
 def main_window(_qapp):
@@ -88,3 +95,20 @@ class TestWheelPage:
         assert main_window.wheel_widget.transit_lons
         main_window.wheel_widget.resize(600, 600)
         assert main_window.wheel_widget.grab() is not None
+
+    def test_settings_panel(self, main_window, chart):
+        main_window.chart_data = chart
+        main_window._populate_wheel_page(chart)
+        main_window.wheel_zoom_slider.setValue(150)
+        assert main_window.wheel_widget.settings.symbol_scale == 1.5
+        main_window.wheel_signs_check.setChecked(False)
+        assert not main_window.wheel_widget.settings.show_sign_colors
+        main_window.wheel_signs_check.setChecked(True)
+        # Transit date scrub to the great conjunction: Ju/Sa at war.
+        from PyQt6.QtCore import QDate
+        from jhora.calc.yuddha import separation
+        main_window.wheel_transit_date.setDate(QDate(2020, 12, 21))
+        lons = main_window.wheel_widget.transit_lons
+        assert separation(lons[Graha.JUPITER],
+                          lons[Graha.SATURN]) < 1.0
+        main_window.wheel_now_btn.click()

@@ -22,6 +22,7 @@ class WheelSettings:
     show_drishti: bool = True
     show_nodes: bool = True
     show_transits: bool = True
+    show_sign_colors: bool = True
     colors: Dict[str, str] = field(default_factory=lambda: {
         "background": "#1a1a2e",
         "ring": "#8a8aa0",
