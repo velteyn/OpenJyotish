@@ -4,8 +4,9 @@ The most-used rule: sandhi opens in the last 10% of the outgoing
 mahadasa and closes in the first 10% of the incoming one (so a
 Ketu→Venus changeover spans 0.7 + 2.0 years). Applies to any
 mahadasa sequence; computed here on whatever MD list the caller
-passes (Vimshottari by convention). Other schools use fixed months;
-they do as they do — this module ships the 10% reading as is.
+passes (Vimshottari by convention). Other schools use fixed months; they do as they do — this module
+ships the 10% reading as is. Chidra-dasha (final bhukti closure)
+rides along: the last antardasa of each mahadasa.
 """
 
 from typing import Dict, List
@@ -35,5 +36,29 @@ def sandhi_periods(mds: List, y_per_d: float = 365.2425) -> List[Dict]:
             "junction_jd": nxt.start_jd,
             "end_jd": end,
             "duration_years": (end - start) / y_per_d,
+        })
+    return out
+
+
+def chidra_periods(mds: List) -> List[Dict]:
+    """[{md_lord, chidra_lord, start_jd, end_jd, duration_years}].
+
+    The chidra is the last antardasa of each mahadasa (closure and
+    release). MDs computed without sub-periods are skipped; each
+    sub-period needs ``lord_name``, ``start_jd``, ``end_jd`` and
+    ``duration_years``.
+    """
+    out = []
+    for md in mds:
+        subs = list(getattr(md, "sub_periods", None) or [])
+        if not subs:
+            continue
+        last = subs[-1]
+        out.append({
+            "md_lord": md.lord_name,
+            "chidra_lord": last.lord_name,
+            "start_jd": last.start_jd,
+            "end_jd": last.end_jd,
+            "duration_years": last.duration_years,
         })
     return out
