@@ -4,6 +4,10 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Changed
+- Dasa tab: entry-chart report sits beside the running-branch table
+  instead of in a full-width strip below it.
+
 ### Fixed
 - Chakra grid enlarged (80px cells, bold glyphs, rebalanced split)
   so full nakshatra names render.

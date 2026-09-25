@@ -439,13 +439,17 @@ class MainWindow(QMainWindow):
         self.dasa_chart_table.setAlternatingRowColors(True)
         self.dasa_chart_table.cellDoubleClicked.connect(
             self._on_dasa_chart_activated)
-        dl.addWidget(self.dasa_chart_table, stretch=2)
-
-        dl.addWidget(QLabel("Entry chart — double-click a period above:"))
+        chart_row = QHBoxLayout()
+        chart_row.setSpacing(8)
+        chart_row.addWidget(self.dasa_chart_table, stretch=1)
+        entry_col = QVBoxLayout()
+        entry_col.addWidget(QLabel("Entry chart — double-click a period above:"))
         self.dasa_entry_text = QTextEdit()
         self.dasa_entry_text.setReadOnly(True)
         apply_output_font(self.dasa_entry_text)
-        dl.addWidget(self.dasa_entry_text, stretch=1)
+        entry_col.addWidget(self.dasa_entry_text, stretch=1)
+        chart_row.addLayout(entry_col, stretch=1)
+        dl.addLayout(chart_row)
         dl_outer.addWidget(dasa_scroll)
         dasa_scroll.setWidget(dasa_inner)
 
