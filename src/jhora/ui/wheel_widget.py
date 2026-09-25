@@ -7,16 +7,17 @@ resolved by the headless declutter with leader ticks to true degrees.
 """
 
 import math
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QToolTip, QWidget
 
+from jhora.calc.avastha import avastha_of
 from jhora.calc.combustion import combust_planets
 from jhora.calc.drishti import ALL_GRAHAS
 from jhora.calc.drishti import drishti as calc_drishti
-from jhora.calc.gandanta import gandanta_planets
+from jhora.calc.gandanta import gandanta_planets, gandanta_zone
 from jhora.charts.chart import ChartData
 from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
@@ -40,7 +41,10 @@ class WheelWidget(QWidget):
         self.settings = settings or WheelSettings()
         self.chart_data: Optional[ChartData] = None
         self.transit_lons: Dict[Graha, float] = {}
-        self.setMinimumSize(420, 420)
+        #: Hit records for hover: (graha or None, x, y, radius, tooltip).
+        self._hit: List[Tuple[Optional[Graha], float, float, float, str]] = []
+        self.setMinimumSize(300, 300)
+        self.setMouseTracking(True)
         glyphs.ensure_fonts()
 
     def set_chart_data(self, cd: ChartData):
@@ -50,6 +54,37 @@ class WheelWidget(QWidget):
     def set_transit_data(self, lons: Dict[Graha, float]):
         self.transit_lons = dict(lons)
         self.update()
+
+    def mouseMoveEvent(self, event):
+        pos = event.position()
+        for _g, x, y, r, tip in self._hit:
+            if (pos.x() - x) ** 2 + (pos.y() - y) ** 2 <= r * r:
+                QToolTip.showText(
+                    event.globalPosition().toPoint(), tip, self)
+                return
+        QToolTip.hideText()
+
+    def _tip_for(self, g: Graha, lon: float, lagna: int,
+                 natal: bool) -> str:
+        rasi = Rasi(int(lon // 30) % 12)
+        house = ((int(lon // 30) - lagna) % 12) + 1
+        tip = f"{g.full_name} — {rasi.full_name} {lon % 30:.1f}° · H{house}"
+        if natal and self.chart_data is not None:
+            cd = self.chart_data
+            p = cd.planets[g]
+            flags = []
+            av = avastha_of(g, lon)
+            if av is not None:
+                flags.append(av[0])
+            flags.append("retro" if p.is_retrograde else "direct")
+            sun = cd.planet(Graha.SUN).longitude
+            if g in combust_planets(
+                    {g: lon}, sun, {g: p.is_retrograde}):
+                flags.append("combust")
+            if g in gandanta_planets({g: lon}):
+                flags.append("gandanta")
+            tip += f" · {p.dignity} · {', '.join(flags)}"
+        return tip
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -65,6 +100,7 @@ class WheelWidget(QWidget):
         cx, cy = self.width() / 2.0, self.height() / 2.0
         radius = min(self.width(), self.height()) / 2.0 - 8.0
         lagna = self.chart_data.ascendant
+        self._hit = []
         if s.show_drishti:
             self._paint_drishti(painter, cx, cy, radius, lagna)
         self._paint_signs(painter, cx, cy, radius, lagna)
@@ -103,9 +139,10 @@ class WheelWidget(QWidget):
         for i in range(12):
             rasi = Rasi((int(lagna // 30) + i) % 12)
             start_lon = (int(lagna // 30) * 30 + i * 30) % 360.0
+            tint = (_ELEMENT_TINTS[rasi.element] if s.show_sign_colors
+                    else "#22222f")
             self._paint_arc_segment(painter, cx, cy, inner, outer,
-                                    start_lon, lagna,
-                                    _ELEMENT_TINTS[rasi.element])
+                                    start_lon, lagna, tint)
             mx, my = project(start_lon + 15.0, lagna, cx, cy,
                              (inner + outer) / 2.0)
             text, family, is_glyph = glyphs.glyph_for_rasi(rasi)
@@ -201,6 +238,10 @@ class WheelWidget(QWidget):
             painter.setFont(QFont(family, glyph_px))
             painter.drawText(int(x) - 30, int(y) - 30, 60, 60,
                              Qt.AlignmentFlag.AlignCenter, text)
+            self._hit.append(
+                (g, x, y, 22.0 * s.symbol_scale,
+                 self._tip_for(g, true_lon, int(lagna // 30) % 12,
+                               natal)))
             if g in retro:
                 painter.setFont(QFont("sans-serif", int(9 * s.symbol_scale)))
                 painter.setPen(QColor(s.colors["retro"]))

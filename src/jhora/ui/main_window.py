@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, Q
                              QHeaderView, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
                              QPushButton, QRadioButton, QScrollArea, QSizePolicy,
-                             QSpinBox, QSplitter,
+                             QSlider, QSpinBox, QSplitter,
                              QStackedWidget, QTableWidget, QTableWidgetItem,
                              QTabWidget, QTextEdit,
                              QTimeEdit, QVBoxLayout, QWidget)
@@ -4859,29 +4859,76 @@ class MainWindow(QMainWindow):
 
     def _build_wheel_page(self):
         w = QWidget()
-        layout = QVBoxLayout(w)
+        layout = QHBoxLayout(w)
         layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(6)
+        layout.setSpacing(8)
 
-        toggles = QHBoxLayout()
+        split = QSplitter(Qt.Orientation.Horizontal)
+        self.wheel_widget = WheelWidget()
+        split.addWidget(self.wheel_widget)
+
+        panel = QFrame()
+        panel.setMinimumWidth(200)
+        panel.setMaximumWidth(240)
+        form = QVBoxLayout(panel)
+        form.setSpacing(6)
+        zoom_label = QLabel("Zoom")
+        zoom_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        form.addWidget(zoom_label)
+        zoom_row = QHBoxLayout()
+        self.wheel_zoom_slider = QSlider(Qt.Orientation.Horizontal)
+        self.wheel_zoom_slider.setRange(50, 200)
+        self.wheel_zoom_slider.setValue(100)
+        self.wheel_zoom_slider.valueChanged.connect(self._on_wheel_zoom)
+        zoom_row.addWidget(self.wheel_zoom_slider)
+        self.wheel_zoom_value = QLabel("100%")
+        self.wheel_zoom_value.setMinimumWidth(40)
+        zoom_row.addWidget(self.wheel_zoom_value)
+        form.addLayout(zoom_row)
+
+        layers_label = QLabel("Layers")
+        layers_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        form.addWidget(layers_label)
         self.wheel_drishti_check = QCheckBox("Drishti lines")
         self.wheel_drishti_check.setChecked(True)
         self.wheel_drishti_check.toggled.connect(self._on_wheel_toggles)
-        toggles.addWidget(self.wheel_drishti_check)
+        form.addWidget(self.wheel_drishti_check)
         self.wheel_nodes_check = QCheckBox("Nodes")
         self.wheel_nodes_check.setChecked(True)
         self.wheel_nodes_check.toggled.connect(self._on_wheel_toggles)
-        toggles.addWidget(self.wheel_nodes_check)
+        form.addWidget(self.wheel_nodes_check)
         self.wheel_transits_check = QCheckBox("Transits")
         self.wheel_transits_check.setChecked(True)
         self.wheel_transits_check.toggled.connect(self._on_wheel_toggles)
-        toggles.addWidget(self.wheel_transits_check)
-        toggles.addStretch()
-        layout.addLayout(toggles)
+        form.addWidget(self.wheel_transits_check)
+        self.wheel_signs_check = QCheckBox("Sign colors")
+        self.wheel_signs_check.setChecked(True)
+        self.wheel_signs_check.toggled.connect(self._on_wheel_toggles)
+        form.addWidget(self.wheel_signs_check)
 
-        self.wheel_widget = WheelWidget()
-        layout.addWidget(self.wheel_widget, stretch=1)
+        date_label = QLabel("Transit date")
+        date_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold;")
+        form.addWidget(date_label)
+        self.wheel_transit_date = QDateEdit()
+        self.wheel_transit_date.setCalendarPopup(True)
+        self.wheel_transit_date.setDate(QDate.currentDate())
+        self.wheel_transit_date.dateChanged.connect(
+            self._on_wheel_transit_date)
+        form.addWidget(self.wheel_transit_date)
+        self.wheel_now_btn = QPushButton("Now")
+        self.wheel_now_btn.clicked.connect(self._on_wheel_now)
+        form.addWidget(self.wheel_now_btn)
+        form.addStretch()
+        split.addWidget(panel)
+        split.setStretchFactor(0, 1)
+        split.setStretchFactor(1, 0)
+        layout.addWidget(split)
         return w
+
+    def _on_wheel_zoom(self, value: int):
+        self.wheel_widget.settings.symbol_scale = value / 100.0
+        self.wheel_zoom_value.setText(f"{value}%")
+        self.wheel_widget.update()
 
     def _on_wheel_toggles(self):
         self.wheel_widget.settings.show_drishti = (
@@ -4890,13 +4937,35 @@ class MainWindow(QMainWindow):
             self.wheel_nodes_check.isChecked())
         self.wheel_widget.settings.show_transits = (
             self.wheel_transits_check.isChecked())
+        self.wheel_widget.settings.show_sign_colors = (
+            self.wheel_signs_check.isChecked())
         self.wheel_widget.update()
+
+    def _on_wheel_now(self):
+        import datetime as _dt
+        self.wheel_transit_date.blockSignals(True)
+        self.wheel_transit_date.setDate(QDate.currentDate())
+        self.wheel_transit_date.blockSignals(False)
+        if self.chart_data is not None:
+            self._populate_wheel_page(self.chart_data)
+
+    def _on_wheel_transit_date(self):
+        if self.chart_data is not None:
+            self._populate_wheel_page(self.chart_data)
 
     def _populate_wheel_page(self, cd: ChartData):
         self.wheel_widget.set_chart_data(cd)
         try:
             from jhora.calc.gochara import compute_transits
-            result = compute_transits(cd)
+            from jhora.ephemeris.swe import SweEngine
+            qd = self.wheel_transit_date.date()
+            today = QDate.currentDate()
+            if qd == today:
+                result = compute_transits(cd)
+            else:
+                se = SweEngine()
+                jd = se.julday(qd.year(), qd.month(), qd.day(), 12.0)
+                result = compute_transits(cd, transit_jd=jd)
             self.wheel_widget.set_transit_data({
                 e.graha: (e.transit_rasi * 30 + e.transit_degrees) % 360.0
                 for e in result.entries})
