@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Asta-Udaya: Venus/Jupiter combust + rising windows per year (daily
+  elongation scan, ±1 day) — CLI `asta-udaya` (54 commands), Mundane
+  tab table. Annual data stays out of the natal JSON.
 - Avakahada birth identity (108-syllable nama table, gana/yoni/nadi
   off the shared tables): new CLI `avakahada` (53 commands), Points
   tab table, folded into JSON `omens` (still 31 sections).

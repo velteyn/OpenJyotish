@@ -4730,6 +4730,17 @@ class MainWindow(QMainWindow):
         self.mun_eclipse_table.setAlternatingRowColors(True)
         layout.addWidget(self.mun_eclipse_table)
 
+        # Asta-Udaya
+        self.mun_asta_label = QLabel("")
+        self.mun_asta_label.setStyleSheet("font-weight: bold; color: #d4af37; margin-top: 8px;")
+        layout.addWidget(self.mun_asta_label)
+        self.mun_asta_table = QTableWidget()
+        self.mun_asta_table.setColumnCount(3)
+        self.mun_asta_table.setHorizontalHeaderLabels(["Planet", "Asta (combust from)", "Udaya (rises)"])
+        self.mun_asta_table.horizontalHeader().setStretchLastSection(True)
+        self.mun_asta_table.setAlternatingRowColors(True)
+        layout.addWidget(self.mun_asta_table)
+
         return w
 
     def _on_mundane_compute(self):
@@ -4780,6 +4791,20 @@ class MainWindow(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.mun_eclipse_table.setItem(i, j, item)
         self.mun_eclipse_table.resizeColumnsToContents()
+
+        # Asta-Udaya table (location-independent)
+        from jhora.calc.asta_udaya import asta_periods
+        periods = asta_periods(year)
+        self.mun_asta_label.setText(f"Asta-Udaya {year} (±1 day)")
+        self.mun_asta_table.setRowCount(len(periods))
+        for i, r in enumerate(periods):
+            for j, val in enumerate([
+                    r["planet"].full_name, str(r["asta"]),
+                    str(r["udaya"]) if r["udaya"] else "—"]):
+                item = QTableWidgetItem(val)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.mun_asta_table.setItem(i, j, item)
+        self.mun_asta_table.resizeColumnsToContents()
 
     # --- Ephemeris Tab ---
 
