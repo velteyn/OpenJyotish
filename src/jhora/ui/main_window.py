@@ -324,9 +324,16 @@ class MainWindow(QMainWindow):
         self.chalit_table.setMaximumHeight(260)
         hl.addWidget(self.chalit_table)
 
-        # Dasa tab
+        # Dasa tab (scrollable: options + tree + timeline + tables)
         self.dasa_widget = QWidget()
-        dl = QVBoxLayout(self.dasa_widget)
+        dl_outer = QVBoxLayout(self.dasa_widget)
+        dl_outer.setContentsMargins(0, 0, 0, 0)
+        dasa_scroll = QScrollArea()
+        dasa_scroll.setWidgetResizable(True)
+        dasa_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        dasa_scroll.viewport().setStyleSheet(f"background-color: {BG};")
+        dasa_inner = QWidget()
+        dl = QVBoxLayout(dasa_inner)
         dl.setContentsMargins(8, 8, 8, 8)
         dl.setSpacing(8)
         self.dasa_system_combo = QComboBox()
@@ -421,7 +428,8 @@ class MainWindow(QMainWindow):
         self.dasa_text = QTextEdit()
         self.dasa_text.setReadOnly(True)
         apply_output_font(self.dasa_text)
-        dl.addWidget(self.dasa_text)
+        self.dasa_text.setMinimumHeight(220)
+        dl.addWidget(self.dasa_text, stretch=3)
 
         self.dasa_timeline = DasaTimelineWidget()
         dl.addWidget(self.dasa_timeline)
@@ -438,6 +446,8 @@ class MainWindow(QMainWindow):
         self.dasa_entry_text.setReadOnly(True)
         apply_output_font(self.dasa_entry_text)
         dl.addWidget(self.dasa_entry_text, stretch=1)
+        dl_outer.addWidget(dasa_scroll)
+        dasa_scroll.setWidget(dasa_inner)
 
         # Varga tab
         self.varga_widget = QWidget()
