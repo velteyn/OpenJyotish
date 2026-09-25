@@ -3026,6 +3026,12 @@ class MainWindow(QMainWindow):
         self.pts_yuddha_table.setAlternatingRowColors(True)
         self.pts_yuddha_table.setMaximumHeight(110)
         layout.addWidget(self.pts_yuddha_table)
+
+        layout.addWidget(QLabel("Argala (Planetary Intervention)"))
+        self.pts_argala_table = QTableWidget()
+        self.pts_argala_table.setAlternatingRowColors(True)
+        self.pts_argala_table.setMaximumHeight(180)
+        layout.addWidget(self.pts_argala_table, stretch=1)
         return w
 
     def _populate_points_tab(self, cd: ChartData):
@@ -3147,6 +3153,18 @@ class MainWindow(QMainWindow):
         self._fill_table(self.pts_yuddha_table,
                          ["Pair", "Separation", "Winner"],
                          yw_rows or [["—", "no wars", ""]])
+
+        # Argala on the bhavas.
+        from jhora.calc.argala import argala_all
+        _lagna_si = int(cd.ascendant // 30) % 12
+        ar_rows = [[str(a["house"]), str(a["argala_house"]),
+                    ",".join(g.short_name for g in a["planets"]),
+                    a["grade"] if a["effective"] else "blocked"]
+                   for a in argala_all(
+                       {g: (int(cd.planet(g).longitude // 30) - _lagna_si) % 12 + 1
+                        for g in Graha if g in cd.planets})]
+        self._fill_table(self.pts_argala_table,
+                         ["House", "Via", "Planets", "Status"], ar_rows)
 
     def _build_remedies_tab(self):
         w = QWidget()

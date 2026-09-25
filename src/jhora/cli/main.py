@@ -2317,6 +2317,43 @@ def maitri(
 
 
 @app.command()
+def argala(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    house: int = typer.Option(0, "--house", help="Bhava from lagna (1-12, 0 = all)"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+):
+    """Argala (planetary intervention) on the bhavas — Jaimini sutras 1-1-5/10."""
+    from jhora.calc.argala import argala_all
+
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+    lagna = int(cd.ascendant // 30) % 12
+    houses = {g: (int(p.longitude // 30) - lagna) % 12 + 1
+              for g, p in cd.planets.items()}
+    rows = argala_all(houses)
+    if house:
+        rows = [a for a in rows if a["house"] == house]
+    table = Table(title="Argala (Planetary Intervention)")
+    table.add_column("House", style="cyan")
+    table.add_column("Via", style="yellow")
+    table.add_column("Planets", style="white")
+    table.add_column("Virodha", style="red")
+    table.add_column("Status", style="green")
+    for a in rows:
+        table.add_row(
+            str(a["house"]), str(a["argala_house"]),
+            ",".join(g.short_name for g in a["planets"]),
+            ",".join(g.short_name for g in a["obstructors"]) or "—",
+            a["grade"] if a["effective"] else "blocked")
+    console.print(table)
+
+
+@app.command()
 def special_points(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
     ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),

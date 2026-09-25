@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import QApplication
 
 from jhora.ui.main_window import MainWindow
 from jhora.charts.chart import ChartBuilder
+from jhora.types.graha import Graha
 
 
 @pytest.fixture(scope="module")
@@ -905,6 +906,13 @@ def test_points_tab_populate(main_window, chart):
     assert main_window.pts_marana_table.rowCount() == 1
     # Fixture chart has no wars → placeholder row.
     assert main_window.pts_yuddha_table.rowCount() == 1
+    # Argala rows match the engine output.
+    from jhora.calc.argala import argala_all
+    _lsi = int(chart.ascendant // 30) % 12
+    _n = len(argala_all(
+        {g: (int(chart.planet(g).longitude // 30) - _lsi) % 12 + 1
+         for g in Graha if g in chart.planets}))
+    assert main_window.pts_argala_table.rowCount() == _n
 
 
 def test_chakra_tab_populate(main_window, chart):

@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Added
+- Argala (Jaimini 1-1-5/10): primary/virodha pairs, strict-majority
+  rule, trikona secondary, visesha, Ketu mirror — new CLI `argala`
+  (52 commands), Points tab table, JSON `argala` section (30).
 - Graha Yuddha: five-planet wars inside 1° (Venus exception, then
   northern latitude, disc tiebreak) — CLI `chart` footer, Points tab
   table, new JSON `yuddha` section (29 sections).
