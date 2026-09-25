@@ -5,6 +5,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Changed
+- Points Omens sub-tab lays its three tables side by side; drishti
+  houses read ascending.
 - Dasa tab: entry-chart report sits beside the running-branch table
   instead of in a full-width strip below it.
 

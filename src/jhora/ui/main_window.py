@@ -3096,15 +3096,16 @@ class MainWindow(QMainWindow):
             ("Birth Omens", "pts_omens_table", 110),
             ("Avakahada (Birth Identity)", "pts_avakahada_table", 170),
             ("Drishti (Parashara Aspects)", "pts_drishti_table", 170),
-        ]), "Omens")
+        ], horizontal=True), "Omens")
         layout.addWidget(subs, stretch=1)
         return w
 
-    def _points_page(self, sections):
+    def _points_page(self, sections, horizontal=False):
         """One Points sub-tab: scrollable stack of (label, table) sections.
 
         Tables are created here and kept as same-named attributes so the
-        populate path is untouched.
+        populate path is untouched. Horizontal mode lays the sections
+        side by side instead of stacked.
         """
         page = QWidget()
         outer = QVBoxLayout(page)
@@ -3114,18 +3115,28 @@ class MainWindow(QMainWindow):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.viewport().setStyleSheet(f"background-color: {BG};")
         body = QWidget()
-        layout = QVBoxLayout(body)
+        if horizontal:
+            layout = QHBoxLayout(body)
+            for label, attr, _cap in sections:
+                col = QVBoxLayout()
+                col.addWidget(QLabel(label))
+                table = QTableWidget()
+                table.setAlternatingRowColors(True)
+                setattr(self, attr, table)
+                col.addWidget(table, stretch=1)
+                layout.addLayout(col, stretch=1)
+        else:
+            layout = QVBoxLayout(body)
+            for label, attr, cap in sections:
+                layout.addWidget(QLabel(label))
+                table = QTableWidget()
+                table.setAlternatingRowColors(True)
+                if cap:
+                    table.setMaximumHeight(cap)
+                setattr(self, attr, table)
+                layout.addWidget(table, stretch=0 if cap else 1)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(8)
-        for label, attr, cap in sections:
-            layout.addWidget(QLabel(label))
-            table = QTableWidget()
-            table.setAlternatingRowColors(True)
-            if cap:
-                table.setMaximumHeight(cap)
-            setattr(self, attr, table)
-            layout.addWidget(table, stretch=0 if cap else 1)
-        layout.addStretch()
         scroll.setWidget(body)
         outer.addWidget(scroll)
         return page

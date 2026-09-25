@@ -105,6 +105,6 @@ def aspects_point(cd, longitude: float) -> List[Graha]:
 
 
 def houses_aspected(graha: Graha, sign: int, lagna: int) -> List[int]:
-    """Houses-from-lagna (1-12) a planet in a sign aspects."""
-    return [((a.target_sign_index - lagna) % 12) + 1
-            for a in aspects_from(graha, sign)]
+    """Houses-from-lagna (1-12) a planet in a sign aspects, ascending."""
+    return sorted(((a.target_sign_index - lagna) % 12) + 1
+                  for a in aspects_from(graha, sign))
