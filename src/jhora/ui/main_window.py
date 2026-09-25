@@ -984,19 +984,26 @@ class MainWindow(QMainWindow):
     def _update_planet_table(self):
         if not self.chart_data:
             return
-        headers = ["Planet", "Longitude", "Rasi", "Deg", "Nakshatra", "Pada", "Dignity"]
+        from jhora.calc.combustion import combust_planets
+        cd = self.chart_data
+        _comb = combust_planets(
+            {g: p.longitude for g, p in cd.planets.items()},
+            cd.planet(Graha.SUN).longitude,
+            {g: p.is_retrograde for g, p in cd.planets.items()})
+        headers = ["Planet", "Longitude", "Rasi", "Deg", "Nakshatra", "Pada", "Dignity", "Asta"]
         rows = []
         for g in Graha:
             if g in self.chart_data.planets:
                 p = self.chart_data.planets[g]
                 rows.append([g.full_name, f"{p.longitude:.2f}", p.rasi_name,
                              f"{p.degrees_in_rasi:.2f}", p.nakshatra_name,
-                             str(p.nakshatra_pada), self._dignity_short(p.dignity)])
+                             str(p.nakshatra_pada), self._dignity_short(p.dignity),
+                             "C" if g in _comb else ""])
         rows.append(["Lagna", f"{self.chart_data.ascendant:.2f}",
                      self.chart_data.lagna.rasi_name,
                      f"{self.chart_data.lagna.degrees_in_rasi:.2f}",
                      self.chart_data.lagna.nakshatra_name,
-                     str(self.chart_data.lagna.nakshatra_pada), "Lg"])
+                     str(self.chart_data.lagna.nakshatra_pada), "Lg", ""])
         self._fill_table(self.planet_table, headers, rows)
         self.planet_table.setColumnWidth(6, 50)
 

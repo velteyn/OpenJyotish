@@ -63,6 +63,11 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
 
     # ── Planets ──
     result["planets"] = {}
+    from jhora.calc.combustion import combust_planets
+    _comb = combust_planets(
+        {g: p.longitude for g, p in cd.planets.items()},
+        cd.planet(Graha.SUN).longitude,
+        {g: p.is_retrograde for g, p in cd.planets.items()})
     for g in [Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
               Graha.JUPITER, Graha.VENUS, Graha.SATURN, Graha.RAHU, Graha.KETU]:
         p = cd.planet(g)
@@ -80,6 +85,7 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
             "nakshatra_pada": pada,
             "retrograde": p.is_retrograde,
             "dignity": p.dignity,
+            "combust": g in _comb,
         }
 
     # ── Houses ──
