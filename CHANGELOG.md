@@ -4,6 +4,13 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Fixed
+- Wheel font vendored as TTF (was WOFF2): Qt on Windows renders via
+  DirectWrite, which cannot create a face from WOFF2 data. Same
+  glyphs, no more font errors.
+- `install.bat` verifies the `openjyotish` console script exists and
+  retries without build isolation instead of failing silently.
+
 ### Changed
 - Points Omens sub-tab lays its three tables side by side; drishti
   houses read ascending.

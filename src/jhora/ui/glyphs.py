@@ -59,8 +59,12 @@ def ensure_fonts() -> Dict[str, str]:
         return _loaded
     from PyQt6.QtGui import QFontDatabase
     out = {}
+    # NOTE: Zodiac ships as WOFF2 upstream, vendored here as TTF
+    # (lossless format conversion, OFL-permitted): Qt on Windows
+    # renders via DirectWrite, which cannot create a face from
+    # WOFF2 data ("Failed to create DirectWrite face" error).
     for key, path in (("zodiac", os.path.join(_FONTS_DIR,
-                                              "ZodiacFontFREE.woff2")),
+                                              "ZodiacFontFREE.ttf")),
                       ("noto", os.path.join(_FONTS_DIR,
                                             "NotoSansSymbols2-Regular.ttf"))):
         fid = QFontDatabase.addApplicationFont(path)
