@@ -108,9 +108,14 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(10)
         main_layout.setContentsMargins(10, 10, 10, 10)
 
-        # --- Left panel ---
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
+        # --- Birth Data page (form column + confirmation chart) ---
+        birth_page = QWidget()
+        birth_cols = QHBoxLayout(birth_page)
+        birth_cols.setSpacing(10)
+        birth_cols.setContentsMargins(8, 8, 8, 8)
+        form_col = QWidget()
+        form_col.setFixedWidth(600)
+        left_layout = QVBoxLayout(form_col)
         left_layout.setSpacing(10)
         left_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -211,29 +216,32 @@ class MainWindow(QMainWindow):
         form.addRow("TZ:", tz_row)
         form.addRow(latlon_row)
 
-        # Controls row
-        ctrl = QHBoxLayout()
-        ctrl.setSpacing(8)
+        # Controls rows (two short rows always fit the form column)
+        ctrl1 = QHBoxLayout()
+        ctrl1.setSpacing(8)
         self.style_combo = QComboBox()
         self.style_combo.addItems(["South Indian", "North Indian", "East Indian"])
-        self.style_combo.setMaximumWidth(120)
         self.style_combo.currentTextChanged.connect(self._on_style_changed)
         self.ayanamsa_combo = QComboBox()
         self.ayanamsa_combo.addItems(["lahiri", "raman", "krishnamurti", "sss"])
-        self.ayanamsa_combo.setMaximumWidth(120)
+        self.ayanamsa_combo.setToolTip("Ayanamsa (calculation setting)")
         self.nodes_combo = QComboBox()
         self.nodes_combo.addItems(["mean", "true"])
-        self.nodes_combo.setMaximumWidth(80)
-        self.nodes_combo.setToolTip("Lunar nodes: mean (default) or true")
+        self.nodes_combo.setToolTip("Lunar nodes: mean (default) or true (calculation setting)")
+        ctrl1.addWidget(self.style_combo)
+        ctrl1.addWidget(self.ayanamsa_combo)
+        ctrl1.addWidget(self.nodes_combo)
+        ctrl1.addStretch()
+        form.addRow(ctrl1)
 
+        ctrl2 = QHBoxLayout()
+        ctrl2.setSpacing(8)
         self.navamsa_toggle = QPushButton("Navamsa")
         self.navamsa_toggle.setCheckable(True)
-        self.navamsa_toggle.setFixedWidth(80)
         self.navamsa_toggle.toggled.connect(self._on_navamsa_toggle)
 
         self.packed_toggle = QPushButton("Packed")
         self.packed_toggle.setCheckable(True)
-        self.packed_toggle.setFixedWidth(80)
         self.packed_toggle.setToolTip("Packed chart mode: tighter cells, no markers")
         self.packed_toggle.toggled.connect(self._on_packed_toggle)
 
@@ -242,14 +250,11 @@ class MainWindow(QMainWindow):
         self.calc_btn.setFixedWidth(110)
         self.calc_btn.clicked.connect(self._on_calculate)
 
-        ctrl.addWidget(self.style_combo)
-        ctrl.addWidget(self.ayanamsa_combo)
-        ctrl.addWidget(self.nodes_combo)
-        ctrl.addWidget(self.navamsa_toggle)
-        ctrl.addWidget(self.packed_toggle)
-        ctrl.addStretch()
-        ctrl.addWidget(self.calc_btn)
-        form.addRow(ctrl)
+        ctrl2.addWidget(self.navamsa_toggle)
+        ctrl2.addWidget(self.packed_toggle)
+        ctrl2.addStretch()
+        ctrl2.addWidget(self.calc_btn)
+        form.addRow(ctrl2)
 
         left_layout.addWidget(input_group)
 
@@ -268,7 +273,8 @@ class MainWindow(QMainWindow):
 
         # Chart
         self.chart_widget = ChartWidget()
-        left_layout.addWidget(self.chart_widget, stretch=1)
+        birth_cols.addWidget(form_col)
+        birth_cols.addWidget(self.chart_widget, stretch=1)
 
         # --- Right panel: stacked pages driven by sidebar nav ---
         right_panel = QWidget()
@@ -461,6 +467,9 @@ class MainWindow(QMainWindow):
         vg.addWidget(self.varga_table, 1)
 
         # ── Pages (order must match the sidebar nav) ──
+        # 0. Birth Data
+        self.page_stack.addWidget(birth_page)
+
         # 1. Dashboard
         self.page_stack.addWidget(self._build_dashboard_tab())
 
@@ -527,13 +536,8 @@ class MainWindow(QMainWindow):
         # --- Sidebar navigation rail ---
         sidebar = self._build_sidebar()
 
-        # Splitter
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.addWidget(left_panel)
-        splitter.addWidget(right_panel)
-        splitter.setSizes([560, 540])
         main_layout.addWidget(sidebar)
-        main_layout.addWidget(splitter)
+        main_layout.addWidget(right_panel, stretch=1)
 
         self.statusBar().showMessage("Ready — enter birth data and press Calculate")
 
@@ -560,6 +564,7 @@ class MainWindow(QMainWindow):
         self.nav_list.setObjectName("nav")
         self.nav_list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         for icon, label in [
+            ("✎", "Birth Data"),
             ("◉", "Dashboard"),
             ("▦", "Chart & Varga"),
             ("▲", "Strengths"),
@@ -956,6 +961,8 @@ class MainWindow(QMainWindow):
 
             self._on_varga_show()
             self.statusBar().showMessage("Done")
+            # Birth data lives on its own page now: land on the chart.
+            self.nav_list.setCurrentRow(2)
         except Exception as e:
             import traceback
             detail = traceback.format_exc()

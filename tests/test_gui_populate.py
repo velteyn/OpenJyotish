@@ -949,6 +949,15 @@ def test_chakra_tab_populate(main_window, chart):
             == len(sarvatobhadra_vedha(0)))
 
 
+def test_birthdata_page_and_landing(main_window):
+    assert main_window.nav_list.item(0).text().endswith("Birth Data")
+    assert main_window.page_stack.count() == 10
+    assert main_window.chart_widget is not None
+    main_window._on_calculate()
+    assert main_window.chart_data is not None
+    assert main_window.nav_list.currentRow() == 2
+
+
 def test_varga_table_vargottama_column(main_window, chart):
     main_window.chart_data = chart
     main_window._on_varga_show()

@@ -4,7 +4,7 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-56 CLI commands  |  9 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+56 CLI commands  |  10 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
 31-section JSON API for AI agents (+ JSON-LD)  |  1747 tests  |  GPL v3.0
 ```
 
@@ -112,10 +112,11 @@ All commands accept birth data as: `"YYYY-MM-DD HH:MM TZ LAT LON"`
 
 ## GUI
 
-`openjyotish gui` or `./run.sh` — 9 main categories with sub-tabs:
+`openjyotish gui` or `./run.sh` — 10 main categories with sub-tabs:
 
 | Category | Contains |
 |----------|----------|
+| **Birth Data** | Birth form + confirmation chart (Calculate lands on Chart View) |
 | **Dashboard** | Current dasa, transits, strengths, upcoming |
 | **Chart & Varga** | Chart View (Planets & Data, Ashtakavarga), Compare, Planets, Houses & Chalit, Varga Charts, Yogas |
 | **Strengths** | Shadbala, Arudha & Karaka, Ashtakavarga |
