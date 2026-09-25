@@ -83,6 +83,18 @@ python -m pip install --upgrade pip -q 2>nul
 pip install -r requirements.txt
 pip install -e .
 
+if not exist venv\Scripts\openjyotish.exe (
+    echo Console script missing, retrying without build isolation...
+    pip install setuptools wheel -q 2>nul
+    pip install -e . --no-build-isolation
+)
+if not exist venv\Scripts\openjyotish.exe (
+    echo.
+    echo WARNING: the 'openjyotish' command is not installed.
+    echo run.bat will fall back to 'python -m jhora gui' (works the same).
+    echo.
+)
+
 echo.
 echo ========================================
 echo  Setup complete!
