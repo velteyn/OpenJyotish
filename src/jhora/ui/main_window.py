@@ -3087,11 +3087,12 @@ class MainWindow(QMainWindow):
         ]), "Maitri")
         subs.addTab(self._points_page([
             ("Marana Karaka Sthana (planets in death-houses)",
-             "pts_marana_table", 120),
-            ("Vaiseshikamsa Ranks", "pts_vaiseshika_table", 150),
-            ("Planetary Wars (Graha Yuddha)", "pts_yuddha_table", 110),
-            ("Argala (Planetary Intervention)", "pts_argala_table", 180),
-        ]), "Learning")
+             "pts_marana_table", 120, 8),
+            ("Vaiseshikamsa Ranks", "pts_vaiseshika_table", 150, 7),
+            ("Planetary Wars (Graha Yuddha)", "pts_yuddha_table", 110, 7),
+            ("Argala (Planetary Intervention)", "pts_argala_table", 180,
+             9),
+        ], horizontal=True), "Learning")
         subs.addTab(self._points_page([
             ("Birth Omens", "pts_omens_table", 110),
             ("Avakahada (Birth Identity)", "pts_avakahada_table", 170),
@@ -3117,17 +3118,20 @@ class MainWindow(QMainWindow):
         body = QWidget()
         if horizontal:
             layout = QHBoxLayout(body)
-            for label, attr, _cap in sections:
+            for spec in sections:
+                label, attr = spec[0], spec[1]
+                stretch = spec[3] if len(spec) > 3 else 1
                 col = QVBoxLayout()
                 col.addWidget(QLabel(label))
                 table = QTableWidget()
                 table.setAlternatingRowColors(True)
                 setattr(self, attr, table)
                 col.addWidget(table, stretch=1)
-                layout.addLayout(col, stretch=1)
+                layout.addLayout(col, stretch=stretch)
         else:
             layout = QVBoxLayout(body)
-            for label, attr, cap in sections:
+            for spec in sections:
+                label, attr, cap = spec[0], spec[1], spec[2]
                 layout.addWidget(QLabel(label))
                 table = QTableWidget()
                 table.setAlternatingRowColors(True)
@@ -3241,7 +3245,7 @@ class MainWindow(QMainWindow):
                     f"{m['longitude']:.2f}°"]
                    for m in marana_karaka_sthana(cd)]
         self._fill_table(self.pts_marana_table,
-                         ["Planet", "House", "Sign", "Longitude"],
+                         ["Planet", "House", "Sign", "Lon"],
                          mk_rows or [["—", "none in marana", "", ""]])
         va_rows = [[v["graha"], f"{v['score']:.1f}", v["rank"]]
                    for v in vaiseshikamsas(cd)]
