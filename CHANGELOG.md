@@ -5,6 +5,9 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Fixed
+- Theme audit: BAV scroll viewport, calendar header strip and table
+  corner buttons painted light — all now follow the dark theme.
+  Screenshot-swept every page.
 - Tab labels with `&` rendered as mnemonics (e.g. `Tajaka_TP`);
   escaped across all tab bars.
 - Points tab split into sub-tabs (Upagrahas, Sphutas, Special,

@@ -5606,6 +5606,8 @@ class MainWindow(QMainWindow):
 
         bav_scroll = QScrollArea()
         bav_scroll.setWidgetResizable(True)
+        bav_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        bav_scroll.viewport().setStyleSheet(f"background-color: {BG};")
         bav_scroll.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         bav_inner = QWidget()

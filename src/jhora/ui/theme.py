@@ -114,6 +114,9 @@ QHeaderView::section {{ background-color: {BG_INPUT}; color: {GOLD};
                        font-weight: bold; border: none;
                        border-bottom: 2px solid {GOLD_DIM};
                        padding: 6px 8px; }}
+QHeaderView {{ background-color: {BG_PANEL}; }}
+QTableCornerButton::section {{ background-color: {BG_INPUT};
+                              border: none; }}
 
 /* ── Tabs (sub-tabs inside pages) ── */
 QTabWidget::pane {{ background-color: {BG_PANEL};
