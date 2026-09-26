@@ -78,8 +78,13 @@ jobs:
           # NOTE: no pipes here — `| head` SIGPIPEs the frozen binary into
           # a false failure.
           ls dist/OpenJyotish/
-          if [ "$RUNNER_OS" = "Windows" ]; then timeout 300 ./dist/OpenJyotish/openjyotish.exe --version
-          else timeout 300 ./dist/OpenJyotish/openjyotish --version
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            test -f dist/OpenJyotish/OpenJyotish.exe
+            test -f dist/OpenJyotish/openjyotish-cli.exe
+            timeout 300 ./dist/OpenJyotish/openjyotish-cli.exe --version
+          else
+            test -f dist/OpenJyotish/openjyotish
+            timeout 300 ./dist/OpenJyotish/openjyotish --version
           fi
 
       - name: Windows installer (Inno Setup)
@@ -101,14 +106,16 @@ jobs:
             -DestinationPath "OpenJyotish-$env:APP_VERSION-Windows-portable.zip"
           # Guard the v1.10.0 failure class (zip without exes): fail
           # the job instead of shipping a hollow portable build.
+          # NOTE: -clike (case-SENSITIVE): -like matched OpenJyotish.exe
+          # for openjyotish.exe and let the hollow zip through once.
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $zipPath = "OpenJyotish-$env:APP_VERSION-Windows-portable.zip"
           $zip = [IO.Compression.ZipFile]::OpenRead($zipPath)
           $names = $zip.Entries | ForEach-Object { $_.FullName }
           $zip.Dispose()
-          if (-not ($names -like '*/openjyotish.exe')) {
-            Write-Error 'portable zip missing openjyotish.exe'; exit 1 }
-          if (-not ($names -like '*/OpenJyotish.exe')) {
+          if (-not ($names -clike '*/openjyotish-cli.exe')) {
+            Write-Error 'portable zip missing openjyotish-cli.exe'; exit 1 }
+          if (-not ($names -clike '*/OpenJyotish.exe')) {
             Write-Error 'portable zip missing OpenJyotish.exe'; exit 1 }
           Write-Output 'portable zip contents OK'
 

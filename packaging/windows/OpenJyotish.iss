@@ -39,11 +39,11 @@ Source: "..\..\dist\OpenJyotish\*"; DestDir: "{app}"; \
 
 [Icons]
 Name: "{group}\OpenJyotish"; Filename: "{app}\{#MyAppExeName}"
-; TUI via a persistent console: bare openjyotish.exe with no command
+; TUI via a persistent console: bare openjyotish-cli.exe with no command
 ; exits immediately (which just flashes and closes when double-clicked),
 ; so open cmd, start the terminal UI, and stay open in the install dir.
 Name: "{group}\OpenJyotish TUI"; Filename: "{cmd}"; \
-    Parameters: "/K openjyotish.exe tui"; WorkingDir: "{app}"
+    Parameters: "/K openjyotish-cli.exe tui"; WorkingDir: "{app}"
 Name: "{autodesktop}\OpenJyotish"; Filename: "{app}\{#MyAppExeName}"; \
     Tasks: desktopicon
 

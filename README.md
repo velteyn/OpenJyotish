@@ -21,7 +21,8 @@ From [Releases](https://github.com/velteyn/OpenJyotish/releases):
 - `OpenJyotish-<ver>-Windows-Setup.exe` — installer (recommended).
   Start Menu gets OpenJyotish (GUI) + OpenJyotish TUI.
 - `OpenJyotish-<ver>-Windows-portable.zip` — unzip anywhere,
-  double-click `OpenJyotish.exe`. No install, no admin rights.
+  double-click `OpenJyotish.exe` (GUI) or run `openjyotish-cli.exe`
+  (terminal/CLI). No install, no admin rights.
 
 Both include the app, glyph fonts and ephemeris data.
 

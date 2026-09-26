@@ -5,6 +5,14 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## v1.10.1 — 2026-09-26
 
 ### Fixed
+- Windows frozen apps were a single binary: the filesystem is
+  case-insensitive, so the CLI (`openjyotish`) overwrote the GUI
+  (`OpenJyotish`) in the bundle — v1.10.0 shipped a CLI binary as
+  `OpenJyotish.exe` (GUI icon opened a terminal, portable zip had no
+  CLI). The frozen CLI is now `openjyotish-cli.exe` on Windows
+  (Start Menu TUI entry and docs updated); CI asserts both exes
+  exist in dist and inside the portable zip, with a case-sensitive
+  match.
 - Houses & Chalit tab: the cusp table and the Chalit table were
   stacked and both cut off. Chalit (with its label, Varga and Bhava
   selectors) moved into a right-hand panel; both tables full height
