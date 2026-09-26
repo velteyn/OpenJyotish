@@ -4,6 +4,12 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Fixed
+- Arudha & Karaka tab: the four tables were stacked vertically and
+  starved each other of height. They are now side-by-side vertical
+  panels, each full tab height with its width pinned to its content
+  (the tab scrolls horizontally on narrow windows).
+
 ### Added
 - Windows portable build: every release now ships
   `OpenJyotish-<ver>-Windows-portable.zip` (frozen folder, exe

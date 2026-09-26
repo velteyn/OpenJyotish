@@ -1673,31 +1673,48 @@ class MainWindow(QMainWindow):
 
     def _build_arudha_tab(self):
         w = QWidget()
-        layout = QVBoxLayout(w)
+        outer = QVBoxLayout(w)
+        outer.setContentsMargins(0, 0, 0, 0)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.viewport().setStyleSheet(f"background-color: {BG};")
+        body = QWidget()
+        layout = QHBoxLayout(body)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
-        layout.addWidget(QLabel("Bhava Arudhas (Pada of each house):"))
-        self.arudha_bhava_table = QTableWidget()
-        self.arudha_bhava_table.setAlternatingRowColors(True)
-        layout.addWidget(self.arudha_bhava_table, stretch=3)
-
-        layout.addWidget(QLabel("Graha Arudhas (Pada of each planet):"))
-        self.arudha_graha_table = QTableWidget()
-        self.arudha_graha_table.setAlternatingRowColors(True)
-        layout.addWidget(self.arudha_graha_table, stretch=2)
-
-        layout.addWidget(QLabel("Chara Karakas (8 significators by longitude):"))
-        self.karaka_table = QTableWidget()
-        self.karaka_table.setAlternatingRowColors(True)
-        layout.addWidget(self.karaka_table, stretch=2)
-
-        layout.addWidget(QLabel("Sahamas (sensitive points):"))
-        self.sahama_table = QTableWidget()
-        self.sahama_table.setAlternatingRowColors(True)
-        layout.addWidget(self.sahama_table, stretch=3)
-
+        # Side-by-side vertical panels: each table gets full tab height
+        # instead of the four stacked tables starving each other.
+        for label, attr, stretch in [
+            ("Bhava Arudhas (Pada of each house):",
+             "arudha_bhava_table", 3),
+            ("Graha Arudhas (Pada of each planet):",
+             "arudha_graha_table", 2),
+            ("Chara Karakas (8 significators by longitude):",
+             "karaka_table", 4),
+            ("Sahamas (sensitive points):", "sahama_table", 4),
+        ]:
+            col = QVBoxLayout()
+            col.addWidget(QLabel(label))
+            table = QTableWidget()
+            table.setAlternatingRowColors(True)
+            setattr(self, attr, table)
+            col.addWidget(table, stretch=1)
+            layout.addLayout(col, stretch=stretch)
+        scroll.setWidget(body)
+        outer.addWidget(scroll)
         return w
+
+    @staticmethod
+    def _pin_table_width(table):
+        """Minimum width fitting all columns: the outer area scrolls
+        horizontally on narrow windows instead of squeezing content."""
+        table.resizeColumnsToContents()
+        width = sum(table.columnWidth(c)
+                    for c in range(table.columnCount()))
+        width += table.verticalScrollBar().sizeHint().width() + 8
+        table.setMinimumWidth(width)
 
     def _build_calendar_tab(self):
         import datetime as _dt
@@ -2010,6 +2027,7 @@ class MainWindow(QMainWindow):
                          f"A{n} — {bhava_pada_name(n)}{alias}",
                          bhava[n].full_name])
         self._fill_table(self.arudha_bhava_table, headers, rows)
+        self._pin_table_width(self.arudha_bhava_table)
 
         graha_arus = all_graha_arudhas(planets)
         headers = ["Planet", "Graha pada", "Sign"]
@@ -2019,6 +2037,7 @@ class MainWindow(QMainWindow):
                 rows.append([g.full_name, graha_pada_name(g),
                              graha_arus[g].full_name])
         self._fill_table(self.arudha_graha_table, headers, rows)
+        self._pin_table_width(self.arudha_graha_table)
 
         karakas = compute_chara_karakas(planets)
         headers = ["Rank", "Karaka", "Planet", "Longitude", "Meaning"]
@@ -2029,6 +2048,7 @@ class MainWindow(QMainWindow):
                 k.graha.full_name, f"{k.longitude:.2f}°", k.meaning,
             ])
         self._fill_table(self.karaka_table, headers, rows)
+        self._pin_table_width(self.karaka_table)
 
         from jhora.calc.sahama import is_day_birth
         sahamas = compute_sahamas(cd.ascendant, planets, day=is_day_birth(cd))
@@ -2046,6 +2066,7 @@ class MainWindow(QMainWindow):
                 str(house),
             ])
         self._fill_table(self.sahama_table, headers, rows)
+        self._pin_table_width(self.sahama_table)
 
     def _on_ak_kakshya_changed(self, index: int):
         if self.chart_data:
