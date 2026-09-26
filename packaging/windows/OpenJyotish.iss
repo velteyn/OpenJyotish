@@ -39,7 +39,11 @@ Source: "..\..\dist\OpenJyotish\*"; DestDir: "{app}"; \
 
 [Icons]
 Name: "{group}\OpenJyotish"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\OpenJyotish CLI"; Filename: "{app}\openjyotish.exe"
+; CLI via a persistent console: bare openjyotish.exe with no command
+; exits immediately (which just flashes and closes when double-clicked),
+; so open cmd, show help, and stay open in the install dir.
+Name: "{group}\OpenJyotish CLI"; Filename: "{cmd}"; \
+    Parameters: "/K openjyotish.exe --help"; WorkingDir: "{app}"
 Name: "{autodesktop}\OpenJyotish"; Filename: "{app}\{#MyAppExeName}"; \
     Tasks: desktopicon
 
