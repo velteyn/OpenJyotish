@@ -5,6 +5,10 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Fixed
+- Houses & Chalit tab: the cusp table and the Chalit table were
+  stacked and both cut off. Chalit (with its label, Varga and Bhava
+  selectors) moved into a right-hand panel; both tables full height
+  with widths pinned. The cusp table finally gets a title.
 - Ashtakavarga tab: same stacked-table squeeze as Arudha — BAV,
   Sodhya Pinda and Kakshya are now side-by-side vertical panels
   (Tradition selector stays on top, Kakshya planet selector moved
