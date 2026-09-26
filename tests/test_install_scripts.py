@@ -42,7 +42,15 @@ class TestLaunchers:
     def test_windows_cli_shortcut_persists(self):
         iss = _read("packaging/windows/OpenJyotish.iss")
         assert "{cmd}" in iss and "/K" in iss
-        assert "openjyotish.exe tui" in iss
+        assert "openjyotish-cli.exe tui" in iss
+
+    def test_frozen_cli_name_avoids_windows_case_collision(self):
+        # Windows is case-insensitive: "openjyotish" would overwrite
+        # "OpenJyotish" (GUI) in dist (v1.10.0 shipped a CLI as the GUI).
+        spec = _read("packaging/OpenJyotish.spec")
+        assert 'openjyotish-cli' in spec
+        yml = _read(".github/workflows/build-binaries.yml")
+        assert "openjyotish-cli.exe" in yml
 
     def test_release_zip_packs_ephe_downloader(self):
         yml = _read(".github/workflows/release.yml")
@@ -59,3 +67,12 @@ class TestLaunchers:
     def test_windows_portable_zip_published(self):
         yml = _read(".github/workflows/build-binaries.yml")
         assert "Windows-portable" in yml
+        # The v1.10.0 hollow-zip class: CI must assert both exes
+        # are inside the portable zip and fail otherwise.
+        assert "portable zip missing openjyotish-cli.exe" in yml
+        assert "portable zip missing OpenJyotish.exe" in yml
+
+    def test_release_zip_guards_required_files(self):
+        yml = _read(".github/workflows/release.yml")
+        assert "missing required files" in yml
+        assert "zip contents OK" in yml

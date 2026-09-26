@@ -75,10 +75,15 @@ gui_exe = EXE(
     console=False,
     disable_windowed_traceback=False,
 )
+# NOTE: on Windows the filesystem is case-insensitive, so the CLI
+# must NOT be called "openjyotish" — it would collide with and
+# overwrite "OpenJyotish" (GUI) in the same folder (this shipped a
+# CLI binary as OpenJyotish.exe in v1.10.0).
+cli_name = "openjyotish-cli" if sys.platform == "win32" else "openjyotish"
 cli_exe = EXE(
     cli_pyz, cli_analysis.scripts, [],
     exclude_binaries=True,
-    name="openjyotish",
+    name=cli_name,
     debug=False,
     strip=False,
     upx=False,
