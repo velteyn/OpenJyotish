@@ -1628,11 +1628,11 @@ class MainWindow(QMainWindow):
 
     def _build_ashtakavarga_tab(self) -> QWidget:
         w = QWidget()
-        layout = QVBoxLayout(w)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
+        outer = QVBoxLayout(w)
+        outer.setContentsMargins(0, 0, 0, 0)
 
         ctrl = QHBoxLayout()
+        ctrl.setContentsMargins(8, 8, 8, 0)
         ctrl.setSpacing(8)
         ctrl.addWidget(QLabel("Tradition:"))
         self.ak_tradition_combo = QComboBox()
@@ -1640,21 +1640,36 @@ class MainWindow(QMainWindow):
         self.ak_tradition_combo.currentTextChanged.connect(self._on_ak_tradition_changed)
         ctrl.addWidget(self.ak_tradition_combo)
         ctrl.addStretch()
-        layout.addLayout(ctrl)
+        outer.addLayout(ctrl)
 
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.viewport().setStyleSheet(f"background-color: {BG};")
+        body = QWidget()
+        layout = QHBoxLayout(body)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        # Side-by-side vertical panels (same as Arudha tab): each
+        # table gets full height instead of stacked and starved.
+        bav_col = QVBoxLayout()
+        bav_col.addWidget(QLabel("Bhinna Ashtakavarga"))
         self.ak_bav_table = QTableWidget()
         self.ak_bav_table.setAlternatingRowColors(True)
-        layout.addWidget(self.ak_bav_table, stretch=3)
+        bav_col.addWidget(self.ak_bav_table, stretch=1)
+        layout.addLayout(bav_col, stretch=5)
 
+        sp_col = QVBoxLayout()
         self.ak_sp_label = QLabel()
         self.ak_sp_label.setStyleSheet(f"color: {ACCENT}; font-weight: bold; padding: 4px;")
-        layout.addWidget(self.ak_sp_label)
-
+        sp_col.addWidget(self.ak_sp_label)
         self.ak_sp_table = QTableWidget()
         self.ak_sp_table.setAlternatingRowColors(True)
-        layout.addWidget(self.ak_sp_table, stretch=1)
+        sp_col.addWidget(self.ak_sp_table, stretch=1)
+        layout.addLayout(sp_col, stretch=2)
 
-        # Kakshya section
+        kak_col = QVBoxLayout()
         kakshya_ctrl = QHBoxLayout()
         kakshya_ctrl.setSpacing(8)
         kakshya_ctrl.addWidget(QLabel("Kakshya planet:"))
@@ -1664,11 +1679,14 @@ class MainWindow(QMainWindow):
         self.ak_kakshya_combo.currentIndexChanged.connect(self._on_ak_kakshya_changed)
         kakshya_ctrl.addWidget(self.ak_kakshya_combo)
         kakshya_ctrl.addStretch()
-        layout.addLayout(kakshya_ctrl)
-
+        kak_col.addLayout(kakshya_ctrl)
         self.ak_kakshya_table = QTableWidget()
         self.ak_kakshya_table.setAlternatingRowColors(True)
-        layout.addWidget(self.ak_kakshya_table, stretch=2)
+        kak_col.addWidget(self.ak_kakshya_table, stretch=1)
+        layout.addLayout(kak_col, stretch=5)
+
+        scroll.setWidget(body)
+        outer.addWidget(scroll, stretch=1)
         return w
 
     def _build_arudha_tab(self):
@@ -2090,6 +2108,7 @@ class MainWindow(QMainWindow):
             vals = [str(bavs[g][h]) for g in _OCCUPANT_GRAHAS]
             rows.append([rasi.short_name, rasi.full_name] + vals + [str(sav[h])])
         self._fill_table(self.ak_bav_table, headers, rows)
+        self._pin_table_width(self.ak_bav_table)
 
         # Sodhya Pinda label
         tradition = self.ak_tradition_combo.currentText()
@@ -2098,6 +2117,7 @@ class MainWindow(QMainWindow):
         sp_headers = ["Planet", "Sodhya Pinda"]
         sp_rows = [[g.full_name, str(sp[g])] for g in _OCCUPANT_GRAHAS]
         self._fill_table(self.ak_sp_table, sp_headers, sp_rows)
+        self._pin_table_width(self.ak_sp_table)
 
         # Kakshya table for selected planet
         subject = self.ak_kakshya_combo.currentData()
@@ -2108,6 +2128,7 @@ class MainWindow(QMainWindow):
             vals = [str(kt[h][k]) for k in range(8)]
             kt_rows.append([Rasi(h).short_name] + vals + [str(sum(kt[h]))])
         self._fill_table(self.ak_kakshya_table, kt_headers, kt_rows)
+        self._pin_table_width(self.ak_kakshya_table)
 
     # --- Transit tab ---
 
