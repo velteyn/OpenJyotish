@@ -1728,6 +1728,8 @@ class MainWindow(QMainWindow):
         self.cal_next_btn.clicked.connect(lambda: self._shift_calendar(1))
         nav.addWidget(self.cal_next_btn)
         self.cal_adjuncts_check = QCheckBox("Durmuhurta/Varjya")
+        self.cal_adjuncts_check.setToolTip(
+            "Show in the selected day's detail (computed on click)")
         self.cal_adjuncts_check.toggled.connect(self._refresh_calendar)
         nav.addWidget(self.cal_adjuncts_check)
         nav.addStretch()
@@ -1819,12 +1821,13 @@ class MainWindow(QMainWindow):
             return
         try:
             days = monthly_panchanga(
-                year, month, lat, lon, tz_offset,
-                with_adjuncts=self.cal_adjuncts_check.isChecked())
+                year, month, lat, lon, tz_offset, with_adjuncts=False)
         except Exception:
             return
         self.cal_days = {d.date: d for d in days}
         self.cal_cells = {}
+        # Geometry for lazy per-day adjuncts (grid itself stays cheap).
+        self._cal_geo = (lat, lon, tz_offset)
         first_mon0, _ndays = _cal.monthrange(year, month)
         col0 = (first_mon0 + 1) % 7  # Sun-first columns
         today = _dt.date.today()
@@ -1855,20 +1858,44 @@ class MainWindow(QMainWindow):
                                   & ~Qt.ItemFlag.ItemIsEnabled)
                     self.cal_grid.setItem(r, c, item)
         self.cal_grid.resizeColumnsToContents()
+        # Re-render the selected day (adjunct toggle needs no recompute).
+        if getattr(self, "_cal_sel", None) in self.cal_cells:
+            self._on_calendar_cell(*self._cal_sel)
 
     def _on_calendar_cell(self, row: int, col: int):
+        import datetime as _dt
         d = self.cal_cells.get((row, col))
         if d is None:
             return
+        self._cal_sel = (row, col)
         lines = [f"{d.date} ({d.weekday}) — {d.paksha} {d.tithi}",
                  f"Nakshatra {d.nakshatra} | Yoga {d.yoga} | "
                  f"Karana {d.karana} | Moon in {d.moon_sign}",
                  f"Sunrise {d.sunrise} Sunset {d.sunset}",
                  f"Rahu {d.rahu_kalam} | Gulika {d.gulika_kalam} | "
                  f"Yama {d.yama_gandam}"]
-        if d.varjya1 != "—" or d.durmuhurta1 != "—":
-            lines.append(f"Varjya {d.varjya1}, {d.varjya2} | "
-                         f"Durmuhurta {d.durmuhurta1}, {d.durmuhurta2}")
+        if self.cal_adjuncts_check.isChecked():
+            # Adjuncts computed lazily for the selected day only: the
+            # full-month adjunct sweep costs seconds, this costs ~0.15s.
+            try:
+                from jhora.calc.muhurta import (_datetime_to_jd,
+                                                compute_adjuncts)
+                lat, lon, tz_offset = self._cal_geo
+                y, m, day = (int(v) for v in d.date.split("-"))
+                dt = _dt.datetime(y, m, day)
+                adj = compute_adjuncts(dt, lat, lon, tz_offset, None)
+                base = _datetime_to_jd(dt, tz_offset)
+
+                def _win(w):
+                    sh = (w.start - base) * 24.0 % 24.0
+                    eh = (w.end - base) * 24.0 % 24.0
+                    return (f"{int(sh):02d}:{int((sh % 1) * 60):02d}-"
+                            f"{int(eh):02d}:{int((eh % 1) * 60):02d}")
+                varjya = ", ".join(_win(x) for x in adj.varjya) or "—"
+                dur = ", ".join(_win(x) for x in adj.durmuhurta) or "—"
+                lines.append(f"Varjya {varjya} | Durmuhurta {dur}")
+            except Exception:
+                pass
         self.cal_detail.setPlainText("\n".join(lines))
 
     def _build_kp_tab(self):
