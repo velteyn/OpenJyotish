@@ -44,6 +44,13 @@ class TestLaunchers:
         assert "{cmd}" in iss and "/K" in iss
         assert "openjyotish-cli.exe tui" in iss
 
+    def test_windows_upgrade_wipes_app_dir(self):
+        # Same-folder upgrades must not mix stale files/DLLs
+        # (v1.10.0 ghost exe + old Qt DLLs = half-styled window).
+        iss = _read("packaging/windows/OpenJyotish.iss")
+        assert "[InstallDelete]" in iss
+        assert '"{app}\\*"' in iss
+
     def test_frozen_cli_name_avoids_windows_case_collision(self):
         # Windows is case-insensitive: "openjyotish" would overwrite
         # "OpenJyotish" (GUI) in dist (v1.10.0 shipped a CLI as the GUI).

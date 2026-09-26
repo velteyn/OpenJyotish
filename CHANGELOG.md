@@ -2,6 +2,15 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
+## Unreleased
+
+### Fixed
+- Windows upgrades installed over the old folder, leaving stale
+  files behind (v1.10.0's ghost `openjyotish.exe`, old Qt DLLs) —
+  mixed trees render a half-styled window. The installer now wipes
+  `{app}` first (user data lives in %APPDATA%, never there). If your
+  window looks half-white, uninstall fully and reinstall fresh.
+
 ## v1.10.2 — 2026-09-26
 
 ### Fixed
