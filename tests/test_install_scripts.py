@@ -42,3 +42,4 @@ class TestLaunchers:
     def test_windows_cli_shortcut_persists(self):
         iss = _read("packaging/windows/OpenJyotish.iss")
         assert "{cmd}" in iss and "/K" in iss
+        assert "openjyotish.exe tui" in iss

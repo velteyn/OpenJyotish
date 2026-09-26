@@ -6,8 +6,8 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ### Fixed
 - Windows installer: bundle the wheel glyph fonts (frozen app had
-  none) and make the CLI shortcut open a persistent console with
-  help instead of flashing and closing.
+  none); Start Menu gets GUI + TUI icons, the TUI opening in a
+  persistent console instead of flashing and closing.
 - Calendar tab freezes (4.5s per click with adjuncts on): the month
   grid always uses the cheap sweep; Durmuhurta/Varjya compute lazily
   for the selected day only (~0.15s).
