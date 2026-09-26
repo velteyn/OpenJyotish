@@ -287,14 +287,26 @@ class MainWindow(QMainWindow):
         # Planet tab
         self.planet_table = QTableWidget()
 
-        # House tab — includes chalit
+        # House tab — house cusps left, chalit panel right
         self.house_widget = QWidget()
-        hl = QVBoxLayout(self.house_widget)
+        house_outer = QVBoxLayout(self.house_widget)
+        house_outer.setContentsMargins(0, 0, 0, 0)
+        house_scroll = QScrollArea()
+        house_scroll.setWidgetResizable(True)
+        house_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        house_scroll.viewport().setStyleSheet(f"background-color: {BG};")
+        house_body = QWidget()
+        hl = QHBoxLayout(house_body)
         hl.setContentsMargins(4, 4, 4, 4)
-        hl.setSpacing(6)
-        self.house_table = QTableWidget()
-        hl.addWidget(self.house_table)
+        hl.setSpacing(8)
 
+        house_col = QVBoxLayout()
+        house_col.addWidget(QLabel("Houses (bhava cusps):"))
+        self.house_table = QTableWidget()
+        house_col.addWidget(self.house_table, stretch=1)
+        hl.addLayout(house_col, stretch=3)
+
+        chalit_col = QVBoxLayout()
         chalit_top = QHBoxLayout()
         self.chalit_label = QLabel("Chalit (Bhava) Shifts — cusp-based house positions")
         self.chalit_label.setStyleSheet("font-weight: bold; color: #d4af37;")
@@ -319,10 +331,13 @@ class MainWindow(QMainWindow):
             lambda _i: self._update_house_table()
             if self.chart_data else None)
         chalit_top.addWidget(self.chalit_method_combo)
-        hl.addLayout(chalit_top)
+        chalit_col.addLayout(chalit_top)
         self.chalit_table = QTableWidget()
-        self.chalit_table.setMaximumHeight(260)
-        hl.addWidget(self.chalit_table)
+        chalit_col.addWidget(self.chalit_table, stretch=1)
+        hl.addLayout(chalit_col, stretch=4)
+
+        house_scroll.setWidget(house_body)
+        house_outer.addWidget(house_scroll)
 
         # Dasa tab (scrollable: options + tree + timeline + tables)
         self.dasa_widget = QWidget()
@@ -1054,6 +1069,7 @@ class MainWindow(QMainWindow):
             r = Rasi.from_longitude(cusp)
             rows.append([str(i + 1), r.full_name, r.lord, f"{cusp:.2f}"])
         self._fill_table(self.house_table, headers, rows)
+        self._pin_table_width(self.house_table)
 
         # Chalit / Bhava table
         from jhora.calc.chalit import ChalitComputer
@@ -1077,6 +1093,7 @@ class MainWindow(QMainWindow):
                     item.setForeground(QColor("#ff6666"))
                 self.chalit_table.setItem(i, j, item)
         self.chalit_table.resizeColumnsToContents()
+        self._pin_table_width(self.chalit_table)
         moved = len(chalit.moved_planets)
         level_name = (varga_level.name.replace("D_", "D-")
                       if varga_level else "D-1")
