@@ -43,3 +43,19 @@ class TestLaunchers:
         iss = _read("packaging/windows/OpenJyotish.iss")
         assert "{cmd}" in iss and "/K" in iss
         assert "openjyotish.exe tui" in iss
+
+    def test_release_zip_packs_ephe_downloader(self):
+        yml = _read(".github/workflows/release.yml")
+        assert "download_ephe.py" in yml
+
+    def test_install_bat_echo_lines_have_no_parens(self):
+        # A ')' in an echo inside an if (...) block closes the block
+        # early: cmd.exe dies with ". was unexpected".
+        for line in _read("install.bat").splitlines():
+            s = line.strip()
+            if s.lower().startswith("echo ") or s.lower() == "echo":
+                assert "(" not in s and ")" not in s, s
+
+    def test_windows_portable_zip_published(self):
+        yml = _read(".github/workflows/build-binaries.yml")
+        assert "Windows-portable" in yml
