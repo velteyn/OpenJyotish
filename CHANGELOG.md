@@ -5,6 +5,10 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Fixed
+- Ashtakavarga tab: same stacked-table squeeze as Arudha — BAV,
+  Sodhya Pinda and Kakshya are now side-by-side vertical panels
+  (Tradition selector stays on top, Kakshya planet selector moved
+  into its panel header), each full height with width pinned.
 - Arudha & Karaka tab: the four tables were stacked vertically and
   starved each other of height. They are now side-by-side vertical
   panels, each full tab height with its width pinned to its content
