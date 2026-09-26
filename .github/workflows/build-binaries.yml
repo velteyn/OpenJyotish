@@ -91,6 +91,15 @@ jobs:
           choco install innosetup -y
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\OpenJyotish.iss
 
+      - name: Windows portable zip
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          Compress-Archive -Path dist\OpenJyotish `
+            -DestinationPath "OpenJyotish-$env:APP_VERSION-Windows-portable.zip"
+
       - name: Linux tarball
         if: runner.os == 'Linux'
         run: |
@@ -134,6 +143,7 @@ jobs:
           name: binaries-${{ runner.os }}
           path: |
             dist-installer/*.exe
+            OpenJyotish-*-Windows-portable.zip
             OpenJyotish-*.tar.gz
             OpenJyotish-*.deb
 

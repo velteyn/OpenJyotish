@@ -4,7 +4,18 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Added
+- Windows portable build: every release now ships
+  `OpenJyotish-<ver>-Windows-portable.zip` (frozen folder, exe
+  included, no Python needed) alongside the Setup.exe.
+
 ### Fixed
+- Windows source zip: `download_ephe.py` was missing from the
+  package so the ephemeris auto-download always failed; it is
+  packed again.
+- `install.bat` crashed with `. was unexpected` on some locales:
+  a parenthesis in an `echo` line inside an `if` block broke
+  cmd.exe parsing; reworded.
 - Windows installer: bundle the wheel glyph fonts (frozen app had
   none); Start Menu gets GUI + TUI icons, the TUI opening in a
   persistent console instead of flashing and closing.

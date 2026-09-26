@@ -91,7 +91,7 @@ if not exist venv\Scripts\openjyotish.exe (
 if not exist venv\Scripts\openjyotish.exe (
     echo.
     echo WARNING: the 'openjyotish' command is not installed.
-    echo run.bat will fall back to 'python -m jhora gui' (works the same).
+    echo run.bat will fall back to 'python -m jhora gui' - works the same.
     echo.
 )
 
