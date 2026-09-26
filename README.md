@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 56 CLI commands  |  10 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-31-section JSON API for AI agents (+ JSON-LD)  |  1771 tests  |  GPL v3.0
+31-section JSON API for AI agents (+ JSON-LD)  |  1772 tests  |  GPL v3.0
 ```
 
 <img src="docs/images/wheel.png" width="600" alt="Circular natal + transit bi-wheel with drishti lines">
