@@ -37,6 +37,13 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; \
 Source: "..\..\dist\OpenJyotish\*"; DestDir: "{app}"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
 
+; Upgrades install over the previous folder and Inno never removes
+; files the old version shipped (v1.10.0's ghost openjyotish.exe,
+; stale Qt DLLs) — mixed trees render half-styled franken-builds.
+; User data lives in %APPDATA%, never in {app}, so wiping first is safe.
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\*"
+
 [Icons]
 Name: "{group}\OpenJyotish"; Filename: "{app}\{#MyAppExeName}"
 ; TUI via a persistent console: bare openjyotish-cli.exe with no command
