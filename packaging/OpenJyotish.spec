@@ -18,9 +18,11 @@ ROOT = os.path.dirname(os.path.abspath(SPECPATH))
 block_cipher = None
 
 # tzdata ships zoneinfo on Windows (no system database there).
+# ui/assets carries the bundled OFL glyph fonts (no system-font lookup).
 _wanted_datas = [
     (os.path.join(ROOT, "jhcore", "ephe"), "jhcore/ephe"),
     (os.path.join(ROOT, "src", "jhora", "data"), "jhora/data"),
+    (os.path.join(ROOT, "src", "jhora", "ui", "assets"), "jhora/ui/assets"),
 ]
 datas = []
 for _src, _dst in _wanted_datas:

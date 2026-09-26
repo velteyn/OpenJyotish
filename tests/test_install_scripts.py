@@ -30,3 +30,15 @@ class TestLaunchers:
         text = _read("install.sh")
         assert "./run.sh" in text
         assert "openjyotish tui" in text
+
+    def test_frozen_bundle_includes_glyph_fonts(self):
+        fonts = os.path.join(REPO, "src", "jhora", "ui", "assets", "fonts")
+        names = os.listdir(fonts)
+        assert "ZodiacFontFREE.ttf" in names
+        assert any(n.lower().startswith("ofl") for n in names)
+        spec = _read("packaging/OpenJyotish.spec")
+        assert "ui\", \"assets" in spec or 'ui/assets' in spec
+
+    def test_windows_cli_shortcut_persists(self):
+        iss = _read("packaging/windows/OpenJyotish.iss")
+        assert "{cmd}" in iss and "/K" in iss
