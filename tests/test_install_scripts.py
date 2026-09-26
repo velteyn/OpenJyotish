@@ -76,3 +76,15 @@ class TestLaunchers:
         yml = _read(".github/workflows/release.yml")
         assert "missing required files" in yml
         assert "zip contents OK" in yml
+
+    def test_release_workflow_python_compiles(self):
+        # The release zip is assembled by inline `python3 -c` in the
+        # workflow — invisible to every other test. A syntax error
+        # there fails the release job on tag day (v1.10.1). Extract
+        # the block and compile it.
+        import re
+        import textwrap
+        yml = _read(".github/workflows/release.yml")
+        m = re.search(r'python3 -c "\n(.*?)\n\s*"', yml, re.DOTALL)
+        assert m, "embedded python block not found"
+        compile(textwrap.dedent(m.group(1)), "release.yml", "exec")

@@ -2,6 +2,16 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
+## v1.10.2 — 2026-09-26
+
+### Fixed
+- Release process: the new fail-fast block in the release workflow
+  shipped with broken indentation, so the v1.10.1 release job failed
+  and that tag carries no release assets — it is superseded by this
+  version (code is otherwise identical). The embedded workflow
+  Python is now covered by a compile regression test, so a syntax
+  error there can never reach tag day again.
+
 ## v1.10.1 — 2026-09-26
 
 ### Fixed
