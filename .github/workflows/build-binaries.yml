@@ -99,6 +99,18 @@ jobs:
         run: |
           Compress-Archive -Path dist\OpenJyotish `
             -DestinationPath "OpenJyotish-$env:APP_VERSION-Windows-portable.zip"
+          # Guard the v1.10.0 failure class (zip without exes): fail
+          # the job instead of shipping a hollow portable build.
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zipPath = "OpenJyotish-$env:APP_VERSION-Windows-portable.zip"
+          $zip = [IO.Compression.ZipFile]::OpenRead($zipPath)
+          $names = $zip.Entries | ForEach-Object { $_.FullName }
+          $zip.Dispose()
+          if (-not ($names -like '*/openjyotish.exe')) {
+            Write-Error 'portable zip missing openjyotish.exe'; exit 1 }
+          if (-not ($names -like '*/OpenJyotish.exe')) {
+            Write-Error 'portable zip missing OpenJyotish.exe'; exit 1 }
+          Write-Output 'portable zip contents OK'
 
       - name: Linux tarball
         if: runner.os == 'Linux'
@@ -140,6 +152,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
+          if-no-files-found: error
           name: binaries-${{ runner.os }}
           path: |
             dist-installer/*.exe

@@ -5,7 +5,7 @@ Free, open-source, cross-platform Vedic astrology software.
 
 ```
 56 CLI commands  |  10 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-31-section JSON API for AI agents (+ JSON-LD)  |  1765 tests  |  GPL v3.0
+31-section JSON API for AI agents (+ JSON-LD)  |  1771 tests  |  GPL v3.0
 ```
 
 <img src="docs/images/wheel.png" width="600" alt="Circular natal + transit bi-wheel with drishti lines">
@@ -17,8 +17,17 @@ Free, open-source, cross-platform Vedic astrology software.
 ## Quick Install
 
 ### Option 1: Release (Windows — no Python needed)
-Download the latest `openjyotish-v*-windows.zip` from [Releases](https://github.com/velteyn/OpenJyotish/releases).  
-Extract, double-click `OpenJyotish.bat`. Includes ephemeris data.
+From [Releases](https://github.com/velteyn/OpenJyotish/releases):
+- `OpenJyotish-<ver>-Windows-Setup.exe` — installer (recommended).
+  Start Menu gets OpenJyotish (GUI) + OpenJyotish TUI.
+- `OpenJyotish-<ver>-Windows-portable.zip` — unzip anywhere,
+  double-click `OpenJyotish.exe`. No install, no admin rights.
+
+Both include the app, glyph fonts and ephemeris data.
+
+### Option 1b: Release source zip (needs Python 3.11+)
+`openjyotish-v*-windows.zip`: extract, run `install.bat`
+(auto-downloads ephemeris data), then `OpenJyotish.bat`.
 
 ### Option 2: From source (Linux / Mac / Windows with Python)
 

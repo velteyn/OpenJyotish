@@ -59,3 +59,12 @@ class TestLaunchers:
     def test_windows_portable_zip_published(self):
         yml = _read(".github/workflows/build-binaries.yml")
         assert "Windows-portable" in yml
+        # The v1.10.0 hollow-zip class: CI must assert both exes
+        # are inside the portable zip and fail otherwise.
+        assert "portable zip missing openjyotish.exe" in yml
+        assert "portable zip missing OpenJyotish.exe" in yml
+
+    def test_release_zip_guards_required_files(self):
+        yml = _read(".github/workflows/release.yml")
+        assert "missing required files" in yml
+        assert "zip contents OK" in yml

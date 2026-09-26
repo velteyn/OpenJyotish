@@ -2,7 +2,7 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
-## Unreleased
+## v1.10.1 — 2026-09-26
 
 ### Fixed
 - Houses & Chalit tab: the cusp table and the Chalit table were
