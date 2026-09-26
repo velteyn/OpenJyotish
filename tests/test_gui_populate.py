@@ -986,6 +986,8 @@ def test_calendar_tab_populate(main_window, chart):
     assert "Nakshatra" in detail and "Rahu" in detail
     # Adjuncts path + month navigation keep working.
     main_window.cal_adjuncts_check.setChecked(True)
+    main_window._on_calendar_cell(r, c)
+    assert "Varjya" in main_window.cal_detail.toPlainText()
     main_window._shift_calendar(1)
     assert main_window.cal_month_combo.currentIndex() == 9
     assert len(main_window.cal_cells) == 31

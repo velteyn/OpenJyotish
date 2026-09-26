@@ -2,6 +2,13 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
+## Unreleased
+
+### Fixed
+- Calendar tab freezes (4.5s per click with adjuncts on): the month
+  grid always uses the cheap sweep; Durmuhurta/Varjya compute lazily
+  for the selected day only (~0.15s).
+
 ## v1.10.0 — 2026-09-25
 
 ### Added
