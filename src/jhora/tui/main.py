@@ -12,7 +12,7 @@ from prompt_toolkit import Application
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, FormattedTextControl
 from prompt_toolkit.widgets import Frame, TextArea, Label, Box
-from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.formatted_text import ANSI, HTML
 from prompt_toolkit.styles import Style
 from prompt_toolkit.application.current import get_app
 
@@ -21,6 +21,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box as rich_box
 from rich.text import Text as RichText
+from rich.markup import escape as rich_escape
 
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.types.graha import Graha
@@ -82,7 +83,7 @@ class JhoraTui:
             menu_lines = []
             for i, (key, label, _) in enumerate(self._menu_items):
                 marker = "▶" if i == self._menu_index else " "
-                menu_lines.append(f"  {marker} [{key}] {label}")
+                menu_lines.append(f"  {marker} {rich_escape(f'[{key}]')} {label}")
             menu_text = "\n".join(menu_lines)
             rich.print(Panel(menu_text, title="[bold yellow]Jhora TUI[/bold yellow]",
                             subtitle=self._status, border_style="blue"))
@@ -90,7 +91,9 @@ class JhoraTui:
             # Content
             if self._content_lines:
                 for line in self._content_lines:
-                    rich.print(line)
+                    # Captured Rich output is already ANSI; re-parsing it
+                    # as markup garbles the escape codes.
+                    rich.print(RichText.from_ansi(line) if "\x1b" in line else line)
 
         # Build prompt_toolkit layout
         output = capture.get()
@@ -127,7 +130,7 @@ class JhoraTui:
                 self._menu_index = idx
                 event.app.exit(result=act)
 
-        content = FormattedTextControl(text=output, style="class:content")
+        content = FormattedTextControl(text=ANSI(output), style="class:content")
         root = HSplit([
             Window(content=content, wrap_lines=False),
         ])
