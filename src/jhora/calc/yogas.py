@@ -207,8 +207,8 @@ def _gaja_kesari(
         return []
     moon_house = planet_house_map[Graha.MOON]
     jup_house = planet_house_map[Graha.JUPITER]
-    diff = abs(moon_house - jup_house) % 12
-    if diff in (0, 4, 6, 10):
+    # Jupiter in the 1st/4th/7th/10th counted from the Moon.
+    if (jup_house - moon_house) % 12 in _KENDRA:
         return [YogaResult(
             name="Gaja Kesari", category="Raja",
             description="Jupiter and Moon in kendra from each other",
