@@ -742,4 +742,45 @@ def chart_to_json(cd: ChartData, usl_config=None) -> Dict[str, Any]:
     except Exception:
         result["omens"] = {}
 
+    # ── Transit search (Saturn periods ±8y; arbitrary queries via
+    # transit_search_to_json) ──
+    try:
+        import datetime as _dt
+        from jhora.calc.transit_search import SearchCondition as _SC
+        today = _dt.datetime.now(_dt.timezone.utc).date()
+        result["transit_search"] = transit_search_to_json(
+            cd, {"kind": "saturn"},
+            today - _dt.timedelta(days=int(365.25 * 8)),
+            today + _dt.timedelta(days=int(365.25 * 8)))
+    except Exception:
+        result["transit_search"] = {}
+
     return result
+
+
+def transit_search_to_json(cd: ChartData, condition: dict,
+                           start, end) -> Dict[str, Any]:
+    """Serialize one transit search (condition dict + date window).
+
+    condition keys: kind (house/aspect/saturn/ingress), planet, house,
+    basis, target — planet/target as Graha member names.
+    """
+    from jhora.calc.transit_search import SearchCondition, search_transits
+
+    cond = SearchCondition(
+        kind=condition.get("kind", "house"),
+        planet=Graha[condition.get("planet", "SATURN").upper()],
+        house=int(condition.get("house", 1)),
+        basis=condition.get("basis", "moon"),
+        target=Graha[condition.get("target", "MOON").upper()],
+    )
+    res = search_transits(cd, cond, start, end)
+    return {
+        "condition": res.condition,
+        "window": [str(res.window_start), str(res.window_end)],
+        "step_days": res.step_days,
+        "boundaries_refined": res.boundaries_refined,
+        "note": res.note,
+        "intervals": [{"start": str(iv.start), "end": str(iv.end),
+                       "label": iv.label} for iv in res.intervals],
+    }

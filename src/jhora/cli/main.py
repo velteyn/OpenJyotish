@@ -2299,6 +2299,80 @@ def transit(
     console.print(sav_table)
 
 
+@app.command(name="transit-search")
+def transit_search(
+    birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),
+    ayanamsa: str = typer.Option(DEFAULT_AYANAMSA, "--ayanamsa", "-a"),
+    parasara: bool = typer.Option(True, "--parasara/--varahamihira", help="Ashtakavarga tradition (Varahamihira matrix not yet validated — Parasara only)"),
+    planet: str = typer.Option("Saturn", "--planet", "-p", help="Transiting planet (Sun..Saturn)"),
+    house: Optional[int] = typer.Option(None, "--house", "-H", help="House from basis (1-12) the planet must occupy"),
+    basis: str = typer.Option("moon", "--basis", "-b", help="House basis: moon (Parasara gochara) or lagna"),
+    aspects_natal: Optional[str] = typer.Option(None, "--aspects-natal", help="Natal planet the transit must aspect (Parashara drishti)"),
+    sade_sati: bool = typer.Option(False, "--sade-sati", help="Saturn Sade-Sati / dhaiya windows"),
+    ingress: bool = typer.Option(False, "--ingress", help="Sign ingresses of --planet"),
+    date_from: Optional[str] = typer.Option(None, "--from", help="Window start YYYY-MM-DD (default: today - 1 year)"),
+    date_to: Optional[str] = typer.Option(None, "--to", help="Window end YYYY-MM-DD (default: today + 1 year)"),
+):
+    """Search dates matching a transit condition (house, aspect, Sade-Sati, ingress)."""
+    import datetime as _dt
+
+    from jhora.calc.transit_search import SearchCondition, search_transits
+
+    if not parasara:
+        console.print("[red]The Varahamihira Ashtakavarga matrix is not validated yet — Parasara only.[/red]")
+        raise typer.Exit(1)
+    bd = parse_birthdata(birthdata)
+    builder = ChartBuilder()
+    cd = builder.build(
+        year=bd["year"], month=bd["month"], day=bd["day"],
+        hour=bd["hour"], lat=bd["lat"], lon=bd["lon"],
+        tz=bd["tz"], ayanamsa=ayanamsa,
+    )
+
+    def _graha(name: str) -> Graha:
+        try:
+            return Graha[name.strip().upper()]
+        except KeyError:
+            console.print(f"[red]Unknown planet: {name} (use Sun..Saturn).[/red]")
+            raise typer.Exit(1)
+
+    today = _dt.datetime.now(_dt.timezone.utc).date()
+    start = _dt.date.fromisoformat(date_from) if date_from else today - _dt.timedelta(days=365)
+    end = _dt.date.fromisoformat(date_to) if date_to else today + _dt.timedelta(days=365)
+
+    chosen = [house is not None, aspects_natal is not None, sade_sati, ingress]
+    if sum(chosen) != 1:
+        console.print("[red]Pick exactly one condition: --house, --aspects-natal, --sade-sati, --ingress.[/red]")
+        raise typer.Exit(1)
+    if house is not None:
+        cond = SearchCondition(kind="house", planet=_graha(planet), house=house, basis=basis)
+    elif aspects_natal is not None:
+        cond = SearchCondition(kind="aspect", planet=_graha(planet), target=_graha(aspects_natal))
+    elif sade_sati:
+        cond = SearchCondition(kind="saturn")
+    else:
+        cond = SearchCondition(kind="ingress", planet=_graha(planet))
+
+    try:
+        result = search_transits(cd, cond, start, end)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[bold]{result.condition}[/bold]")
+    console.print(f"[dim]{result.window_start} → {result.window_end} · {result.note}[/dim]")
+    if not result.intervals:
+        console.print("[yellow]No matching dates in the window.[/yellow]")
+        return
+    table = Table(title="Matching dates")
+    table.add_column("Start", style="green")
+    table.add_column("End", style="green")
+    table.add_column("What", style="white")
+    for iv in result.intervals:
+        table.add_row(str(iv.start), str(iv.end), iv.label)
+    console.print(table)
+
+
 @app.command()
 def upagrahas(
     birthdata: str = typer.Argument(..., help="Birth data: 'YYYY-MM-DD HH:MM:SS TZ LAT LON'"),

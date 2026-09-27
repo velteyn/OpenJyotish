@@ -4,8 +4,8 @@ Free, open-source, cross-platform Vedic astrology software.
 **CLI** + **GUI** (PyQt6) + **TUI** (terminal). AI-powered readings via local LLMs.
 
 ```
-56 CLI commands  |  10 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
-31-section JSON API for AI agents (+ JSON-LD)  |  1918 tests  |  GPL v3.0
+57 CLI commands  |  10 GUI categories + sub-tabs  |  9 TUI menus + sub-menus
+32-section JSON API for AI agents (+ JSON-LD)  |  1927 tests  |  GPL v3.0
 ```
 
 <img src="docs/images/wheel.png" width="600" alt="Circular natal + transit bi-wheel with drishti lines">
@@ -210,7 +210,7 @@ data = json.loads(subprocess.run(
 | Command | What it does |
 |---------|-------------|
 | `chart` | Rasi chart + planets (combustion, gandanta, avastha) + upagrahas + outer planets (`--nodes` mean/true, `--chalit` + `--bhava-method` default/sripati) |
-| `analyze` | AI-friendly JSON dump (31 sections, incl. omens, Sade Sati timeline, dasa entry) |
+| `analyze` | AI-friendly JSON dump (32 sections, incl. omens, Sade Sati timeline, dasa entry, transit search) |
 | `shadbala` | Six-fold planetary strength (+ --bhava + --vimsopaka) |
 | `kuja-dosha` | Kuja Dosha (Mangal Dosha) Mars affliction |
 | `yogas` | Detect 200+ planetary combinations (incl. 32 Naabhasa) |

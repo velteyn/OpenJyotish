@@ -269,13 +269,17 @@ def _unwrapped_delta(lon: float, ref: float) -> float:
 
 
 def _refine_ingress(se: SweEngine, jd_lo: float, jd_hi: float,
-                    boundary_lon: float) -> float:
-    """Bisect to the JD of Saturn's crossing of a sign cusp (~1 minute)."""
-    lon_lo = se.calc_planet(6, jd_lo).longitude % 360.0
+                    boundary_lon: float, se_id: int = 6) -> float:
+    """Bisect to the JD of a planet's crossing of a sign cusp (~1 minute).
+
+    se_id selects the planet (6 = Saturn, the historical caller);
+    existing Saturn callers pass nothing and behave exactly as before.
+    """
+    lon_lo = se.calc_planet(se_id, jd_lo).longitude % 360.0
     target = _unwrapped_delta(boundary_lon, lon_lo)
     for _ in range(25):
         mid = (jd_lo + jd_hi) / 2.0
-        lon = se.calc_planet(6, mid).longitude % 360.0
+        lon = se.calc_planet(se_id, mid).longitude % 360.0
         if (_unwrapped_delta(lon, lon_lo) < target) == (target > 0):
             jd_lo = mid
         else:
