@@ -231,7 +231,7 @@ def _dhana_yogas(
     for wh in wealth_houses:
         rasi_idx = (asc_rasi + wh) % 12
         lord = get_lord(rasi_idx)
-        if lord and lord in planet_house_map and lord not in seen:
+        if lord is not None and lord in planet_house_map and lord not in seen:
             seen.add(lord)
             house = planet_house_map[lord]
             if house in beneficial_houses:
@@ -319,7 +319,7 @@ def _neecha_bhanga(
             continue
         deb_rasi, _ = DEBILITATION[g]
         dispositor = get_lord(deb_rasi)
-        if dispositor and dispositor in planet_house_map:
+        if dispositor is not None and dispositor in planet_house_map:
             if is_in_kendra(planet_house_map[dispositor]):
                 found.append(YogaResult(
                     name="Neecha Bhanga Raja Yoga", category="Neecha Bhanga",
@@ -484,7 +484,8 @@ def _dharma_karma_adhipati(
         asc_rasi = int(cd.ascendant // 30) % 12
     lord_9 = get_lord((asc_rasi + 8) % 12)
     lord_10 = get_lord((asc_rasi + 9) % 12)
-    if lord_9 and lord_10 and lord_9 in planet_house_map and lord_10 in planet_house_map:
+    if lord_9 is not None and lord_10 is not None \
+            and lord_9 in planet_house_map and lord_10 in planet_house_map:
         if planet_house_map[lord_9] == planet_house_map[lord_10]:
             return [YogaResult(
                 name="Dharma-Karma-Adhipati Yoga", category="Raja",

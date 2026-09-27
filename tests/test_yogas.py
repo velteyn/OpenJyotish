@@ -9,6 +9,7 @@ from jhora.calc.yogas import (
     _raja_yogas, _viparita_raja_yogas, _parivartana,
     _sunapha_anapha_durudhara, _kemadruma,
     _conjunction_yogas, _adhi_yoga, _lagnaadhi_yoga, _vasumati_yoga,
+    _dharma_karma_adhipati,
 )
 from jhora.charts.chart import ChartBuilder
 from jhora.types.graha import Graha
@@ -277,3 +278,23 @@ class TestYogakaraka:
         for cd in (self._jalkot(), ref_chart):
             for r in detect_all(cd):
                 assert r.name and r.description
+
+
+class TestSunAsHouseLord:
+    """Graha.SUN == 0 is falsy; the Sun must still count as a house lord."""
+
+    def test_dhana_sun_lord_of_2nd(self):
+        from types import SimpleNamespace
+        # Cancer lagna: Sun lords the 2nd (Leo); placed in the 4th.
+        cd = SimpleNamespace(ascendant=3 * 30 + 15)
+        res = _dhana_yogas(cd, {}, {Graha.SUN: 3})
+        assert [y.planets for y in res] == [(Graha.SUN,)]
+        assert "lord of house 2" in res[0].description
+
+    def test_dharma_karma_sun_lord_of_10th(self):
+        from types import SimpleNamespace
+        # Scorpio lagna: Moon lords the 9th (Cancer), Sun the 10th (Leo).
+        cd = SimpleNamespace(ascendant=7 * 30 + 15, planets={Graha.SUN: SimpleNamespace(longitude=0.0)})
+        res = _dharma_karma_adhipati(cd, {Graha.MOON: 4, Graha.SUN: 4})
+        assert len(res) == 1
+        assert set(res[0].planets) == {Graha.MOON, Graha.SUN}
