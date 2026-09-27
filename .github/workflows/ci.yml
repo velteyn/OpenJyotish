@@ -1,0 +1,43 @@
+# CI — full test suite on every push and pull request (including forks).
+#
+# This is the check the main-branch ruleset requires: no test run has
+# ever gated a merge before (only CodeQL did), so contributor PRs like
+# #273 landed with zero automated verification.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    env:
+      # Headless runner: Qt needs offscreen (same as local dev runs).
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install app
+        run: pip install -e . "prompt_toolkit>=3.0" numpy pytest
+
+      - name: Download ephemeris (not in git)
+        shell: bash
+        run: |
+          mkdir -p jhcore/ephe
+          base="https://raw.githubusercontent.com/aloistr/swisseph/master/ephe"
+          for f in sepl_18.se1 semo_18.se1; do
+            [ -f "jhcore/ephe/$f" ] || curl -sSf -o "jhcore/ephe/$f" "$base/$f"
+          done
+
+      - name: Full suite
+        run: PYTHONPATH=.:src python3 -m pytest tests/ -q --no-header -p no:cacheprovider
