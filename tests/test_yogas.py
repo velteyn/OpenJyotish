@@ -277,3 +277,62 @@ class TestYogakaraka:
         for cd in (self._jalkot(), ref_chart):
             for r in detect_all(cd):
                 assert r.name and r.description
+
+
+class TestRajaYoga:
+    """Kendra lord + kona lord in conjunction, lordship counted from lagna."""
+
+    # Sign lords written out independently of jhora.calc.yogas.get_lord.
+    _SIGN_LORDS = (
+        Graha.MARS, Graha.VENUS, Graha.MERCURY, Graha.MOON,
+        Graha.SUN, Graha.MERCURY, Graha.VENUS, Graha.MARS,
+        Graha.JUPITER, Graha.SATURN, Graha.SATURN, Graha.JUPITER,
+    )
+    _SEVEN = (Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+              Graha.JUPITER, Graha.VENUS, Graha.SATURN)
+
+    def _run(self, lagna, placements):
+        from types import SimpleNamespace
+        cd = SimpleNamespace(ascendant=lagna * 30 + 15)
+        # Unplaced planets each get their own empty sign: no accidental pairs.
+        spare = iter(s for s in range(12) if s not in placements.values())
+        rasi = {g: placements[g] if g in placements else next(spare)
+                for g in self._SEVEN}
+        houses = {g: house_from_lagna(lagna, r) for g, r in rasi.items()}
+        return _raja_yogas(cd, rasi, houses)
+
+    def test_moon_jupiter_not_raja_for_aquarius(self):
+        # Aquarius: Moon lords 6th, Jupiter 2nd/11th.
+        assert self._run(10, {Graha.MOON: 5, Graha.JUPITER: 5}) == []
+
+    def test_lordship_follows_lagna(self):
+        # Aquarius: Sun lords 7th (kendra), Mercury 5th (kona).
+        res = self._run(10, {Graha.SUN: 2, Graha.MERCURY: 2})
+        assert len(res) == 1
+        assert set(res[0].planets) == {Graha.SUN, Graha.MERCURY}
+        assert "7th" in res[0].description and "5th" in res[0].description
+
+    def test_natural_kona_lords_not_used(self):
+        # Libra: Moon lords 10th but Sun lords 11th (not the natural 5th).
+        assert self._run(6, {Graha.MOON: 1, Graha.SUN: 1}) == []
+
+    def test_pair_reported_once(self):
+        # Cancer: Moon lords 1st, Mars 5th and 10th.
+        res = self._run(3, {Graha.MOON: 7, Graha.MARS: 7})
+        assert len(res) == 1
+
+    @pytest.mark.parametrize("lagna", range(12))
+    def test_every_lagna(self, lagna):
+        from types import SimpleNamespace
+        cd = SimpleNamespace(ascendant=lagna * 30 + 15)
+        rasi = {g: 0 for g in self._SEVEN}
+        houses = {g: house_from_lagna(lagna, 0) for g in self._SEVEN}
+        res = _raja_yogas(cd, rasi, houses)
+
+        def lords(hs):
+            return {self._SIGN_LORDS[(lagna + h) % 12] for h in hs}
+        kendra, kona = lords((0, 3, 6, 9)), lords((0, 4, 8))
+        expected = {frozenset((a, b)) for a in kendra for b in kona if a != b}
+        pairs = [frozenset(y.planets) for y in res]
+        assert len(pairs) == len(set(pairs))
+        assert set(pairs) == expected

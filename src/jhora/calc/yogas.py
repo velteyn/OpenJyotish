@@ -84,6 +84,11 @@ def _planet_longitude(pd) -> float:
     return pd.longitude
 
 
+def _ordinal(n: int) -> str:
+    """House number 1-12 as '1st', '2nd', '3rd', '4th', ..."""
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n, 'th') }"
+
+
 def get_lord(rasi_idx: int) -> Graha:
     name = Rasi(rasi_idx).lord
     return _NAME_TO_GRAHA.get(name)
@@ -251,25 +256,36 @@ def _raja_yogas(
     found = []
     asc_rasi = int(cd.ascendant // 30) % 12
 
-    kendra_lords: List[Graha] = []
-    kona_lords: List[Graha] = []
+    # Lord -> houses (1-based) it rules, counted from the lagna. Graha.SUN
+    # is 0, so test against None rather than truthiness.
+    kendra_lords: Dict[Graha, List[int]] = {}
+    kona_lords: Dict[Graha, List[int]] = {}
     for i in range(12):
-        lord = get_lord(i)
-        if not lord or lord not in planet_house_map:
+        lord = get_lord((asc_rasi + i) % 12)
+        if lord is None or lord not in planet_house_map:
             continue
         if i in _KENDRA:
-            kendra_lords.append(lord)
+            kendra_lords.setdefault(lord, []).append(i + 1)
         if i in _KONA:
-            kona_lords.append(lord)
+            kona_lords.setdefault(lord, []).append(i + 1)
 
-    for kl in kendra_lords:
-        for knl in kona_lords:
-            if kl == knl:
+    def _houses(hs: List[int]) -> str:
+        return "/".join(_ordinal(h) for h in hs)
+
+    seen: Set[frozenset] = set()
+    for kl, kl_houses in kendra_lords.items():
+        for knl, knl_houses in kona_lords.items():
+            pair = frozenset((kl, knl))
+            if kl == knl or pair in seen:
                 continue
             if planet_rasi_map[kl] == planet_rasi_map[knl]:
+                seen.add(pair)
                 found.append(YogaResult(
                     name="Raja Yoga", category="Raja",
-                    description=f"Kendra lord {kl.full_name} and kona lord {knl.full_name} in conjunction",
+                    description=(
+                        f"Kendra lord {kl.full_name} ({_houses(kl_houses)}) "
+                        f"and kona lord {knl.full_name} ({_houses(knl_houses)}) "
+                        "in conjunction"),
                     planets=(kl, knl), strength="strong",
                 ))
 
