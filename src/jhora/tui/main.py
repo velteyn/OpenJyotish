@@ -21,6 +21,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box as rich_box
 from rich.text import Text as RichText
+from rich.markup import escape as rich_escape
 
 from jhora.charts.chart import ChartBuilder, ChartData
 from jhora.types.graha import Graha
@@ -82,7 +83,7 @@ class JhoraTui:
             menu_lines = []
             for i, (key, label, _) in enumerate(self._menu_items):
                 marker = "▶" if i == self._menu_index else " "
-                menu_lines.append(f"  {marker} [{key}] {label}")
+                menu_lines.append(f"  {marker} {rich_escape(f'[{key}]')} {label}")
             menu_text = "\n".join(menu_lines)
             rich.print(Panel(menu_text, title="[bold yellow]Jhora TUI[/bold yellow]",
                             subtitle=self._status, border_style="blue"))
