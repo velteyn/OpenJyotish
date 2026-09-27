@@ -12,7 +12,7 @@ from prompt_toolkit import Application
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, FormattedTextControl
 from prompt_toolkit.widgets import Frame, TextArea, Label, Box
-from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.formatted_text import ANSI, HTML
 from prompt_toolkit.styles import Style
 from prompt_toolkit.application.current import get_app
 
@@ -127,7 +127,7 @@ class JhoraTui:
                 self._menu_index = idx
                 event.app.exit(result=act)
 
-        content = FormattedTextControl(text=output, style="class:content")
+        content = FormattedTextControl(text=ANSI(output), style="class:content")
         root = HSplit([
             Window(content=content, wrap_lines=False),
         ])
