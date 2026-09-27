@@ -42,13 +42,14 @@ PLANET_COLORS = {
     Graha.KETU: QColor("#FFD700"),
 }
 
+# Fixed signs: Pisces top-left, Aries next to it, then clockwise.
 _SOUTH_INDIAN_GRID = [
-    (3, 0, Rasi.ARIES),     (3, 1, Rasi.PISCES),
-    (3, 2, Rasi.AQUARIUS),  (3, 3, Rasi.CAPRICORN),
-    (2, 3, Rasi.SAGITTARIUS), (1, 3, Rasi.SCORPIO),
-    (0, 3, Rasi.LIBRA),     (0, 2, Rasi.VIRGO),
-    (0, 1, Rasi.LEO),       (0, 0, Rasi.CANCER),
-    (1, 0, Rasi.GEMINI),    (2, 0, Rasi.TAURUS),
+    (0, 1, Rasi.ARIES),     (0, 2, Rasi.TAURUS),
+    (0, 3, Rasi.GEMINI),    (1, 3, Rasi.CANCER),
+    (2, 3, Rasi.LEO),       (3, 3, Rasi.VIRGO),
+    (3, 2, Rasi.LIBRA),     (3, 1, Rasi.SCORPIO),
+    (3, 0, Rasi.SAGITTARIUS), (2, 0, Rasi.CAPRICORN),
+    (1, 0, Rasi.AQUARIUS),  (0, 0, Rasi.PISCES),
 ]
 
 
