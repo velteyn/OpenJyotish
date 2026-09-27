@@ -119,6 +119,18 @@ class TestGajaKesari:
         result = _gaja_kesari(ref_chart, planet_rasi, planet_house)
         assert len(result) == 0
 
+    @pytest.mark.parametrize("moon_house", range(12))
+    @pytest.mark.parametrize("offset", range(12))
+    def test_gaja_kesari_kendra_from_moon(self, ref_chart, moon_house, offset):
+        """Fires exactly when Jupiter is 1st/4th/7th/10th from the Moon,
+        regardless of where the pair sits relative to the lagna."""
+        planet_house = {
+            Graha.MOON: moon_house,
+            Graha.JUPITER: (moon_house + offset) % 12,
+        }
+        result = _gaja_kesari(ref_chart, {}, planet_house)
+        assert len(result) == (1 if offset in (0, 3, 6, 9) else 0)
+
 
 class TestViparitaRaja:
     def test_viparita_raja_on_ref(self, ref_chart):
