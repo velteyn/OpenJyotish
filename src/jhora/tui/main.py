@@ -90,7 +90,9 @@ class JhoraTui:
             # Content
             if self._content_lines:
                 for line in self._content_lines:
-                    rich.print(line)
+                    # Captured Rich output is already ANSI; re-parsing it
+                    # as markup garbles the escape codes.
+                    rich.print(RichText.from_ansi(line) if "\x1b" in line else line)
 
         # Build prompt_toolkit layout
         output = capture.get()
