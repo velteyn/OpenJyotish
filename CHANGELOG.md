@@ -4,6 +4,17 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Added
+- Transit search: new `transit-search` CLI command answers "when"
+  questions — planet in a house from Moon/lagna, Parashara aspects on
+  a natal planet, Saturn Sade-Sati/dhaiya windows, sign ingresses —
+  over a date window with day-precision boundaries (retrograde
+  re-entries as separate intervals). New `transit_search` JSON
+  section (32 total) with Saturn periods ±8y plus a serializer for
+  arbitrary queries.
+
+## Unreleased
+
 ### Fixed
 - Windows upgrades installed over the old folder, leaving stale
   files behind (v1.10.0's ghost `openjyotish.exe`, old Qt DLLs) —
