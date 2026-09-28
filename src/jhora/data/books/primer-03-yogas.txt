@@ -84,10 +84,7 @@ Reference chart: 1990-01-15, 17:30 IST, Bangalore (Gemini lagna). The
 detector reports, verbatim:
 
 Dhana Yoga [medium] — Saturn as lord of house 9 in house 7.
-Viparita Raja Yoga [medium] — Mars as lord of trik house 6 in own sign.
-Viparita Raja Yoga [medium] — two trik lords (Sun, Venus) in conjunction.
-Viparita Raja Yoga [medium] — two trik lords (Sun, Rahu) in conjunction.
-Viparita Raja Yoga [medium] — two trik lords (Venus, Rahu) in conjunction.
+Viparita Raja Yoga [medium] — Mars as 6th lord in own sign.
 Parivartana Yoga [strong] — exchange between Mercury in Sagittarius
 and Jupiter in Gemini.
 Anapha Yoga [medium] — planets in 12th from Moon: Ketu.

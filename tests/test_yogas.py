@@ -133,12 +133,50 @@ class TestGajaKesari:
 
 
 class TestViparitaRaja:
-    def test_viparita_raja_on_ref(self, ref_chart):
-        planet_rasi = {g: int(p.longitude // 30) % 12 for g, p in ref_chart.planets.items()}
-        asc = int(ref_chart.ascendant // 30) % 12
-        planet_house = {g: house_from_lagna(asc, r) for g, r in planet_rasi.items()}
-        result = _viparita_raja_yogas(ref_chart, planet_rasi, planet_house)
-        assert isinstance(result, list)
+    """Trik (6/8/12) lords, counted from lagna, in own sign or conjunction."""
+
+    def _run(self, lagna, placements):
+        from types import SimpleNamespace
+        cd = SimpleNamespace(ascendant=lagna * 30 + 15)
+        # Unplaced planets each get their own empty sign: no accidental pairs.
+        spare = iter(s for s in range(12) if s not in placements.values())
+        rasi = {g: placements[g] if g in placements else next(spare)
+                for g in TestRajaYoga._SEVEN}
+        houses = {g: house_from_lagna(lagna, r) for g, r in rasi.items()}
+        return _viparita_raja_yogas(cd, rasi, houses)
+
+    def test_occupants_of_trik_are_not_lords(self):
+        # Aries: Moon lords 4th, Venus 2nd/7th; together in Virgo (6th).
+        assert self._run(0, {Graha.MOON: 5, Graha.VENUS: 5}) == []
+
+    def test_lordship_not_occupancy(self):
+        # Gemini: Mars lords 6th, Saturn 8th; together in the 1st.
+        res = self._run(2, {Graha.MARS: 2, Graha.SATURN: 2})
+        assert len(res) == 1
+        assert set(res[0].planets) == {Graha.MARS, Graha.SATURN}
+        assert "6th" in res[0].description and "8th" in res[0].description
+
+    def test_sun_as_trik_lord(self):
+        # Capricorn: Sun lords 8th (Leo), Mercury 6th (Gemini).
+        res = self._run(9, {Graha.SUN: 0, Graha.MERCURY: 0})
+        assert len(res) == 1
+        assert set(res[0].planets) == {Graha.SUN, Graha.MERCURY}
+
+    def test_own_sign(self):
+        # Gemini: Mars in Scorpio is the 6th lord in its own sign.
+        res = self._run(2, {Graha.MARS: 7})
+        assert len(res) == 1
+        assert res[0].planets == (Graha.MARS,)
+        assert "6th lord" in res[0].description
+
+    @pytest.mark.parametrize("lagna", range(12))
+    def test_every_lagna(self, lagna):
+        res = self._run(lagna, {g: 0 for g in TestRajaYoga._SEVEN})
+        lords = {TestRajaYoga._SIGN_LORDS[(lagna + h) % 12] for h in (5, 7, 11)}
+        expected = {frozenset((a, b)) for a in lords for b in lords if a != b}
+        pairs = [frozenset(y.planets) for y in res if len(y.planets) == 2]
+        assert len(pairs) == len(set(pairs))
+        assert set(pairs) == expected
 
 
 class TestKemadruma:

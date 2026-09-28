@@ -305,17 +305,28 @@ def _viparita_raja_yogas(
             if lord == g:
                 found.append(YogaResult(
                     name="Viparita Raja Yoga", category="Viparita Raja",
-                    description=f"{g.full_name} as lord of trik house {house + 1} in own sign",
+                    description=f"{g.full_name} as {_ordinal(house + 1)} lord in own sign",
                     planets=(g,), strength="medium",
                 ))
 
-    trik_lords = [g for g, h in planet_house_map.items() if h in _TRIK]
-    for i, g1 in enumerate(trik_lords):
-        for g2 in trik_lords[i + 1:]:
-            if planet_rasi_map[g1] == planet_rasi_map[g2]:
+    # (lord, house 1-based) for the 6th, 8th and 12th, counted from the
+    # lagna. Graha.SUN is 0, so test against None rather than truthiness.
+    asc_rasi = int(cd.ascendant // 30) % 12
+    trik_lords: List[Tuple[Graha, int]] = []
+    for i in sorted(_TRIK):
+        lord = get_lord((asc_rasi + i) % 12)
+        if lord is None or lord not in planet_house_map:
+            continue
+        trik_lords.append((lord, i + 1))
+
+    for i, (g1, h1) in enumerate(trik_lords):
+        for g2, h2 in trik_lords[i + 1:]:
+            if g1 != g2 and planet_rasi_map[g1] == planet_rasi_map[g2]:
                 found.append(YogaResult(
                     name="Viparita Raja Yoga", category="Viparita Raja",
-                    description=f"Two trik lords ({g1.full_name}, {g2.full_name}) in conjunction",
+                    description=(
+                        f"Trik lords {g1.full_name} ({_ordinal(h1)}) "
+                        f"and {g2.full_name} ({_ordinal(h2)}) in conjunction"),
                     planets=(g1, g2), strength="medium",
                 ))
     return found
