@@ -1,5 +1,20 @@
 # AGENTS.md — Development Guide for OpenJyotish
 
+## Doctrine (Tradition Rule) — overrides all preferences
+
+Jyotish has many traditions and schools; most questions have no single
+right or wrong. The rule is: **if the majority uses that calculation,
+then it is what we do** (SJC/Rath, K.N. Rao, Raman, PVR mainstream).
+No exotic variants, no count-chasing, no single school over the
+majority.
+
+Bundled books (`src/jhora/data/books/`, the primers) are doctrinal
+sources: they seed the knowledge base and train the AI. Changing them
+needs a majority-use justification, not just a code fix. Engine output
+quoted verbatim in a book must always match the detector (stale quotes
+break the train-data QA test) — a bug fix that changes output MUST
+update the quotes in the same PR.
+
 ## Repository Overview
 
 | Repo | URL | Visibility | Purpose |
