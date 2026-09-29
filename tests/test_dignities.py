@@ -16,14 +16,16 @@ class TestExaltation:
         """Sun exalted at 10° Aries (sign 0)."""
         assert dc.get_dignity(Graha.SUN, 0, 10.0) == "exalted"
 
-    def test_sun_near_exalted(self, dc):
-        """Sun near exaltation degree (±5°)."""
-        assert dc.get_dignity(Graha.SUN, 0, 12.0) == "exalted"
-        assert dc.get_dignity(Graha.SUN, 0, 8.0) == "exalted"
+    def test_sun_exalted_whole_sign(self, dc):
+        """Exaltation covers the whole sign, not just the peak degree."""
+        assert dc.get_dignity(Graha.SUN, 0, 0.5) == "exalted"
+        assert dc.get_dignity(Graha.SUN, 0, 16.0) == "exalted"
+        assert dc.get_dignity(Graha.SUN, 0, 29.0) == "exalted"
 
-    def test_sun_past_exaltation_range(self, dc):
-        """Sun past the ±5° orb should not be exalted."""
-        assert dc.get_dignity(Graha.SUN, 0, 16.0) != "exalted"
+    def test_far_from_peak_exalted(self, dc):
+        """Saturn at Libra 2° and Mars at Capricorn 5° are exalted."""
+        assert dc.get_dignity(Graha.SATURN, 6, 2.0) == "exalted"
+        assert dc.get_dignity(Graha.MARS, 9, 5.0) == "exalted"
 
     def test_moon_exalted(self, dc):
         """Moon exalted at 3° Taurus (sign 1)."""
@@ -54,6 +56,27 @@ class TestDebilitation:
     def test_jupiter_debilitated(self, dc):
         """Jupiter debilitated at 5° Capricorn (sign 9)."""
         assert dc.get_dignity(Graha.JUPITER, 9, 5.0) == "debilitated"
+
+    def test_debilitated_whole_sign(self, dc):
+        """Sun at Libra 25° and Jupiter at Capricorn 20° are debilitated."""
+        assert dc.get_dignity(Graha.SUN, 6, 25.0) == "debilitated"
+        assert dc.get_dignity(Graha.JUPITER, 9, 20.0) == "debilitated"
+
+
+class TestExaltationMoolatrikonaSplit:
+    """Exaltation sign shared with moolatrikona splits at the peak degree."""
+
+    def test_moon_taurus(self, dc):
+        assert dc.get_dignity(Graha.MOON, 1, 2.0) == "exalted"
+        assert dc.get_dignity(Graha.MOON, 1, 3.0) == "exalted"
+        assert dc.get_dignity(Graha.MOON, 1, 3.5) == "moolatrikona"
+        assert dc.get_dignity(Graha.MOON, 1, 10.0) == "moolatrikona"
+
+    def test_mercury_virgo(self, dc):
+        assert dc.get_dignity(Graha.MERCURY, 5, 5.0) == "exalted"
+        assert dc.get_dignity(Graha.MERCURY, 5, 15.0) == "exalted"
+        assert dc.get_dignity(Graha.MERCURY, 5, 15.5) == "moolatrikona"
+        assert dc.get_dignity(Graha.MERCURY, 5, 20.0) == "moolatrikona"
 
 
 class TestMoolatrikona:
@@ -126,5 +149,5 @@ class TestReferenceChart:
         assert self.dc.get_dignity(Graha.VENUS, 6, 9.74) == "moolatrikona"
 
     def test_saturn_debilitated_reference(self):
-        """Saturn at 15.12° Aries (sidereal) → debilitated (within 5° of Aries 20°)."""
+        """Saturn at 15.12° Aries (sidereal) → debilitated (Aries is its debilitation sign)."""
         assert self.dc.get_dignity(Graha.SATURN, 0, 15.12) == "debilitated"
