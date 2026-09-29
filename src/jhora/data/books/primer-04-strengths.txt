@@ -58,11 +58,13 @@ D-9: 4.5, D-30: 3.
 Dashavarga and Shodasavarga extend the same principle to 10 and 16
 vargas (see `jhora shadbala --scheme`).
 
-Reference values, Shadvarga scheme, computed: Sun 10, Moon 10, Mars 13,
-Mercury 10, Jupiter 10, Venus 12.5, Saturn 13 (all of 20). Read them as
-divisional consistency: Mars and Saturn hold dignity across charts
-(13/20), while Sun, Moon, Mercury and Jupiter at 10/20 are average —
-competent in rasi, undistinguished in vargas.
+Reference values, Shadvarga scheme, computed: Sun 10, Moon 9.5,
+Mars 13.5, Mercury 11.5, Jupiter 11.5, Venus 11.5, Saturn 10 (all of
+20). Read them as divisional consistency: Mars leads (13.5/20), holding
+its own sign in D-1 and D-7 despite a debilitated D-3; Mercury and Venus
+(exalted in D-9) and Jupiter (moolatrikona in D-9) follow at 11.5/20;
+Sun and Saturn at 10/20 are average, and the Moon (debilitated in D-9)
+trails at 9.5/20 — competent in rasi, undistinguished in vargas.
 
 
 3. BHAVA BALA (HOUSE STRENGTH)

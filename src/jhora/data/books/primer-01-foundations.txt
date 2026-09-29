@@ -30,10 +30,11 @@ Strong Sun: self-direction, command, immunity. Weak Sun: fragile
 authority, conflict with father figures and governments.
 
 MOON (Chandra) — mind, mother, emotions, fluids, public. Rules Cancer.
-Exalted Taurus 3°, debilitated Scorpio 3°, moolatrikona Taurus 3–30°.
-Strong Moon: emotional stability, memory, popularity. Weak or waning
-Moon: restlessness, anxiety, variable fortune. The Moon's nakshatra
-fixes the Vimshottari dasha sequence at birth.
+Exalted Taurus 0–3° (peak 3°), debilitated Scorpio 3°, moolatrikona
+Taurus beyond 3° to 30°. Strong Moon: emotional stability, memory,
+popularity. Weak or waning Moon: restlessness, anxiety, variable
+fortune. The Moon's nakshatra fixes the Vimshottari dasha sequence at
+birth.
 
 MARS (Mangala) — energy, siblings, courage, property, blood. Rules
 Aries and Scorpio. Exalted Capricorn 28°, debilitated Cancer 28°,
@@ -42,10 +43,10 @@ engineering skill. Afflicted Mars: accidents, quarrels, surgical
 events; its affliction of Moon or lagna is Kuja Dosha.
 
 MERCURY (Budha) — speech, intellect, commerce, skin, nerves. Rules
-Gemini and Virgo. Exalted Virgo 15° (also its own and moolatrikona
-Virgo 15–30°), debilitated Pisces 15°. Strong Mercury: analysis,
-languages, trade. Weak Mercury: nervous disorders, confused speech,
-unreliable agreements.
+Gemini and Virgo. Exalted Virgo 0–15° (peak 15°; also its own and
+moolatrikona sign, beyond 15° to 30°), debilitated Pisces 15°. Strong
+Mercury: analysis, languages, trade. Weak Mercury: nervous disorders,
+confused speech, unreliable agreements.
 
 JUPITER (Guru) — wisdom, children, dharma, wealth, counsel. Rules
 Sagittarius and Pisces. Exalted Cancer 5°, debilitated Capricorn 5°,
@@ -79,8 +80,11 @@ Mahadasha spiritualizes whatever house it occupies.
 
 Dignity ladder used by this program, strongest to weakest: exalted,
 moolatrikona, own sign, friendly sign, neutral, inimical sign,
-debilitated. Declared dignities are always positional facts, never
-moral judgments.
+debilitated. Exaltation and debilitation hold across the whole sign;
+the degree given above is the peak. Where exaltation and moolatrikona
+share a sign (Moon, Mercury), the planet is exalted up to and including
+the peak degree and moolatrikona after it. Declared dignities are
+always positional facts, never moral judgments.
 
 
 2. THE TWELVE RASIS

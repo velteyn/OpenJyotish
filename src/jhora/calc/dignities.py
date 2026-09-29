@@ -7,7 +7,8 @@ from jhora.types.graha import Graha
 from jhora.types.rasi import Rasi
 
 
-# Exaltation degrees per planet (sign_index, degree)
+# Exaltation sign per planet (sign_index, peak degree); the whole sign is
+# exaltation, the degree marks the deepest point
 EXALTATION: Dict[Graha, Tuple[int, float]] = {
     Graha.SUN:     (0, 10.0),     # Aries 10°
     Graha.MOON:    (1, 3.0),      # Taurus 3°
@@ -18,7 +19,7 @@ EXALTATION: Dict[Graha, Tuple[int, float]] = {
     Graha.SATURN:  (6, 20.0),     # Libra 20°
 }
 
-# Debilitation degrees (7th sign from exaltation)
+# Debilitation sign (7th from exaltation) with its deepest degree
 DEBILITATION: Dict[Graha, Tuple[int, float]] = {
     Graha.SUN:     (6, 10.0),     # Libra 10°
     Graha.MOON:    (7, 3.0),      # Scorpio 3°
@@ -71,18 +72,26 @@ class DignityChecker:
         self._own = OWN_SIGNS
 
     def get_dignity(self, graha: Graha, rasi_index: int, deg_in_rasi: float) -> str:
+        """Dignity of a graha in a sign.
+
+        Exaltation and debilitation cover the whole sign (BPHS). Where the
+        exaltation sign is also the moolatrikona sign (Moon in Taurus,
+        Mercury in Virgo), the sign splits at the peak degree: exalted
+        up to and including it, moolatrikona after it.
+        """
         # Nodes don't have rasi-based dignity
         if graha in (Graha.RAHU, Graha.KETU):
             return "node"
         # Exalted
         if graha in self._exalt:
             r, d = self._exalt[graha]
-            if r == rasi_index and abs(deg_in_rasi - d) < 5:
+            shared_with_moola = self._moola.get(graha, (None,))[0] == r
+            if r == rasi_index and not (shared_with_moola and deg_in_rasi > d):
                 return "exalted"
         # Debilitated
         if graha in self._debil:
-            r, d = self._debil[graha]
-            if r == rasi_index and abs(deg_in_rasi - d) < 5:
+            r, _ = self._debil[graha]
+            if r == rasi_index:
                 return "debilitated"
         # Moolatrikona
         if graha in self._moola:
