@@ -194,8 +194,15 @@ class TestFreshInstallSeeding:
         import jhora.ai.embeddings as e
         old = self._tmp_db(tmp_path, "fresh2.db")
         try:
+            # Self-contained seed: the fallback must not depend on which
+            # books happen to be installed (primers vs full extracts).
+            books = tmp_path / "fallback-books"
+            books.mkdir()
+            (books / "fallback_tome.txt").write_text(
+                "Jupiter dasha effects unfold over many years here",
+                encoding="utf-8")
             from jhora.interpreter.knowledge_base import KnowledgeBase
-            KnowledgeBase()  # seed texts, but no vector build
+            KnowledgeBase(books)  # seed text, but no vector build
             monkeypatch.setattr(e, "_get_embedding",
                                 lambda q, base, prov: [0.1] * 8)
             store = e.EmbeddingStore(provider="lmstudio",
