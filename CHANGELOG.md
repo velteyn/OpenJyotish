@@ -4,6 +4,19 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 
 ## Unreleased
 
+### Fixed
+- Knowledge refresh: edited primers now reach installed DBs (content
+  hash per book; changed text replaces, FTS refreshes, stale embedding
+  chunks drop). Schema migrates to v2; existing user data untouched.
+- Test isolation: the suite runs against throwaway databases — the
+  repo DB is byte-identical before/after, and the embeddings
+  in-suite flake is fixed as a side effect (shared-state pollution).
+- Seed/working split: the repo tracks read-only `data/jhora.seed.db`
+  (schema + cities); first run copies it to gitignored
+  `data/jhora.db`. The tracked file never churns again.
+
+## Unreleased
+
 ### Added
 - Transit search: new `transit-search` CLI command answers "when"
   questions — planet in a house from Moon/lagna, Parashara aspects on

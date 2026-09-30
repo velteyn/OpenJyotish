@@ -1,5 +1,6 @@
 """Knowledge base — full-text search over books/articles using SQLite FTS5."""
 
+import hashlib
 import os
 from pathlib import Path
 from typing import List, Optional
@@ -7,6 +8,10 @@ from typing import List, Optional
 from jhora.core.database import get_db
 
 BOOKS_DIR = Path(__file__).resolve().parents[3] / "docs" / "books" / "extracted"
+
+
+def _content_hash(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
 
 class KnowledgeBase:
@@ -62,34 +67,57 @@ class KnowledgeBase:
         return {"added": added, "skipped": skipped}
 
     def _load_on_demand(self, books_dir: Path):
-        """Import text files into the database if not already loaded.
+        """Import text files into the database, refreshing edited books.
 
-        The FTS reindex + commits run only when new books were actually
-        added — previously every construction paid a full rebuild.
+        Books are keyed by name with a content hash: new files insert,
+        changed files replace text (FTS refresh + embedding chunks for
+        that book dropped for rebuild), unchanged files cost zero
+        writes — previously every construction paid attention only to
+        names, so edited books never reached installed users. The FTS
+        reindex + commits run only when something actually changed.
         """
         if not books_dir.exists():
             return
-        existing = {
-            row[0] for row in
-            self._db.execute("SELECT source_name FROM knowledge_texts").fetchall()
+        stored = {
+            row[0]: row[1] for row in
+            self._db.execute(
+                "SELECT source_name, content_hash FROM knowledge_texts").fetchall()
         }
-        added = False
+        changed = False
         for f in sorted(books_dir.glob("*.txt")):
             name = f.stem.replace("_", " ").replace("-", " ").replace(".pdf", "").title()
-            if name in existing:
+            raw = f.read_bytes()
+            digest = _content_hash(raw)
+            if name in stored and stored[name] == digest:
                 continue
-            content = f.read_text(encoding="utf-8", errors="replace")
-            self._db.execute(
-                "INSERT INTO knowledge_texts (source_name, content, char_count) "
-                "VALUES (?, ?, ?)",
-                (name, content, len(content)),
-            )
-            added = True
-        if not added:
+            content = raw.decode("utf-8", errors="replace")
+            if name in stored:
+                self._db.execute(
+                    "UPDATE knowledge_texts SET content = ?, char_count = ?, "
+                    "content_hash = ? WHERE source_name = ?",
+                    (content, len(content), digest, name),
+                )
+                self._invalidate_chunks(name)
+            else:
+                self._db.execute(
+                    "INSERT INTO knowledge_texts (source_name, content, char_count, content_hash) "
+                    "VALUES (?, ?, ?, ?)",
+                    (name, content, len(content), digest),
+                )
+            changed = True
+        if not changed:
             return
         self._db.commit()
         self._db.execute("INSERT INTO knowledge_fts(knowledge_fts) VALUES('rebuild')")
         self._db.commit()
+
+    def _invalidate_chunks(self, source_name: str):
+        """Drop embedding chunks of a refreshed book (rebuilt on demand)."""
+        try:
+            self._db.execute("DELETE FROM textbook_chunks WHERE source_name = ?",
+                             (source_name,))
+        except Exception:
+            pass  # chunks table may not exist yet — nothing to drop
 
     @property
     def loaded(self) -> int:

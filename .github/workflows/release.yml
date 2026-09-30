@@ -30,8 +30,9 @@ jobs:
           RELEASE = f'openjyotish-v{VERSION}-windows'
           os.makedirs(f'/tmp/{RELEASE}', exist_ok=True)
 
-          # Copy source (never ship data/jhora.db: the app creates a
-          # fresh database on first use; the repo copy is test churn)
+           # Copy source (never ship data/jhora.db: the working copy is
+           # created from the tracked data/jhora.seed.db on first run;
+           # the repo copy is test churn)
           # Fail fast on a missing item: a silently skipped file ships
           # a broken zip (e.g. download_ephe.py missing in v1.10.0).
           required = ['src', 'tests', 'data', 'requirements.txt', 'pyproject.toml',
@@ -74,7 +75,7 @@ jobs:
           # installer inputs are inside the finished zip.
           names = zipfile.ZipFile(f'/tmp/{RELEASE}.zip').namelist()
           for need in ['download_ephe.py', 'install.bat', 'run.bat',
-                       'OpenJyotish.bat']:
+                       'OpenJyotish.bat', 'data/jhora.seed.db']:
               assert any(n.endswith(need) for n in names), need
           print('zip contents OK')
           "

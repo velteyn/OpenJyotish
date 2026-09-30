@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 DB_NAME = "jhora.db"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _db_path: Optional[Path] = None
 _connections: Dict[int, sqlite3.Connection] = {}
@@ -37,10 +37,25 @@ def _find_db() -> Path:
     for p in candidates:
         if p.parent.exists():
             p.parent.mkdir(parents=True, exist_ok=True)
+            _seed_working_copy(p)
             return p
     p = candidates[0]
     p.parent.mkdir(parents=True, exist_ok=True)
+    _seed_working_copy(p)
     return p
+
+
+def _seed_working_copy(p: Path):
+    """First run copies the tracked seed DB to the working copy.
+
+    The seed (schema + cities atlas, no personal content) is tracked;
+    the working copy is gitignored. Existing working copies — including
+    every current checkout — are never touched.
+    """
+    seed = p.with_name("jhora.seed.db")
+    if not p.exists() and seed.is_file():
+        import shutil
+        shutil.copy2(seed, p)
 
 
 def set_db_path(path: str | Path):
@@ -135,6 +150,25 @@ def _ensure_schema(conn: sqlite3.Connection):
     if cur.fetchone() is None:
         _create_guru_tables(conn)
         conn.commit()
+
+    _run_migrations(conn)
+
+
+def _run_migrations(conn: sqlite3.Connection):
+    """Version-gated migrations (fresh DBs already stamp SCHEMA_VERSION)."""
+    row = conn.execute("SELECT version FROM schema_version").fetchone()
+    version = row[0] if row else SCHEMA_VERSION
+    if version < 2:
+        _migrate_to_2(conn)
+        conn.execute("UPDATE schema_version SET version = 2")
+        conn.commit()
+
+
+def _migrate_to_2(conn: sqlite3.Connection):
+    """Add the book content hash (NULL = refresh on next load)."""
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(knowledge_texts)")}
+    if "content_hash" not in cols:
+        conn.execute("ALTER TABLE knowledge_texts ADD COLUMN content_hash TEXT")
 
 
 def _create_application_tables(conn: sqlite3.Connection):
@@ -233,6 +267,7 @@ def _create_all(conn: sqlite3.Connection):
             source_name TEXT NOT NULL UNIQUE,
             content TEXT NOT NULL,
             char_count INTEGER NOT NULL DEFAULT 0,
+            content_hash TEXT,
             loaded_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
         CREATE VIRTUAL TABLE knowledge_fts USING fts5(
