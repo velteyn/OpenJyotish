@@ -8,6 +8,8 @@ docs/books/
 data/cities15000.txt
 data/cities15000.zip
 
+# SQLite working copy (untracked; seeded from data/jhora.seed.db on first run)
+data/jhora.db
 # SQLite WAL/shared memory (runtime files)
 data/jhora.db-wal
 data/jhora.db-shm
