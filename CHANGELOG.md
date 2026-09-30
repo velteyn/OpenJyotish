@@ -14,6 +14,12 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 - Seed/working split: the repo tracks read-only `data/jhora.seed.db`
   (schema + cities); first run copies it to gitignored
   `data/jhora.db`. The tracked file never churns again.
+- Primer 3 worked example: the verbatim yoga quote is regenerated from
+  the detector (the Mercury–Saturn Raja Yoga, Adhi and Paasa were
+  missing since #279) and the prose in primers 3 and 10 is corrected
+  (two strong Raja Yogas; no Moon–Ketu conjunction). A new train-data
+  test fails whenever a primer's verbatim quote drifts from
+  `detect_all` (#285).
 
 ## Unreleased
 

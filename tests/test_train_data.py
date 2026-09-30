@@ -165,3 +165,50 @@ def test_qa_filter_rejects_ungrounded_answer():
         pair["passage"] + f"\n\n[{pair['source']}]")
     ok, reasons = filter_pair(pair, None)
     assert not ok and "grounded" in reasons[0]
+
+
+_QUOTE_MARKER = "detector reports, verbatim:"
+
+
+def _quote_line(y):
+    """One detector result as the primers quote it.
+
+    Regenerate a quote with:
+    ``for y in detect_all(cd): print(_quote_line(y))``
+    """
+    return f"{y.name} [{y.strength}] — {y.description}."
+
+
+def _quote_blocks():
+    """Every 'detector reports, verbatim:' block in the primers."""
+    from tools.train.draft import PRIMER_DIR
+    blocks = []
+    for path in sorted(PRIMER_DIR.glob("primer-*.txt")):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for i, line in enumerate(lines):
+            if _QUOTE_MARKER not in line:
+                continue
+            j = i + 1
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            block = []
+            while j < len(lines) and lines[j].strip():
+                block.append(lines[j])
+                j += 1
+            blocks.append((path.name, " ".join(" ".join(block).split())))
+    return blocks
+
+
+def test_primer_yoga_quote_matches_detector():
+    """Verbatim yoga quotes in the primers must match detect_all (#285)."""
+    from jhora.calc.yogas import detect_all
+    from jhora.charts.chart import ChartBuilder
+    cd = ChartBuilder().build(
+        year=1990, month=1, day=15, hour=17.5,
+        lat=12.9716, lon=77.5946, tz="+0530")
+    expected = " ".join(_quote_line(y) for y in detect_all(cd))
+    blocks = _quote_blocks()
+    assert blocks, f"no '{_QUOTE_MARKER}' block found in the primers"
+    for name, quoted in blocks:
+        assert quoted, f"{name}: empty verbatim block"
+        assert quoted == expected, f"{name}: stale detector quote"

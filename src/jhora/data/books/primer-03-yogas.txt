@@ -84,27 +84,39 @@ Reference chart: 1990-01-15, 17:30 IST, Bangalore (Gemini lagna). The
 detector reports, verbatim:
 
 Dhana Yoga [medium] — Saturn as lord of house 9 in house 7.
+Raja Yoga [strong] — Kendra lord Mercury (1st/4th) and kona lord
+Saturn (9th) in conjunction.
 Viparita Raja Yoga [medium] — Mars as 6th lord in own sign.
-Parivartana Yoga [strong] — exchange between Mercury in Sagittarius
+Parivartana Yoga [strong] — Exchange between Mercury in Sagittarius
 and Jupiter in Gemini.
-Anapha Yoga [medium] — planets in 12th from Moon: Ketu.
-Vosi Yoga [Sun-based/medium] — planets in 12th from Sun: Mercury, Saturn.
+Anapha Yoga [medium] — Planets in 12th from Moon: Ketu.
+Vosi Yoga [medium] — Planets in 12th from Sun: Mercury, Saturn.
+Adhi Yoga [weak] — Benefics in 1 of the 6th/7th/8th from the Moon —
+native becomes a leader.
+Paasa Yoga [medium] — five signs occupied; capable but flawed.
 
 Read them: Saturn (9th lord) in the 7th promises fortune through
-partnership, delivered during Saturn periods. Mars owns Scorpio, the
-6th from Gemini, and sits in it — Viparita through conflict won.
-Mercury (lagna lord) and Jupiter exchange Gemini and Sagittarius: the
-chart's single strong Raja Yoga, intellect trading places with wisdom.
-The node conjunctions (Sun–Rahu, Venus–Rahu, Moon–Ketu) mark where
-unconventional disruption enters wealth, love and mind respectively.
+partnership, delivered during Saturn periods. The chart has two strong
+Raja Yogas. Mercury, lagna lord and 4th lord, sits with Saturn, the
+9th lord, in the 7th: kendra and kona lords joined, status through
+partnership and public dealing. Mercury and Jupiter also exchange
+Gemini and Sagittarius: intellect trading places with wisdom. Mars
+owns Scorpio, the 6th from Gemini, and sits in it — Viparita through
+conflict won. Venus alone stands in the 6th from the Moon, so Adhi
+Yoga forms but weak; the seven planets occupy five signs, the Paasa
+pattern of a capable native bound by commitments. The node conjunctions
+(Sun–Rahu, Venus–Rahu) mark where unconventional disruption enters
+wealth and love; Ketu in the 12th from the Moon (the Anapha entry)
+brings detachment to the mind.
 
 
 8. YOGAS IN TIME AND IN THE PROGRAM
 -----------------------------------
 A yoga sleeps until a period lord involved in it runs its dasha
 (Primer Chapter 2): Saturn's Dhana Yoga pays during Saturn antardasas,
-the Mercury–Jupiter exchange during either planet's periods. Slow
-transits over the yoga's planets trigger months, never years.
+the Mercury–Saturn Raja Yoga and the Mercury–Jupiter exchange during
+the periods of their planets. Slow transits over the yoga's planets
+trigger months, never years.
 Findings live in the Yogas tab, `jhora yogas`, the Dashboard strengths
 panel and the AI anchor; every yoga an AI answer names is verified
 against this detector before display.
