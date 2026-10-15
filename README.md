@@ -105,6 +105,10 @@ openjyotish kuta "girl_birthdata" "boy_birthdata"
 openjyotish ai "birthdata"
 openjyotish teach "How do I read my 7th house?" --chart "birthdata"
 
+# Any coding agent (Claude Code, opencode, …): export once, ask anything
+# Example: docs/AI-AGENT-FORTUNE.md
+openjyotish analyze "1990-01-15 17:30 +0530 12.9716 77.5946" > chart.json
+
 # Launch desktop app
 ./run.sh
 ```
