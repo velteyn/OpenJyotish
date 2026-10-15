@@ -332,10 +332,16 @@ class TestSunAsHouseLord:
     def test_dharma_karma_sun_lord_of_10th(self):
         from types import SimpleNamespace
         # Scorpio lagna: Moon lords the 9th (Cancer), Sun the 10th (Leo).
-        cd = SimpleNamespace(ascendant=7 * 30 + 15, planets={Graha.SUN: SimpleNamespace(longitude=0.0)})
+        cd = SimpleNamespace(ascendant=7 * 30 + 15)
         res = _dharma_karma_adhipati(cd, {Graha.MOON: 4, Graha.SUN: 4})
         assert len(res) == 1
         assert set(res[0].planets) == {Graha.MOON, Graha.SUN}
+
+    def test_dharma_karma_same_lord_not_reported(self):
+        from types import SimpleNamespace
+        # Taurus lagna: Saturn lords both the 9th and the 10th.
+        cd = SimpleNamespace(ascendant=1 * 30 + 15)
+        assert _dharma_karma_adhipati(cd, {Graha.SATURN: 4}) == []
 
 
 class TestRajaYoga:
