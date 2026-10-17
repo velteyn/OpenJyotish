@@ -506,12 +506,10 @@ def _dharma_karma_adhipati(
     cd: ChartData,
     planet_house_map: Dict[Graha, int],
 ) -> List[YogaResult]:
-    asc_rasi = int(list(cd.planets.values())[0].longitude // 30) % 12 if cd.planets else 0
-    if cd.planets:
-        asc_rasi = int(cd.ascendant // 30) % 12
+    asc_rasi = int(cd.ascendant // 30) % 12
     lord_9 = get_lord((asc_rasi + 8) % 12)
     lord_10 = get_lord((asc_rasi + 9) % 12)
-    if lord_9 is not None and lord_10 is not None \
+    if lord_9 is not None and lord_10 is not None and lord_9 != lord_10 \
             and lord_9 in planet_house_map and lord_10 in planet_house_map:
         if planet_house_map[lord_9] == planet_house_map[lord_10]:
             return [YogaResult(
