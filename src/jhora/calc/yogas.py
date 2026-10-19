@@ -166,41 +166,23 @@ def _pancha_mahapurusha(
 ) -> List[YogaResult]:
     results = []
     config = {
-        Graha.MARS:    ("Ruchaka",   "Mars in own/moolatrikona sign in a kendra"),
-        Graha.MERCURY: ("Bhadra",    "Mercury in own/moolatrikona sign in a kendra"),
-        Graha.JUPITER: ("Hamsa",     "Jupiter in own/moolatrikona sign in a kendra"),
-        Graha.VENUS:   ("Malavya",   "Venus in own/moolatrikona sign in a kendra"),
-        Graha.SATURN:  ("Sasa",      "Saturn in own/moolatrikona sign in a kendra"),
+        Graha.MARS:    ("Ruchaka",   "Mars in own or exalted sign in a kendra"),
+        Graha.MERCURY: ("Bhadra",    "Mercury in own or exalted sign in a kendra"),
+        Graha.JUPITER: ("Hamsa",     "Jupiter in own or exalted sign in a kendra"),
+        Graha.VENUS:   ("Malavya",   "Venus in own or exalted sign in a kendra"),
+        Graha.SATURN:  ("Sasa",      "Saturn in own or exalted sign in a kendra"),
     }
-    own_moola_signs = _get_own_moolatrikona_signs()
     for g, (yoga_name, desc) in config.items():
         if g not in cd.planets:
             continue
-        house = planet_house_map[g]
-        if not is_in_kendra(house):
+        if not is_in_kendra(planet_house_map[g]):
             continue
-        rasi_idx = planet_rasi_map[g]
-        if rasi_idx in own_moola_signs.get(g, set()):
-            dignity = cd.planets[g].dignity
-            if dignity in ("own", "moolatrikona", "exalted"):
-                results.append(YogaResult(
-                    name=yoga_name, category="Pancha Mahapurusha",
-                    description=desc, planets=(g,), strength="strong",
-                ))
+        if cd.planets[g].dignity in ("own", "moolatrikona", "exalted"):
+            results.append(YogaResult(
+                name=yoga_name, category="Pancha Mahapurusha",
+                description=desc, planets=(g,), strength="strong",
+            ))
     return results
-
-
-def _get_own_moolatrikona_signs() -> Dict[Graha, Set[int]]:
-    from jhora.calc.dignities import OWN_SIGNS, MOOLATRIKONA
-    result: Dict[Graha, Set[int]] = {}
-    for g in Graha:
-        signs = set()
-        signs.update(OWN_SIGNS.get(g, ()))
-        if g in MOOLATRIKONA:
-            signs.add(MOOLATRIKONA[g][0])
-        if signs:
-            result[g] = signs
-    return result
 
 
 def _gaja_kesari(

@@ -109,6 +109,26 @@ class TestPanchaMahapurusha:
         result = _pancha_mahapurusha(pc, planet_rasi, planet_house)
         assert isinstance(result, list)
 
+    @pytest.mark.parametrize("graha, rasi, yoga", [
+        (Graha.MARS, 9, "Ruchaka"),      # Capricorn
+        (Graha.MERCURY, 5, "Bhadra"),    # Virgo
+        (Graha.JUPITER, 3, "Hamsa"),     # Cancer
+        (Graha.VENUS, 11, "Malavya"),    # Pisces
+        (Graha.SATURN, 6, "Sasa"),       # Libra
+    ])
+    def test_exalted_in_kendra(self, graha, rasi, yoga):
+        from types import SimpleNamespace
+        from jhora.calc.dignities import DignityChecker
+        dignity = DignityChecker().get_dignity(graha, rasi, 10.0)
+        cd = SimpleNamespace(planets={graha: SimpleNamespace(dignity=dignity)})
+        result = _pancha_mahapurusha(cd, {graha: rasi}, {graha: 0})
+        assert [y.name for y in result] == [yoga]
+
+    def test_exalted_outside_kendra(self):
+        from types import SimpleNamespace
+        cd = SimpleNamespace(planets={Graha.JUPITER: SimpleNamespace(dignity="exalted")})
+        assert _pancha_mahapurusha(cd, {Graha.JUPITER: 3}, {Graha.JUPITER: 1}) == []
+
 
 class TestGajaKesari:
     def test_gaja_kesari_on_ref(self, ref_chart):
