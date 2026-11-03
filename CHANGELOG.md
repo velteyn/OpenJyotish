@@ -2,7 +2,7 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
-## Unreleased
+## v1.11.0 — 2026-11-03
 
 ### Fixed
 - Yoga doctrine wave (external issues #284, #288–#293, #298, contributor
