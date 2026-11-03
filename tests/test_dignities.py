@@ -125,8 +125,8 @@ class TestNeutral:
         assert dc.get_dignity(Graha.VENUS, 0, 15.0) == "neutral"
 
     def test_mars_in_gemini(self, dc):
-        """Mars in Gemini — neutral."""
-        assert dc.get_dignity(Graha.MARS, 2, 10.0) == "neutral"
+        """Mars in Gemini — enemy (lord Mercury is Mars's natural enemy)."""
+        assert dc.get_dignity(Graha.MARS, 2, 10.0) == "enemy"
 
 
 class TestReferenceChart:
@@ -137,8 +137,8 @@ class TestReferenceChart:
         self.dc = dc
 
     def test_sun_neutral_reference(self):
-        """Sun at 21.10° Pisces (sidereal) → neutral."""
-        assert self.dc.get_dignity(Graha.SUN, 11, 21.10) == "neutral"
+        """Sun at 21.10° Pisces (sidereal) → friend (lord Jupiter)."""
+        assert self.dc.get_dignity(Graha.SUN, 11, 21.10) == "friend"
 
     def test_mars_moolatrikona_reference(self):
         """Mars at 3.56° Aries (sidereal) → moolatrikona (Aries 0-12°)."""
@@ -151,3 +151,27 @@ class TestReferenceChart:
     def test_saturn_debilitated_reference(self):
         """Saturn at 15.12° Aries (sidereal) → debilitated (Aries is its debilitation sign)."""
         assert self.dc.get_dignity(Graha.SATURN, 0, 15.12) == "debilitated"
+
+
+class TestNaturalFriendship:
+    """Friend/enemy from the sign lord's natural relationship (#284)."""
+
+    def test_friend(self, dc):
+        # Moon in Leo: lord Sun is the Moon's natural friend.
+        assert dc.get_dignity(Graha.MOON, 4, 10.0) == "friend"
+
+    def test_enemy(self, dc):
+        # Mars in Virgo: lord Mercury is Mars's natural enemy.
+        assert dc.get_dignity(Graha.MARS, 5, 10.0) == "enemy"
+
+    def test_neutral(self, dc):
+        # Venus in Aries: lord Mars is neutral to Venus.
+        assert dc.get_dignity(Graha.VENUS, 0, 10.0) == "neutral"
+
+    def test_exaltation_beats_friendship(self, dc):
+        # Jupiter in Cancer is exalted, not merely friend.
+        assert dc.get_dignity(Graha.JUPITER, 3, 10.0) == "exalted"
+
+    def test_debilitation_beats_enmity(self, dc):
+        # Mars in Cancer is debilitated, not merely enemy.
+        assert dc.get_dignity(Graha.MARS, 3, 10.0) == "debilitated"

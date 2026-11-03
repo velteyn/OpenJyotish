@@ -8,7 +8,7 @@ Checks Mars placement in houses 1, 2, 4, 7, 8, 12 from:
   - Venus (Shukra Lagna)
 
 Cancellation rules:
-  - Mars in own sign (Aries, Scorpio) → weakened
+  - Mars in own (Aries, Scorpio) or exalted (Capricorn) sign → weakened
   - Mars conjoined with or aspected by Jupiter → cancelled
   - Ascendant-specific exemptions (Mars rules benefic houses for some lagnas)
 """
@@ -151,18 +151,19 @@ def compute_kuja_dosha(cd: ChartData) -> KujaDosaResult:
     result.from_moon = mars_moon_house in _KUJA_HOUSES
     result.from_venus = mars_venus_house in _KUJA_HOUSES
 
-    # Cancellation: Mars in own sign
-    result.mars_own_sign = mars_rasi.short_name in ("Ar", "Sc")
+    # Cancellation: Mars in own or exalted sign
+    result.mars_own_sign = mars_rasi.short_name in ("Ar", "Sc", "Cp")
     if result.mars_own_sign:
-        result.messages.append(f"Mars in own sign {mars_rasi.full_name} — weakened")
+        result.messages.append(f"Mars in own or exalted sign {mars_rasi.full_name} — weakened")
 
     # Cancellation: Jupiter aspects Mars
     if _graha_aspects(Graha.JUPITER, jupiter_lon, mars_lon):
         result.jupiter_cancels = True
         result.messages.append("Jupiter aspects Mars — dosha cancelled")
 
-    # Cancellation: Mars conjunct Jupiter (within 5 degrees)
-    if abs((mars_lon - jupiter_lon + 180) % 360 - 180) < 5:
+    # Cancellation: Jupiter conjoined with Mars (same sign, whole-sign
+    # yuti — majority practice, matching the aspect rule above)
+    if _sign_from_lon(jupiter_lon) == _sign_from_lon(mars_lon):
         result.jupiter_cancels = True
         result.messages.append("Jupiter conjoined with Mars — dosha cancelled")
 

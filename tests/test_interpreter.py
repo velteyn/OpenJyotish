@@ -47,7 +47,7 @@ class TestChartInterpreter:
         interp = ChartInterpreter()
         result = interp.interpret(ref_chart)
         assert "strengths" in result
-        assert result["strengths"]["Sun"] == "neutral"
+        assert result["strengths"]["Sun"] == "friend"  # Pisces lord Jupiter is Sun's friend (#284)
         assert result["strengths"]["Mars"] == "own"
 
     def test_house_lords(self, ref_chart):

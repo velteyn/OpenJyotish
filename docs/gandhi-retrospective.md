@@ -37,17 +37,19 @@ Libra lagna 184.66°. Moon Cancer/Ashlesha in the 10th with Rahu.
 Mars+Mercury+Venus in lagna. Jupiter Aries 7th. Saturn Scorpio 2nd. Ketu
 Capricorn 4th. Dasa balance: **Mercury 2.62 yr**.
 
-Detected yogas: Amala, Dhana, Kemadruma, Malavya, Raja, Vesi,
+Detected yogas: Dhana, Kemadruma, Malavya, Raja, Vesi,
 Yogakaraka. (The detector's Chandra-Mangala is conjunction-only, so the
 Moon–Mars mutual kendra here goes unreported; Kemadruma is reported
-without its cancellation — both documented definitions, not bugs.)
+without its cancellation — both documented definitions, not bugs.
+Amala is absent: the 10th holds only the Moon and Rahu, neither a
+natural benefic.)
 
 ## Objective scoreboard
 
 | Check | Result |
 |---|---|
 | Dasa balance at birth | Mercury 2.62 yr ✓ |
-| Named Raja yogas present | Malavya (Venus own in lagna), Amala (Moon in 10th), Yogakaraka Saturn, Dhana/Raja/Vesi ✓ |
+| Named Raja yogas present | Malavya (Venus own in lagna), Yogakaraka Saturn, Dhana/Raja/Vesi ✓ |
 | Sade Sati on 1948-01-30 | **Peak** (Saturn on natal Moon, SAV 35) ✓ |
 | Saturn's house from Moon that day | 1st ✓ |
 | Saturn at Independence | Also peak — Partition violence under peak, noted |

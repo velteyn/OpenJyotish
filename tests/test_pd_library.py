@@ -46,7 +46,11 @@ def test_pd_text_loads_and_searches(tmp_path):
     import shutil
     from jhora.interpreter.knowledge_base import KnowledgeBase
     from jhora.core.database import get_db
-    src = next(BOOKS.glob("*.txt"))
+    # Fixed public-domain book (never a primer): glob order is
+    # filesystem-dependent, so an unsorted pick varies by OS (#298).
+    candidates = sorted(BOOKS.glob("brihat-*.txt"))
+    assert candidates, "no PD Brihat text found"
+    src = candidates[0]
     probe = tmp_path / "pd-probe.txt"
     shutil.copy(src, probe)
     name = None

@@ -59,3 +59,28 @@ def test_house_from_is_whole_sign():
     from jhora.calc.kuja_dosha import _house_from
     assert _house_from(59, 61) == 2
     assert _house_from(101.14, 80.75) == 12
+
+
+def test_mars_exalted_cancels():
+    """Mars exalted in Capricorn weakens the dosha (primer 6 §2)."""
+    cd = _build(1990, 1, 1, 6, 28.6, 77.2)
+    r = compute_kuja_dosha(cd)
+    assert r.from_lagna  # Mars in 12th
+    assert r.mars_own_sign
+    assert not r.has_dosha
+
+
+def test_jupiter_same_sign_conjunct_cancels():
+    """Jupiter in the same sign as Mars cancels, whatever the orb (#292).
+
+    1995-10-28: Jupiter and Mars share Scorpio ~10° apart — the old 5°
+    orb missed it, whole-sign yuti catches it.
+    """
+    cd = _build(1995, 10, 28, 12, 28.6, 77.2)
+    from jhora.calc.kuja_dosha import _sign_from_lon
+    mars = cd.planet(__import__("jhora.types.graha", fromlist=["Graha"]).Graha.MARS)
+    jup = cd.planet(__import__("jhora.types.graha", fromlist=["Graha"]).Graha.JUPITER)
+    assert _sign_from_lon(mars.longitude) == _sign_from_lon(jup.longitude)
+    assert abs((mars.longitude - jup.longitude + 180) % 360 - 180) > 5
+    r = compute_kuja_dosha(cd)
+    assert r.jupiter_cancels

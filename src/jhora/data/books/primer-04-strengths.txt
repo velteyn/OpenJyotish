@@ -49,8 +49,8 @@ so their weakness is relative, never absolute.
 Each divisional chart (varga) awards a planet a share of its weight
 according to dignity in that varga: full weight for exalted or
 moolatrikona, scaled fractions down through own, friendly and neutral
-to zero for debilitated or inimical. Four schemes weight the vargas
-differently (this program's exact weights):
+to zero for debilitated — inimical counts quarter. Four schemes weight
+the vargas differently (this program's exact weights):
 
 Shadvarga (6 vargas, total 20): D-1: 6, D-2: 2, D-3: 4, D-7: 5, D-9: 3.
 Saptavarga (7 vargas, total 20): D-1: 5, D-2: 2, D-3: 3, D-7: 2.5,
@@ -58,13 +58,14 @@ D-9: 4.5, D-30: 3.
 Dashavarga and Shodasavarga extend the same principle to 10 and 16
 vargas (see `jhora shadbala --scheme`).
 
-Reference values, Shadvarga scheme, computed: Sun 10, Moon 9.5,
-Mars 13.5, Mercury 11.5, Jupiter 11.5, Venus 11.5, Saturn 10 (all of
-20). Read them as divisional consistency: Mars leads (13.5/20), holding
-its own sign in D-1 and D-7 despite a debilitated D-3; Mercury and Venus
-(exalted in D-9) and Jupiter (moolatrikona in D-9) follow at 11.5/20;
-Sun and Saturn at 10/20 are average, and the Moon (debilitated in D-9)
-trails at 9.5/20 — competent in rasi, undistinguished in vargas.
+Reference values, Shadvarga scheme, computed: Sun 8.5, Moon 11.0,
+Mars 14.0, Mercury 11.0, Jupiter 10.8, Venus 12.2, Saturn 9.0 (all of
+20). Read them as divisional consistency: Mars leads (14.0/20, own in
+D-1 and D-7 despite a debilitated D-3); Venus follows (12.2, friend in
+D-1 and D-3, exalted in D-9). Moon and Mercury hold 11.0, Jupiter 10.8
+(moolatrikona in D-9); Saturn at 9.0 and the Sun at 8.5 trail — enemy
+placements across most vargas, competent in rasi, undistinguished in
+vargas.
 
 
 3. BHAVA BALA (HOUSE STRENGTH)

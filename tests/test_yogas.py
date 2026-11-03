@@ -9,7 +9,8 @@ from jhora.calc.yogas import (
     _raja_yogas, _viparita_raja_yogas, _parivartana,
     _sunapha_anapha_durudhara, _kemadruma,
     _conjunction_yogas, _adhi_yoga, _lagnaadhi_yoga, _vasumati_yoga,
-    _dharma_karma_adhipati,
+    _dharma_karma_adhipati, _amala, _kala_sarpa,
+    _vesi_vosi_ubhayachari,
 )
 from jhora.charts.chart import ChartBuilder
 from jhora.types.graha import Graha
@@ -91,8 +92,12 @@ class TestDetectAll:
         yogas = detect_all(ref_chart)
         names = {y.name for y in yogas}
         assert "Raja Yoga" in names
-        assert "Durudhara Yoga" in names
-        assert "Ubhayachari Yoga" in names
+        # Ketu no longer counts as a flanker (#290): the old Durudhara
+        # and Ubhayachari entries collapse to single-sided yogas.
+        assert "Sunapha Yoga" in names
+        assert "Vesi Yoga" in names
+        assert "Durudhara Yoga" not in names
+        assert "Ubhayachari Yoga" not in names
 
 
 class TestPanchaMahapurusha:
@@ -154,7 +159,7 @@ class TestGajaKesari:
 
 
 class TestViparitaRaja:
-    """Trik (6/8/12) lords, counted from lagna, in own sign or conjunction."""
+    """Trik (6/8/12) lords placed in trik houses (Harsha/Sarala/Vimala)."""
 
     def _run(self, lagna, placements):
         from types import SimpleNamespace
@@ -170,21 +175,31 @@ class TestViparitaRaja:
         # Aries: Moon lords 4th, Venus 2nd/7th; together in Virgo (6th).
         assert self._run(0, {Graha.MOON: 5, Graha.VENUS: 5}) == []
 
-    def test_lordship_not_occupancy(self):
-        # Gemini: Mars lords 6th, Saturn 8th; together in the 1st.
-        res = self._run(2, {Graha.MARS: 2, Graha.SATURN: 2})
+    def test_trik_lord_in_other_trik_house(self):
+        # Gemini: Mars lords 6th; placed in Capricorn (8th) → Harsha.
+        res = self._run(2, {Graha.MARS: 9})
         assert len(res) == 1
-        assert set(res[0].planets) == {Graha.MARS, Graha.SATURN}
-        assert "6th" in res[0].description and "8th" in res[0].description
+        assert res[0].planets == (Graha.MARS,)
+        assert "Harsha" in res[0].description
+
+    def test_conjunction_elsewhere_is_not_viparita(self):
+        # Gemini: Mars (6th) + Saturn (8th) together in the 1st: no yoga.
+        assert self._run(2, {Graha.MARS: 2, Graha.SATURN: 2}) == []
 
     def test_sun_as_trik_lord(self):
-        # Capricorn: Sun lords 8th (Leo), Mercury 6th (Gemini).
-        res = self._run(9, {Graha.SUN: 0, Graha.MERCURY: 0})
+        # Capricorn: Sun lords 8th (Leo); in Sagittarius (12th) → Sarala.
+        # Every other planet sits outside trik houses and off its dignity.
+        res = self._run(9, {Graha.SUN: 8, Graha.MOON: 10,
+                            Graha.MARS: 0, Graha.MERCURY: 0,
+                            Graha.JUPITER: 0, Graha.VENUS: 11,
+                            Graha.SATURN: 1})
         assert len(res) == 1
-        assert set(res[0].planets) == {Graha.SUN, Graha.MERCURY}
+        assert res[0].planets == (Graha.SUN,)
+        assert "Sarala" in res[0].description
 
     def test_own_sign(self):
-        # Gemini: Mars in Scorpio is the 6th lord in its own sign.
+        # Gemini: Mars in Scorpio is the 6th lord in its own sign,
+        # reported exactly once (no duplicate placement entry).
         res = self._run(2, {Graha.MARS: 7})
         assert len(res) == 1
         assert res[0].planets == (Graha.MARS,)
@@ -192,12 +207,24 @@ class TestViparitaRaja:
 
     @pytest.mark.parametrize("lagna", range(12))
     def test_every_lagna(self, lagna):
-        res = self._run(lagna, {g: 0 for g in TestRajaYoga._SEVEN})
-        lords = {TestRajaYoga._SIGN_LORDS[(lagna + h) % 12] for h in (5, 7, 11)}
-        expected = {frozenset((a, b)) for a in lords for b in lords if a != b}
-        pairs = [frozenset(y.planets) for y in res if len(y.planets) == 2]
-        assert len(pairs) == len(set(pairs))
-        assert set(pairs) == expected
+        # Each trik lord placed in a different trik house: exactly one
+        # single-lord yoga per lord (placement variant, or the own-sign
+        # wording when the placement happens to be home — never both).
+        houses_of = {h: (lagna + h) % 12 for h in (5, 7, 11)}
+        lords = {TestRajaYoga._SIGN_LORDS[s] for s in houses_of.values()}
+        placements = {}
+        for (lh, ph) in ((5, 7), (7, 11), (11, 5)):
+            placements[TestRajaYoga._SIGN_LORDS[houses_of[lh]]] = \
+                houses_of[ph]
+        res = self._run(lagna, placements)
+        singles = [y for y in res if len(y.planets) == 1]
+        assert {y.planets[0] for y in singles} == set(lords)
+        assert len(singles) == len(lords)
+        for y in singles:
+            assert ("Harsha" in y.description
+                    or "Sarala" in y.description
+                    or "Vimala" in y.description
+                    or "in own sign" in y.description)
 
 
 class TestKemadruma:
@@ -421,3 +448,126 @@ class TestRajaYoga:
         pairs = [frozenset(y.planets) for y in res]
         assert len(pairs) == len(set(pairs))
         assert set(pairs) == expected
+
+
+class TestRajaSambandha:
+    """Raja Yoga via conjunction (medium) and mutual 7th aspect (medium)."""
+
+    def test_conjunction_graded_medium(self):
+        # Aquarius: Sun (7th lord) + Mercury (5th lord) together.
+        from types import SimpleNamespace
+        cd = SimpleNamespace(ascendant=10 * 30 + 15)
+        rasi = {Graha.SUN: 2, Graha.MERCURY: 2}
+        houses = {g: house_from_lagna(10, r) for g, r in rasi.items()}
+        res = _raja_yogas(cd, rasi, houses)
+        assert len(res) == 1
+        assert res[0].strength == "medium"
+        assert "in conjunction" in res[0].description
+
+    def test_mutual_aspect(self):
+        # Aquarius: Sun (7th) in Aries, Mercury (5th) in Libra —
+        # mutual 7th aspect, no conjunction.
+        from types import SimpleNamespace
+        cd = SimpleNamespace(ascendant=10 * 30 + 15)
+        rasi = {Graha.SUN: 0, Graha.MERCURY: 6}
+        houses = {g: house_from_lagna(10, r) for g, r in rasi.items()}
+        res = _raja_yogas(cd, rasi, houses)
+        assert len(res) == 1
+        assert res[0].strength == "medium"
+        assert "mutual aspect" in res[0].description
+
+    def test_no_relation_no_yoga(self):
+        # Aquarius: Sun (7th) in Aries, Mercury (5th) in Taurus.
+        from types import SimpleNamespace
+        cd = SimpleNamespace(ascendant=10 * 30 + 15)
+        rasi = {Graha.SUN: 0, Graha.MERCURY: 1}
+        houses = {g: house_from_lagna(10, r) for g, r in rasi.items()}
+        assert _raja_yogas(cd, rasi, houses) == []
+
+
+class TestAmala:
+    """Amala needs a natural benefic (Jupiter/Venus/Mercury) in the 10th."""
+
+    def _houses(self, lagna, placements):
+        return {g: house_from_lagna(lagna, r)
+                for g, r in placements.items()}
+
+    def test_benefic_in_10th(self):
+        # Aries lagna: Jupiter in Capricorn is the 10th.
+        res = _amala(None, {}, self._houses(0, {Graha.JUPITER: 9}))
+        assert len(res) == 1
+        assert res[0].planets == (Graha.JUPITER,)
+        assert "house 10" in res[0].description
+        assert "0-indexed" not in res[0].description
+
+    def test_moon_in_10th_is_not_amala(self):
+        # Aries lagna: Moon in Capricorn (10th) — not a natural benefic.
+        assert _amala(None, {},
+                      self._houses(0, {Graha.MOON: 9})) == []
+
+    def test_node_in_10th_is_not_amala(self):
+        assert _amala(None, {},
+                      self._houses(0, {Graha.RAHU: 9})) == []
+
+    def test_malefic_in_10th_is_not_amala(self):
+        assert _amala(None, {},
+                      self._houses(0, {Graha.SATURN: 9})) == []
+
+
+class TestKalaSarpa:
+    """Both arcs detected: Rahu→Ketu (Kala Sarpa), Ketu→Rahu (Amrita)."""
+
+    def _rasi(self, rahu, others):
+        rasi = {Graha.RAHU: rahu, Graha.KETU: (rahu + 6) % 12}
+        rasi.update(others)
+        return rasi
+
+    def test_sarpa_arc(self):
+        # Rahu Aries, Ketu Libra; everything in Taurus..Virgo.
+        rasi = self._rasi(0, {g: s for g, s in zip(
+            (Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+             Graha.JUPITER, Graha.VENUS, Graha.SATURN), (1, 2, 3, 4, 5, 1, 2))})
+        res = _kala_sarpa(None, rasi)
+        assert [y.name for y in res] == ["Kala Sarpa Yoga"]
+
+    def test_amrita_arc(self):
+        # Same nodes; everything in Libra..Pisces (Ketu→Rahu half).
+        rasi = self._rasi(0, {g: s for g, s in zip(
+            (Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+             Graha.JUPITER, Graha.VENUS, Graha.SATURN), (7, 8, 9, 10, 11, 7, 8))})
+        res = _kala_sarpa(None, rasi)
+        assert [y.name for y in res] == ["Kala Amrita Yoga"]
+
+    def test_scattered_is_none(self):
+        rasi = self._rasi(0, {g: s for g, s in zip(
+            (Graha.SUN, Graha.MOON, Graha.MARS, Graha.MERCURY,
+             Graha.JUPITER, Graha.VENUS, Graha.SATURN), (1, 7, 2, 8, 3, 9, 4))})
+        assert _kala_sarpa(None, rasi) == []
+
+
+class TestFlankingExclusions:
+    """Luminaries and nodes are not flanking company (#290)."""
+
+    def test_sun_does_not_make_sunapha(self):
+        # Sun alone in the 2nd from the Moon → no yoga.
+        res = _sunapha_anapha_durudhara(
+            None, {Graha.MOON: 0, Graha.SUN: 1})
+        assert res == []
+
+    def test_moon_does_not_make_vosi(self):
+        # Moon alone in the 12th from the Sun → no yoga.
+        res = _vesi_vosi_ubhayachari(
+            None, {Graha.SUN: 0, Graha.MOON: 11})
+        assert res == []
+
+    def test_ketu_alone_is_kemadruma_not_anapha(self):
+        # Ketu alone 12th from Moon: Kemadruma, and no Anapha.
+        rasi = {Graha.MOON: 0, Graha.KETU: 11}
+        assert _sunapha_anapha_durudhara(None, rasi) == []
+        res = _kemadruma(None, rasi)
+        assert len(res) == 1 and res[0].name == "Kemadruma Yoga"
+
+    def test_benefic_flank_still_counts(self):
+        rasi = {Graha.MOON: 0, Graha.JUPITER: 1}
+        res = _sunapha_anapha_durudhara(None, rasi)
+        assert [y.name for y in res] == ["Sunapha Yoga"]

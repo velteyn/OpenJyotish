@@ -67,18 +67,19 @@ transit condition, and this program reports the live verdict on the
 Dashboard from current Saturn against natal Moon.
 
 
-5. KALASARPA YOGA (DOCTRINE, NOT AUTO-DETECTED)
------------------------------------------------
+5. KALASARPA YOGA (AUTO-DETECTED)
+--------------------------------
 All seven grahas hemmed on one side of the Rahu–Ketu axis, with no
 planet outside their arc, forms Kalasarpa Yoga: life organized around
 unfinished karmic themes, breakthroughs delayed then sudden, foreign
 and unconventional elements prominent. Twelve named varieties exist
 (Ananta through Shankachuda) according to which house the serpent's
-head occupies. This program does not auto-detect it — check manually:
-list all seven longitudes and confirm every one falls within a single
-180-degree arc from Ketu to Rahu. Treat internet-era fatalism about
-this yoga with skepticism; classical texts give it weight, not doom,
-and a strong lagna lord overrules much of it.
+head occupies. Either arc counts: Rahu-to-Ketu is Kala Sarpa,
+Ketu-to-Rahu is Kala Amrita (the reverse half). This program reports
+whichever half holds all seven — check it with `jhora yogas` on any
+chart. Treat internet-era fatalism about this yoga with skepticism;
+classical texts give it weight, not doom, and a strong lagna lord
+overrules much of it.
 
 
 6. READING AFFLICTIONS

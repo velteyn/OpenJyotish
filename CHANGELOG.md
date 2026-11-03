@@ -5,6 +5,19 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
 ## Unreleased
 
 ### Fixed
+- Yoga doctrine wave (external issues #284, #288–#293, #298, contributor
+  out of time): Raja Yoga via conjunction or mutual 7th aspect graded
+  medium; Viparita is placement-based (Harsha/Sarala/Vimala); Amala
+  needs Jupiter/Venus/Mercury in the 10th; Kala Sarpa reported for both
+  arcs (Amrita named); flanking yogas and Kemadruma exclude luminaries
+  and nodes; dignities use natural friend/enemy (Vimsopaka inimical
+  scores quarter); Kuja Dosha cancelled by exalted Mars and whole-sign
+  Jupiter conjunction; PD-library test uses a fixed book. Primers 1/3/4/6/10
+  and the Gandhi retrospective updated to match the detector.
+
+## Unreleased
+
+### Fixed
 - Knowledge refresh: edited primers now reach installed DBs (content
   hash per book; changed text replaces, FTS refreshes, stale embedding
   chunks drop). Schema migrates to v2; existing user data untouched.

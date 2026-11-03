@@ -41,6 +41,28 @@ MOOLATRIKONA: Dict[Graha, Tuple[int, float]] = {
     Graha.SATURN:  (10, 0.0),     # Aquarius 0-20°
 }
 
+# Natural (naisargika) friendships: planet -> friends / enemies; the rest
+# are neutral. Majority use for divisional dignity (Vimsopaka friends
+# and enemies); compound (panchadha) relations are out of scope.
+_NATURAL_FRIENDS: Dict[Graha, Tuple[Graha, ...]] = {
+    Graha.SUN:     (Graha.MOON, Graha.MARS, Graha.JUPITER),
+    Graha.MOON:    (Graha.SUN, Graha.MERCURY),
+    Graha.MARS:    (Graha.SUN, Graha.MOON, Graha.JUPITER),
+    Graha.MERCURY: (Graha.SUN, Graha.VENUS),
+    Graha.JUPITER: (Graha.SUN, Graha.MOON, Graha.MARS),
+    Graha.VENUS:   (Graha.MERCURY, Graha.SATURN),
+    Graha.SATURN:  (Graha.MERCURY, Graha.VENUS),
+}
+_NATURAL_ENEMIES: Dict[Graha, Tuple[Graha, ...]] = {
+    Graha.SUN:     (Graha.VENUS, Graha.SATURN),
+    Graha.MOON:    (),
+    Graha.MARS:    (Graha.MERCURY,),
+    Graha.MERCURY: (Graha.MOON,),
+    Graha.JUPITER: (Graha.MERCURY, Graha.VENUS),
+    Graha.VENUS:   (Graha.SUN, Graha.MOON),
+    Graha.SATURN:  (Graha.SUN, Graha.MOON, Graha.MARS),
+}
+
 # Own sign (full sign rulership)
 OWN_SIGNS: Dict[Graha, Tuple[int, ...]] = {
     Graha.SUN:     (4,),
@@ -108,7 +130,15 @@ class DignityChecker:
         if graha in self._own:
             if rasi_index in self._own[graha]:
                 return "own"
-        # Friend/neutral/enemy — depends on graha relationships
+        # Friend/enemy by the sign lord's natural relationship to the
+        # planet (nodes ruling a sign count as neutral); otherwise neutral.
+        from jhora.calc.yogas import get_lord
+        lord = get_lord(rasi_index)
+        if lord is not None and not lord.is_node:
+            if lord in _NATURAL_FRIENDS.get(graha, ()):
+                return "friend"
+            if lord in _NATURAL_ENEMIES.get(graha, ()):
+                return "enemy"
         return "neutral"
 
     def full_result(self, graha: Graha, rasi_index: int,
