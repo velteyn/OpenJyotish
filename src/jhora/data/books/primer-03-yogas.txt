@@ -47,35 +47,37 @@ debilitated one promises and delays.
 4. RAJA YOGAS (ROYAL COMBINATIONS)
 ----------------------------------
 Kendra lords (1, 4, 7, 10) and trikona lords (1, 5, 9) in mutual
-conjunction, exchange (parivartana) or aspect form Raja Yoga: status,
-authority, rise in career. The detector reports the participating lords
-and houses; parivartana (mutual exchange of signs) is graded strong,
-conjunction medium. A Raja Yoga with both lords well-placed dominates a
-chart; the same pattern involving dusthana lords (3, 6, 11) gives rank
-without peace.
+conjunction or mutual 7th aspect form Raja Yoga: status, authority,
+rise in career. The detector reports the participating lords and
+houses; both formations grade medium. Mutual exchange (parivartana)
+is reported separately and grades strong. A Raja Yoga with both lords
+well-placed dominates a chart; the same pattern involving dusthana
+lords (6, 8, 12) gives rank without peace.
 
 
 5. VIPARITA RAJA YOGAS (REVERSAL COMBINATIONS)
 ---------------------------------------------
-Lords of the trik houses (6, 8, 12) placed in their own sign, or two
-trik lords conjoined, form Viparita Raja Yoga: success through
-adversity — inheritance after litigation, promotion after demotion,
-recovery after illness. The detector reports both formations: single
-lords in own sign, and every qualifying pair in conjunction. These are
-the most commonly listed yogas in real charts and the least understood:
-they promise nothing without a preceding difficulty.
+Lords of the trik houses (6, 8, 12) placed in a trik house form
+Viparita Raja Yoga: success through adversity — inheritance after
+litigation, promotion after demotion, recovery after illness. The
+detector names the variant by the lordship: the 6th lord gives Harsha,
+the 8th Sarala, the 12th Vimala; a trik lord in its own sign is
+reported in those terms as well. These are the most commonly listed
+yogas in real charts and the least understood: they promise nothing
+without a preceding difficulty.
 
 
 6. MOON- AND SUN-FLANKING YOGAS
 -------------------------------
 Planets (other than the luminaries) in the 2nd from the Moon form
 Sunapha, in the 12th Anapha, in both Durudhara; from the Sun the same
-positions form Vesi, Vasi and Ubhayachari. They describe the company a
-luminary keeps: flanked luminaries act supported, isolated ones act
-alone. Caveat: several classical schools exclude Rahu and Ketu from
-these yogas; this program's detector lists whichever planets occupy
-the flanking houses, nodes included — read node entries as emphasis
-markers rather than classical formations.
+positions form Vesi, Vasi and Ubhayachari. Only the five star-planets
+count as company: the Sun and Moon are the flanked luminaries, never
+each other's entourage, and Rahu and Ketu are shadow nodes, not
+flanking bodies. They describe the company a luminary keeps: flanked
+luminaries act supported, isolated ones act alone. A Moon with no
+flanking star-planet forms Kemadruma (poverty through isolation),
+unless Jupiter shares its sign.
 
 
 7. WORKED EXAMPLE
@@ -84,30 +86,39 @@ Reference chart: 1990-01-15, 17:30 IST, Bangalore (Gemini lagna). The
 detector reports, verbatim:
 
 Dhana Yoga [medium] — Saturn as lord of house 9 in house 7.
-Raja Yoga [strong] — Kendra lord Mercury (1st/4th) and kona lord
+Raja Yoga [medium] — Kendra lord Mercury (1st/4th) and kona lord
 Saturn (9th) in conjunction.
+Raja Yoga [medium] — Kendra lord Jupiter (7th/10th) and kona lord
+Mercury (1st) in mutual aspect.
+Raja Yoga [medium] — Kendra lord Jupiter (7th/10th) and kona lord
+Saturn (9th) in mutual aspect.
 Viparita Raja Yoga [medium] — Mars as 6th lord in own sign.
+Viparita Raja Yoga [medium] — Trik lord Venus (12th lord) in house 8
+(Vimala).
 Parivartana Yoga [strong] — Exchange between Mercury in Sagittarius
 and Jupiter in Gemini.
-Anapha Yoga [medium] — Planets in 12th from Moon: Ketu.
 Vosi Yoga [medium] — Planets in 12th from Sun: Mercury, Saturn.
+Kemadruma Yoga [weak] — Moon without planets on either side (except
+Jupiter in same sign).
 Adhi Yoga [weak] — Benefics in 1 of the 6th/7th/8th from the Moon —
 native becomes a leader.
 Paasa Yoga [medium] — five signs occupied; capable but flawed.
 
 Read them: Saturn (9th lord) in the 7th promises fortune through
-partnership, delivered during Saturn periods. The chart has two strong
-Raja Yogas. Mercury, lagna lord and 4th lord, sits with Saturn, the
-9th lord, in the 7th: kendra and kona lords joined, status through
-partnership and public dealing. Mercury and Jupiter also exchange
-Gemini and Sagittarius: intellect trading places with wisdom. Mars
-owns Scorpio, the 6th from Gemini, and sits in it — Viparita through
-conflict won. Venus alone stands in the 6th from the Moon, so Adhi
-Yoga forms but weak; the seven planets occupy five signs, the Paasa
-pattern of a capable native bound by commitments. The node conjunctions
-(Sun–Rahu, Venus–Rahu) mark where unconventional disruption enters
-wealth and love; Ketu in the 12th from the Moon (the Anapha entry)
-brings detachment to the mind.
+partnership, delivered during Saturn periods. The chart has three
+medium Raja Yogas: Mercury, lagna lord and 4th lord, sits with Saturn,
+the 9th lord, in the 7th; Jupiter, 7th and 10th lord, aspects Mercury
+the 1st lord and Saturn the 9th lord across the 1st/7th axis — status
+through partnership and public dealing, asserted rather than joined.
+Mercury and Jupiter also exchange Gemini and Sagittarius: intellect
+trading places with wisdom. Mars owns Scorpio, the 6th from Gemini,
+and sits in it — Viparita through conflict won; Venus, 12th lord in
+the 8th, gives Vimala, recovery after loss. The Moon stands alone, so
+Kemadruma marks early isolation transmuted by the strong lagna lord;
+Venus alone in the 6th from the Moon keeps a weak Adhi, and the seven
+planets occupy five signs, the Paasa pattern of a capable native bound
+by commitments. The node conjunctions (Sun–Rahu, Venus–Rahu) mark where
+unconventional disruption enters wealth and love.
 
 
 8. YOGAS IN TIME AND IN THE PROGRAM

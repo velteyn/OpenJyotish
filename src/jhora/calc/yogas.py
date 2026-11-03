@@ -38,6 +38,14 @@ _KENDRA_KONA = {0, 3, 4, 6, 8, 9}
 _BENEFICS = {Graha.JUPITER, Graha.VENUS, Graha.MERCURY}
 _MALEFICS = {Graha.SUN, Graha.MARS, Graha.SATURN, Graha.RAHU, Graha.KETU}
 
+#: Grahas that can flank luminaries or relieve Kemadruma: the five
+#: star-planets only. The Sun and Moon are the flanked luminaries (never
+#: each other's company here), and Rahu/Ketu are shadow nodes, not
+#: flanking bodies (primer 3, majority use).
+_FLANKERS = {Graha.MARS, Graha.MERCURY, Graha.JUPITER, Graha.VENUS,
+              Graha.SATURN}
+_MALEFICS = {Graha.SUN, Graha.MARS, Graha.SATURN, Graha.RAHU, Graha.KETU}
+
 #: Upachaya (growth) houses, 0-indexed from the lagna.
 _UPACHAYA = {2, 5, 9, 10}
 
@@ -261,15 +269,22 @@ def _raja_yogas(
             if kl == knl or pair in seen:
                 continue
             if planet_rasi_map[kl] == planet_rasi_map[knl]:
-                seen.add(pair)
-                found.append(YogaResult(
-                    name="Raja Yoga", category="Raja",
-                    description=(
-                        f"Kendra lord {kl.full_name} ({_houses(kl_houses)}) "
-                        f"and kona lord {knl.full_name} ({_houses(knl_houses)}) "
-                        "in conjunction"),
-                    planets=(kl, knl), strength="strong",
-                ))
+                relation = "in conjunction"
+            elif (planet_rasi_map[knl] - planet_rasi_map[kl]) % 12 == 6:
+                # Mutual 7th aspect (symmetric): the second sambandha
+                # the primer promises. Exchanges stay with Parivartana.
+                relation = "in mutual aspect"
+            else:
+                continue
+            seen.add(pair)
+            found.append(YogaResult(
+                name="Raja Yoga", category="Raja",
+                description=(
+                    f"Kendra lord {kl.full_name} ({_houses(kl_houses)}) "
+                    f"and kona lord {knl.full_name} ({_houses(knl_houses)}) "
+                    f"{relation}"),
+                planets=(kl, knl), strength="medium",
+            ))
 
     return found
 
@@ -301,16 +316,24 @@ def _viparita_raja_yogas(
             continue
         trik_lords.append((lord, i + 1))
 
-    for i, (g1, h1) in enumerate(trik_lords):
-        for g2, h2 in trik_lords[i + 1:]:
-            if g1 != g2 and planet_rasi_map[g1] == planet_rasi_map[g2]:
-                found.append(YogaResult(
-                    name="Viparita Raja Yoga", category="Viparita Raja",
-                    description=(
-                        f"Trik lords {g1.full_name} ({_ordinal(h1)}) "
-                        f"and {g2.full_name} ({_ordinal(h2)}) in conjunction"),
-                    planets=(g1, g2), strength="medium",
-                ))
+    # A trik lord placed in a trik house forms the yoga (BPHS Harsha for
+    # the 6th lord, Sarala for the 8th, Vimala for the 12th) — placement,
+    # not conjunction. The own-sign case above already reported, so a
+    # lord in its own sign is not reported twice.
+    _VARIANT = {6: "Harsha", 8: "Sarala", 12: "Vimala"}
+    reported = {y.planets for y in found}
+    for g, h in trik_lords:
+        if (g,) in reported:
+            continue
+        placed = planet_house_map[g] + 1
+        if placed in (6, 8, 12):
+            found.append(YogaResult(
+                name="Viparita Raja Yoga", category="Viparita Raja",
+                description=(
+                    f"Trik lord {g.full_name} ({_ordinal(h)} lord) "
+                    f"in house {placed} ({_VARIANT[h]})"),
+                planets=(g,), strength="medium",
+            ))
     return found
 
 
@@ -370,7 +393,7 @@ def _sunapha_anapha_durudhara(
     planets_2nd = []
     planets_12th = []
     for g, r in planet_rasi_map.items():
-        if g == Graha.MOON:
+        if g not in _FLANKERS:
             continue
         sep = (r - moon_rasi) % 12
         if sep == 1:
@@ -412,7 +435,7 @@ def _vesi_vosi_ubhayachari(
     planets_2nd = []
     planets_12th = []
     for g, r in planet_rasi_map.items():
-        if g == Graha.SUN:
+        if g not in _FLANKERS:
             continue
         sep = (r - sun_rasi) % 12
         if sep == 1:
@@ -451,7 +474,7 @@ def _kemadruma(
     moon_rasi = planet_rasi_map[Graha.MOON]
     has_neighbor = False
     for g, r in planet_rasi_map.items():
-        if g == Graha.MOON:
+        if g not in _FLANKERS:
             continue
         sep = (r - moon_rasi) % 12
         if sep == 1 or sep == 11:
@@ -473,12 +496,17 @@ def _amala(
     planet_rasi_map: Dict[Graha, int],
     planet_house_map: Dict[Graha, int],
 ) -> List[YogaResult]:
+    """Amala Yoga — a natural benefic in the 10th from the lagna.
+
+    Only Jupiter, Venus and Mercury qualify (the file's benefic set;
+    the Moon is variable and the nodes never count, majority use).
+    """
     found = []
     for g, house in planet_house_map.items():
-        if house == 9:
+        if house == 9 and g in _BENEFICS:
             found.append(YogaResult(
                 name="Amala Yoga", category="Raja",
-                description=f"{g.full_name} in house 10 (bhava 10 counts from 1; house 9 in 0-indexed)",
+                description=f"{g.full_name} in house 10 from lagna",
                 planets=(g,), strength="medium",
             ))
     return found
@@ -620,6 +648,12 @@ def _kala_sarpa(
     cd: ChartData,
     planet_rasi_map: Dict[Graha, int],
 ) -> List[YogaResult]:
+    """Kala Sarpa / Kala Amrita — all planets hemmed on one half.
+
+    Either arc counts (majority use): Rahu-to-Ketu is Kala Sarpa,
+    Ketu-to-Rahu is Kala Amrita. Primer 6 describes the check, so the
+    engine now reports it instead of staying silent.
+    """
     if Graha.RAHU not in planet_rasi_map or Graha.KETU not in planet_rasi_map:
         return []
     rahu_rasi = planet_rasi_map[Graha.RAHU]
@@ -627,22 +661,26 @@ def _kala_sarpa(
     sep = (ketu_rasi - rahu_rasi) % 12
     if sep != 6:
         return []
-    all_between = True
-    for g in Graha:
-        if g not in planet_rasi_map or g in (Graha.RAHU, Graha.KETU):
-            continue
-        r = planet_rasi_map[Graha.RAHU]
-        k = planet_rasi_map[Graha.KETU]
-        gr = planet_rasi_map[g]
-        if sep == 6:
-            in_between = (r < gr < k) if r < k else (gr > r or gr < k)
-            if not in_between:
-                all_between = False
-                break
-    if all_between:
+    grahas = [g for g in Graha
+              if g in planet_rasi_map and g not in (Graha.RAHU, Graha.KETU)]
+
+    def hemmed(lo: int, hi: int) -> bool:
+        return all(
+            (lo < planet_rasi_map[g] < hi)
+            if lo < hi
+            else (planet_rasi_map[g] > lo or planet_rasi_map[g] < hi)
+            for g in grahas)
+
+    if hemmed(rahu_rasi, ketu_rasi) and not hemmed(ketu_rasi, rahu_rasi):
         return [YogaResult(
             name="Kala Sarpa Yoga", category="Kala Sarpa",
             description="All planets between Rahu and Ketu",
+            planets=(Graha.RAHU, Graha.KETU), strength="medium",
+        )]
+    if hemmed(ketu_rasi, rahu_rasi) and not hemmed(rahu_rasi, ketu_rasi):
+        return [YogaResult(
+            name="Kala Amrita Yoga", category="Kala Sarpa",
+            description="All planets between Ketu and Rahu",
             planets=(Graha.RAHU, Graha.KETU), strength="medium",
         )]
     return []
