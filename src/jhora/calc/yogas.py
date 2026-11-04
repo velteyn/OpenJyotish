@@ -44,7 +44,6 @@ _MALEFICS = {Graha.SUN, Graha.MARS, Graha.SATURN, Graha.RAHU, Graha.KETU}
 #: flanking bodies (primer 3, majority use).
 _FLANKERS = {Graha.MARS, Graha.MERCURY, Graha.JUPITER, Graha.VENUS,
               Graha.SATURN}
-_MALEFICS = {Graha.SUN, Graha.MARS, Graha.SATURN, Graha.RAHU, Graha.KETU}
 
 #: Upachaya (growth) houses, 0-indexed from the lagna.
 _UPACHAYA = {2, 5, 9, 10}
