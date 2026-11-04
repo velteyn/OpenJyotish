@@ -2,20 +2,16 @@
 
 All notable changes, newest first. Release tags: `vX.Y.Z`.
 
-## v1.11.0 — 2026-11-03
+## v1.12.0 — 2026-11-04
 
-### Fixed
-- Yoga doctrine wave (external issues #284, #288–#293, #298, contributor
-  out of time): Raja Yoga via conjunction or mutual 7th aspect graded
-  medium; Viparita is placement-based (Harsha/Sarala/Vimala); Amala
-  needs Jupiter/Venus/Mercury in the 10th; Kala Sarpa reported for both
-  arcs (Amrita named); flanking yogas and Kemadruma exclude luminaries
-  and nodes; dignities use natural friend/enemy (Vimsopaka inimical
-  scores quarter); Kuja Dosha cancelled by exalted Mars and whole-sign
-  Jupiter conjunction; PD-library test uses a fixed book. Primers 1/3/4/6/10
-  and the Gandhi retrospective updated to match the detector.
-
-## Unreleased
+### Added
+- Transit search: new `transit-search` CLI command answers "when"
+  questions — planet in a house from Moon/lagna, Parashara aspects on
+  a natal planet, Saturn Sade-Sati/dhaiya windows, sign ingresses —
+  over a date window with day-precision boundaries (retrograde
+  re-entries as separate intervals). New `transit_search` JSON
+  section (32 total) with Saturn periods ±8y plus a serializer for
+  arbitrary queries.
 
 ### Fixed
 - Knowledge refresh: edited primers now reach installed DBs (content
@@ -33,26 +29,25 @@ All notable changes, newest first. Release tags: `vX.Y.Z`.
   (two strong Raja Yogas; no Moon–Ketu conjunction). A new train-data
   test fails whenever a primer's verbatim quote drifts from
   `detect_all` (#285).
-
-## Unreleased
-
-### Added
-- Transit search: new `transit-search` CLI command answers "when"
-  questions — planet in a house from Moon/lagna, Parashara aspects on
-  a natal planet, Saturn Sade-Sati/dhaiya windows, sign ingresses —
-  over a date window with day-precision boundaries (retrograde
-  re-entries as separate intervals). New `transit_search` JSON
-  section (32 total) with Saturn periods ±8y plus a serializer for
-  arbitrary queries.
-
-## Unreleased
-
-### Fixed
 - Windows upgrades installed over the old folder, leaving stale
   files behind (v1.10.0's ghost `openjyotish.exe`, old Qt DLLs) —
   mixed trees render a half-styled window. The installer now wipes
   `{app}` first (user data lives in %APPDATA%, never there). If your
   window looks half-white, uninstall fully and reinstall fresh.
+
+## v1.11.0 — 2026-11-03
+
+### Fixed
+- Yoga doctrine wave (external issues #284, #288–#293, #298, contributor
+  out of time): Raja Yoga via conjunction or mutual 7th aspect graded
+  medium; Viparita is placement-based (Harsha/Sarala/Vimala); Amala
+  needs Jupiter/Venus/Mercury in the 10th; Kala Sarpa reported for both
+  arcs (Amrita named); flanking yogas and Kemadruma exclude luminaries
+  and nodes; dignities use natural friend/enemy (Vimsopaka inimical
+  scores quarter); Kuja Dosha cancelled by exalted Mars and whole-sign
+  Jupiter conjunction; PD-library test uses a fixed book. Primers 1/3/4/6/10
+  and the Gandhi retrospective updated to match the detector.
+
 
 ## v1.10.2 — 2026-09-26
 
